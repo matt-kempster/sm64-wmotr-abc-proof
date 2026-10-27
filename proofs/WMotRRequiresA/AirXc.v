@@ -28,6 +28,7 @@ From SM64.Proofs Require Import Interp.SymExec2 MarioModel.MathGeomGated MarioMo
   WMotRRequiresA.CeilList WMotRRequiresA.CeilExec
   WMotRRequiresA.WallFind WMotRRequiresA.WallExec
   WMotRRequiresA.TerrainSound.
+From SM64.Proofs.WMotRRequiresA Require FfBox.
 Import ListNotations.
 
 Section AX.
@@ -40,12 +41,12 @@ Variable m0 : mem.
 Variable uf : positive -> list (option val) -> Prop.
 Variable gp : meminj.
 Hypothesis gp_old : forall b x, gp b = Some x -> Plt b (Mem.nextblock m0).
-Variables rFI rMS rCL kW kH kS : positive.
+Variables rFI rMS rCL kW kH kS kX : positive.
 Variable szS : Z.
 
 (* THE TABLE *)
 Definition air_xc (id : ident) : option xcontract :=
-  if Pos.eqb id mario._find_floor then Some (c_ff nbase R0 rFI rMS rCL kW kH kS szS)
+  if Pos.eqb id mario._find_floor then Some (c_ff nbase R0 rFI rMS rCL kW kH kS kX szS)
   else if Pos.eqb id mario._find_ceil then Some (c_fc nbase R0 rCL kW szS)
   else if Pos.eqb id mario._find_water_level then Some xc_fresh
   else if Pos.eqb id mario._atan2s then Some xc_fresh
@@ -75,6 +76,8 @@ Hypothesis HUH : forall h yv, HPi (Hit_at ge m0) (ycast yv) h -> Hit_at ge m0 h 
   uf kH [Some (Vsingle h); Some yv].
 (* the surface fact's meaning *)
 Hypothesis HUS : forall vs, surf_on ge m0 vs -> uf kS vs.
+(* the box fact's meaning (FfBox.ff_hit_box) *)
+Hypothesis HUX : forall v, FfBox.s16box v -> uf kX [Some v].
 
 Lemma lookup_res : forall id f fd, resolves_to ge id f -> sfun_lookup ge id = Some fd -> fd = Internal f.
 Proof.
@@ -95,7 +98,7 @@ Proof.
   unfold air_xc in Hx.
   destruct (Pos.eqb_spec id mario._find_floor) as [-> | N1].
   { injection Hx as <-. rewrite (lookup_res _ _ _ Rff Hl) in Hev.
-    exact (c_ff_sound ge nbase R0 gtab kv m0 uf gp gp_old rFI rMS rCL kW kH kS szS HC Hffl HgFI HgMS HgCL HU HUS HUH
+    exact (c_ff_sound ge nbase R0 gtab kv m0 uf gp gp_old rFI rMS rCL kW kH kS kX szS HC Hffl HgFI HgMS HgCL HU HUS HUH HUX
              _ _ _ _ _ _ _ _ _ Hk MMh HF Hev). }
   destruct (Pos.eqb_spec id mario._find_ceil) as [-> | N2].
   { injection Hx as <-. rewrite (lookup_res _ _ _ Rfc Hl) in Hev.
@@ -180,7 +183,7 @@ Hypothesis LOr : linkorder mario.prog lp.
 
 (* THE TABLE IS SOUND on the real link: only the gtab entries (the consumer's
    own region table) and the world fact's meaning remain *)
-Theorem air_xc_sound_link : forall nbase R0 gtab kv m0 uf gp rFI rMS rCL kW kH kS szS,
+Theorem air_xc_sound_link : forall nbase R0 gtab kv m0 uf gp rFI rMS rCL kW kH kS kX szS,
   (forall b x, gp b = Some x -> Plt b (Mem.nextblock m0)) ->
   gfind gtab surface_collision._gFindFloorIncludeSurfaceIntangible = Some rFI ->
   gfind gtab surface_collision._gNumFindFloorMisses = Some rMS ->
@@ -189,22 +192,23 @@ Theorem air_xc_sound_link : forall nbase R0 gtab kv m0 uf gp rFI rMS rCL kW kH k
   (forall h yv, HPi (Hit_at (globalenv lp) m0) (ycast yv) h -> Hit_at (globalenv lp) m0 h ->
      uf kH [Some (Vsingle h); Some yv]) ->
   (forall vs, surf_on (globalenv lp) m0 vs -> uf kS vs) ->
+  (forall v, FfBox.s16box v -> uf kX [Some v]) ->
   forall id k args g cps fd E m vargs t m' vres,
-  air_xc nbase R0 rFI rMS rCL kW kH kS szS id = Some k -> k args g = Some cps ->
+  air_xc nbase R0 rFI rMS rCL kW kH kS kX szS id = Some k -> k args g = Some cps ->
   sfun_lookup (globalenv lp) id = Some fd ->
   MMg (globalenv lp) nbase R0 gtab kv m0 uf gp E m g ->
   Forall2 (fun a v => den (globalenv lp) m0 E a = Some v /\ sok nbase (g_nx g) a) args vargs ->
   eval_funcall function_entry2 (globalenv lp) m fd vargs t m' vres ->
   exists c, In c cps /\ CM (globalenv lp) nbase R0 gtab kv m0 uf gp E (g_nx g) (g_loc g) m' vres c.
 Proof.
-  intros nbase R0 gtab kv m0 uf gp rFI rMS rCL kW kH kS szS Hgp HgFI HgMS HgCL HU HUH HUS.
-  exact (air_xc_sound (globalenv lp) nbase R0 gtab kv m0 uf gp Hgp rFI rMS rCL kW kH kS szS
+  intros nbase R0 gtab kv m0 uf gp rFI rMS rCL kW kH kS kX szS Hgp HgFI HgMS HgCL HU HUH HUS HUX.
+  exact (air_xc_sound (globalenv lp) nbase R0 gtab kv m0 uf gp Hgp rFI rMS rCL kW kH kS kX szS
            (cenv_has_link lp LOs)
            (res_link lp _ _ _ LOs dm_ffl) (res_link lp _ _ _ LOs dm_fcl) (res_link lp _ _ _ LOs dm_wfl)
            (res_link lp _ _ _ LOm dm_al)
            (res_link lp _ _ _ LOs dm_ff) (res_link lp _ _ _ LOs dm_fc) (res_link lp _ _ _ LOs dm_wl)
            (res_link lp _ _ _ LOm dm_a2) (res_link lp _ _ _ LOr dm_ts) (res_link lp _ _ _ LOs dm_fw)
-           HgFI HgMS HgCL HU HUH HUS).
+           HgFI HgMS HgCL HU HUH HUS HUX).
 Qed.
 
 End LP.

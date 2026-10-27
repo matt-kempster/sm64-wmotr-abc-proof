@@ -421,8 +421,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
     collision finders, the double-miss NULL floor (carry "find_floor hits under Mario"; the
     find_floor half is PROVED, `FfComplete.ff_complete` from `Wff_dp` (death plane on every
     static floor cell, boot `StartTerrain.dp_chk`); open: the in-bounds pos fact in `ffw` and
-    `c_ff` dropping its NULL outcome; FOUND D, TRUST 0.8: the row's "fresh" claim is false on
-    the double miss until then), the DEATH warp it then fires (its contract is PROVED and
+    `c_ff` dropping its NULL outcome; FOUND D, TRUST 0.8: the row's old "fresh" claim was false
+    on the double miss; REPAIRED 2026-10-26 by B'': the post is now `floor_null \/ fresh`, ff_Wf is
+    `wfl` (a surface or NULL), and the real OOB guard skips the dispatch, `FrameSplit.hs_fc`; NULL
+    reader audit and the UB point mario.c:427 in TRUST 3.2), the DEATH warp it then fires (its contract is PROVED and
     staged, `LtwFrame.ltw_frame` (writes only ltw_ws + Mario's invincTimer), `ltw_cells`
     (op ∈ {18,19,20}, node ∈ {241,243} or untouched), `ltw_warp_w` (warp_w kept, incl. op ∉
     {0x17,0x18}); also for handle_special_floors' WARP_FLOOR) and

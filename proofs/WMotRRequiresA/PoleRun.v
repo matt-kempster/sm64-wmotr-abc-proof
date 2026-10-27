@@ -62,9 +62,9 @@ Definition kvP : list (positive * Z * memory_chunk * sval) :=
     (RU, HITBOX_H_OFF, Mfloat32, Sconst (Vsingle (Float32.of_int (Int.repr 820)))) ].
 Definition szSP : Z := szs g mario._Surface.
 Definition xcIP (id : ident) : option xcontract :=
-  if Pos.eqb id mario._find_floor then Some (c_ff2 NBP R0P RFI RMISS RCALLS kW kH kS kL szSP)
+  if Pos.eqb id mario._find_floor then Some (c_ff2 NBP R0P RFI RMISS RCALLS kW kH kS kX kL szSP)
   else if Pos.eqb id mario._find_ceil then Some (c_fc2 NBP R0P RCALLS kW kC szSP)
-  else air_xc NBP R0P RFI RMISS RCALLS kW kH kS szSP id.
+  else air_xc NBP R0P RFI RMISS RCALLS kW kH kS kX szSP id.
 Definition xcP (id : ident) : option xcontract :=
   match xcIP id with
   | Some k => Some k
@@ -119,6 +119,8 @@ Definition ufP (m0 : mem) (gp : meminj) : positive -> list (option val) -> Prop 
       | [Some (Vsingle p)] => F32 p = true /\ (-1000 <= R2 p)%R
       | _ => False
       end
+    else if Pos.eqb k kX then
+      match vs with [Some v] => FfBox.s16box v | _ => False end
     else False.
 
 (* each outcome: the move class, the kept world, the return *)
@@ -217,10 +219,13 @@ Qed.
 Lemma ufP_kY_out : forall vs, uf kYp vs -> exists y, vs = [Some (Vint y)] /\ (-1 <= Int.signed y <= 174)%Z.
 Proof. intros vs H. cbn in H. contradiction. Qed.
 
+Lemma ufP_kX_in : forall v, FfBox.s16box v -> uf kX [Some v].
+Proof. intros v H. exact H. Qed.
+
 Let XSI := air_xc_sound_link lp (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
              (linked12_LO_mario lp H12) NBP (R0P G) gtabP (kvP acn G) m0 uf gp
-             RFI RMISS RCALLS kW kH kS (szs G mario._Surface) GPO eq_refl eq_refl eq_refl
-             ufP_kW ufP_kH_in ufP_kS.
+             RFI RMISS RCALLS kW kH kS kX (szs G mario._Surface) GPO eq_refl eq_refl eq_refl
+             ufP_kW ufP_kH_in ufP_kS ufP_kX_in.
 
 (* THE TABLE IS SOUND on the real link *)
 Theorem xcP_sound : forall id k args g cps fd E m vargs t m' vres,
@@ -236,10 +241,10 @@ Proof.
     destruct (Pos.eqb_spec id mario._find_floor) as [-> | N1].
     { injection Xi as <-.
       rewrite (sfun_res_h _ _ _ _ (res_link lp _ _ _ (linked12_LO_surf lp H12) dm_ff) Hl) in EV.
-      exact (c_ff2_sound G NBP (R0P G) gtabP (kvP acn G) m0 uf gp GPO RFI RMISS RCALLS kW kH kS kL
+      exact (c_ff2_sound G NBP (R0P G) gtabP (kvP acn G) m0 uf gp GPO RFI RMISS RCALLS kW kH kS kX kL
                (szs G mario._Surface) (cenv_has_link lp (linked12_LO_surf lp H12))
                (res_link lp _ _ _ (linked12_LO_surf lp H12) dm_ffl) eq_refl eq_refl eq_refl
-               ufP_kW ufP_kS ufP_kH_in ufP_kL_in args g cps E m vargs t m' vres Hk MM HA EV). }
+               ufP_kW ufP_kS ufP_kH_in ufP_kX_in ufP_kL_in args g cps E m vargs t m' vres Hk MM HA EV). }
     destruct (Pos.eqb_spec id mario._find_ceil) as [-> | N2].
     { injection Xi as <-.
       rewrite (sfun_res_h _ _ _ _ (res_link lp _ _ _ (linked12_LO_surf lp H12) dm_fc) Hl) in EV.

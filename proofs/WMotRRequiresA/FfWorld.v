@@ -41,7 +41,7 @@ From SM64.Generated Require mario surface_collision memory camera audio_external
   game_init libultra_osContInit mario_actions_moving object_list_processor area.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel Generic.ClosedMem.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight FloorExec AirMatch AirStart RetOk.
-From SM64.Proofs.WMotRRequiresA Require FfComplete.
+From SM64.Proofs.WMotRRequiresA Require FfComplete FfBox.
 Import ListNotations.
 
 (* the level-phase globals the frame world pins (lvl_w below): blocks of
@@ -128,6 +128,15 @@ Definition ff_rl (bm bo : block) (oo : ptrofs) (bfi bmiss bcalls ab bt biom bmq 
 Definition wblk (m : mem) (rl : list (option val)) (v : val) (n : Z) : Prop :=
   exists b o, v = Vptr b o /\ Plt b (Mem.nextblock m) /\ 0 <= n
     /\ Ptrofs.unsigned o + n <= Ptrofs.modulus /\ ~ rblk rl b.
+
+(* m->floor: a world surface, or NULL (design B'', 2026-10-26).  NULL
+   only after update_mario_inputs found no floor twice (Mario out of
+   bounds: mario.c update_mario_geometry_inputs, which then calls
+   level_trigger_warp(m, WARP_OP_DEATH)); execute_mario_action then
+   returns before the dispatch (its `if (gMarioState->floor == NULL)
+   return 0;`), so no handler runs with a NULL floor (FrameSplit) *)
+Definition wfl (m : mem) (rl : list (option val)) (v : val) : Prop :=
+  wblk m rl v SZ_SURFACE \/ v = Vint Int.zero.
 
 (* ---- the frame world's witnesses, as one record (2026-10-24) ----------- *)
 (* HOW TO ADD AN ffw FACT (see also .claude/skills/proof-discipline):
@@ -235,7 +244,7 @@ Record ffw_facts (m : mem) (d : ffw_wit) : Prop := mk_ffw_facts {
   ff_W : Wff G m (fw_gp d) SZ_SURFACE (ff_rl_of bm d);
   (* m->floor, m->area *)
   ff_Lf : Mem.load Mint32 m bm FFW_FLOOR = Some (fw_fl d);
-  ff_Wf : wblk m (ff_rl_of bm d) (fw_fl d) SZ_SURFACE;
+  ff_Wf : wfl m (ff_rl_of bm d) (fw_fl d);
   (* m->wall, m->ceil *)
   ff_Wc0 : forall off sb so, off = FFW_WALL \/ off = FFW_CEIL -> Mem.load Mint32 m bm off = Some (Vptr sb so) ->
              ~ rblk (ff_rl_of bm d) sb;
@@ -448,7 +457,7 @@ Definition ffw_kept_s (d : ffw_wit) (m m' : mem) : Prop :=
 (* the surface cells after: the floor a world surface (of the old memory),
    the wall and the ceiling, when pointers, off the regions *)
 Definition ffw_surf_ok (d : ffw_wit) (m m' : mem) : Prop :=
-  (exists fl', Mem.load Mint32 m' bm FFW_FLOOR = Some fl' /\ wblk m (ff_rl_of bm d) fl' SZ_SURFACE)
+  (exists fl', Mem.load Mint32 m' bm FFW_FLOOR = Some fl' /\ wfl m (ff_rl_of bm d) fl')
   /\ (forall off sb so, off = FFW_WALL \/ off = FFW_CEIL ->
         Mem.load Mint32 m' bm off = Some (Vptr sb so) -> ~ rblk (ff_rl_of bm d) sb)
   /\ (forall off sb so, off = FFW_WALL \/ off = FFW_CEIL \/ off = FFW_FLOOR ->
@@ -459,6 +468,12 @@ Lemma wblk_mono : forall m m' rl v n, Ple (Mem.nextblock m) (Mem.nextblock m') -
 Proof.
   intros m m' rl v n H (b & o & -> & P & R). exists b, o.
   split; [reflexivity |]. split; [exact (Plt_Ple_trans _ _ _ P H) | exact R].
+Qed.
+
+Lemma wfl_mono : forall m m' rl v, Ple (Mem.nextblock m) (Mem.nextblock m') ->
+  wfl m rl v -> wfl m' rl v.
+Proof.
+  intros m m' rl v H [W | Z]; [left; exact (wblk_mono _ _ _ _ _ H W) | right; exact Z].
 Qed.
 
 Lemma ffw_surf_ok_kept : forall m m' d, ffw_facts m d ->
@@ -515,7 +530,7 @@ Proof.
   unfold ffw_hh in HH'.
   eapply mk_ffw_facts; ffw_simpl;
     first [ assumption | exact HC' | exact W' | exact Lf' | exact WC' | exact SP'
-          | exact (wblk_mono _ _ _ _ _ Hnb Wf')
+          | exact (wfl_mono _ _ _ _ Hnb Wf')
           | apply (wblk_mono _ _ _ _ _ Hnb); assumption
           | apply Hinc; assumption
           | let id := fresh "id" in let b := fresh "b" in let Hs := fresh "Hs" in
@@ -964,7 +979,50 @@ Definition inputs_ok (bm : block) (m : mem) : Prop :=
   Mem.load Mint16signed m bm WL_OFF = Some (Vint (Int.repr (-11000)))
   /\ forall inp, Mem.load Mint16unsigned m bm 2 = Some (Vint inp) -> Int.and inp (Int.repr 64) = Int.zero.
 
-Definition fresh (bm : block) (m : mem) : Prop := fresh_fl bm m /\ inputs_ok bm m.
+(* ... and m->floor is a pointer (design B'', 2026-10-26): the dispatch
+   runs only past execute_mario_action's `floor == NULL` return, and every
+   handler writes m->floor only from a find_floor that hit *)
+Definition floor_nn (bm : block) (m : mem) : Prop :=
+  exists b o, Mem.load Mint32 m bm FFW_FLOOR = Some (Vptr b o).
+
+Definition floor_null (bm : block) (m : mem) : Prop :=
+  Mem.load Mint32 m bm FFW_FLOOR = Some (Vint Int.zero).
+
+Lemma floor_nn_keep : forall bm m m',
+  Mem.load Mint32 m' bm FFW_FLOOR = Mem.load Mint32 m bm FFW_FLOOR -> floor_nn bm m -> floor_nn bm m'.
+Proof. intros bm m m' E (b & o & L). exists b, o. rewrite E. exact L. Qed.
+
+Lemma floor_nn_of : forall bm m m0 fl rl n,
+  Mem.load Mint32 m bm FFW_FLOOR = Some fl -> wblk m0 rl fl n -> floor_nn bm m.
+Proof. intros bm m m0 fl rl n L (b & o & -> & _). exists b, o. exact L. Qed.
+
+Lemma floor_null_keep : forall bm m m',
+  Mem.load Mint32 m' bm FFW_FLOOR = Mem.load Mint32 m bm FFW_FLOOR -> floor_null bm m -> floor_null bm m'.
+Proof. intros bm m m' E L. unfold floor_null. rewrite E. exact L. Qed.
+
+(* a non-NULL floor is a world surface *)
+Lemma ffw_floor_w : forall G bm m d, ffw_facts G bm m d -> floor_nn bm m ->
+  wblk m (ff_rl_of bm d) (fw_fl d) SZ_SURFACE.
+Proof.
+  intros G bm m d F (b & o & L). destruct (ff_Wf _ _ _ _ F) as [W | Z]; [exact W |].
+  pose proof (ff_Lf _ _ _ _ F) as Lf. rewrite L, Z in Lf. discriminate Lf.
+Qed.
+
+(* Mario's pos x / z in find_floor's s16 box (FfBox.s16box): what a
+   handler that keeps it gives (BoxCheck, conditional on the entry) *)
+Definition OFS_POSX : Z := 60.
+Definition OFS_POSZ : Z := 68.
+Definition pos_box (bm : block) (m : mem) : Prop :=
+  forall z, z = OFS_POSX \/ z = OFS_POSZ -> exists v, Mem.load Mfloat32 m bm z = Some v /\ FfBox.s16box v.
+
+Definition fresh (bm : block) (m : mem) : Prop := fresh_fl bm m /\ inputs_ok bm m /\ floor_nn bm m.
+
+Lemma fresh_mk : forall bm m, fresh_fl bm m -> inputs_ok bm m -> floor_nn bm m -> fresh bm m.
+Proof. intros bm m A B C. exact (conj A (conj B C)). Qed.
+Lemma fresh_inputs : forall bm m, fresh bm m -> inputs_ok bm m.
+Proof. intros bm m H. exact (proj1 (proj2 H)). Qed.
+Lemma fresh_floor_nn : forall bm m, fresh bm m -> floor_nn bm m.
+Proof. intros bm m H. exact (proj2 (proj2 H)). Qed.
 
 Lemma fresh_fro : forall bm m y fh, fresh bm m ->
   Mem.load Mfloat32 m bm OFS_POSY = Some (Vsingle y) ->
@@ -988,13 +1046,16 @@ Definition fresh_at (bm : block) (m : mem) : Prop :=
   (forall a, Mem.load Mint32 m bm 12 = Some (Vint a) ->
     (Int.and a (Int.repr 448) = Int.repr 128 \/ Int.and a (Int.repr 448) = Int.repr 320) ->
     fresh_fl bm m)
-  /\ inputs_ok bm m.
+  /\ inputs_ok bm m /\ floor_nn bm m.
 
 Lemma fresh_at_of : forall bm m, fresh bm m -> fresh_at bm m.
-Proof. intros bm m (H & I). split; [intros a _ _; exact H | exact I]. Qed.
+Proof. intros bm m (H & I & N). split; [intros a _ _; exact H | exact (conj I N)]. Qed.
 
 Lemma fresh_at_inputs : forall bm m, fresh_at bm m -> inputs_ok bm m.
-Proof. intros bm m H. exact (proj2 H). Qed.
+Proof. intros bm m H. exact (proj1 (proj2 H)). Qed.
+
+Lemma fresh_at_floor_nn : forall bm m, fresh_at bm m -> floor_nn bm m.
+Proof. intros bm m H. exact (proj2 (proj2 H)). Qed.
 
 (* the airborne half *)
 Lemma fresh_at_air : forall bm m a, fresh_at bm m -> Mem.load Mint32 m bm 12 = Some (Vint a) ->
@@ -1022,11 +1083,12 @@ Lemma fresh_ret : forall bm m0 m' vres, fresh bm m0 -> RET bm m0 m' vres ->
   (Mem.load Mint32 m0 bm 12 = Some (Vint (Int.repr SB_ACT)) -> vres = Vint Int.zero) ->
   Mem.load Mint16signed m' bm WL_OFF = Mem.load Mint16signed m0 bm WL_OFF ->
   Mem.load Mint16unsigned m' bm 2 = Mem.load Mint16unsigned m0 bm 2 ->
+  floor_nn bm m' ->
   vres = Vint Int.zero \/ fresh bm m'.
 Proof.
-  intros bm m0 m' vres (F & I) [Z | (Y & H)] S K1 K2; [left; exact Z |].
+  intros bm m0 m' vres (F & I & _) [Z | (Y & H)] S K1 K2 NN; [left; exact Z |].
   destruct (Val.eq vres (Vint Int.zero)) as [Z | NZ]; [left; exact Z | right].
-  split; [| exact (inputs_ok_keep bm m0 m' K1 K2 I)].
+  refine (conj _ (conj (inputs_ok_keep bm m0 m' K1 K2 I) NN)).
   intros y fh Ly Lf. rewrite Y in Ly. rewrite H in Lf.
   destruct (F y fh Ly Lf) as (A & [B | B]); [exfalso; exact (NZ (S B)) |].
   split; [exact A | right; exact B].
@@ -1039,9 +1101,10 @@ Lemma fresh_ret_ns : forall bm m0 m' vres n,
   fresh bm m0 -> RET bm m0 m' vres ->
   Mem.load Mint16signed m' bm WL_OFF = Mem.load Mint16signed m0 bm WL_OFF ->
   Mem.load Mint16unsigned m' bm 2 = Mem.load Mint16unsigned m0 bm 2 ->
+  floor_nn bm m' ->
   vres = Vint Int.zero \/ fresh bm m'.
 Proof.
-  intros bm m0 m' vres n L N F R K1 K2. apply (fresh_ret bm m0 m' vres F R); [| exact K1 | exact K2].
+  intros bm m0 m' vres n L N F R K1 K2 NN. apply (fresh_ret bm m0 m' vres F R); [| exact K1 | exact K2 | exact NN].
   intros L'. rewrite L in L'. assert (E : Int.repr n = Int.repr SB_ACT) by congruence.
   rewrite E, Int.eq_true in N. discriminate N.
 Qed.

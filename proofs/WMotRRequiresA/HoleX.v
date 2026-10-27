@@ -243,7 +243,7 @@ Section HX.
           * exact (Wc0 FFW_WALL sb so (or_introl eq_refl) Hl).
           * exact (Wc0 FFW_CEIL sb so (or_intror eq_refl) Hl).
           * change FLOOR_OFF with FFW_FLOOR in Hl. rewrite Lf in Hl. injection Hl as ->.
-            destruct Wf as (b' & o' & E & _ & _ & _ & Nr). injection E as <- _. exact Nr.
+            destruct Wf as [(b' & o' & E & _ & _ & _ & Nr) | E]; [| exfalso; congruence]. injection E as <- _. exact Nr.
       - intros bc oc Hl. rewrite Lc in Hl. injection Hl as ->.
         destruct Wc as (b' & o' & E & _ & _ & _ & Nr). injection E as <- _.
         destruct (NR bc Nr) as (A & B & C). split; [exact A |]. split; [| exact C].
@@ -268,11 +268,12 @@ Section HX.
 
     Lemma hx_fresh_at : fresh_at bm m -> fresh_at bm m'.
     Proof.
-      intros (H & I). split.
+      intros (H & I & N). split.
       - intros a La Hg. hxm_in La. intros y fh Ly Lf. hxm_in Ly. hxm_in Lf.
         destruct (H a La Hg y fh Ly Lf) as (A & [B | B]); (split; [exact A |]);
           [left; hxm; exact B | right; exact B].
-      - apply (inputs_ok_keep bm m m'); [hxm; reflexivity | hxm; reflexivity | exact I].
+      - split; [apply (inputs_ok_keep bm m m'); [hxm; reflexivity | hxm; reflexivity | exact I] |].
+        apply (floor_nn_keep bm m m'); [hxm; reflexivity | exact N].
     Qed.
 
     (* the frame world's own fact *)

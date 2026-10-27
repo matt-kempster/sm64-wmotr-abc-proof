@@ -2059,7 +2059,7 @@ Section Witness.
                | split; neq | lvl_cases Hin; split; neq ].
       - exact wff11.
       - exact L_floor.
-      - exists bs, Ptrofs.zero. split; [ reflexivity | ].
+      - left. exists bs, Ptrofs.zero. split; [ reflexivity | ].
         split; [ exact (fresh_lt _ (or_intror (or_introl eq_refl))) | ].
         split; [ unfold SZ_SURFACE; lia | ].
         split; [ unfold SZ_SURFACE; vm_compute; discriminate | ].

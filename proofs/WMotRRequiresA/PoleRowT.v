@@ -149,6 +149,9 @@ Proof.
   intros m t m' vres c0 Vm (Ha & HW & Han & Hmob & Hd & FW & UO & AW & LV) RC Hbud Hact Hfr EV.
   pose proof FW as (Hgn & EX & FD).
   ffw_unpack EX.
+  (* the floor is a pointer at the dispatch (fresh), so a world surface *)
+  pose proof (ffw_floor_w G bm m _ FWF (fresh_floor_nn bm m Hfr)) as Wf0. ffw_simpl_in Wf0.
+  clear Wf. rename Wf0 into Wf.
   destruct (KbRow.ff_layout lp H12) as (FO & FA & FF & FAr & FH & FR & ZO & ZS & ZA & ZM & ZD).
   destruct (aud_sym lp H12) as (bau & S9).
   destruct (SymbolicLinking.linkorder_resolves_symbol lp AUT.prog _ _ (linked12_LO_aut lp H12) dm_bt)
@@ -637,10 +640,12 @@ Proof.
   assert (CM : forall o ch, In (RM, o, ch) (fk_same RM RO RLD) -> Mem.load ch m' bm o = Mem.load ch m bm o).
   { intros o ch Hin. pose proof (FC _ _ _ Hin) as H. rewrite EM1, EM2 in H. exact H. }
   (* the outcome: FALSE, or the floor and the input cells kept *)
-  split; [| change (e_blk E RM) with bm in RT;
-            exact (fresh_ret_ns bm m m' vres acn Hact
+  assert (FIN : floor_nn bm m' -> vres = Vint Int.zero \/ fresh bm m')
+    by (intros NN1; change (e_blk E RM) with bm in RT; exact (fresh_ret_ns bm m m' vres acn Hact
                      ltac:(destruct Hpa as [E0 | [E0 | [E0 | [E0 | [E0 | [E0 | []]]]]]]; rewrite <- E0; reflexivity)
-                     Hfr RT (CM WL_OFF Mint16signed ltac:(mem_tac)) (CM 2 Mint16unsigned ltac:(mem_tac)))].
+                     Hfr RT (CM WL_OFF Mint16signed ltac:(mem_tac)) (CM 2 Mint16unsigned ltac:(mem_tac)) NN1)).
+  enough (FWN : (fworld lp bm m' /\ floor_nn bm m') /\ exists c2, read_cells bm m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2)
+    by (destruct FWN as ((FW1 & NN1) & C2); exact (conj (conj FW1 C2) (FIN NN1))).
   split; [| exists c2; split; [exact RC2 | apply Relation_Operators.rt_step; exact RM2]].
   assert (CO : forall o ch, In (RO, o, ch) (fk_same RM RO RLD) ->
              Mem.load ch m' bo (Ptrofs.unsigned oo + o) = Mem.load ch m bo (Ptrofs.unsigned oo + o)).
@@ -771,6 +776,7 @@ Proof.
       exists b, o. split; [reflexivity |]. split; [exact Pb |]. split; [clear; unfold SZ_SURFACE; lia |].
       split; [exact Hsz | exact Hr]. }
   destruct FLR as (fl' & Lf' & Wf' & Sf').
+  split; [| exact (floor_nn_of bm m' m fl' RL0 SZ_SURFACE Lf' Wf')].
   (* ---- usedObj at m' ---- *)
   assert (UO' : WMotRWorld.used_ok bm m').
   { destruct RC2 as (A2 & _ & _ & _ & Vy2 & _). change (e_blk E RM) with bm in A2, Vy2.
@@ -875,7 +881,7 @@ Proof.
         first [ solve [apply CM; mem_tac] | solve [apply CL; mem_tac]
               | solve [change FFW_COLL with COLL_OFF; apply COLL; assumption]
               | solve [apply CO; mem_tac] ].
-    + split; [exists fl'; split; [exact Lf' | exact Wf'] |]. split; [| exact SPg].
+    + split; [exists fl'; split; [exact Lf' | left; exact Wf'] |]. split; [| exact SPg].
       intros off sb so Hoff Hl2.
       destruct (SB off sb so ltac:(destruct Hoff as [-> | ->]; auto) Hl2) as [H | Hr]; [| exact Hr].
       exact (Wc0 off sb so Hoff H).
