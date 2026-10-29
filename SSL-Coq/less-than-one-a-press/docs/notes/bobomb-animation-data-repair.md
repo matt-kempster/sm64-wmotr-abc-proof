@@ -14,6 +14,14 @@ the Coq pipeline. The selected integrated audit and the additional standalone
 receiver/JP-initialization checks also pass.
 No survival or wrong-warp result is claimed.
 
+**Initialization follow-up:** [the separate US/JP initialization proof](bobomb-selected-initialization.md),
+validated at `42d55ad`, now supplies successful initialization and the real
+table loads together for both selected programs, with no initialization-success
+hypothesis. Audit `20261029-135749-oykqytoh` passes all five selected queries.
+The conditional table-read lemma and repair receipt below remain the historical
+repair record; the new note and receipt record the stronger existence result.
+This does not supply boot, scheduled animation execution, survival or a wrong warp.
+
 ## Source-faithful change
 
 `inputs/bobomb_animation_data.c` is a data-only slice of `actors/common0.c`.

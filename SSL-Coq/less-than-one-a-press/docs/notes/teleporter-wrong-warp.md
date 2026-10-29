@@ -19,10 +19,15 @@ now selects its real definition. The positive certificate checks exact
 bindings for all seven animation globals and derives the two table-pointer
 loads and NULL-sentinel load from successful initialized memory. The selected
 construction, MainTheorem and selected audit `20261029-124714-_515wa5e` pass
-with the established limits. The existing JP initializer-existence theorem
-also supplies a satisfying initialized memory, with no explicit hypotheses;
-its separate assumption check passes. No scheduled animation-call witness is
-claimed.
+with the established limits. The [successful-initialization follow-up](bobomb-selected-initialization.md),
+validated at `42d55ad`, now proves successful initialization of the selected
+US program too. Combined with the existing JP theorem, it supplies, for each
+version, an initialized memory with both real animation-pointer loads and the
+NULL-sentinel load, without an initialization-success hypothesis. The new
+MainTheorem boundary and all five selected queries pass audit
+`20261029-135749-oykqytoh`; the new boundary uses five allowed foundations and
+no project axiom. These are global-memory witnesses, not boot or scheduled
+animation-call witnesses.
 The initial-table obstruction is repaired, but the earlier completed-call
 theorems still do not witness a normally reached scheduled ANIMATE(0): script
 and converted-pointer provenance, later memory preservation and the remaining

@@ -148,8 +148,9 @@ theorems lift external `Callstate` steps and direct `Sbuiltin` steps after
   game-init/object-list receipts establish only existence of the five core
   symbols; and `USSelectedTargetAudit.v` closes
   `SelectedTargetAuditTransportObligation` under exact US version/program
-  hypotheses.  Repaired-US initialization, source/refinement and viewport-repair
-  execution lockstep, boundary-start chronology, and
+  hypotheses. Repaired-US global-memory initialization now has an existence
+  witness; source/refinement and viewport-repair execution lockstep,
+  boundary-start chronology, and
   selected-to-retail semantics remain open.
 
 `ClightProjectionChronology.v` adds data-bearing frame chunks under one fixed
@@ -2129,7 +2130,10 @@ Eyerok, breakable-box, exclamation-box-outline, cannon-lid, and
 wooden-signpost arrays. A final data-only `inputs/bobomb_animation_data.c`
 imports the original Bob-omb animation values, indices, records and table;
 see the [linking correction](docs/notes/bobomb-animation-data-repair.md) for
-the exact selected-program certificate and its initialization condition.
+the exact selected-program certificate. The [initialization follow-up](docs/notes/bobomb-selected-initialization.md)
+proves successful initialization and the real table loads together for both
+selected versions, with no initialization-success hypothesis. This is no boot,
+scheduled update, survival or wrong-warp witness.
 The last four meshes are new inputs to the stock
 Area-1 owner-envelope proof.  This expands the imported surface for movement,
 entry action dispatch, Mario quarter steps, Eyerok behavior, and
@@ -2239,7 +2243,7 @@ clightgen -normalize -nostdinc -fstruct-passing \
   audit is checked, reducing the JP selected-target boundary to the generic
   target refinement obligation.  The repaired-US selected-target audit is also
   checked conditionally on `VersionUS` and the exact repaired program, but the
-  repaired-US initialization and source-to-selected execution lockstep, a
+  source-to-selected execution lockstep, a
   concrete `ClightObservationProjection`, and a
   `ClightFrameRefinementCertificate` remain open.  `ImportedClightRun` is a
   finite `Smallstep.star` fragment and is not by itself tied to the selected
@@ -2383,8 +2387,9 @@ clightgen -normalize -nostdinc -fstruct-passing \
   This reduces the official-JP selected-target boundary to the generic target
   refinement obligation without proving observer/chronology/prefix or retail
   semantics.  The repaired-US actual-program syntax/five-core-symbol-existence
-  audit is now checked; repaired-US initialization/source-to-selected execution
-  lockstep, memory shape/content/block correspondence, and both selected-to-retail
+  audit is now checked; repaired-US global initialization exists, while
+  source-to-selected execution lockstep, memory shape/content/block
+  correspondence, and both selected-to-retail
   refinements remain open.
   Exact unresolved function-constructor and variable atoms, and the required
   original-to-cleaned refinement, are documented in
@@ -2403,8 +2408,9 @@ clightgen -normalize -nostdinc -fstruct-passing \
   reference and constructor coverage.  Generic relocation-aware initialization
   and relocation-load transport are now proved.  The concrete name-based
   source-to-official initial-memory injection remains open for both versions;
-  separately, the official cleaned JP target now has a constructive
-  `Genv.init_mem` witness.
+  separately, both the official cleaned JP and viewport-repaired US targets now
+  have `Genv.init_mem` witnesses, with initialized Bob-omb table loads certified
+  in the same memory for each version.
 - CompCert external-call execution is transported across `symbols_inject` and
   `Mem.inject`, with injected results/memories, growing and separated
   injections, and `loc_unmapped`/`loc_out_of_reach` preservation.  This does not

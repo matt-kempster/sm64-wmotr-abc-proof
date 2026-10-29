@@ -1,0 +1,354 @@
+{
+  "schema_version": 1,
+  "review_date": "2026-10-29",
+  "status": "PASS: successful selected US/JP initialization and initialized Bob-omb table witnesses",
+  "baseline_commit": "bc2afde44980c1f4d8f5db98388e3ac71dec4ed3",
+  "validated_source_commit": "42d55ad9d696c948263aa05b6ae386e212089d0a",
+  "source_pin": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "preceding_real_data_source_commit": "dff3531af566f37a3d48fd444e883a257a237846",
+  "environment": {
+    "wsl_distribution": "Ubuntu",
+    "opam_switch": "sm64-item-proof",
+    "coq": "8.16.1",
+    "compcert": "3.15",
+    "memory_cap_kb": 6815744,
+    "build_timeout_seconds": 600,
+    "assumption_timeout_seconds": 240
+  },
+  "selected_programs": {
+    "VersionUS": "us_viewport_repaired_program",
+    "VersionJP": "jp_official_cleaned_slice"
+  },
+  "program_construction_changed": false,
+  "generated_sources_changed": false,
+  "checked_unchanged_paths": [
+    "generated",
+    "inputs",
+    "proofs/LinkedClightPrograms.v",
+    "proofs/CleanedClightPrograms.v",
+    "proofs/NormalizedClightPrograms.v",
+    "proofs/USWholeASTTagRepair.v",
+    "proofs/SelectedClightTarget.v",
+    "proofs/BobombAnimationLink.v"
+  ],
+  "new_registered_proof_modules": [
+    "proofs/USInitializerReceipt01.v",
+    "proofs/USInitializerReceipt02.v",
+    "proofs/USInitializerReceipt03.v",
+    "proofs/USInitializerReceipt04.v",
+    "proofs/USInitializerReceipt05.v",
+    "proofs/USInitializerReceipt06.v",
+    "proofs/USInitializerReceipt07.v",
+    "proofs/USInitializerReceipt08.v",
+    "proofs/USInitializerReceipt09.v",
+    "proofs/USInitializerReceipt10.v",
+    "proofs/USInitializerReceipt11.v",
+    "proofs/USInitializerReceipt12.v",
+    "proofs/USInitializerAggregate.v",
+    "proofs/USRepairedInitialMemory.v",
+    "proofs/SelectedClightInitialMemory.v",
+    "proofs/BobombAnimationInitialization.v"
+  ],
+  "us_source_unit_alignment_receipts": [
+    "us_game_init",
+    "us_mario",
+    "us_mario_actions_airborne",
+    "us_mario_actions_automatic",
+    "us_mario_actions_cutscene",
+    "us_mario_actions_moving",
+    "us_mario_actions_object",
+    "us_mario_actions_stationary",
+    "us_mario_actions_submerged",
+    "us_mario_step",
+    "us_interaction",
+    "us_save_file",
+    "us_object_collision",
+    "us_object_list_processor",
+    "us_behavior_script",
+    "us_level_script",
+    "us_graph_node",
+    "us_rendering_graph_node",
+    "us_spawn_object",
+    "us_object_helpers",
+    "us_debug",
+    "us_memory",
+    "us_mario_misc",
+    "us_obj_behaviors",
+    "us_obj_behaviors_2",
+    "us_behavior_actions",
+    "us_behavior_data",
+    "us_area",
+    "us_level_update",
+    "us_platform_displacement",
+    "us_math_util",
+    "us_surface_collision",
+    "us_surface_load",
+    "us_macro_special_objects",
+    "us_ssl_script",
+    "us_ssl_area1_macro",
+    "us_ssl_area2_macro",
+    "us_ssl_collision",
+    "us_bobomb_animation_data"
+  ],
+  "us_alignment_scope": "All 39 actual generated US units, not JP alignment assumptions; source provenance and initializer-preserving viewport repair transport alignment to the actual US target.",
+  "us_relocation_dependency": "Existing us_repaired_init_addrof_identifier_resolves resolves every relocation in the actual selected US target.",
+  "existence_construction": "ProgramInitialMemoryConditions and the existing program_initial_memory_exists_from_conditions wrapper around CompCert Genv.init_mem_exists; no full initialized-memory computation.",
+  "exact_public_theorem_statements": [
+    "Theorem us_viewport_repaired_initial_memory_exists :\n  exists memory,\n    Genv.init_mem us_viewport_repaired_program = Some memory.",
+    "Theorem selected_clight_initial_memory_exists : forall version,\n  exists memory,\n    Genv.init_mem (selected_clight_target version) = Some memory.",
+    "Theorem selected_bobomb_animation_initialized_table_exists : forall version,\n  exists memory table_block anim0_block anim1_block,\n    Genv.init_mem (selected_clight_target version) = Some memory /\\\n    Genv.find_symbol (Clight.globalenv (selected_clight_target version))\n      bal_table_id = Some table_block /\\\n    Genv.find_symbol (Clight.globalenv (selected_clight_target version))\n      bal_anim0_id = Some anim0_block /\\\n    Genv.find_symbol (Clight.globalenv (selected_clight_target version))\n      bal_anim1_id = Some anim1_block /\\\n    Mem.load Mptr memory table_block 0 = Some (Vptr anim0_block Ptrofs.zero) /\\\n    Mem.load Mptr memory table_block 4 = Some (Vptr anim1_block Ptrofs.zero) /\\\n    Mem.load Mint32 memory table_block 8 = Some (Vint Int.zero)."
+  ],
+  "main_theorem": "LessThanOneAPress.Proofs.MainTheorem.current_bobomb_animation_initialization_boundary",
+  "explicit_initialization_success_hypothesis": false,
+  "new_boundary_allowed_foundations": [
+    "Axioms.proof_irr",
+    "ClassicalDedekindReals.sig_forall_dec",
+    "ClassicalDedekindReals.sig_not_dec",
+    "Classical_Prop.classic",
+    "FunctionalExtensionality.functional_extensionality_dep"
+  ],
+  "project_specific_axioms": [],
+  "direct_checks": [
+    {
+      "command": "CHECK_TIMEOUT=120 bash pipeline/check.sh proofs/USRepairedInitialMemory.v",
+      "exit_code": 0
+    },
+    {
+      "command": "CHECK_TIMEOUT=180 bash pipeline/check.sh proofs/BobombAnimationInitialization.v",
+      "exit_code": 0
+    },
+    {
+      "command": "timeout 240 bash pipeline/assumptions.sh LessThanOneAPress.Proofs.USRepairedInitialMemory us_viewport_repaired_initial_memory_exists",
+      "exit_code": 0,
+      "allowed_foundations": [
+        "Axioms.proof_irr",
+        "ClassicalDedekindReals.sig_forall_dec",
+        "ClassicalDedekindReals.sig_not_dec",
+        "Classical_Prop.classic",
+        "FunctionalExtensionality.functional_extensionality_dep"
+      ]
+    },
+    {
+      "command": "timeout 240 bash pipeline/assumptions.sh LessThanOneAPress.Proofs.BobombAnimationInitialization bobomb_animation_initialization_boundary_checked",
+      "exit_code": 0,
+      "allowed_foundations": [
+        "Axioms.proof_irr",
+        "ClassicalDedekindReals.sig_forall_dec",
+        "ClassicalDedekindReals.sig_not_dec",
+        "Classical_Prop.classic",
+        "FunctionalExtensionality.functional_extensionality_dep"
+      ]
+    }
+  ],
+  "baseline_audit": {
+    "id": "20261029-133557-v0gjzaa9",
+    "passed": true,
+    "assumption_queries": 4
+  },
+  "integrated_audit": {
+    "id": "20261029-135749-oykqytoh",
+    "command": "bash pipeline/discipline-check.sh --build-timeout 600 --assumption-timeout 240 LessThanOneAPress.Proofs.MainTheorem current_bobomb_animation_initialization_boundary LessThanOneAPress.Proofs.MainTheorem current_bobomb_animation_link_boundary LessThanOneAPress.Proofs.MainTheorem current_ink_backward_execution_boundary LessThanOneAPress.Proofs.InkRetryQuery irq_retry_connects_display_to_real_floor_call LessThanOneAPress.Proofs.InkVerticalRetryGeometry ivr_vertical_retry_geometry_checked",
+    "exit_code": 0,
+    "passed": true,
+    "checks": [
+      {
+        "name": "source inventory",
+        "status": "PASS",
+        "detail": "702 source files; 0 inventory problems",
+        "problems": []
+      },
+      {
+        "name": "build",
+        "status": "PASS",
+        "detail": "exit 0; see build.log"
+      },
+      {
+        "name": "proof holes",
+        "status": "PASS",
+        "detail": "exit 0; includes untracked source files"
+      },
+      {
+        "name": "link hygiene",
+        "status": "PASS",
+        "detail": "exit 0; includes untracked source files"
+      },
+      {
+        "name": "assumptions LessThanOneAPress.Proofs.MainTheorem.current_bobomb_animation_initialization_boundary",
+        "status": "PASS",
+        "detail": "5 allowed foundations; see assumptions-1.log",
+        "axioms": [
+          "Axioms.proof_irr",
+          "ClassicalDedekindReals.sig_forall_dec",
+          "ClassicalDedekindReals.sig_not_dec",
+          "Classical_Prop.classic",
+          "FunctionalExtensionality.functional_extensionality_dep"
+        ]
+      },
+      {
+        "name": "assumptions LessThanOneAPress.Proofs.MainTheorem.current_bobomb_animation_link_boundary",
+        "status": "PASS",
+        "detail": "5 allowed foundations; see assumptions-2.log",
+        "axioms": [
+          "Axioms.proof_irr",
+          "ClassicalDedekindReals.sig_forall_dec",
+          "ClassicalDedekindReals.sig_not_dec",
+          "Classical_Prop.classic",
+          "FunctionalExtensionality.functional_extensionality_dep"
+        ]
+      },
+      {
+        "name": "assumptions LessThanOneAPress.Proofs.MainTheorem.current_ink_backward_execution_boundary",
+        "status": "PASS",
+        "detail": "9 allowed foundations; see assumptions-3.log",
+        "axioms": [
+          "Axioms.proof_irr",
+          "ClassicalDedekindReals.sig_forall_dec",
+          "ClassicalDedekindReals.sig_not_dec",
+          "Classical_Prop.classic",
+          "Events.external_functions_properties",
+          "Events.external_functions_sem",
+          "Events.inline_assembly_properties",
+          "Events.inline_assembly_sem",
+          "FunctionalExtensionality.functional_extensionality_dep"
+        ]
+      },
+      {
+        "name": "assumptions LessThanOneAPress.Proofs.InkRetryQuery.irq_retry_connects_display_to_real_floor_call",
+        "status": "PASS",
+        "detail": "7 allowed foundations; see assumptions-4.log",
+        "axioms": [
+          "Axioms.proof_irr",
+          "ClassicalDedekindReals.sig_forall_dec",
+          "ClassicalDedekindReals.sig_not_dec",
+          "Classical_Prop.classic",
+          "Events.external_functions_sem",
+          "Events.inline_assembly_sem",
+          "FunctionalExtensionality.functional_extensionality_dep"
+        ]
+      },
+      {
+        "name": "assumptions LessThanOneAPress.Proofs.InkVerticalRetryGeometry.ivr_vertical_retry_geometry_checked",
+        "status": "PASS",
+        "detail": "4 allowed foundations; see assumptions-5.log",
+        "axioms": [
+          "ClassicalDedekindReals.sig_forall_dec",
+          "ClassicalDedekindReals.sig_not_dec",
+          "Classical_Prop.classic",
+          "FunctionalExtensionality.functional_extensionality_dep"
+        ]
+      },
+      {
+        "name": "integration",
+        "status": "PASS",
+        "detail": "536/622 modules in MainTheorem's import closure; 86 standalone-only; 0 problems",
+        "problems": []
+      }
+    ],
+    "integration": {
+      "proof_modules": 622,
+      "main_import_closure": 536,
+      "standalone_only": 86,
+      "problems": []
+    }
+  },
+  "staging_issues": [
+    {
+      "log": "build/bobomb-us-init-witness-build.log",
+      "result": "Stopped the task-owned slow Coq worker to diagnose implicit in_map_iff inference over the enormous definition list."
+    },
+    {
+      "log": "build/bobomb-us-init-timing.log",
+      "result": "Diagnostic CHECK_TIMEOUT=90 reported Result: 124 before the same broad membership tactic finished; not a successful validation.",
+      "correction": "Fully instantiated the same in_map_iff lemma; no theorem or condition change. Final CHECK_TIMEOUT=120 passes."
+    },
+    {
+      "log": "build/bobomb-us-init-boundary-build.log",
+      "result": "Compile failure: Clight.program coercion unavailable.",
+      "correction": "Imported Ctypes in SelectedClightInitialMemory."
+    },
+    {
+      "log": "build/bobomb-us-init-boundary-build-2.log",
+      "result": "Compile failure: table offsets parsed as nat.",
+      "correction": "Imported ZArith in BobombAnimationInitialization."
+    }
+  ],
+  "hash_convention": "SHA-256 of actual local UTF-8 file bytes at validation; Git may normalize CRLF to LF on checkout. Log files are local build evidence, not committed artifacts.",
+  "source_file_sha256": {
+    "proofs/USInitializerReceipt01.v": "7c3f360234c35f00331151ae46a9dc03eddaefad3f935c2d711c2afe41a9aef1",
+    "proofs/USInitializerReceipt02.v": "fa2a4e118763f43f96c7c6adf26b5f2fc043bf0451f9f833be4187ba432dee6b",
+    "proofs/USInitializerReceipt03.v": "de3f18ee4a2362583cf29acdb45a303c78d22dfafb0f94777bc4bc596a82bdae",
+    "proofs/USInitializerReceipt04.v": "d1cff6a4c77cfba72ff13b2ea841c7eeaaa3ee01f13cd0c49fc1ec7ca06f46f5",
+    "proofs/USInitializerReceipt05.v": "3e00868ca4454833332b14fee8f5a0544f6a25c58cd64a826c8bbd7d60ec0917",
+    "proofs/USInitializerReceipt06.v": "b20d6f1881ddb7fa694d79dfa27f29a6220fcce093b044474a7a8aa9cb066016",
+    "proofs/USInitializerReceipt07.v": "42586edcda7467ca7ebff2445c39c8d6a1e7fcd9ddd6c4a9357233c06df1db20",
+    "proofs/USInitializerReceipt08.v": "b5869f079f655e592847459e61bddee9b91ecb758062283b5e25c8a79a3f6914",
+    "proofs/USInitializerReceipt09.v": "f674fbdd9ab133f765ec6d10802c44c2140319bf9468ed2095beda23de7dd1ea",
+    "proofs/USInitializerReceipt10.v": "15c65dd90629f5a852ea3a2643aac19b042403b2bfe3b4feb00b6af0a62375f8",
+    "proofs/USInitializerReceipt11.v": "5f66fddb014fa80a84ce6b4dfcb7ef387fde92ab8d831d696cefbb8ceeb35a34",
+    "proofs/USInitializerReceipt12.v": "7f35e432289c3c73506f46926a97399d58ba451b49d2c304c1c6437020078dff",
+    "proofs/USInitializerAggregate.v": "543569a1f57d572f2c11c57a7fc261f9dd7be47ea778e1270681c05f9ada57d6",
+    "proofs/USRepairedInitialMemory.v": "958ecba89c2b7ae79a4ca983d8a53d959508f58ea5bfba19bfadbd11ecc77b0e",
+    "proofs/SelectedClightInitialMemory.v": "2429d4c2dd1ed27e31b3ec80b4a724dc26175870634ad1091c6e395ca9a604bb",
+    "proofs/BobombAnimationInitialization.v": "6a9f53c94b6e3b5e6318d5fd5ffd128f8fc5583ee4f23498f5777b87da7ca147",
+    "_CoqProject": "55bbf1d3844bf9c3d970a5043e67889073985bcafdbe8303bcea8a82bb086d25",
+    "proofs/MainTheorem.v": "b285cb8f1835423d926feb095bbaa70d655aa78263374af21fb253dd218cf270",
+    "proofs/ClightInitialMemoryFacts.v": "ed563a1bc77bcdf9ccb372baa021d1e937bea778e17d03051f39c28e2d47540a",
+    "proofs/ClightInitialMemoryExistence.v": "f705ae708a41dc29d302724ae65539b5299bda7ffa4bdd1ca54b17cd9eb695d5",
+    "proofs/ClightInitializerInventoryFacts.v": "67afbf3a78c839f7ad8620b35a499114011c9751b779ba06d7fb05821c469d63",
+    "proofs/JPInitializerAggregate.v": "03fe6b32bae0cbcb9ce7f392b98650814795a4529bc0cf5505f6592f99065f57",
+    "proofs/USRepairedInitAddrofAudit.v": "9a570b914488465f85e77f6f16b029fb93a64ff59a0dc7c3bcc53e97e6fcca33",
+    "proofs/JPOfficialInitialMemory.v": "b11c6f254fb750ab696a42a01a61cf2c7ab22a97885e0fa8f8de834ac651ee9d",
+    "proofs/USWholeASTTagRepair.v": "2ec78b60f5d45082e7a3f743b2ee281ebd83f80070b11b16e1777972f96393a9",
+    "proofs/USViewportRepairedProgramSelection.v": "6430e7c3d9d1f14b8464672e0e2a691e2dd1f8f2d47540f5f1e33a7c98f3e9b6",
+    "proofs/SelectedClightTarget.v": "86e427a3f06a406c5cf7ce9dcd3e528a95d7dd6ac080f19afc812d5f65b8e7fb",
+    "proofs/LinkedClightPrograms.v": "ad6a3d6174646eab4028d5b62e69d768e3c68e804ba52ffe15bb4fbb2c857c93",
+    "proofs/NormalizedClightPrograms.v": "5843d85625e07d7dd994506df3549785bdee10c3c3987f7f87b8f55c878fd7c9",
+    "proofs/CleanedClightPrograms.v": "351262190e2bac92183a5c050105b5c1454e60f6eba55a1cfc5d669a42ccabc3",
+    "proofs/BobombAnimationLink.v": "9ba5a34763159a51186371f36c883bce4efd8ce7af7202657ed632e96df04d7f"
+  },
+  "local_log_sha256": {
+    "build/bobomb-us-init-baseline-audit.log": "c33fcdb0a06c92748663ace4ce3720e0e5e427711d1d441bedeed953564eb803",
+    "build/bobomb-us-init-boundary-build-2.log": "54abc35360723d7749d15339534760e186dedeefb7f82a159d09ad6dd6f7aeb9",
+    "build/bobomb-us-init-boundary-build.log": "a7a72fc80a07cd96417005ec722b5e166cc0917efd1d1302859dae5c2a70bdcc",
+    "build/bobomb-us-init-combined-assumptions.log": "dd15110246632799b8541bae63b61f19cf7f879e844e956ed19f8ffa8521bac4",
+    "build/bobomb-us-init-combined-check.log": "a76dc97ed696d35250b0284c9b5dd8c54010a9817618614dcce6226f5bd188b7",
+    "build/bobomb-us-init-exists-assumptions.log": "dd15110246632799b8541bae63b61f19cf7f879e844e956ed19f8ffa8521bac4",
+    "build/bobomb-us-init-final-audit.log": "79c19a96c5f270bdb895014801e305123fb955b240a75e84a843a2c2fdf182e6",
+    "build/bobomb-us-init-timing-2.log": "daeb41207ec58c93b3b3e573a46f272e605a2d84b6508248658fca3be630f73c",
+    "build/bobomb-us-init-timing.log": "1169f82743cd927dc40c165b34775aed645a3f5d6b412666481002fedff33e72",
+    "build/bobomb-us-init-witness-build.log": "91b82d2d9f68ab9cb4545a298822599edabaf108fb4396dd5c238bb6bc75ffc6",
+    "build/check/USRepairedInitialMemory.log": "6a12ce4e69af3faf0ffc8dba5bfb108160ce098dad4769b67d211027ca623b1c",
+    "build/check/BobombAnimationInitialization.log": "fe295dc14611d31585f14db1fc4dcbb1a35c38b1741276819421984df04a089b",
+    "build/audit/20261029-135749-oykqytoh/assumptions-1.log": "19a0660201eb38b4a7bed8657e9319b96fb9102e93f3587f538ef136bc908960",
+    "build/audit/20261029-135749-oykqytoh/assumptions-2.log": "95b22ba1c42f2e741ec5f3e80d014822cf3be40f42ab6051e50c1079b721a24c",
+    "build/audit/20261029-135749-oykqytoh/assumptions-3.log": "52fc6623062942a968b3916e6006f673ab8b14b2d9acdb17d5c053d27e5e178d",
+    "build/audit/20261029-135749-oykqytoh/assumptions-4.log": "7d31ca589cf4f497c49c46d66cb59c742ca2ce19d58447dd109da8ff3a8dbb77",
+    "build/audit/20261029-135749-oykqytoh/assumptions-5.log": "4ac9589f441632f3faceb6aff805093e99e9b7f437981e38abc7cd2eb800e1d2",
+    "build/audit/20261029-135749-oykqytoh/build.log": "be2351e23ee07202c55cd0a9c7930f2eef5379ccfbc46546d8ab961221eb0c8d",
+    "build/audit/20261029-135749-oykqytoh/interfaces.txt": "1784cf9301318b58900dbd0ba96e2a5f5c9b1cb0cbece8d5b0c2e95bde6000d6",
+    "build/audit/20261029-135749-oykqytoh/link-hygiene.log": "881c849a7ffd92ef9394aa7ce405d60cf82da89d2e3f2e2701cb2f6e5e2b7dff",
+    "build/audit/20261029-135749-oykqytoh/proof-holes.log": "3a1da265d29743f908c9eb52da42ef7565e792fbce8fdd9e3d952d4a544e081e",
+    "build/audit/20261029-135749-oykqytoh/report.json": "291d5509b5ef92628eb8d73684e2afaa222b56b7bb28032819e9ec55c1ade0ea",
+    "build/audit/20261029-135749-oykqytoh/summary.txt": "f48910fc9e600d3f2cdf8b3807b062d0a67c2ad30b6efc9af20bc0022cfef077",
+    "build/audit/20261029-133557-v0gjzaa9/report.json": "3998a51113cae7f0c9fb5b52362af62ed94dbf64001a8a441a1d7b7efdc0243a",
+    "build/audit/20261029-133557-v0gjzaa9/summary.txt": "e7f08e1dc12529fdb531b20b2f0d402b133661e588b638499f083efcf7975be0"
+  },
+  "scope": {
+    "established": "For each of VersionUS and VersionJP, there exists a successful Genv.init_mem result and, in that same memory, the two real animation pointer loads and the NULL sentinel load. The earlier seven exact global bindings remain certified.",
+    "not_established": [
+      "SM64 boot or scheduled Bob-omb update",
+      "Normally reached LOAD_ANIMATIONS/ANIMATE execution",
+      "Segmented-pointer conversion provenance",
+      "Later animation-index bounds or preservation through writes",
+      "All other actor-data dependencies",
+      "Source-to-selected or selected-to-retail execution refinement",
+      "Complete Bob-omb survival",
+      "Usable Area-2 regrab",
+      "Reachable wrong warp"
+    ],
+    "mario_render_frame_changed": false,
+    "teleporter_audio_ownership_lifetime_changed": false,
+    "gameplay_verdict": "open",
+    "all_45_route_estimates_and_verdicts_unchanged": true
+  }
+}
