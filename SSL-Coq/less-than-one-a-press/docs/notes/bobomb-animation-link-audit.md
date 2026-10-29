@@ -1,10 +1,18 @@
 # Bob-omb animation data: selected US/JP link audit
 
+> Historical result for the programs through checkpoint
+> `18765cf81dfeaf2b489183876a1db6162578d6f8`. The subsequent
+> [real-data linking correction](bobomb-animation-data-repair.md) adds the
+> missing assets to both selected programs and replaces the negative active
+> certificate with a positive one. The statements and validation receipt
+> below describe the old programs. The historical Coq source is preserved at
+> [that checkpoint](https://github.com/tra38/sm64-wmotr-abc-proof/blob/18765cf81dfeaf2b489183876a1db6162578d6f8/SSL-Coq/less-than-one-a-press/proofs/BobombAnimationLink.v).
+
 Review date: 29 October 2026. Starting proof checkpoint:
 `87caa6637548c7505d82cde1e6764feb0267bdb4`.
 Generated C source pin: `9921382a68bb0c865e5e45eb594d9c64db59b1af`.
 
-**Both selected SSL programs have a real missing-data dependency.** The symbol
+**Both selected SSL programs at the reviewed checkpoint have a real missing-data dependency.** The symbol
 `bobomb_seg8_anims_0802396C` resolves, but its selected global initializer is
 empty. Thus it supplies no readable animation-pointer entry. The fail-closed
 certificate below exposes that condition without changing generated files,
@@ -56,7 +64,7 @@ annotation nor existence of a symbol establishes a readable table entry.
 
 ## What the new Coq boundary says
 
-The active module is `proofs/BobombAnimationLink.v`, registered in `_CoqProject`
+At that checkpoint the module is `proofs/BobombAnimationLink.v`, registered in `_CoqProject`
 and imported/consumed by
 `MainTheorem.current_bobomb_animation_link_boundary`. The old conditional
 memory-frame statements retain their original types.
@@ -134,7 +142,7 @@ external declaration types/read-only metadata during regeneration.
 named object closure; `vm_data_args_linked` checks the data operands of
 reachable LOAD_ANIMATIONS, LOAD_COLLISION_DATA and SPAWN_WATER_DROPLET states.
 
-SSL's actual 38-unit construction includes no actor-animation data unit.
+SSL's reviewed 38-unit construction includes no actor-animation data unit.
 Its existing name/relocation-resolution checks do not impose the upstream
 nonempty-data condition. This patch checks the specific reported dependency
 on both actual selected targets; it does not claim to transplant upstream's
@@ -151,7 +159,9 @@ requested fail-closed alternative and leaves that program correction explicit.
 
 ## Imports and reproducible validation
 
-For a downstream proof, use:
+For historical reproduction at `18765cf`, use the following imports and
+commands. These negative theorem names apply to that checkout; current
+downstream proofs should use the [positive repair boundary](bobomb-animation-data-repair.md).
 
 ```coq
 From LessThanOneAPress.Proofs Require Import BobombAnimationLink.

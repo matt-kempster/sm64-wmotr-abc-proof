@@ -39,11 +39,11 @@ from the linked run, plus writer/non-alias/external-frame, terrain-dispatch,
 live-owner, and lifecycle projections, remains open, so the installer-lineage
 item is not complete.
 
-The project generates 38 Clight translation units for each target version.
+The project generates 39 Clight translation units for each target version.
 CompCert 3.15's unmodified `link_list` is proved to fail on both original
 complete lists: the first right-associated AST-program failure is the
 `ssl_script` join at index 34, and the first composite-definition failure is
-the `area` join at index 27.  A deterministic audit finds 402 US and 401 JP
+the `area` join at index 27.  A deterministic audit finds 403 US and 402 JP
 duplicate public variables with unequal generated types.
 `NormalizedClightPrograms.v` constructs executable US/JP semantic candidates
 by selecting definitions and composites deterministically; those values are
@@ -2108,7 +2108,7 @@ remain in scope; reachable unresolved externals need a concrete effect or
 frame.  See the checked boundary and route triage in
 [`docs/compcert-execution-scope.md`](docs/compcert-execution-scope.md).
 
-Thirty-eight translation units are generated for each version, for 76 Clight
+Thirty-nine translation units are generated for each version, for 78 Clight
 modules total: `game_init.c`, `mario.c`, the seven
 `mario_actions_{airborne,automatic,cutscene,moving,object,stationary,submerged}.c`
 units,
@@ -2126,7 +2126,11 @@ units,
 wrapper importing the area-1/area-2/area-3 collision arrays and the
 route-relevant pyramid-top, tox-box, grindel, spindel, moving-wall, elevator,
 Eyerok, breakable-box, exclamation-box-outline, cannon-lid, and
-wooden-signpost arrays.  The last four meshes are new inputs to the stock
+wooden-signpost arrays. A final data-only `inputs/bobomb_animation_data.c`
+imports the original Bob-omb animation values, indices, records and table;
+see the [linking correction](docs/notes/bobomb-animation-data-repair.md) for
+the exact selected-program certificate and its initialization condition.
+The last four meshes are new inputs to the stock
 Area-1 owner-envelope proof.  This expands the imported surface for movement,
 entry action dispatch, Mario quarter steps, Eyerok behavior, and
 static/dynamic collision analysis.  `clightgen` translates every function and
@@ -2181,8 +2185,8 @@ SM64_SOURCE=/path/to/sm64 bash pipeline/build.sh verify-generated
 
 The pipeline exports the pinned commit with `git archive`, so uncommitted files
 in the source checkout are not translated.  `verify-generated` requires
-exactly 38 modules per version, rejects extra generated `.v` files, hashes the
-committed output, regenerates all 76 modules, and requires byte-for-byte
+exactly 39 modules per version, rejects extra generated `.v` files, hashes the
+committed output, regenerates all 78 modules, and requires byte-for-byte
 identity.
 
 The command executed per unit is structurally:
@@ -2364,10 +2368,10 @@ clightgen -normalize -nostdinc -fstruct-passing \
   those literals, but a formal call-graph irrelevance/refinement proof is still
   pending.
 - CompCert 3.15's unmodified `link_list` has now been executed at the
-  AST-program and composite-definition layers for all 38 selected units per
+  AST-program and composite-definition layers for all 39 selected units per
   version, and kernel-checked failure certificates are proved for US and JP.
   The first AST failure is the `ssl_script`/SSL-data join; the broader audit
-  records 402 US and 401 JP duplicate public variables with unequal generated
+  records 403 US and 402 JP duplicate public variables with unequal generated
   types (principally incomplete extern arrays versus complete definitions).
   Source-owned cleaned US and JP unit lists now have kernel-checked structural
   inhabitants proving that unmodified `link_list` returns the corresponding

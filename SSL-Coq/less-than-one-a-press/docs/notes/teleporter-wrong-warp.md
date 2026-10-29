@@ -9,19 +9,26 @@ does not close the pyramid proof's existing JP spawning-displacement routes.
 
 ## Hands-free Bob-ombs, the lower entrance and Goomba-clone knockback
 
-### Separate animation-link applicability audit (29 October 2026)
+### Real Bob-omb animation-data correction (29 October 2026)
 
-The [selected-program animation audit](bobomb-animation-link-audit.md) finds
-that both actual SSL targets retain an empty Bob-omb animation-table global.
-A symbol exists, but there are no readable animation entries. The new
-fail-closed certificate passes the standalone and integrated selected pipeline
-checks and does not repair the program.
-Consequently the earlier theorems about completed local Bob-omb/native calls
-must not be read as witnesses that the authentic scheduled script completes
-ANIMATE(0). Connecting that script and its converted table pointer to the
-selected execution remains essential. This is a data-link issue, separate
-from the audio, ownership, allocation and lifetime premises below; none is
-discharged by this finding, and no survival or wrong-warp claim is made.
+The [real-data correction](bobomb-animation-data-repair.md) adds the pinned
+Bob-omb animation files to both actual selected targets, following the
+[earlier missing-data audit](bobomb-animation-link-audit.md). The original
+empty external declaration remains unchanged; the existing linker construction
+now selects its real definition. The positive certificate checks exact
+bindings for all seven animation globals and derives the two table-pointer
+loads and NULL-sentinel load from successful initialized memory. The selected
+construction, MainTheorem and selected audit `20261029-124714-_515wa5e` pass
+with the established limits. The existing JP initializer-existence theorem
+also supplies a satisfying initialized memory, with no explicit hypotheses;
+its separate assumption check passes. No scheduled animation-call witness is
+claimed.
+The initial-table obstruction is repaired, but the earlier completed-call
+theorems still do not witness a normally reached scheduled ANIMATE(0): script
+and converted-pointer provenance, later memory preservation and the remaining
+scene/execution conditions need their own evidence. Audio, ownership,
+allocation and lifetime premises below are unchanged. Complete Bob-omb
+survival, usable regrab and a reachable wrong warp remain open.
 
 ### Assumption-query timeout follow-up (21 October 2026)
 
