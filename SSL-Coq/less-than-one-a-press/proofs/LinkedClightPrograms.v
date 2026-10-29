@@ -13,6 +13,7 @@ From LessThanOneAPress.Generated Require Import
   us_level_update us_platform_displacement us_math_util
   us_surface_collision us_surface_load us_macro_special_objects
   us_ssl_script us_ssl_area1_macro us_ssl_area2_macro us_ssl_collision
+  us_bobomb_animation_data
   jp_game_init jp_mario
   jp_mario_actions_airborne jp_mario_actions_automatic
   jp_mario_actions_cutscene jp_mario_actions_moving
@@ -24,7 +25,8 @@ From LessThanOneAPress.Generated Require Import
   jp_obj_behaviors_2 jp_behavior_actions jp_behavior_data jp_area
   jp_level_update jp_platform_displacement jp_math_util
   jp_surface_collision jp_surface_load jp_macro_special_objects
-  jp_ssl_script jp_ssl_area1_macro jp_ssl_area2_macro jp_ssl_collision.
+  jp_ssl_script jp_ssl_area1_macro jp_ssl_area2_macro jp_ssl_collision
+  jp_bobomb_animation_data.
 
 (** CompCert's [Ctypes.link_program] contains a proof-produced composite
     environment, so the executable compatibility checks are audited through
@@ -122,7 +124,8 @@ Definition us_units : nlist Clight.program :=
   (ncons us_ssl_script.prog
   (ncons us_ssl_area1_macro.prog
   (ncons us_ssl_area2_macro.prog
-    (nbase us_ssl_collision.prog))))))))))))))))))))))))))))))))))))).
+  (ncons us_ssl_collision.prog
+    (nbase us_bobomb_animation_data.prog)))))))))))))))))))))))))))))))))))))).
 
 Definition jp_units : nlist Clight.program :=
   ncons jp_game_init.prog
@@ -162,7 +165,8 @@ Definition jp_units : nlist Clight.program :=
   (ncons jp_ssl_script.prog
   (ncons jp_ssl_area1_macro.prog
   (ncons jp_ssl_area2_macro.prog
-    (nbase jp_ssl_collision.prog))))))))))))))))))))))))))))))))))))).
+  (ncons jp_ssl_collision.prog
+    (nbase jp_bobomb_animation_data.prog)))))))))))))))))))))))))))))))))))))).
 
 Definition option_is_some {A : Type} (value : option A) : bool :=
   match value with Some _ => true | None => false end.
@@ -299,14 +303,14 @@ Record GeneratedClightCoverageManifest : Type := {
 
 Definition us_generated_coverage_manifest : GeneratedClightCoverageManifest :=
   {| coverage_units := us_units;
-     coverage_unit_count := 38%nat;
+     coverage_unit_count := 39%nat;
      coverage_count_exact := eq_refl;
      coverage_ast_link_succeeds := us_ast_link_succeeds;
      coverage_composite_link_succeeds := us_composite_link_succeeds |}.
 
 Definition jp_generated_coverage_manifest : GeneratedClightCoverageManifest :=
   {| coverage_units := jp_units;
-     coverage_unit_count := 38%nat;
+     coverage_unit_count := 39%nat;
      coverage_count_exact := eq_refl;
      coverage_ast_link_succeeds := jp_ast_link_succeeds;
      coverage_composite_link_succeeds := jp_composite_link_succeeds |}.

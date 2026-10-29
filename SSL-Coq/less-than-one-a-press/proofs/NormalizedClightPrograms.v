@@ -165,7 +165,7 @@ Qed.
 
 (** The executable construction uses CompCert's positive-key trie instead of
     the specification list fold above.  This avoids quadratic normalization
-    over the repeated declarations in 38 generated translation units. *)
+    over the repeated declarations in 39 generated translation units. *)
 Definition global_definition_map := PTree.t (globdef Clight.fundef type).
 
 Definition insert_preferred_global_definition_map
@@ -802,21 +802,21 @@ Definition identifiers_unique (ids : list ident) : bool :=
   identifiers_unique_from (PTree.empty _) ids.
 
 Theorem us_normalized_definition_count_checked :
-  length us_normalized_global_definitions = 4334%nat.
+  length us_normalized_global_definitions = 4340%nat.
 Proof. vm_compute. reflexivity. Qed.
 
 Theorem jp_normalized_definition_count_checked :
-  length jp_normalized_global_definitions = 4317%nat.
+  length jp_normalized_global_definitions = 4323%nat.
 Proof. vm_compute. reflexivity. Qed.
 
 Theorem us_normalized_definition_classes_checked :
   selected_class_counts us_normalized_global_definitions =
-    (2567%nat, 227%nat, 1069%nat, 157%nat, 314%nat).
+    (2567%nat, 227%nat, 1076%nat, 157%nat, 313%nat).
 Proof. vm_compute. reflexivity. Qed.
 
 Theorem jp_normalized_definition_classes_checked :
   selected_class_counts jp_normalized_global_definitions =
-    (2561%nat, 226%nat, 1060%nat, 156%nat, 314%nat).
+    (2561%nat, 226%nat, 1067%nat, 156%nat, 313%nat).
 Proof. vm_compute. reflexivity. Qed.
 
 Theorem us_internal_identifiers_are_unique_checked :
