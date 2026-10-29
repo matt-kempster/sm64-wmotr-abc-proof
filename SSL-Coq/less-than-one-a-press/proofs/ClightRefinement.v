@@ -13,7 +13,7 @@ From LessThanOneAPress.Generated Require Import
   us_level_update us_platform_displacement us_math_util us_surface_collision
   us_surface_load
   us_macro_special_objects us_ssl_script
-  us_ssl_area1_macro us_ssl_area2_macro us_ssl_collision
+  us_ssl_area1_macro us_ssl_area2_macro us_ssl_collision us_bobomb_animation_data
   jp_game_init jp_mario jp_mario_actions_airborne jp_mario_actions_automatic
   jp_mario_actions_cutscene
   jp_mario_actions_moving jp_mario_actions_object jp_mario_actions_stationary
@@ -26,7 +26,7 @@ From LessThanOneAPress.Generated Require Import
   jp_level_update jp_platform_displacement jp_math_util jp_surface_collision
   jp_surface_load
   jp_macro_special_objects jp_ssl_script
-  jp_ssl_area1_macro jp_ssl_area2_macro jp_ssl_collision.
+  jp_ssl_area1_macro jp_ssl_area2_macro jp_ssl_collision jp_bobomb_animation_data.
 From LessThanOneAPress.Proofs Require Import
   GameTypes InputSemantics CleanEntry AreaTransitions.
 
@@ -63,7 +63,7 @@ Definition us_translation_units : list Clight.program :=
     us_surface_collision.prog; us_surface_load.prog;
     us_macro_special_objects.prog; us_ssl_script.prog;
     us_ssl_area1_macro.prog; us_ssl_area2_macro.prog;
-    us_ssl_collision.prog ].
+    us_ssl_collision.prog; us_bobomb_animation_data.prog ].
 
 Definition jp_translation_units : list Clight.program :=
   [ jp_game_init.prog; jp_mario.prog; jp_mario_actions_airborne.prog;
@@ -83,14 +83,14 @@ Definition jp_translation_units : list Clight.program :=
     jp_surface_collision.prog; jp_surface_load.prog;
     jp_macro_special_objects.prog; jp_ssl_script.prog;
     jp_ssl_area1_macro.prog; jp_ssl_area2_macro.prog;
-    jp_ssl_collision.prog ].
+    jp_ssl_collision.prog; jp_bobomb_animation_data.prog ].
 
 Theorem us_translation_unit_count :
-  length us_translation_units = 38%nat.
+  length us_translation_units = 39%nat.
 Proof. reflexivity. Qed.
 
 Theorem jp_translation_unit_count :
-  length jp_translation_units = 38%nat.
+  length jp_translation_units = 39%nat.
 Proof. reflexivity. Qed.
 
 Definition target_translation_units (version : GameVersion) : list Clight.program :=

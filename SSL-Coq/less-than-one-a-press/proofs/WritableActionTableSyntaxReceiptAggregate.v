@@ -69,7 +69,8 @@ Proof.
   constructor; [exact (proj1 watsc_ssl_script_unit_receipt) |].
   constructor; [exact (proj1 watsc_ssl_area1_macro_unit_receipt) |].
   constructor; [exact (proj1 watsc_ssl_area2_macro_unit_receipt) |].
-  constructor. exact (proj1 watsc_ssl_collision_unit_receipt).
+  constructor; [exact (proj1 watsc_ssl_collision_unit_receipt) |].
+  constructor. exact (proj1 watsc_bobomb_animation_data_unit_receipt).
 Qed.
 
 Theorem watsc_jp_source_units_covered :
@@ -113,7 +114,8 @@ Proof.
   constructor; [exact (proj2 watsc_ssl_script_unit_receipt) |].
   constructor; [exact (proj2 watsc_ssl_area1_macro_unit_receipt) |].
   constructor; [exact (proj2 watsc_ssl_area2_macro_unit_receipt) |].
-  constructor. exact (proj2 watsc_ssl_collision_unit_receipt).
+  constructor; [exact (proj2 watsc_ssl_collision_unit_receipt) |].
+  constructor. exact (proj2 watsc_bobomb_animation_data_unit_receipt).
 Qed.
 
 Lemma watsc_source_units_covered_member :

@@ -2,7 +2,7 @@
 
     This file closes a scope ambiguity in the earlier quicksand audit.  The
     per-file theorems in [JPQuicksandDepth] covered the Mario/action units;
-    here the same recognizers run over every one of the 38 JP units emitted by
+    here the same recognizers run over every one of the 39 JP units emitted by
     [pipeline/generate-clight.sh], including [rendering_graph_node.c].
 
     The concatenation below is an inventory surface, not a linked Clight
@@ -23,7 +23,8 @@ From LessThanOneAPress.Generated Require Import
   jp_obj_behaviors jp_obj_behaviors_2 jp_behavior_actions jp_behavior_data
   jp_area jp_level_update jp_platform_displacement jp_math_util
   jp_surface_collision jp_surface_load jp_macro_special_objects
-  jp_ssl_script jp_ssl_area1_macro jp_ssl_area2_macro jp_ssl_collision.
+  jp_ssl_script jp_ssl_area1_macro jp_ssl_area2_macro jp_ssl_collision
+  jp_bobomb_animation_data.
 From LessThanOneAPress.Proofs Require Import ASTFacts JPQuicksandDepth.
 
 Import ListNotations.
@@ -93,10 +94,11 @@ Definition jp_generated_translation_units : list Clight.program :=
    jp_ssl_script.prog;
    jp_ssl_area1_macro.prog;
    jp_ssl_area2_macro.prog;
-   jp_ssl_collision.prog].
+   jp_ssl_collision.prog;
+   jp_bobomb_animation_data.prog].
 
 Theorem jp_generated_translation_unit_count :
-  length jp_generated_translation_units = 38%nat.
+  length jp_generated_translation_units = 39%nat.
 Proof. reflexivity. Qed.
 
 Definition jp_generated_definitions :
@@ -377,7 +379,7 @@ with assigns_field_negative_int_constant_ls
 
 (** * Receiver-neutral coordinate-lvalue inventories *)
 
-(** Exact 38-unit partition for assignments to a field-array slot named
+(** Exact 39-unit partition for assignments to a field-array slot named
     [pos[1]].  This includes Mario State and GraphNodeObject writes, but the
     theorem does not identify either receiver: that requires a typed pointer
     and alias-provenance argument over live memory. *)
@@ -422,7 +424,7 @@ Theorem jp_generated_pos_y_direct_assignment_partition :
    []; []; []; []; []; []; []; [];
    [JGC_LevelUpdate._check_instant_warp];
    [JGC_Platform._set_mario_pos];
-   []; []; []; []; []; []; []; []].
+   []; []; []; []; []; []; []; []; []].
 Proof. vm_compute. reflexivity. Qed.
 
 Theorem jp_generated_pos_y_direct_assignment_counts :
@@ -430,7 +432,7 @@ Theorem jp_generated_pos_y_direct_assignment_counts :
     (jp_generated_array_slot_assignment_partition JGC_Mario._pos 1) =
   map Z.to_nat
     [0; 4; 3; 6; 2; 2; 0; 1; 4; 3; 1; 0; 0; 0; 1; 0; 1; 0; 1;
-     2; 0; 0; 0; 0; 0; 0; 0; 0; 1; 1; 0; 0; 0; 0; 0; 0; 0; 0] /\
+     2; 0; 0; 0; 0; 0; 0; 0; 0; 1; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0] /\
   assignment_partition_total
     (jp_generated_array_slot_assignment_partition JGC_Mario._pos 1) = 33%nat.
 Proof. vm_compute. split; reflexivity. Qed.
@@ -460,7 +462,7 @@ Theorem jp_generated_gfx_pos_y_direct_assignment_partition :
    [JGC_Spawn._allocate_object];
    [JGC_Helpers._obj_set_gfx_pos_from_pos;
     JGC_Helpers._obj_set_gfx_pos_at_obj_pos];
-   []; []; []; []; []; []; []; []; []; []; []; []; []; []; []; []; []; []].
+   []; []; []; []; []; []; []; []; []; []; []; []; []; []; []; []; []; []; []].
 Proof. vm_compute. reflexivity. Qed.
 
 Theorem jp_generated_gfx_pos_y_direct_assignment_counts :
@@ -469,7 +471,7 @@ Theorem jp_generated_gfx_pos_y_direct_assignment_counts :
        JGC_Mario._gfx JGC_Mario._pos 1) =
   map Z.to_nat
     [0; 2; 1; 0; 1; 1; 0; 0; 2; 0; 0; 0; 0; 0; 1; 0; 0; 0; 1;
-     2; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0] /\
+     2; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0] /\
   assignment_partition_total
     (jp_generated_nested_array_slot_assignment_partition
        JGC_Mario._gfx JGC_Mario._pos 1) = 11%nat.
@@ -615,7 +617,7 @@ Theorem jp_generated_rawdata_asf32_7_direct_assignment_counts :
        JGC_Mario._rawData JGC_Mario._asF32 7) =
   map Z.to_nat
     [0; 1; 0; 0; 5; 0; 0; 0; 0; 0; 3; 0; 0; 2; 1; 0; 0; 0; 1;
-     28; 0; 0; 3; 51; 35; 83; 0; 0; 1; 1; 0; 0; 0; 0; 0; 0; 0; 0] /\
+     28; 0; 0; 3; 51; 35; 83; 0; 0; 1; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0] /\
   assignment_partition_total
     (jp_generated_nested_array_slot_assignment_partition
        JGC_Mario._rawData JGC_Mario._asF32 7) = 215%nat.
@@ -627,7 +629,7 @@ Theorem jp_generated_rawdata_asf32_10_direct_assignment_counts :
        JGC_Mario._rawData JGC_Mario._asF32 10) =
   map Z.to_nat
     [0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0;
-     13; 0; 0; 0; 45; 43; 78; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0] /\
+     13; 0; 0; 0; 45; 43; 78; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0] /\
   assignment_partition_total
     (jp_generated_nested_array_slot_assignment_partition
        JGC_Mario._rawData JGC_Mario._asF32 10) = 180%nat.
@@ -660,7 +662,7 @@ Theorem jp_generated_throw_matrix_assignment_partition :
     JGC_BehaviorActions._bhv_tilting_inverted_pyramid_loop];
    []; []; []; []; []; [];
    [JGC_SurfaceLoad._transform_object_vertices];
-   []; []; []; []; []].
+   []; []; []; []; []; []].
 Proof. vm_compute. reflexivity. Qed.
 
 Theorem jp_generated_throw_matrix_assignment_counts :
@@ -669,13 +671,13 @@ Theorem jp_generated_throw_matrix_assignment_counts :
        JGC_Mario._throwMatrix) =
   map Z.to_nat
     [0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0; 0; 0; 0; 0; 3; 2; 2;
-     3; 0; 0; 0; 1; 0; 2; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0] /\
+     3; 0; 0; 0; 1; 0; 2; 0; 0; 0; 0; 0; 0; 1; 0; 0; 0; 0; 0; 0] /\
   assignment_partition_total
     (jp_generated_assignment_lhs_field_mention_partition
        JGC_Mario._throwMatrix) = 15%nat.
 Proof. vm_compute. split; reflexivity. Qed.
 
-(** Across all 38 generated units, these are the only internal function
+(** Across all 39 generated units, these are the only internal function
     bodies containing a direct assignment whose field identifier is
     [quicksandDepth].  The order is translation-unit order, then source order. *)
 Theorem jp_generated_quicksand_depth_direct_writer_census :
@@ -869,7 +871,7 @@ Qed.
 
 (** * Mario-object identity and area-lifetime syntax *)
 
-(** The only direct assignments to the [gMarioObject] global in the 38-unit
+(** The only direct assignments to the [gMarioObject] global in the 39-unit
     JP inventory install the object selected by [spawn_objects_from_info] or
     clear the global during whole-object-system reset.  No generated internal
     function takes the address of the global cell explicitly. *)

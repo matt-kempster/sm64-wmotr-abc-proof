@@ -126,7 +126,7 @@ Definition all_programs_tag_storage_compatible
 
 (** Composite-only audits use these explicit projections.  Mapping over the
     [nlist Clight.program] values caused Coq's VM compiler to retain unrelated
-    function bodies from all 38 units. *)
+    function bodies from all 39 units. *)
 Definition us_unit_composite_environments : list composite_env :=
   [prog_comp_env us_game_init.prog;
    prog_comp_env us_mario.prog;
@@ -165,7 +165,8 @@ Definition us_unit_composite_environments : list composite_env :=
    prog_comp_env us_ssl_script.prog;
    prog_comp_env us_ssl_area1_macro.prog;
    prog_comp_env us_ssl_area2_macro.prog;
-   prog_comp_env us_ssl_collision.prog].
+   prog_comp_env us_ssl_collision.prog;
+   prog_comp_env us_bobomb_animation_data.prog].
 
 Definition jp_unit_composite_environments : list composite_env :=
   [prog_comp_env jp_game_init.prog;
@@ -205,7 +206,8 @@ Definition jp_unit_composite_environments : list composite_env :=
    prog_comp_env jp_ssl_script.prog;
    prog_comp_env jp_ssl_area1_macro.prog;
    prog_comp_env jp_ssl_area2_macro.prog;
-   prog_comp_env jp_ssl_collision.prog].
+   prog_comp_env jp_ssl_collision.prog;
+   prog_comp_env jp_bobomb_animation_data.prog].
 
 (** Projecting [prog_comp_env] from the normalized program forces reduction of
     [make_program], including all 4,000+ body-carrying global definitions.

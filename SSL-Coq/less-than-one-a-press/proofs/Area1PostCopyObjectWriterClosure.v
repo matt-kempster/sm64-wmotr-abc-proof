@@ -12,7 +12,7 @@
     - a temporary loaded from [gMarioObject]; or
     - a temporary loaded from a typed [MarioState.marioObj] field.
 
-    Across all 38 generated US units and all 38 generated JP units, the
+    Across all 39 generated US units and all 39 generated JP units, the
     conservative direct-designated checker selects only [init_mario],
     [butterfly_calculate_angle], and [check_instant_warp].  A broader
     origin checker selects the same three, and every receiver-neutral raw-XYZ
@@ -569,7 +569,7 @@ Definition us_expected_direct_designated_writer_partition : list (list ident) :=
    []; [];
    [APC_USObjects._butterfly_calculate_angle];
    []; []; []; []; [APC_USLevel._check_instant_warp];
-   []; []; []; []; []; []; []; []; []].
+   []; []; []; []; []; []; []; []; []; []].
 
 Definition jp_expected_direct_designated_writer_partition : list (list ident) :=
   [[];
@@ -578,9 +578,9 @@ Definition jp_expected_direct_designated_writer_partition : list (list ident) :=
    []; [];
    [APC_JPObjects._butterfly_calculate_angle];
    []; []; []; []; [APC_JPLevel._check_instant_warp];
-   []; []; []; []; []; []; []; []; []].
+   []; []; []; []; []; []; []; []; []; []].
 
-Definition empty_38_ident_partitions : list (list ident) :=
+Definition empty_unit_ident_partitions : list (list ident) :=
   map (fun _ : Clight.program => []) us_translation_units.
 
 Ltac solve_program_partition :=
@@ -592,7 +592,7 @@ Ltac solve_program_partition :=
     jp_unnormalized_raw_xyz_partition,
     us_expected_direct_designated_writer_partition,
     jp_expected_direct_designated_writer_partition,
-    empty_38_ident_partitions,
+    empty_unit_ident_partitions,
     us_translation_units, jp_translation_units;
   cbn [map];
   repeat match goal with
@@ -622,11 +622,11 @@ Theorem jp_broad_designated_writer_partition_checked :
 Proof. solve_program_partition. Qed.
 
 Theorem us_raw_xyz_receiver_normalization_partition_checked :
-  us_unnormalized_raw_xyz_partition = empty_38_ident_partitions.
+  us_unnormalized_raw_xyz_partition = empty_unit_ident_partitions.
 Proof. solve_program_partition. Qed.
 
 Theorem jp_raw_xyz_receiver_normalization_partition_checked :
-  jp_unnormalized_raw_xyz_partition = empty_38_ident_partitions.
+  jp_unnormalized_raw_xyz_partition = empty_unit_ident_partitions.
 Proof. solve_program_partition. Qed.
 
 Theorem us_direct_designated_mario_raw_xyz_writer_census :

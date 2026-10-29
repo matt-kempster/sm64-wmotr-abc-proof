@@ -4,7 +4,7 @@
     Area-1 object-update frame.  The finite stock-owner model is useful only
     after proving that retail execution cannot install the pointer through an
     unclassified writer.  This file closes the direct Clight syntax part of
-    that question over all 38 translated units and packages it with the
+    that question over all 39 translated units and packages it with the
     one-way source-definition provenance needed for a future official-link
     direct-syntax upper bound.  It does not itself prove an exact official
     target writer/caller census.
@@ -182,7 +182,7 @@ Proof.
     + cbn. now apply IH with (body := body).
 Qed.
 
-(** Evaluate each complete 38-unit source union once.  Keeping the five
+(** Evaluate each complete 39-unit source union once.  Keeping the five
     inventories in one closed proposition avoids rescanning the very large
     generated AST for every projected theorem below. *)
 Definition USPlatformPointerSourceUnionCensus : Prop :=

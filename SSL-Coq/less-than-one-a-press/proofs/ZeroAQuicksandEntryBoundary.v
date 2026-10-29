@@ -9,7 +9,7 @@
     - among the nine stock landing descriptors, only the long-jump descriptor
       permits a landing-body timer capable of making a nonnegative depth
       negative; and
-    - across all 38 generated US and JP translation units, the only direct
+    - across all 39 generated US and JP translation units, the only direct
       ordinary constructor of [ACT_LONG_JUMP] is the A-edge branch in
       [act_crouch_slide], while the only expression which passes
       [ACT_LONG_JUMP_LAND] to [common_air_action_step] is [act_long_jump].

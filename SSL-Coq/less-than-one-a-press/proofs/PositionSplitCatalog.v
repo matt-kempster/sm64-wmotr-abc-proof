@@ -15,7 +15,7 @@ From LessThanOneAPress.Proofs Require Import
   InkTimer131ProducerClosure.
 Import ListNotations.
 
-(** All direct callers of the State-only XYZ setter, across all 38 generated
+(** All direct callers of the State-only XYZ setter, across all 39 generated
     units per version. This supplements, rather than repeats, the existing
     Chuckya/King-Bob-omb anchor and direct raw-Object writer inventories. *)
 Definition psc_state_setter_callers : Prop :=

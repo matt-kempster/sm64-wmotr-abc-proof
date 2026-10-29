@@ -1,6 +1,6 @@
 (** Whole-program source-syntax coverage for the private action tables.
 
-    Each of the 38 US/JP translation-unit checks is compiled and cached in a
+    Each of the 39 US/JP translation-unit checks is compiled and cached in a
     separate receipt module.  A proposition-valued structural certificate
     then records those receipts in the exact [us_units]/[jp_units] order.
     Consequently this aggregate performs no whole-program Boolean reduction
@@ -221,7 +221,12 @@ Theorem watsc_ssl_collision_unit :
   watsc_program_access_safe watwg_jp_table_ids jp_ssl_collision.prog = true.
 Proof. exact watsc_ssl_collision_unit_receipt. Qed.
 
-(** All 38 source units, reconstructed only from independently checked
+Theorem watsc_bobomb_animation_data_unit :
+  watsc_program_access_safe watwg_us_table_ids us_bobomb_animation_data.prog = true /\
+  watsc_program_access_safe watwg_jp_table_ids jp_bobomb_animation_data.prog = true.
+Proof. exact watsc_bobomb_animation_data_unit_receipt. Qed.
+
+(** All 39 source units, reconstructed only from independently checked
     receipts and the exact source-unit order. *)
 Theorem watsc_all_source_units :
   watsc_source_units_covered watwg_us_table_ids us_units /\
@@ -269,7 +274,7 @@ Qed.
 
 (** Exact selected-source result: no linked internal body is omitted, because
     official-source provenance supplies the identical source definition and
-    the structural certificate covers all 38 source units. *)
+    the structural certificate covers all 39 source units. *)
 Theorem us_selected_source_internal_bodies_action_table_safe :
   forall function_id body target,
     In (function_id, Gfun (Internal body))

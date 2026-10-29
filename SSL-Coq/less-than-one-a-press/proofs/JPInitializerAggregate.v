@@ -86,8 +86,10 @@ Proof.
     [exact jp_ssl_area1_macro_initializers_aligned |].
   apply nlist_program_initializers_aligned_cons;
     [exact jp_ssl_area2_macro_initializers_aligned |].
+  apply nlist_program_initializers_aligned_cons;
+    [exact jp_ssl_collision_initializers_aligned |].
   apply nlist_program_initializers_aligned_base.
-  exact jp_ssl_collision_initializers_aligned.
+  exact jp_bobomb_animation_data_initializers_aligned.
 Qed.
 Lemma unit_global_definitions_are_nlist_program_definitions :
   forall programs,

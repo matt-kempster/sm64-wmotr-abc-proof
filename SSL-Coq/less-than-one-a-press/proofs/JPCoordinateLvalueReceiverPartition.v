@@ -10,7 +10,7 @@
     - every [throwMatrix] field occurrence in an assignment lvalue has a
       [GraphNodeObject] receiver.
 
-    The audit is split into 38 program-local receipts.  The final theorem
+    The audit is split into 39 program-local receipts.  The final theorem
     combines those receipts structurally and reuses the exact receiver-neutral
     function counts; it never evaluates the concatenated whole AST.  These are
     source-type facts, not live pointer provenance, alias freedom, reachability,
@@ -300,6 +300,10 @@ Theorem jp_ssl_collision_coordinate_receiver_receipt :
   jp_coordinate_program_lvalue_receivers_typed jp_ssl_collision.prog = true.
 Proof. vm_compute. reflexivity. Qed.
 
+Theorem jp_bobomb_animation_data_coordinate_receiver_receipt :
+  jp_coordinate_program_lvalue_receivers_typed jp_bobomb_animation_data.prog = true.
+Proof. vm_compute. reflexivity. Qed.
+
 Definition jp_coordinate_lvalue_receiver_receipts : list bool :=
   [jp_coordinate_program_lvalue_receivers_typed jp_game_init.prog;
    jp_coordinate_program_lvalue_receivers_typed jp_mario.prog;
@@ -338,7 +342,8 @@ Definition jp_coordinate_lvalue_receiver_receipts : list bool :=
    jp_coordinate_program_lvalue_receivers_typed jp_ssl_script.prog;
    jp_coordinate_program_lvalue_receivers_typed jp_ssl_area1_macro.prog;
    jp_coordinate_program_lvalue_receivers_typed jp_ssl_area2_macro.prog;
-   jp_coordinate_program_lvalue_receivers_typed jp_ssl_collision.prog].
+   jp_coordinate_program_lvalue_receivers_typed jp_ssl_collision.prog;
+   jp_coordinate_program_lvalue_receivers_typed jp_bobomb_animation_data.prog].
 
 Theorem jp_coordinate_lvalue_receiver_receipts_cover_generated_units :
   jp_coordinate_lvalue_receiver_receipts =
@@ -347,7 +352,7 @@ Theorem jp_coordinate_lvalue_receiver_receipts_cover_generated_units :
 Proof. reflexivity. Qed.
 
 Theorem jp_coordinate_lvalue_receiver_receipts_all_true :
-  jp_coordinate_lvalue_receiver_receipts = repeat true 38.
+  jp_coordinate_lvalue_receiver_receipts = repeat true 39.
 Proof.
   unfold jp_coordinate_lvalue_receiver_receipts.
   rewrite jp_game_init_coordinate_receiver_receipt.
@@ -388,6 +393,7 @@ Proof.
   rewrite jp_ssl_area1_macro_coordinate_receiver_receipt.
   rewrite jp_ssl_area2_macro_coordinate_receiver_receipt.
   rewrite jp_ssl_collision_coordinate_receiver_receipt.
+  rewrite jp_bobomb_animation_data_coordinate_receiver_receipt.
   reflexivity.
 Qed.
 

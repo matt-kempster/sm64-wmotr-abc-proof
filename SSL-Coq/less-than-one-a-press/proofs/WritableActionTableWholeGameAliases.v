@@ -11,7 +11,7 @@
       address; or
     - the transient array address used by a checked terminal read.
 
-    This file checks those classes over the complete 38-unit US and JP
+    This file checks those classes over the complete 39-unit US and JP
     gameplay source unions used to build the selected Clight programs.  Each
     table has exactly one private definition, no initializer anywhere points
     to it, and the only body occurrences are the four terminal reads already
@@ -128,7 +128,7 @@ Qed.
 
 (** Each theorem below checks one US/JP translation-unit pair.  Sharding is
     proof-engineering only: the aggregate theorems unfold the exact [us_units]
-    and [jp_units] lists and rewrite all 38 receipts, so no unit is sampled or
+    and [jp_units] lists and rewrite all 39 receipts, so no unit is sampled or
     silently omitted. *)
 Theorem watwg_game_init_unit_is_private :
   watwg_program_is_private watwg_us_table_ids us_game_init.prog = true /\
@@ -396,6 +396,11 @@ Proof.
   vm_compute. split; reflexivity.
 Qed.
 
+Theorem watwg_bobomb_animation_data_unit_is_private :
+  watwg_program_is_private watwg_us_table_ids us_bobomb_animation_data.prog = true /\
+  watwg_program_is_private watwg_jp_table_ids jp_bobomb_animation_data.prog = true.
+Proof. vm_compute. split; reflexivity. Qed.
+
 Theorem watwg_us_source_units_are_private :
   watwg_nlist_all
     (watwg_program_is_private watwg_us_table_ids) us_units = true.
@@ -439,7 +444,8 @@ Proof.
     (proj1 watwg_ssl_script_unit_is_private),
     (proj1 watwg_ssl_area1_macro_unit_is_private),
     (proj1 watwg_ssl_area2_macro_unit_is_private),
-    (proj1 watwg_ssl_collision_unit_is_private).
+    (proj1 watwg_ssl_collision_unit_is_private),
+    (proj1 watwg_bobomb_animation_data_unit_is_private).
   reflexivity.
 Qed.
 
@@ -486,14 +492,15 @@ Proof.
     (proj2 watwg_ssl_script_unit_is_private),
     (proj2 watwg_ssl_area1_macro_unit_is_private),
     (proj2 watwg_ssl_area2_macro_unit_is_private),
-    (proj2 watwg_ssl_collision_unit_is_private).
+    (proj2 watwg_ssl_collision_unit_is_private),
+    (proj2 watwg_bobomb_animation_data_unit_is_private).
   reflexivity.
 Qed.
 
 
 (** Indices 147--149 are the three consecutive storage definitions in each
     generated interaction translation unit.  The two recursive Boolean
-    receipts then inspect every one of the 38 source units without flattening
+    receipts then inspect every one of the 39 source units without flattening
     their large ASTs. *)
 Definition WritableActionTableWholeGameStorageReceipt : Prop :=
   nth_error WATWG_USI.global_definitions 147%nat =

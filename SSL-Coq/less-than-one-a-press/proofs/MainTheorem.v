@@ -239,10 +239,10 @@ Proof.
   exact tpp_deallocation_stores_preserve_cell.
 Qed.
 
-(** Fail-closed data-link result, separate from the conditional memory frames
-    above: both selected programs retain an empty Bob-omb animation global.
-    Its initialized block has no readable entry. Completed-call theorems do
-    not supply a normal Bob-omb update, survival, or wrong-warp witness. *)
+(** Source-backed data-link result, separate from the conditional memory frames
+    above: both selected programs contain the seven actual Bob-omb animation
+    assets. Successful initialization supplies the two animation pointers and
+    NULL sentinel. This is not a normal update, survival or wrong-warp witness. *)
 Theorem current_bobomb_animation_link_boundary : BobombAnimationLinkBoundary.
 Proof. exact bobomb_animation_link_boundary_checked. Qed.
 

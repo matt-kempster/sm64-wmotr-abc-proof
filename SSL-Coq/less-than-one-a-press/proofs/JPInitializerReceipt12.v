@@ -1,6 +1,6 @@
 From LessThanOneAPress.Generated Require Import
   jp_macro_special_objects jp_ssl_script jp_ssl_area1_macro
-  jp_ssl_area2_macro jp_ssl_collision.
+  jp_ssl_area2_macro jp_ssl_collision jp_bobomb_animation_data.
 From LessThanOneAPress.Proofs Require Import ClightInitialMemoryFacts.
 
 Theorem jp_macro_special_objects_initializers_aligned :
@@ -20,4 +20,8 @@ Proof. apply program_initializers_alignment_ok_sound. vm_compute. reflexivity. Q
 
 Theorem jp_ssl_collision_initializers_aligned :
   ProgramInitializersAligned jp_ssl_collision.prog.
+Proof. apply program_initializers_alignment_ok_sound. vm_compute. reflexivity. Qed.
+
+Theorem jp_bobomb_animation_data_initializers_aligned :
+  ProgramInitializersAligned jp_bobomb_animation_data.prog.
 Proof. apply program_initializers_alignment_ok_sound. vm_compute. reflexivity. Qed.
