@@ -21,8 +21,8 @@ GLOBAL_ENTRY_RE = re.compile(
 
 def classify(generated: pathlib.Path, version: str) -> dict[str, list[str] | int]:
     files = sorted(generated.glob(f"{version}_*.v"))
-    if len(files) != 38:
-        raise SystemExit(f"expected 38 {version} units; found {len(files)}")
+    if len(files) != 39:
+        raise SystemExit(f"expected 39 {version} units; found {len(files)}")
 
     function_classes: dict[str, set[str]] = defaultdict(set)
     variable_classes: dict[str, set[str]] = defaultdict(set)

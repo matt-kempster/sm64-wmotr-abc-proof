@@ -76,6 +76,7 @@ TRANSLATION_UNITS=(
   "ssl_area1_macro:PROJECT_AREA1_MACRO_INPUT"
   "ssl_area2_macro:PROJECT_INPUT"
   "ssl_collision:PROJECT_COLLISION_INPUT"
+  "bobomb_animation_data:PROJECT_BOBOMB_ANIMATION_INPUT"
 )
 
 generate_one() {
@@ -99,6 +100,10 @@ generate_one() {
     PROJECT_COLLISION_INPUT)
       input="$PROJECT_ROOT/inputs/ssl_collision.c"
       source_label="levels/ssl collision data (project wrapper)"
+      ;;
+    PROJECT_BOBOMB_ANIMATION_INPUT)
+      input="$PROJECT_ROOT/inputs/bobomb_animation_data.c"
+      source_label="actors/bobomb/anims data and table (common0.c data-only wrapper)"
       ;;
   esac
 

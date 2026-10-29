@@ -12,7 +12,7 @@ import sys
 from collections import defaultdict
 
 generated = pathlib.Path(sys.argv[1])
-expected_mismatch_counts = {"us": 402, "jp": 401}
+expected_mismatch_counts = {"us": 403, "jp": 402}
 
 ident_re = re.compile(
     r'Definition\s+(_[A-Za-z0-9_]+)\s+: ident := \$"([^"]+)"\.'
@@ -27,9 +27,9 @@ literal_re = re.compile(
 
 for version in ("us", "jp"):
     files = sorted(generated.glob(f"{version}_*.v"))
-    if len(files) != 38:
+    if len(files) != 39:
         raise SystemExit(
-            f"expected 38 generated {version} units; found {len(files)}"
+            f"expected 39 generated {version} units; found {len(files)}"
         )
 
     definitions: dict[str, list[tuple[str, bool]]] = defaultdict(list)
@@ -118,7 +118,7 @@ for version in ("us", "jp"):
         )
 
     print(
-        f"{version}: 38 units, {literal_count} private literal atoms uniquely "
+        f"{version}: 39 units, {literal_count} private literal atoms uniquely "
         f"prefixed, 0 private collisions, {len(mismatches)} documented "
         "public variable type-mismatch groups"
     )

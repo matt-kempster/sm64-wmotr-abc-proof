@@ -41,6 +41,7 @@ generated/us_ssl_script.v
 generated/us_ssl_area1_macro.v
 generated/us_ssl_area2_macro.v
 generated/us_ssl_collision.v
+generated/us_bobomb_animation_data.v
 generated/jp_game_init.v
 generated/jp_mario.v
 generated/jp_mario_actions_airborne.v
@@ -79,6 +80,7 @@ generated/jp_ssl_script.v
 generated/jp_ssl_area1_macro.v
 generated/jp_ssl_area2_macro.v
 generated/jp_ssl_collision.v
+generated/jp_bobomb_animation_data.v
 
 proofs/ASTFacts.v
 proofs/CollisionMeshFacts.v
