@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "review_date": "2026-10-29",
+  "baseline_commit": "87caa6637548c7505d82cde1e6764feb0267bdb4",
+  "certificate_checkpoint": "f3f26bd3f259381d2e6c79d61c98a5b26ceb7f43",
+  "source_pin": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "upstream_comparison": "187731ff391f1ae9ff2b8b3e48ee63bb914fab77",
+  "status": "PASS: missing-data certificate; data readiness remains false",
+  "environment": {
+    "wsl_distribution": "Ubuntu",
+    "opam_switch": "sm64-item-proof",
+    "coq": "8.16.1",
+    "compcert": "3.15",
+    "memory_cap_kb": 6815744,
+    "build_timeout_seconds": 600,
+    "assumption_timeout_seconds": 240
+  },
+  "standalone_check": {
+    "command": "CHECK_TIMEOUT=180 bash pipeline/check.sh proofs/BobombAnimationLink.v",
+    "exit_code": 0,
+    "log": "build/check/BobombAnimationLink.log"
+  },
+  "standalone_assumptions": {
+    "command": "source pipeline/env.sh && ulimit -S -v 6815744 && bash pipeline/assumptions.sh LessThanOneAPress.Proofs.BobombAnimationLink bobomb_animation_link_boundary_checked",
+    "exit_code": 0,
+    "allowed_foundations": 9,
+    "project_axioms": []
+  },
+  "baseline_audit": "build/audit/20261029-071457-sd0gemxt",
+  "integration_audit": "build/audit/20261029-075043-nsaujezp",
+  "program_or_generated_data_changed": false,
+  "data_readiness_result": {
+    "US": false,
+    "JP": false
+  },
+  "scope": "Missing-data certificate; no actor-data repair, full Bob-omb survival or reachable wrong warp.",
+  "transient_validation_issue": "An earlier Main build was interrupted after WSL became unresponsive and a separate process query returned Wsl/Service/WSAETIMEDOUT. WSL subsequently responded; no Coq worker remained. No distro restart or resource-limit change was made. The isolated final retry passed build, all four assumption queries, and integration. Cause undetermined.",
+  "integration_checks": [
+    {
+      "name": "source inventory",
+      "status": "PASS",
+      "detail": "684 source files; 0 inventory problems",
+      "problems": []
+    },
+    {
+      "name": "build",
+      "status": "PASS",
+      "detail": "exit 0; see build.log"
+    },
+    {
+      "name": "proof holes",
+      "status": "PASS",
+      "detail": "exit 0; includes untracked source files"
+    },
+    {
+      "name": "link hygiene",
+      "status": "PASS",
+      "detail": "exit 0; includes untracked source files"
+    },
+    {
+      "name": "assumptions LessThanOneAPress.Proofs.MainTheorem.current_bobomb_animation_link_boundary",
+      "status": "PASS",
+      "detail": "9 allowed foundations; see assumptions-1.log",
+      "axioms": [
+        "Axioms.proof_irr",
+        "ClassicalDedekindReals.sig_forall_dec",
+        "ClassicalDedekindReals.sig_not_dec",
+        "Classical_Prop.classic",
+        "Events.external_functions_properties",
+        "Events.external_functions_sem",
+        "Events.inline_assembly_properties",
+        "Events.inline_assembly_sem",
+        "FunctionalExtensionality.functional_extensionality_dep"
+      ]
+    },
+    {
+      "name": "assumptions LessThanOneAPress.Proofs.MainTheorem.current_ink_backward_execution_boundary",
+      "status": "PASS",
+      "detail": "9 allowed foundations; see assumptions-2.log",
+      "axioms": [
+        "Axioms.proof_irr",
+        "ClassicalDedekindReals.sig_forall_dec",
+        "ClassicalDedekindReals.sig_not_dec",
+        "Classical_Prop.classic",
+        "Events.external_functions_properties",
+        "Events.external_functions_sem",
+        "Events.inline_assembly_properties",
+        "Events.inline_assembly_sem",
+        "FunctionalExtensionality.functional_extensionality_dep"
+      ]
+    },
+    {
+      "name": "assumptions LessThanOneAPress.Proofs.InkRetryQuery.irq_retry_connects_display_to_real_floor_call",
+      "status": "PASS",
+      "detail": "7 allowed foundations; see assumptions-3.log",
+      "axioms": [
+        "Axioms.proof_irr",
+        "ClassicalDedekindReals.sig_forall_dec",
+        "ClassicalDedekindReals.sig_not_dec",
+        "Classical_Prop.classic",
+        "Events.external_functions_sem",
+        "Events.inline_assembly_sem",
+        "FunctionalExtensionality.functional_extensionality_dep"
+      ]
+    },
+    {
+      "name": "assumptions LessThanOneAPress.Proofs.InkVerticalRetryGeometry.ivr_vertical_retry_geometry_checked",
+      "status": "PASS",
+      "detail": "4 allowed foundations; see assumptions-4.log",
+      "axioms": [
+        "ClassicalDedekindReals.sig_forall_dec",
+        "ClassicalDedekindReals.sig_not_dec",
+        "Classical_Prop.classic",
+        "FunctionalExtensionality.functional_extensionality_dep"
+      ]
+    },
+    {
+      "name": "integration",
+      "status": "PASS",
+      "detail": "511/606 modules in MainTheorem's import closure; 95 standalone-only; 0 problems",
+      "problems": []
+    }
+  ],
+  "integration_counts": {
+    "proof_modules": 606,
+    "main_import_closure": 511,
+    "standalone_only": 95,
+    "problems": []
+  },
+  "sha256": {
+    "proofs/BobombAnimationLink.v": "3d358ecd7fbcb22dd5ed8c44925f5b5b0156642a04314c5f8d28e71492ec618b",
+    "proofs/MainTheorem.v": "056b7a92c6f1644de771e1e208681f3305673ea841155cf9b36ce77a031b1341",
+    "_CoqProject": "d97d4ed6910bc0db31ad60e3f907af5b037ee8e0708e6f0a3460a4dda1688b3f",
+    "generated/us_behavior_data.v": "841832a71bc4b415b5b281f899eaf01803290a615914d820684057b376eb7e49",
+    "generated/jp_behavior_data.v": "b5e582077d9fcc080d5424c4986fa224d33e98a6e2dcff685ff7e805eb3d217f",
+    "proofs/SelectedClightTarget.v": "86e427a3f06a406c5cf7ce9dcd3e528a95d7dd6ac080f19afc812d5f65b8e7fb",
+    "proofs/LinkedClightPrograms.v": "cbc6fc7e36077d07883552407fdb8cbf27746221c2a06ad19ab020a2b4ef84ca",
+    "proofs/NormalizedClightPrograms.v": "d9153e8ec4bdeb9768ee859d576fa45fd0eafadae020c8afefc635e0f2d86e8e",
+    "proofs/CleanedClightPrograms.v": "351262190e2bac92183a5c050105b5c1454e60f6eba55a1cfc5d669a42ccabc3",
+    "proofs/USWholeASTTagRepair.v": "2ec78b60f5d45082e7a3f743b2ee281ebd83f80070b11b16e1777972f96393a9",
+    "build/audit/20261029-075043-nsaujezp/report.json": "c2fff4db09cc5cb18527032f6c39edd47d003c3837ce88b0d8e6d66e0e949ee5",
+    "build/audit/20261029-075043-nsaujezp/summary.txt": "8d99e39b0d43862d77144950f2b1fdaa3a0f5723abf71c4ce2e358a572d29e41",
+    "build/audit/20261029-075043-nsaujezp/build.log": "399a2f3e984b937ea637c79f739f6355966d6d181da05f0f204e1005905a192a",
+    "build/audit/20261029-075043-nsaujezp/assumptions-1.log": "6c1c1cfcbb5a5eb9b69b245563999c779d7eff03c00c5bdb2abd445106a34800",
+    "build/audit/20261029-075043-nsaujezp/assumptions-2.log": "52fc6623062942a968b3916e6006f673ab8b14b2d9acdb17d5c053d27e5e178d",
+    "build/audit/20261029-075043-nsaujezp/assumptions-3.log": "7d31ca589cf4f497c49c46d66cb59c742ca2ce19d58447dd109da8ff3a8dbb77",
+    "build/audit/20261029-075043-nsaujezp/assumptions-4.log": "4ac9589f441632f3faceb6aff805093e99e9b7f437981e38abc7cd2eb800e1d2"
+  }
+}

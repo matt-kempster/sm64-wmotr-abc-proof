@@ -9,6 +9,20 @@ does not close the pyramid proof's existing JP spawning-displacement routes.
 
 ## Hands-free Bob-ombs, the lower entrance and Goomba-clone knockback
 
+### Separate animation-link applicability audit (29 October 2026)
+
+The [selected-program animation audit](bobomb-animation-link-audit.md) finds
+that both actual SSL targets retain an empty Bob-omb animation-table global.
+A symbol exists, but there are no readable animation entries. The new
+fail-closed certificate passes the standalone and integrated selected pipeline
+checks and does not repair the program.
+Consequently the earlier theorems about completed local Bob-omb/native calls
+must not be read as witnesses that the authentic scheduled script completes
+ANIMATE(0). Connecting that script and its converted table pointer to the
+selected execution remains essential. This is a data-link issue, separate
+from the audio, ownership, allocation and lifetime premises below; none is
+discharged by this finding, and no survival or wrong-warp claim is made.
+
 ### Assumption-query timeout follow-up (21 October 2026)
 
 **The complete seven-query audit now passes with unchanged proofs, pipeline

@@ -64,7 +64,8 @@ From LessThanOneAPress.Proofs Require Import
   TeleporterHeldOwnership TeleporterBobombRegrab TeleporterUnloadTraversal
   TeleporterEarlierAreaChange TeleporterMixedTraversal TeleporterAllocationHistory
   TeleporterUnloadCallPaths TeleporterWholeScan TeleporterTransportCut
-  TeleporterSpawnOwnership TeleporterAudioFrame TeleporterPoolPartition.
+  TeleporterSpawnOwnership TeleporterAudioFrame TeleporterPoolPartition
+  BobombAnimationLink.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -237,6 +238,13 @@ Proof.
   split; [exact teleporter_pool_partition_checked|].
   exact tpp_deallocation_stores_preserve_cell.
 Qed.
+
+(** Fail-closed data-link result, separate from the conditional memory frames
+    above: both selected programs retain an empty Bob-omb animation global.
+    Its initialized block has no readable entry. Completed-call theorems do
+    not supply a normal Bob-omb update, survival, or wrong-warp witness. *)
+Theorem current_bobomb_animation_link_boundary : BobombAnimationLinkBoundary.
+Proof. exact bobomb_animation_link_boundary_checked. Qed.
 
 (** This capstone is intentionally local to Marbler's proposed mechanism.  It
     combines the fully checked US/JP source/arithmetic boundary with the
