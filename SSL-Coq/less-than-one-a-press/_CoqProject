@@ -688,3 +688,4 @@ proofs/TeleporterTransportCut.v
 proofs/TeleporterSpawnOwnership.v
 proofs/TeleporterAudioFrame.v
 proofs/TeleporterPoolPartition.v
+proofs/BobombAnimationLink.v
