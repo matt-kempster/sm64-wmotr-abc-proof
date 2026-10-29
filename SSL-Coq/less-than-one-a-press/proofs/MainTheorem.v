@@ -65,7 +65,7 @@ From LessThanOneAPress.Proofs Require Import
   TeleporterEarlierAreaChange TeleporterMixedTraversal TeleporterAllocationHistory
   TeleporterUnloadCallPaths TeleporterWholeScan TeleporterTransportCut
   TeleporterSpawnOwnership TeleporterAudioFrame TeleporterPoolPartition
-  BobombAnimationLink.
+  BobombAnimationLink BobombAnimationInitialization.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -245,6 +245,13 @@ Qed.
     NULL sentinel. This is not a normal update, survival or wrong-warp witness. *)
 Theorem current_bobomb_animation_link_boundary : BobombAnimationLinkBoundary.
 Proof. exact bobomb_animation_link_boundary_checked. Qed.
+
+(** Both actual selected programs successfully initialize, and that same memory
+    supplies the two real animation pointers and NULL sentinel. This proves
+    non-vacuity of the initialized-table result, not a scheduled actor update. *)
+Theorem current_bobomb_animation_initialization_boundary :
+  BobombAnimationInitializationBoundary.
+Proof. exact bobomb_animation_initialization_boundary_checked. Qed.
 
 (** This capstone is intentionally local to Marbler's proposed mechanism.  It
     combines the fully checked US/JP source/arithmetic boundary with the
