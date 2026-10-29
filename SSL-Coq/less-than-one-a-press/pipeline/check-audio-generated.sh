@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Reproduce the supplemental audio units without changing the 38-unit link.
+# Reproduce the supplemental audio units without changing the gameplay link.
 set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 mkdir -p "$PROJECT_ROOT/build"

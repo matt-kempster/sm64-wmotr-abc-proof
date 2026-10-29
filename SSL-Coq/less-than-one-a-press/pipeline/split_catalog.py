@@ -57,7 +57,7 @@ def generated_index():
     rows, counts, hashes = [], {}, {}
     for version in ("us", "jp"):
         files = sorted((ROOT / "generated").glob(version + "_*.v"))
-        assert len(files) == 38, (version, len(files))
+        assert len(files) == 39, (version, len(files))
         counts[version] = {"units": len(files), "functions": 0, "assignments": 0}
         for path in files:
             text = path.read_text(encoding="utf-8")
@@ -144,7 +144,7 @@ def make_index(repo, catalog):
         raise ValueError("unclassified generated named-pos writers: " + ", ".join(unclassified))
     return {
         "revision": REVISION,
-        "scope": "Pinned whole-game C source-reference index plus 38 generated units per version; no alias or reachability theorem.",
+        "scope": "Pinned whole-game C source-reference index plus 39 generated units per version; no alias or reachability theorem.",
         "limitations": ["C definition spans include preprocessor alternatives and are not parsed C bodies, semantics or exhaustive alias analysis.",
             "Named-pos lvalue coverage does not cover writes through generic pointers, unions, byte stores, callees or externals.",
             "References and receiver-neutral stores are candidates, not evidence of a useful Mario split.",
@@ -202,7 +202,7 @@ def check_ssl_locality(files):
 
 def render_markdown(catalog, index):
     lines = ["# Where a useful position split could come from", "",
-        "Updated 4 October 2026. The full catalog is also on the private "
+        "Gameplay catalog updated 4 October 2026; source-unit census refreshed 29 October 2026 after adding the real Bob-omb animation data. The full catalog is also on the private "
         "[Fine Print site](https://pyramid-proof-fine-print.tra38.chatgpt.site/#split-catalog).", "",
         "Mario has three position records. Usually, the game keeps them together. We want to "
         "know which tricks can pull them apart, and whether SSL can supply the ingredients "
@@ -335,7 +335,7 @@ def render_markdown(catalog, index):
     lines += ["", "## Exactly what was checked", "",
         "[PositionSplitCatalog.v](../../proofs/PositionSplitCatalog.v), exposed as "
         "`MainTheorem.current_f02_position_split_catalog`, checks the actual generated US/JP "
-        "program objects. Across all 38 generated units per version, the direct callers of "
+        "program objects. Across all 39 generated units per version, the direct callers of "
         "`set_mario_pos` are exactly `dorrie_raise_head`, `bhv_tilting_inverted_pyramid_loop` "
         "and `apply_platform_displacement`. Twelve named actor behaviors fail the stock selector "
         "checks; tree, Tweester, Tox Box and closed cannon provide positive controls. The regular "
@@ -349,7 +349,7 @@ def render_markdown(catalog, index):
         f"The separate [source index](position-split-source-index.json) scans {index['source_c_files']} "
         f"pinned src C files, recognizes {index['indexed_source_functions']} textual definition spans "
         f"and records {len(index['coordinate_references'])} coordinate-reference spans, including "
-        "other courses, debug, camera and rendering code. It scans all 76 generated files "
+        "other courses, debug, camera and rendering code. It scans all 78 generated files "
         "(2,567 US and 2,561 JP function definitions; 9,156 and 9,110 assignments). All 50 "
         "distinct function names whose generated assignment destination contains `_pos` have "
         "a catalog home. This text check includes local arrays and other receivers and is "

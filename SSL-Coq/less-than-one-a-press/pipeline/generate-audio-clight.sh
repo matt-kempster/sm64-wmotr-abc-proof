@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Supplemental real audio unit for a source-backed external binding.
-# The existing 38-unit selected gameplay target is not changed by this command.
+# The existing selected gameplay target is not changed by this command.
 set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 source "$PROJECT_ROOT/pipeline/env.sh"
@@ -28,4 +28,4 @@ for version in us jp; do
     "$PROJECT_ROOT/generated/runtime/${version}_audio_external.v" \
     "${COMMON[@]}" "${VERSION_FLAGS[@]}"
 done
-echo 'Generated two supplemental audio units from the pinned source; the gameplay link remains 38 units.'
+echo 'Generated two supplemental audio units from the pinned source; the gameplay link is unchanged.'
