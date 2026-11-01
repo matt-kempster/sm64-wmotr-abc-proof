@@ -127,6 +127,6 @@
 
 semantic UB-coverage worklist (TRUST.md 3.2), 2 open:
   - object_helpers.c cur_obj_call_action_function: tbl[o->oAction] loaded with no bounds check (ObjAct.caf_frame)
-      discharge: act_in_range as an obj_w clause, from act_stores_census + the spawn / init writes
-  - indirect calls in the objects + camera closure (ActWriterCensus): the census follows an indirect call only to address-taken functions of exactly the call site's type; a mismatched call is C UB (CompCert: stuck; N64: runs the target)
-      discharge: check that every function-pointer store / initializer in the closure holds a function of the type its holder is read at
+      discharge: carry obj_w's ow_act (ObjWorld.act_ok) through the object loop rows; every oAction write is census-checked in range (ActIdxCensus)
+  - camera.c play_cutscene (CUTSCENE_WATER_DEATH): cutscene 159 (get_cutscene_from_mario_status on ACT_WATER_DEATH) has no case in the switch, so cutsceneDuration is read uninitialized (CamCutCensus.no_case_values); the camera table indices themselves are closed for WMotR (CamIdxCensus + CamCutCensus; GEO_CAMERA mode 16 is a TRUST 3.2 line)
+      discharge: carry Mario's action != ACT_WATER_DEATH (set only by mario_actions_submerged.c; WMotR has no water, env_w: gEnvironmentRegions NULL)

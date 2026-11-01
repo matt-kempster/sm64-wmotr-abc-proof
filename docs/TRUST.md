@@ -29,7 +29,7 @@ without pressing A".*
 | 0.8 | GOAL 2's level data: `wmotr_floor` / `wmotr_pole` / `wmotr_cannon` are WMotR's floors, poles and cannon seats | **Defined from generated/, rows proved** (`WMotRLevel.v`). 2026-10-22: `floor_data` (d) and decoder agreement (a) are PROVED on the memory the real `load_area_terrain` builds (`TerrainRun`, 1352 surfaces); since later that day the GOAL 2 start witness carries it (`StartTerrain`: the loader runs on the `init_mem` image in the real boot order, and `goal2_start_sat` concludes `floor_data` + `static_agree`). Details: [row 0.8 in detail](#row-08-in-detail). |
 | 0.9 | GOAL 2's pos[1] writer census is complete (`YWriterCensus.v`) | **Machine-checked list, trusted edges.** Coq scans every function body of the 12 generated Mario TUs and proves: 31 direct `pos[1]` stores and 21 write-escapes (16 whole-vector arg-0 passes to `vec3f_copy`/`vec3f_set`/`vec3s_to_vec3f`, 5 `&pos[1]` passes to `f32_find_wall_collision`), 52 in all; `pos`'s address never reaches a temp, memory, a condition or a return, and no struct copy covers it. Details: [row 0.9 in detail](#row-09-in-detail). |
 | 0.10 | GOAL 2's object census: what objects can exist in WMotR and their interaction types (`BehaviorScripts.v`) | **Machine-checked over generated code, frontier trusted.** `generated/behavior_data.v` (clightgen of `data/behavior_data.c`) gives every behavior script as data; a fail-closed decoder mirrors the command layouts. Details: [row 0.10 in detail](#row-010-in-detail). |
-| 0.7 | GOAL 2's flank segments (`HeightFrame.v`: level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles at their level positions, cannon bases at home or risen at most 345 while Mario sits in them (2026-10-24), and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object). Since 2026-10-24 the objects spec also ends with the platform fact: gMarioPlatform is NULL or an object with zero angle velocity (`PlatformKeep.plat_still`; it is the object phase that sets gMarioPlatform). The linked segments' surface premise (Mario's wall / ceiling / floor surfaces are not in the block of a global the step writes, `RenderKeep.surf_apart`) is **PROVED since 2026-10-26** (`RenderKeep.surf_apart_ffw`: design B's `ff_Spl` puts Mario's surfaces in dynamic blocks past every global, so no step states it any more); **the controller poll has NO labeled premise left (2026-10-26)**: its Φ, `plat_still` and object-world carries are proved (`PollKeep`), and the code between its two calls (`audio_game_loop_tick`, `select_gfx_pool`) is now real walked code in the segment (`MidKeep`), so no adjacency assumption remains | **Objects: ONE real call, labeled rows over its stages** (2026-10-26, `ObjPhase.v`): the objects segment is the generated `area_update_objects` (gAreaUpdateCounter++; `update_objects(0)`) run as one `eval_funcall` (`ObjPhase.objects_call`); Mario's own frame is not a separate segment any more but the hole in it (`execute_mario_action`, reached through `update_non_terrain_objects`, filled by the proved Mario-frame carries `Hframe_action` + `seg_action_phi`). The body of `update_objects` is walked (its 18 calls, its stack array `cycleCounts`); the clock calls are proved; the stages are **named, labeled rows** over the real callees (`Hobj_debug`, `Hobj_surfaces` = clear_dynamic_surfaces, `Hobj_collisions`, `Hobj_unload`, `Hobj_mplat`, plus the frame rows `Hobj_blind` / `Hobj_fresh` / `Hobj_noref` and store rows `Hobj_stores` / `Hobj_counter`); the two list walks `update_terrain_objects` / `update_non_terrain_objects` are **PROVED** (B2, `ObjLoop.v`: the real `update_objects_in_list`, both per-list loops over the rings of `obj_w`, the list heads, the order table) from narrower per-object rows `Hobj_step_terrain` / `Hobj_step_nonterrain` (given the Mario hole: the real loop body up to `cur_obj_update()` keeps the invariant and leaves the node in its ring) and `Hobj_ctr`; `apply_mario_platform_displacement` inside it keeps its proved carry. The invariant through the phase includes the object world `ObjWorld.obj_w` (carried at frame boundaries; PROVED at the boot witness from the real `clear_objects` and Mario's `spawn_objects_from_info`, and one real `area_update_objects` runs there: `StartSat.objects_runs`), so the rows do not quantify over object lists the game never builds. **The level phase is real code** (2026-10-24: `play_mode_normal`'s slices around `area_update_objects`, walked, carries proved in `LevelKeep`; `update_camera` keeps mem_ok by the real camera.c; stated: its PhiW carry `cam_phi_row`; `warp_w` at the slice's end is PROVED from the walked tail, 2026-10-26, `LevelWarp.tail_warp_w`; gCurrentArea's target is carried, `FfWorld.area_w`, 2026-10-25; the Camera it updates is a real one on the witness, and `update_camera` runs there, `StartSat.frame_runs`, 2026-10-26). Three segments are **real calls with proved carries**: Mario's render call (`seg_render_spec`, 2026-10-22; GOAL-1 carry `RenderFlank.render_mem_ok`, Φ carry `RenderKeep.render_keeps_phiw` 2026-10-23), platform displacement (`seg_platform_spec`, 2026-10-23: the real `apply_mario_platform_displacement`, platform_displacement.c linked as TU 45; GOAL-1, held-A and Φ carries `PlatformKeep.plat_mem_ok` / `plat_a_down` / `plat_keeps_phiw`), and **the controller poll** (`seg_input_spec`, 2026-10-23: the real `osContStartReadData` and `read_controller_inputs`, osContStartReadData.c linked as TU 46, walked down to the OS / SI floor (3.5); GOAL-1 carry, A-freedom and the controller cells proved, `PollFlank.srd_ok` / `poll_ok`; the Φ, `plat_still` and object-world carries proved 2026-10-26, `PollKeep.srd_keeps` / `rci_keeps`; the two middle calls `audio_game_loop_tick` / `select_gfx_pool` real and walked, `MidKeep.mid_keeps`, 2026-10-26: **no labeled premise**). Details: [row 0.7 in detail](#row-07-in-detail). |
+| 0.7 | GOAL 2's flank segments (`HeightFrame.v`: level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles at their level positions, cannon bases at home or risen at most 345 while Mario sits in them (2026-10-24), and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object). Since 2026-10-24 the objects spec also ends with the platform fact: gMarioPlatform is NULL or an object with zero angle velocity (`PlatformKeep.plat_still`; it is the object phase that sets gMarioPlatform). The linked segments' surface premise (Mario's wall / ceiling / floor surfaces are not in the block of a global the step writes, `RenderKeep.surf_apart`) is **PROVED since 2026-10-26** (`RenderKeep.surf_apart_ffw`: design B's `ff_Spl` puts Mario's surfaces in dynamic blocks past every global, so no step states it any more); **the controller poll has NO labeled premise left (2026-10-26)**: its Φ, `plat_still` and object-world carries are proved (`PollKeep`), and the code between its two calls (`audio_game_loop_tick`, `select_gfx_pool`) is now real walked code in the segment (`MidKeep`), so no adjacency assumption remains | **Objects: ONE real call, labeled rows over its stages** (2026-10-26, `ObjPhase.v`): the objects segment is the generated `area_update_objects` (gAreaUpdateCounter++; `update_objects(0)`) run as one `eval_funcall` (`ObjPhase.objects_call`); Mario's own frame is not a separate segment any more but the hole in it (`execute_mario_action`, reached through `update_non_terrain_objects`, filled by the proved Mario-frame carries `Hframe_action` + `seg_action_phi`). The body of `update_objects` is walked (its 18 calls, its stack array `cycleCounts`); the clock calls are proved; the stages are **named, labeled rows** over the real callees (`Hobj_debug`, `Hobj_surfaces` = clear_dynamic_surfaces, `Hobj_collisions`, `Hobj_unload`, `Hobj_mplat`, plus the frame rows `Hobj_blind` / `Hobj_fresh` / `Hobj_noref` and store rows `Hobj_stores` / `Hobj_counter`); the two list walks `update_terrain_objects` / `update_non_terrain_objects` are **PROVED** (B2, `ObjLoop.v`: the real `update_objects_in_list`, both per-list loops over the rings of `obj_w`, the list heads, the order table) from narrower per-object rows `Hobj_step_terrain` / `Hobj_step_nonterrain` (given the Mario hole: the real loop body up to `cur_obj_update()` keeps the invariant and leaves the node in its ring; since 2026-10-26 each is split, `ObjStepSplit`, into `Hobj_step_act_*`, the update keeps Mario's action outside T, GOAL 1's claim, and `Hobj_step_rest_*`, the rest given that) and `Hobj_ctr`; `apply_mario_platform_displacement` inside it keeps its proved carry. The invariant through the phase includes the object world `ObjWorld.obj_w` (carried at frame boundaries; PROVED at the boot witness from the real `clear_objects` and Mario's `spawn_objects_from_info`, and one real `area_update_objects` runs there: `StartSat.objects_runs`), so the rows do not quantify over object lists the game never builds. **The level phase is real code** (2026-10-24: `play_mode_normal`'s slices around `area_update_objects`, walked, carries proved in `LevelKeep`; `update_camera` keeps mem_ok by the real camera.c; stated: its PhiW carry `cam_phi_row`; `warp_w` at the slice's end is PROVED from the walked tail, 2026-10-26, `LevelWarp.tail_warp_w`; gCurrentArea's target is carried, `FfWorld.area_w`, 2026-10-25; the Camera it updates is a real one on the witness, and `update_camera` runs there, `StartSat.frame_runs`, 2026-10-26). Three segments are **real calls with proved carries**: Mario's render call (`seg_render_spec`, 2026-10-22; GOAL-1 carry `RenderFlank.render_mem_ok`, Φ carry `RenderKeep.render_keeps_phiw` 2026-10-23), platform displacement (`seg_platform_spec`, 2026-10-23: the real `apply_mario_platform_displacement`, platform_displacement.c linked as TU 45; GOAL-1, held-A and Φ carries `PlatformKeep.plat_mem_ok` / `plat_a_down` / `plat_keeps_phiw`), and **the controller poll** (`seg_input_spec`, 2026-10-23: the real `osContStartReadData` and `read_controller_inputs`, osContStartReadData.c linked as TU 46, walked down to the OS / SI floor (3.5); GOAL-1 carry, A-freedom and the controller cells proved, `PollFlank.srd_ok` / `poll_ok`; the Φ, `plat_still` and object-world carries proved 2026-10-26, `PollKeep.srd_keeps` / `rci_keeps`; the two middle calls `audio_game_loop_tick` / `select_gfx_pool` real and walked, `MidKeep.mid_keeps`, 2026-10-26: **no labeled premise**). Details: [row 0.7 in detail](#row-07-in-detail). |
 | 0.4 | The starting states the theorem quantifies over (`mem_ok_lp`: Mario's block valid, his action untainted, `MWF_real`) | **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by `NoAImpliesNoFlyTwelve.noA_never_flying_from_boot`). **GOAL 2: the witness is in WMotR by real code** (2026-10-21: `area.c` linked as the 23rd TU; `gCurrLevelNum = LEVEL_WMOTR` is stored by the generated `initiate_warp` + `warp_level`, `EntryWarp.v`; 2026-10-22: one real no-A frame runs from the witness, `frame_runs`, and its `init_mario_from_save_file` cells are tethered to the real body, `ifs_tether`; 2026-10-26: the witness's area has a real Camera, built by the generated `init_graph_node_camera` / `create_camera` in a level pool and stored in `gAreaData[1].camera` (`StartTerrain.cam_chain`; deviations in [row 3.6 in detail](#row-36-in-detail)), and a full frame runs through it: `area_update_objects`, then `update_camera` on that Camera, `frame_runs`). Details: [row 0.4 in detail](#row-04-in-detail). |
 | 0.5 | The step relation = what one real frame does | GOAL 1: **only `execute_mario_action`** in the twelve-TU capstone; **since 2026-10-26 also stated over GOAL 2's whole frame** (`NoAImpliesNoFlyFrame.noA_never_flying_frame_linked12`, skeleton: its open rows are GOAL 2's, see the detail). GOAL 2's `frame_step` composes the real `area_update_objects` call (which contains Mario's `execute_mario_action`; its stages are labeled rows, 0.7, since 2026-10-26), the level phase as real `play_mode_normal` slices (2026-10-24; `update_camera`'s PhiW carry a labeled row), and three real linked calls (the controller poll `osContStartReadData` + `read_controller_inputs`; Mario's render call; `apply_mario_platform_displacement`, the latter two and the poll since 2026-10-23). The specified flanks are not linked code. This is the largest scope gap. Details: [row 0.5 in detail](#row-05-in-detail). |
 
@@ -1017,7 +1017,9 @@ without pressing A".*
   `Hcam_ow` (narrower than the old `Hlvl_ow`: the `update_camera` statement, the camera row's
   step `LevelFlank.cam_step`, keeps the object world between mem_ok states in Φ; the real
   update_camera is walked only for mem_ok, over SafeB, which includes the object pool, so no
-  footprint excludes the pool). **PROVED 2026-10-26** (was the row `Hlvl_ow`): the level slices
+  footprint excludes the pool; its gates are machine-checked since 2026-10-26, `CamCutCensus`,
+  and what is left is the carry (a) and the footprint walk (b) under `Hcam_phi` below).
+  **PROVED 2026-10-26** (was the row `Hlvl_ow`): the level slices
   keep the object world (`HeightLinked12.lvl_ow_linked12`): the PRE slice's footprint is
   `lvl_safe_gvars` (`LevelKeep.pre_eff`), the POST slice is the hud statement, the camera
   statement (`Hcam_ow`) and the painting call + tail with footprint `level_gvars`
@@ -1175,23 +1177,27 @@ without pressing A".*
     sCutsceneVars, gCameraMovementFlags, gSecondCameraFocus's object, Mario's action
     (set_mario_npc_dialog), and the audio / dialog / sCameraHUDStatus / gRandomSeed16 /
     find_floor-counter globals.
-    Gates, read from camera.c (2026-10-26). With the boot cutscene tables, set_mario_npc_dialog is
-    reached only through `cutscene_common_set_dialog_state`, which is called from shots of exactly
-    two cutscenes:
-    - CUTSCENE_SSL_PYRAMID_EXPLODE: `cutscene_mario_dialog` in sCutscenePyramidTopExplode, and
-      `cutscene_stop_dialog` in its end shot; and
-    - CUTSCENE_ENTER_BOWSER_ARENA: `cutscene_bowser_arena_mario_dialog` and `cutscene_stop_dialog`.
-    The `unused_*` variants are referenced by no table. So the row is honest only on states whose
-    Camera is not in one of those two cutscenes AND whose writable cutscene / trigger tables still
-    hold their boot contents. The type certificate covers ANY CameraEvent in an arbitrary table.
-    PhiW pins neither fact today, so `Hcam_phi` as a ∀ over mem_ok + PhiW states quantifies over
-    camera states the game never produces in WMotR (phantom ∀). Discharging it needs a
-    camera-world carry, proved at boot. That carry has to cover three things:
-    - the Camera's `cutscene` is not one of the two;
-    - the tables are unchanged; and
-    - no WMotR object, and no area / Mario-status trigger inside update_camera, starts either
-      cutscene.
-    This is tied to the objects phase. It stays a labeled open row.
+    Gates, MACHINE-CHECKED since 2026-10-26 (`WMotRRequiresA/CamCutCensus.v`, no FOUND):
+    - `uc_wmotr`: update_camera's closure, with sCutsceneEnterBowserArena,
+      sCutscenePyramidTopExplode and sCameraTriggers cut off, has 428 functions. It contains no
+      `set_mario_npc_dialog`, and its only store through gSecondCameraFocus (an object) is
+      init_camera's LEVEL_BOWSER_1 arm, dead in WMotR. Uncut (530 functions) it has both.
+      WMotR's trigger entry is NULL (`CamIdxCensus.trig_census`).
+    - `cut_census_wmotr`: link-wide, no live code stores 144 or 168 into `Camera.cutscene` /
+      `sObjectCutscene`. Every source is a constant, a cutscene cell, or the dance table, whose
+      nibbles pick the five dance cutscenes (`dance_tables`). 168 is never stored; 144 is stored
+      only by init_camera's three Bowser-level arms (`cut_raw`), dead under `lvl_w`.
+    - `tables_read_only`: the cutscene arrays, the trigger, dance and mode tables are only read.
+    So no WMotR object, Mario-status or area trigger starts either cutscene, and the tables keep
+    their boot contents. **What stays open, narrowed:**
+    - (a) CARRY `Camera.cutscene, sObjectCutscene ∉ {144, 168}` across the frame. The census
+      says no live store breaks it, but no segment row states it, so `Hcam_phi` is still a
+      phantom ∀ over camera states.
+    - (b) a FOOTPRINT walk of update_camera's 428-function WMotR closure. UcKit walks all 507
+      bodies for mem_ok, through type certificates, so it cannot prune (a)'s cutscenes. The
+      footprint for `Hcam_ow` is the camera, audio, dialog and hud globals of `uc_census`, plus
+      the Camera's pool block; none of these is a `PollKeep.ow_ids` block or gMarioStates. For
+      `Hcam_phi`, add Camera bytes disjoint from the frame's surface regions.
   - `surf_apart` over `level_gvars`: PROVED from Φ since 2026-10-26 (`RenderKeep.phiw_surf_apart`).
   - `warp_w` at the POST's end: PROVED (2026-10-26, `LevelWarp.tail_warp_w`; no longer in
     `seg_level_post_spec`). The tail writes `sWarpDest` / `sCurrPlayMode` /
@@ -1622,7 +1628,7 @@ without pressing A".*
   **Machine-checked (2026-10-26, `WMotRRequiresA/ActWriterCensus.v`):** the closure of
   `area_update_objects` and `update_camera` over the whole link (execute_mario_action cut;
   an indirect call is followed only to address-taken functions of exactly its function type,
-  a UB-coverage point, 3.2: a mismatched call is C UB that the N64 would run; 2217 functions)
+  which `FnPtrCensus` shows are the only ones it can reach, see 3.2; 2217 functions)
   has exactly two action events
   (`census_value`): `set_mario_action`'s own store and `set_mario_npc_dialog`'s
   `set_mario_action(.., ACT_READING_NPC_DIALOG, ..)`, not in T. There is no `&action` escape and
@@ -1630,8 +1636,14 @@ without pressing A".*
   `mario_set_flag` is uncalled and never address-taken, and `act_in_cannon` is outside the
   closure (`cannon_out`). Not covered: a store into the action cell through a pointer of another
   type (the object step's footprint must exclude it) and `set_mario_action`'s semantics on that
-  constant; both belong to the narrow semantic row "keeps action ∉ T", not yet split from
-  `Hobj_step_*`.
+  constant; both belong to the narrow semantic row "keeps action ∉ T". **Split 2026-10-26**
+  (`ObjStepSplit`): that row is now `Hobj_step_act_terrain` / `Hobj_step_act_nonterrain`
+  (`step_act_row`: one object's update ends with Mario's action outside T; on the non-terrain
+  lists under the Mario hole), and `Hobj_step_rest_*` (`step_rest_row`) keep the rest of the
+  step rows and may assume it. `step_row_split` reassembles them, so ObjLoop's walk is
+  unchanged. GOAL 1's need from the objects' per-object step is exactly the act rows. To
+  prove: the census plus the step's footprint (no store into the action cell through another
+  type) plus a walk of `set_mario_action` on ACT_READING_NPC_DIALOG.
   Mario's height budget is NOT what GOAL 1 needs, but `Hseg_na_open` carries it jointly with the
   world facts GOAL 1 does need.
 - GOAL 1's twelve-TU capstone: **only `execute_mario_action`**. GOAL 2's `frame_step` composes that real call with one
@@ -1742,13 +1754,66 @@ link grows.
   has not proved they never occur. Each such site is a UB-coverage point, listed here until a
   carried invariant shows the case cannot happen. Open (2026-10-25):
   `cur_obj_call_action_function` (`ObjAct.caf_frame`) loads `tbl[o->oAction]` with no bounds
-  check. On the N64 an out-of-range index reads adjacent memory. Planned: `act_in_range` as an S2
-  `obj_w` clause, carried from `act_stores_census` plus the spawn / init writes.
-  Open (2026-10-26): `ActWriterCensus` follows an indirect call only to address-taken functions
-  of exactly the call site's type. A mismatched call is C UB: CompCert gives it no execution,
-  but the N64 runs the target. Discharge path: check that every function-pointer store and
-  initializer in the closure holds a function of the type it is read at. Both points are in
-  `tools/ub_sites.py`'s `UB_WORKLIST`.
+  check. On the N64 an out-of-range index reads adjacent memory. The clause exists
+  (`ObjWorld.act_ok`, `ow_act`: a slot of the 3 action-table behaviors has 0 <= oAction < its
+  table's length). **Census 2026-10-26 (`WMotRRequiresA/ActIdxCensus.v`), no FOUND:** every
+  write of oAction in the link, machine-checked. Each behavior's own closure (its reachable
+  script natives, BhvVM, under direct calls and its own table) stores only constants in range
+  or a helper parameter every call passes in range (`own_stores_ok`, 3 + 6 + 8 stores); the
+  generic object step stores none (`gen_census`; allocate_object zeroes it); no reachable
+  script state writes field 49 (`script_census`); the only store through another object
+  pointer in the WMotR closure is `act_in_cannon`'s `m->usedObj->oAction = 2` (behind
+  INPUT_A_PRESSED, in range of the cannon's 7) (`other_stores_value`); computed indices never
+  hit 49 and &rawData never escapes. What remains is the CARRY of `ow_act` through the object
+  loop rows (objects agent), with the tie "a slot whose behavior is B runs B's script states".
+  **REPAIRED (2026-10-26, `WMotRRequiresA/FnPtrCensus.v`):** `ActWriterCensus` follows an
+  indirect call only to address-taken functions of exactly the call site's type (a mismatched
+  call is C UB: no CompCert execution, but the N64 runs the target). Machine-checked over every
+  TU, initializer and body of the link: every function address enters at exactly its own type
+  (`init_census`: 507 type-exact initializer slots, BehaviorCmdTable / the oAction tables /
+  `sModeTransitions` / the cutscene and camera-trigger structs among them, and 751 CALL_NATIVE
+  words of behavior scripts, all `void(void)`; `body_census`: 187 designators in bodies, all
+  exact, so every function-pointer field / global store is exact); the only conversion into a
+  function-pointer type from another type is `bhv_cmd_call_native`'s script word
+  (`reentry_census`); no function pointer is converted to another type (`exit_census`); the
+  only pointer punning around function-pointer memory is the render code's graph-node
+  downcasts, outside the closure, reaching only `GraphNodeFunc`, a type no call site of the
+  closure has, and no union holds a function pointer (`pun_census`); temps and globals are read
+  at their declared type (`read_census`, one unrelated exception). What stayed open was
+  the narrower point of an out-of-bounds table read at an indirect call, which would read a
+  neighbour of another type. `BehaviorCmdTable[cmd >> 24]` is discharged on master by obj_w's
+  CMDPOS clause (`ObjWorld.ow_vm`: every live slot's command is a reachable `BhvVM` state,
+  opcode < 56, `BhvVM.vm_tab_closed`), proved at boot and carried. **The camera tables
+  (census 2026-10-26, `WMotRRequiresA/CamIdxCensus.v`, no FOUND):** a value-source census of
+  every store into the index cells. `sModeTransitions` (18 entries, NULL at 0): every stored
+  mode is a constant in 1..17 or a mode cell except four pinned leaves: two path-guarded
+  (`set_camera_mode`'s `mode != -1`, `set_mode_if_not_set_by_surface`'s `mode != 0`) and
+  `create_camera`'s `gc->config.mode`, the level's GEO_CAMERA node, geo DATA outside the link
+  (WMotR's is 16). Camera triggers: WMotR's `sCameraTriggers` entry is NULL (no trigger runs);
+  every array is NULL-terminated (decomp note: the `LEVEL_COUNT + 1` clamp allows index 40 of
+  a 40-entry array, unreachable in WMotR). Cutscenes: within a cutscene the shot index stays in
+  bounds (`cut_census`: the 8 CUTSCENE_LOOP setters sit only in non-last shots, last
+  durations are 0 / LOOP). **Closed for WMotR (2026-10-26, `WMotRRequiresA/CamCutCensus.v`):**
+  the census made path- and level-aware. A guarded constant is dropped when every use that
+  carries the parameter on sits under a `p != k` test (`mode_guards`, with a negative control).
+  A call in a `gCurrLevelNum` switch case that no LEVEL_WMOTR / default label reaches is dead
+  (gCurrLevelNum = 31 is carried, `FfWorld.lvl_w`). A call's result is followed into the
+  callee's returns. Mode: only `create_camera`'s leaf is left (`mode_census_guarded`).
+  The cutscene-switch carry `c->cutscene = 0 -> sCutsceneShot = 0` is closed:
+  - the zeroing functions and everything that can call or name them lie in the shots' closure,
+    held only by cutscene arrays (`zero_only_in_shots`);
+  - every shot reaching one is a last duration-0 shot, or STOP-paired on every zeroing path
+    with only STOP timer stores in its closure (`shots_reset`, `stop_paired`), so play_cutscene
+    resets the shot;
+  - only `reset_camera` sets CAM_MOVE_INIT_CAMERA (`init_after_reset`);
+  - a cutscene starts only from 0 (`starts_from_zero`: `get_cutscene_from_mario_status`
+    returns a running cutscene unchanged; the pool start is held only by castle / HMC triggers).
+  **One trust line, the GEO_CAMERA mode:** geo layouts are not linked, so the area Camera's mode
+  is WMotR's `GEO_CAMERA(16, ...)` (`levels/wmotr/areas/1/geo.inc.c:16`), transcribed as the
+  literal 16 the boot witness passes to `init_graph_node_camera` (`StartTerrain.cam_chain`).
+  It is in range 1..17. New worklist point (decomp UB, `no_case_values`):
+  CUTSCENE_WATER_DEATH (159, from ACT_WATER_DEATH) has no case in play_cutscene's switch, so
+  `cutsceneDuration` is read uninitialized. In `tools/ub_sites.py`'s `UB_WORKLIST`.
 
 ### Row 3.5 in detail
 

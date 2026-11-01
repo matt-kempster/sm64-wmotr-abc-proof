@@ -24,8 +24,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
   capstone rows (shared invariant: the level slices' mem_ok carries read PhiW). The header lists
   what GOAL 1 needs from each row; the key one is `Hobj_step_*` (no object sets Mario's action
   into T; objects reach it only via `set_mario_npc_dialog`, MACHINE-CHECKED by
-  `ActWriterCensus.census_value` over the objects + camera closure). TRUST 0.5. Next: split
-  "keeps action ∉ T" from `Hobj_step_*` (census + the step's footprint); then a GOAL-1 world
+  `ActWriterCensus.census_value` over the objects + camera closure; its indirect edges are the
+  real ones by `FnPtrCensus`, every function address of the link enters at exactly its type,
+  TRUST 3.2 REPAIRED up to out-of-bounds table reads; those are census-checked by
+  `ActIdxCensus` (every oAction write in range: ow_act's carry certificate) and `CamIdxCensus`
+  (camera mode / trigger / cutscene indices), closed for WMotR by `CamCutCensus` (path guards,
+  level-dead arms, the cutscene-switch carry; left: the GEO_CAMERA mode, a TRUST 3.2 line);
+  BehaviorCmdTable by ow_vm). TRUST 0.5. The split
+  is DONE (2026-10-26, `ObjStepSplit`: `Hobj_step_act_*` = "keeps action ∉ T", the rest rows
+  assume it); prove the act rows from the census + the step's footprint; then a GOAL-1 world
   invariant without the height budget (after Hseg's B-xz chunk).
 - **GOAL 1** (no-A ⇒ no-fly): `NoAImpliesNoFly/NoAImpliesNoFlyTwelve.v`,
   `noA_no_spawn_never_flying_linked12`. The step is one real `execute_mario_action` over
@@ -501,10 +508,35 @@ all in `Unwired/`, and the theorem moved nowhere. See
     alloc_only_pool_init / init_graph_node_camera / create_camera / reset_camera; FOUND:
     alloc_only_pool_resize has no CompCert execution, pointer minus pointer in main_pool_free,
     so the level pool is made at its resized size, TRUST 3.6), and `StartSat.frame_runs` runs
-    area_update_objects and then update_camera on it. Hcam_phi gates (TRUST 0.7 detail):
-    set_mario_npc_dialog is reached only from the SSL_PYRAMID_EXPLODE / ENTER_BOWSER_ARENA cutscene
-    shots (boot tables), so an honest discharge needs a camera-world carry. That carry pins the
-    Camera's cutscene and keeps the cutscene tables, and it is tied to what objects can start.
+    area_update_objects and then update_camera on it. Hcam_phi / Hcam_ow gates are
+    MACHINE-CHECKED (2026-10-26, `CamCutCensus`, no FOUND). Without the two cutscene arrays and
+    the trigger table, update_camera's 428-function closure has no set_mario_npc_dialog, and
+    its only object store is a level-dead init_camera arm (`uc_wmotr`). No live code anywhere
+    stores cutscene 144 or 168 (`cut_census_wmotr`), and the tables are read-only
+    (`tables_read_only`). Still open, narrowed to two pieces:
+    - (a) carry `Camera.cutscene / sObjectCutscene ∉ {144,168}` across the frame. The census
+      says nothing breaks it; no row states it. **Until a cam_w clause lands, Hcam_phi
+      (and Hcam_ow) are PHANTOM ∀**: they quantify over memories whose Camera.cutscene or
+      sObjectCutscene is 144 / 168, where the real update_camera runs the Bowser-arena /
+      pyramid cutscenes, so the row as stated is false there. HANDOFF (2026-10-26, paused,
+      nothing written yet): planned shape is a `cam_w` conjunct appended to `FfWorld.lvl_w`
+      (then Hcam_phi assumes / claims it via PhiW, no HeightFrame text edit). Draft:
+      sObjectCutscene byte ∉ {144,168}; for gCurrentArea = (bad,o), the cell
+      bad+o+36 = Vptr cb co with `Ple genv_next cb`, cb ≠ the anim buffer block
+      (gMarioAnimsBuf+8), and byte cb+co+48 (Camera.cutscene) ∉ {144,168}. Snags found:
+      (1) the Camera is in the main-pool block, not a global, so `lvl_w_unch` must take a
+      wider premise `lvl_blk` (lvl_sym ∨ {sObjectCutscene, gAreaData} ∨ the Camera block) plus
+      "gMarioAnimsBuf cell 8 unchanged"; (2) the Mario rows' `AnimKeep.lvl_w_keep` cannot show
+      cb ≠ fw_bt d at m' without that cell, so its 6 call sites (Cannon/Ahw/Ff/PoleT/Kb/Ledge
+      rows) need an extra argument from their `CL 8 Mint32`; (3) the `lvl_w_keep_ne` sites
+      (AutoSplit, FrameSplit, HoleX, ProRows hole_lvl, RenderKeep) and LevelKeep's
+      lvl_w_safe / lvl_w_tail / lvl_w_ctl and PollKeep.lvl_w_fx0 must prove P / footprint
+      avoidance for the new blocks; (4) boot: add the two byte checks to
+      `StartTerrain.cam_frame_g` (vm-checked on m11, where gAreaData+96 is the camera) and
+      read them back in `StartSat.lvl11`. Positional destructs of lvl_w's tail (area ∧ env)
+      shift when cam_w is appended.
+    - (b) a footprint walk of that closure, giving camera / audio / dialog globals plus the
+      Camera's block, no ow_ids block. UcKit's type-certificate walk cannot prune.
     Left labeled.
     Mario's render call and
     `apply_mario_platform_displacement` (platform_displacement.c, TU 45) are REAL calls whose
