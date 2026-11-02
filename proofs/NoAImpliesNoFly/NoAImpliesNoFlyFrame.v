@@ -84,8 +84,15 @@
 (*    object-pointer cells unchanged; the obj_w carry is proved from it):*)
 (*    needed only because the object rows are stated over a Pobj that    *)
 (*    contains obj_w.                                                     *)
+(*    Both camera rows are FALSE AS STATED (unpinned, 2026-11-02): PhiW  *)
+(*    does not pin sMarioCamState / sLuigiCamState / gSecondCameraFocus. *)
+(*    Fix: the cam_w pins + CamFootInst.update_camera_foot (TRUST 0.7).  *)
 (*  - Hls, Hdma_floor, Hdma_anim, Hsqrtf, Hsqrtf_float: GOAL 1's own     *)
 (*    model-boundary rows (audio load_sequence, the OS DMA floor, sqrtf).*)
+(*    Hls's footprint half (LsContract.ls_frame) is FALSE AS STATED      *)
+(*    (unscoped, 2026-11-02): it holds for every memory, but load.c      *)
+(*    stores through audio-heap pointers read from memory.  Fix: an      *)
+(*    AudioInv precondition (TRUST 4.1).                                  *)
 (* ====================================================================== *)
 
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory Globalenvs
