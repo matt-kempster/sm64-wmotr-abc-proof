@@ -1302,8 +1302,10 @@ without pressing A".*
         - R3: the Camera's 108 bytes are apart from `sSurfacePool` (2300·48 bytes) and
           `sSurfaceNodePool` (7000·8), the sizes `alloc_surface_pools` allocates;
         - and `lvl_w` has an eighth clause `aud_w` (= `AudioInv`, row 4.1).
-        Every proved keeper carries them. The boot side (StartTerrain / StartSat checks for the
-        pins, R3 and aud_w) waits for the objects agent's real-order witness. `Hcam_phi` and
+        Every proved keeper carries them. They are PROVED at boot on the real-order witness:
+        `StartTerrain.pin_chk` (inside `cut_chk`, at m11; vm) and `StartSat.pin11` / `cam11` /
+        `aud11`. The same check exports the surface counters (`ObjWorld.ctr_ok`, `ctr11`)
+        and gTimeStopState = 0 (`ts11`) at m11. `Hcam_phi` and
         `Hcam_ow_fp` keep their statements; under the new PhiW they range over no state the game
         never produces, so they are TRUE as stated. Each row's comment in `HeightFrame.v`
         carries the phantom check (pins, R3, aud_w) and cites `update_camera_foot` as

@@ -1490,7 +1490,10 @@ Section HeightLinked12.
      pins aim sMarioCamState / sLuigiCamState into gPlayerCameraState
      (no ow_ids global, not Mario's block) and leave gSecondCameraFocus
      no pointer, so no object store goes through it; R3 keeps the
-     Camera's bytes apart from the surface pools; aud_w keeps the audio
+     Camera's bytes apart from the surface pools (the main-pool block the
+     Camera shares with them), so the camera's stores into the Camera keep
+     the partitions' lists and surfaces (the surf_keep conjunct, master
+     2026-11-02); aud_w keeps the audio
      state's pointers on audio blocks (no ow_ids block among them).
      These hold at boot and are kept by every phase, so the row ranges
      over no unreachable state.

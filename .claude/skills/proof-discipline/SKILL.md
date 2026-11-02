@@ -562,11 +562,16 @@ all in `Unwired/`, and the theorem moved nowhere. See
         (FootWalk + PermWalk to the 3.5 floor; cf_FP 105 -> 115 globals) and
         `CamFootNpc.npc_spec` (the literal-action set_mario_action call: `sma_prune` empties
         the dead switch arms). New premise of update_camera_foot: `Hfloor` (3.5, existing).
-    - NEXT, the deferred rebuild (with R3 + B'' (b)/(c)):
-      - cam_w gains the pins (proved at boot, kept by every phase);
-      - both rows are restated on update_camera_foot;
-      - the residual row is Mario's state / gTimeStopState / gSecondCameraFocus. Its phantom
-        check: npc is dead under cam_w (uc_wmotr).
+    - DONE (root rebuild 2026-11-02): cam_w has the pins (`cam_pins`) and R3 (Camera's 108
+      bytes apart from both surface pools); proved at boot by `StartTerrain.pin_chk` (inside
+      `cut_chk`, at m11; `StartSat.pin11` / `cam11`), kept by every phase. Hcam_phi /
+      Hcam_ow_fp keep their statements: TRUE as stated now, still labeled; their comments
+      carry the phantom check (pins, R3, aud_w) and cite update_camera_foot as EVIDENCE.
+      update_camera_foot stays OFF the spine (it uses the unscoped ls_frame).
+    - NEXT (a): the CamFoot walker carries AudioInv (invariant + per-store check), its
+      load_sequence leaf moves to `ls_frame_ai`, update_camera_foot goes on the spine and
+      DERIVES both rows. Residual row: Mario's state / gTimeStopState / gSecondCameraFocus
+      (npc dead under cam_w; gTimeStopState = 0 at boot, `StartSat.ts11`).
     **FOUND FALSE 2026-11-02 (unscoped):** `LsContract.ls_frame` (Hls's footprint half) is
     claimed for every memory. Fix, in stages:
     - DONE: `AudioInv.v` (pointers loaded from `ls_ids` blocks aim at `aud_ids` = ls_ids +
@@ -577,9 +582,16 @@ all in `Unwired/`, and the theorem moved nowhere. See
       memories have NO audio pointers, and no global points into the audio set.
     - DONE: `AudioWire` (cap path `afi`, `ucf_frame_ai`) and `HitboxFrame.hitbox_hh_ai`, all
       from `ls_frame_ai` alone.
-    - NEXT (deferred root rebuild): `aud_w` = AudioInv becomes lvl_w's 8th clause, carried by
-      every phase (AudioInv_Q2 for footprints off ls_ids, store-value checks for the audio
-      walks). Then Hls switches to `ls_frame_ai`, and ObjFrame / CamFootInst move over.
+    - DONE (root rebuild 2026-11-02): `aud_w` = AudioInv is lvl_w's 8th clause
+      (`AudioInv.aud_w_eq`), carried by every phase: `LevelKeep.aud_w_fx` for footprints off
+      ls_ids; LevelWalk's walker has the store-value check (`AudioWire.ai_store_ok` in
+      `lv_store_ok`, `lfun = lfun_of /\ lfun_ai`, `lv_stmt_ai`); HoleX keeps the non-audio
+      part and NaSplit takes AudioInv from `hitbox_hh_ai`. Boot: `aud_chk` inside
+      `pin_chk` at m11. Both capstones' Hls is `AudioInv.ls_contract_ai`; no spine file uses
+      `ls_frame` (ObjFrame / ObjAct / CamFootInst are kept roots, off the capstones).
+    - InRange's floor height is CONDITIONAL since the rebuild: `FLB h := h = -11000 \/
+      -8192 <= h` (hits from `FloorLow.wmotr_floor_dp`); use `FLB_low` where -11000 is
+      needed. pos / gfx stay at -11000.
     Left labeled.
     Mario's render call and
     `apply_mario_platform_displacement` (platform_displacement.c, TU 45) are REAL calls whose

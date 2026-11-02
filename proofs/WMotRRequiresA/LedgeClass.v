@@ -411,7 +411,7 @@ Proof.
     destruct (is_pz_sound _ Pz) as (z & -> & Fz & Rz). cbn [SymExec2.den] in LV.
     rewrite lic, lAM, F0 in LY. rewrite lic, lAM, F0 in LG.
     apply (ledge_finish i js jt (c_floorh c0) z (c_floorh c0) (R2 (c_floorh c0))
-             LA LS LT LY LV LF LM LG Hin FF0 Fz FF0 LF0 LF0 ltac:(lra) (fro_attach c0 FRO0)
+             LA LS LT LY LV LF LM LG Hin FF0 Fz FF0 (FLB_low _ LF0) (FLB_low _ LF0) ltac:(lra) (fro_attach c0 FRO0)
              ltac:(lra) (or_introl eq_refl)).
   - (* let go: gfx kept, vel[1] = 0, pos[1] from lgy *)
     repeat rewrite andb_true_iff in SH. destruct SH as ((Eg & Pz) & LGY).

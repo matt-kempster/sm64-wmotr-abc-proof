@@ -56,6 +56,7 @@ From SM64.Proofs.WMotRRequiresA Require CourseRun AnimData.
 From SM64.Generated Require game_init area level_script sound_init platform_displacement.
 From SM64.Proofs.WMotRRequiresA Require LevelFlank.
 From SM64.Proofs Require AGates MWFReal.
+From SM64.Proofs.WMotRRequiresA Require AudioInv.
 Import ListNotations.
 Module CM := SM64.Proofs.Interp.CMem.
 Arguments Done {A}.
@@ -869,6 +870,133 @@ Notation cam_chain ge := (cam_chain_g (ex_call ge world FUEL) (cam_pool_size ge)
 Definition cut_okb (n : int) : bool :=
   negb (Z.eqb (Int.unsigned n) 144) && negb (Z.eqb (Int.unsigned n) 168).
 
+(* the camera pins, R3 and the audio state (FfWorld.cam_w / aud_w, the
+   root rebuild 2026-11-02), read off the same memory: gCamera is the
+   Camera or no pointer; sMarioCamState / sLuigiCamState aim into
+   gPlayerCameraState; gSecondCameraFocus holds no pointer; the Camera's
+   108 bytes are apart from both surface pools (ObjWorld.ow_spool's
+   SP_OFF / NP_OFF in the main pool); AudioInv by its decision procedure *)
+Definition ptr_is (o : option val) (f : block -> ptrofs -> bool) : bool :=
+  match o with Some (Vptr b x) => f b x | _ => true end.
+
+Definition apartb (cb : block) (co : ptrofs) (n : Z) (bp : block) (op : ptrofs) : bool :=
+  negb (Pos.eqb bp cb) || (Ptrofs.unsigned op + n <=? Ptrofs.unsigned co)
+  || (Ptrofs.unsigned co + CAM_SZ <=? Ptrofs.unsigned op).
+
+(* gTimeStopState = 0 (object_list_processor.c's boot zero) *)
+Definition ts_chk (ge : genv) (m : mem) : bool :=
+  match Genv.find_symbol ge object_list_processor._gTimeStopState with
+  | Some b => match CM.load Mint32 m b 0 with Some (Vint n) => Int.eq n Int.zero | _ => false end
+  | None => false
+  end.
+
+Lemma ts_chk_sound : forall ge m, ts_chk ge m = true ->
+  forall b, Genv.find_symbol ge object_list_processor._gTimeStopState = Some b ->
+    Mem.load Mint32 m b 0 = Some (Vint Int.zero).
+Proof.
+  intros ge m H b Hb. unfold ts_chk in H. rewrite Hb, CM.load_eq in H.
+  destruct (Mem.load Mint32 m b 0) as [[| n | | | |]|]; try discriminate.
+  pose proof (Int.eq_spec n Int.zero) as Q. rewrite H in Q. subst n. reflexivity.
+Qed.
+
+Definition pin_chk (ge : genv) (cam : val) (m : mem) : bool :=
+  match Genv.find_symbol ge camera._gCamera, Genv.find_symbol ge camera._sMarioCamState,
+        Genv.find_symbol ge camera._sLuigiCamState, Genv.find_symbol ge camera._gSecondCameraFocus,
+        Genv.find_symbol ge camera._gPlayerCameraState,
+        Genv.find_symbol ge surface_load._sSurfacePool, Genv.find_symbol ge surface_load._sSurfaceNodePool, cam with
+  | Some bgc, Some bms, Some bls, Some bsf, Some bpcs, Some bsp, Some bnp, Vptr cb co =>
+      ptr_is (CM.load Mint32 m bgc 0) (fun b x => Pos.eqb b cb && Ptrofs.eq x co)
+      && ptr_is (CM.load Mint32 m bms 0) (fun b _ => Pos.eqb b bpcs)
+      && ptr_is (CM.load Mint32 m bls 0) (fun b _ => Pos.eqb b bpcs)
+      && ptr_is (CM.load Mint32 m bsf 0) (fun _ _ => false)
+      && (Ptrofs.unsigned co + CAM_SZ <=? Ptrofs.max_unsigned)
+      && ptr_is (CM.load Mint32 m bsp 0) (apartb cb co 110400)
+      && ptr_is (CM.load Mint32 m bnp 0) (apartb cb co 56000)
+      && AudioInv.aud_chk ge m
+      && ObjWorld.ctr_b ge m && ts_chk ge m
+  | _, _, _, _, _, _, _, _ => false
+  end.
+
+Lemma ptr_is_sound : forall o f b x, ptr_is o f = true -> o = Some (Vptr b x) -> f b x = true.
+Proof. intros o f b x H ->. exact H. Qed.
+
+Lemma pin_chk_sound : forall ge cb co m, pin_chk ge (Vptr cb co) m = true ->
+  (forall b, Genv.find_symbol ge camera._gCamera = Some b ->
+     forall bb oo, Mem.load Mint32 m b 0 = Some (Vptr bb oo) -> bb = cb /\ oo = co)
+  /\ (forall x b, In x [camera._sMarioCamState; camera._sLuigiCamState] ->
+       Genv.find_symbol ge x = Some b ->
+       forall bb oo, Mem.load Mint32 m b 0 = Some (Vptr bb oo) ->
+         Genv.find_symbol ge camera._gPlayerCameraState = Some bb)
+  /\ (forall b, Genv.find_symbol ge camera._gSecondCameraFocus = Some b ->
+       forall bb oo, Mem.load Mint32 m b 0 <> Some (Vptr bb oo))
+  /\ Ptrofs.unsigned co + CAM_SZ <= Ptrofs.max_unsigned
+  /\ (forall id n bs bp op, In (id, n) cam_pools -> Genv.find_symbol ge id = Some bs ->
+        Mem.load Mint32 m bs 0 = Some (Vptr bp op) ->
+        bp <> cb \/ Ptrofs.unsigned op + n <= Ptrofs.unsigned co
+        \/ Ptrofs.unsigned co + CAM_SZ <= Ptrofs.unsigned op)
+  /\ AudioInv.AudioInv ge m
+  /\ ObjWorld.ctr_ok ge m
+  /\ (forall b, Genv.find_symbol ge object_list_processor._gTimeStopState = Some b ->
+        Mem.load Mint32 m b 0 = Some (Vint Int.zero)).
+Proof.
+  intros ge cb co m H. unfold pin_chk in H.
+  destruct (Genv.find_symbol ge camera._gCamera) as [bgc|] eqn:S1; [ | discriminate ].
+  destruct (Genv.find_symbol ge camera._sMarioCamState) as [bms|] eqn:S2; [ | discriminate ].
+  destruct (Genv.find_symbol ge camera._sLuigiCamState) as [bls|] eqn:S3; [ | discriminate ].
+  destruct (Genv.find_symbol ge camera._gSecondCameraFocus) as [bsf|] eqn:S4; [ | discriminate ].
+  destruct (Genv.find_symbol ge camera._gPlayerCameraState) as [bpcs|] eqn:S5; [ | discriminate ].
+  destruct (Genv.find_symbol ge surface_load._sSurfacePool) as [bsp|] eqn:S6; [ | discriminate ].
+  destruct (Genv.find_symbol ge surface_load._sSurfaceNodePool) as [bnp|] eqn:S7; [ | discriminate ].
+  rewrite !CM.load_eq in H. cbv beta iota in H.
+  repeat match type of H with (_ && _) = true => apply andb_prop in H as [H ?] end.
+  rename H into P1.
+  match goal with
+  | A : AudioInv.aud_chk _ _ = true |- _ => pose proof (AudioInv.aud_chk_sound _ _ A) as AI
+  end.
+  match goal with
+  | A : ObjWorld.ctr_b _ _ = true |- _ => pose proof (ObjWorld.ctr_b_sound _ _ A) as CT
+  end.
+  match goal with
+  | A : ts_chk _ _ = true |- _ => pose proof (ts_chk_sound _ _ A) as TS
+  end.
+  split; [ | split; [ | split; [ | split; [ | split; [ | split; [ | split ] ] ] ] ] ].
+  - intros b Hb bb oo L. try rewrite S1 in Hb. injection Hb as <-.
+    pose proof (ptr_is_sound _ _ _ _ P1 L) as E. cbn beta in E.
+    apply andb_prop in E as [E1 E2]. apply Pos.eqb_eq in E1.
+    split; [ exact E1 | ].
+    pose proof (Ptrofs.eq_spec oo co) as Q. rewrite E2 in Q. exact Q.
+  - intros x b Hx Hb bb oo L. cbn [In] in Hx.
+    destruct Hx as [<- | [<- | []]].
+    + rewrite S2 in Hb. injection Hb as <-.
+      match goal with Hq : ptr_is (Mem.load Mint32 m bms 0) _ = true |- _ =>
+        pose proof (ptr_is_sound _ _ _ _ Hq L) as E end.
+      apply Pos.eqb_eq in E. subst bb. first [ reflexivity | exact S5 ].
+    + rewrite S3 in Hb. injection Hb as <-.
+      match goal with Hq : ptr_is (Mem.load Mint32 m bls 0) _ = true |- _ =>
+        pose proof (ptr_is_sound _ _ _ _ Hq L) as E end.
+      apply Pos.eqb_eq in E. subst bb. first [ reflexivity | exact S5 ].
+  - intros b Hb bb oo L. try rewrite S4 in Hb. injection Hb as <-.
+    match goal with Hq : ptr_is (Mem.load Mint32 m bsf 0) _ = true |- _ =>
+      pose proof (ptr_is_sound _ _ _ _ Hq L) as E end.
+    discriminate E.
+  - match goal with Hq : (_ <=? Ptrofs.max_unsigned) = true |- _ => apply Z.leb_le in Hq; exact Hq end.
+  - intros id n bs bp op Hin Hs L. cbn [cam_pools In] in Hin.
+    assert (K : ptr_is (Mem.load Mint32 m bs 0) (apartb cb co n) = true ->
+              bp <> cb \/ Ptrofs.unsigned op + n <= Ptrofs.unsigned co
+              \/ Ptrofs.unsigned co + CAM_SZ <= Ptrofs.unsigned op).
+    { intros Hq. pose proof (ptr_is_sound _ _ _ _ Hq L) as E. unfold apartb in E.
+      apply orb_true_iff in E as [E | E]; [ apply orb_true_iff in E as [E | E] | ].
+      - left. apply negb_true_iff, Pos.eqb_neq in E. exact E.
+      - right; left. apply Z.leb_le in E. exact E.
+      - right; right. apply Z.leb_le in E. exact E. }
+    destruct Hin as [E | [E | []]]; injection E as <- <-.
+    + rewrite S6 in Hs. injection Hs as <-. apply K; assumption.
+    + rewrite S7 in Hs. injection Hs as <-. apply K; assumption.
+  - exact AI.
+  - exact CT.
+  - exact TS.
+Qed.
+
 Definition cut_chk (ge : genv) (cam : val) (m : mem) : bool :=
   match Genv.find_symbol ge camera._sObjectCutscene, Genv.find_symbol ge mario._gMarioAnimsBuf, cam with
   | Some bs, Some ab, Vptr cb co =>
@@ -876,6 +1004,7 @@ Definition cut_chk (ge : genv) (cam : val) (m : mem) : bool :=
             CM.load Mint8unsigned m cb (Ptrofs.unsigned co + 48) with
       | Some (Vint n1), Some (Vptr bt _), Some (Vint n2) =>
           cut_okb n1 && cut_okb n2 && Pos.leb (Genv.genv_next ge) cb && negb (Pos.eqb bt cb)
+          && pin_chk ge cam m
       | _, _, _ => false
       end
   | _, _, _ => false
@@ -904,6 +1033,7 @@ Proof.
   destruct (Mem.load Mint8unsigned m bs 0) as [[| n1 | | | |]|] eqn:L1; try discriminate.
   destruct (Mem.load Mint32 m ab 8) as [[| | | | | bt ot]|] eqn:L2; try discriminate.
   destruct (Mem.load Mint8unsigned m cb (Ptrofs.unsigned co + 48)) as [[| n2 | | | |]|] eqn:L3; try discriminate.
+  apply andb_prop in H as [H _].
   apply andb_prop in H as [H H4]. apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
   exists cb, co. split; [ reflexivity | ].
   split; [ intros bs' Hs'; injection Hs' as <-; exists n1; exact (conj L1 (cut_okb_ok _ H1)) | ].
@@ -911,6 +1041,15 @@ Proof.
   split; [ | exists n2; exact (conj L3 (cut_okb_ok _ H2)) ].
   intros ab' bt' ot' Ha' L'. injection Ha' as <-. rewrite L2 in L'. injection L' as <- _.
   apply negb_true_iff, Pos.eqb_neq in H4. exact H4.
+Qed.
+
+Lemma cut_chk_pin : forall ge cam m, cut_chk ge cam m = true -> pin_chk ge cam m = true.
+Proof.
+  intros ge cam m H. unfold cut_chk in H.
+  repeat match type of H with
+    | (match ?x with _ => _ end) = true => destruct x; try discriminate H
+    end.
+  apply andb_prop in H as [_ H]. exact H.
 Qed.
 
 Definition cam_frame_g (run : runT) (cutp : val -> mem -> bool) (bgad : block) (cam : val) (m : mem) : bool :=

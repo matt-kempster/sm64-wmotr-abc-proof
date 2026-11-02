@@ -59,6 +59,8 @@ From SM64.Proofs.WMotRRequiresA Require CourseRun AnimData AnimWorld PlatformKee
 From SM64.Generated Require graph_node area camera.
 From SM64.Proofs.NoAImpliesNoFly Require BootRun.
 From SM64.Proofs Require AGates LinkedTwelve InitMemSat.
+From SM64.Proofs.WMotRRequiresA Require AudioInv.
+From SM64.Generated Require object_list_processor.
 Import ListNotations.
 Arguments Done {A}.
 Arguments Stuck {A}.
@@ -1612,7 +1614,7 @@ Section Witness.
     Qed.
 
     Lemma budget_c0 : budget_ok c0.
-    Proof. apply entry_budget; [ reflexivity | replace (R2 Float32.zero) with 0%R by reflexivity; lra ]. Qed.
+    Proof. apply entry_budget; [ reflexivity | right; replace (R2 Float32.zero) with 0%R by reflexivity; lra ]. Qed.
 
     Lemma act_noA : action_sat R_noA m11 bm.
     Proof. intros v Hl. rewrite L_act in Hl. injection Hl as <-. exact entry_action_noA. Qed.
@@ -2605,15 +2607,65 @@ Section Witness.
        c->cutscene = 0) and sObjectCutscene's boot 0, read off m11 by
        StartTerrain.cut_chk (inside cam_frame_ok); the Camera is the main
        pool's block, past the globals and not the animation buffer ---- *)
+    (* the root rebuild (2026-11-02): the camera pins, R3, the audio state,
+       the surface counters and gTimeStopState, read off m11 by
+       StartTerrain.pin_chk (inside cut_chk) *)
+    Lemma pin11 : exists cb co, camv = Vptr cb co
+      /\ (forall b, Genv.find_symbol (lp_ge lp) camera._gCamera = Some b ->
+           forall bb oo, Mem.load Mint32 m11 b 0 = Some (Vptr bb oo) -> bb = cb /\ oo = co)
+      /\ (forall x b, In x [camera._sMarioCamState; camera._sLuigiCamState] ->
+           Genv.find_symbol (lp_ge lp) x = Some b ->
+           forall bb oo, Mem.load Mint32 m11 b 0 = Some (Vptr bb oo) ->
+             Genv.find_symbol (lp_ge lp) camera._gPlayerCameraState = Some bb)
+      /\ (forall b, Genv.find_symbol (lp_ge lp) camera._gSecondCameraFocus = Some b ->
+           forall bb oo, Mem.load Mint32 m11 b 0 <> Some (Vptr bb oo))
+      /\ Ptrofs.unsigned co + CAM_SZ <= Ptrofs.max_unsigned
+      /\ (forall id n bs bp op, In (id, n) cam_pools -> Genv.find_symbol (lp_ge lp) id = Some bs ->
+            Mem.load Mint32 m11 bs 0 = Some (Vptr bp op) ->
+            bp <> cb \/ Ptrofs.unsigned op + n <= Ptrofs.unsigned co
+            \/ Ptrofs.unsigned co + CAM_SZ <= Ptrofs.unsigned op)
+      /\ AudioInv.AudioInv (lp_ge lp) m11
+      /\ ObjWorld.ctr_ok (lp_ge lp) m11
+      /\ (forall b, Genv.find_symbol (lp_ge lp) object_list_processor._gTimeStopState = Some b ->
+            Mem.load Mint32 m11 b 0 = Some (Vint Int.zero)).
+    Proof.
+      pose proof (cam_frame_ok_cut _ _ _ _ CF) as CC.
+      destruct (cut_chk_sound _ _ _ CC) as (cb & co & Ec & _).
+      pose proof (cut_chk_pin _ _ _ CC) as PC. rewrite Ec in PC.
+      exists cb, co. exact (conj Ec (pin_chk_sound _ _ _ _ PC)).
+    Qed.
+
+    Lemma aud11 : aud_w (lp_ge lp) m11.
+    Proof.
+      destruct pin11 as (cb & co & _ & _ & _ & _ & _ & _ & AI & _).
+      exact (proj2 (AudioInv.aud_w_eq _ _) AI).
+    Qed.
+
+    (* exported for the objects phase's carried ctr_ok (ObjWorld) and the
+       camera's time-stop cell *)
+    Lemma ctr11 : ObjWorld.ctr_ok (lp_ge lp) m11.
+    Proof. destruct pin11 as (cb & co & _ & _ & _ & _ & _ & _ & _ & C & _). exact C. Qed.
+
+    Lemma ts11 : forall b, Genv.find_symbol (lp_ge lp) object_list_processor._gTimeStopState = Some b ->
+        Mem.load Mint32 m11 b 0 = Some (Vint Int.zero).
+    Proof. destruct pin11 as (cb & co & _ & _ & _ & _ & _ & _ & _ & _ & T). exact T. Qed.
+
     Lemma cam11 : cam_w (lp_ge lp) m11.
     Proof.
       destruct (cut_chk_sound _ _ _ (cam_frame_ok_cut _ _ _ _ CF)) as (cb & co & Ec & C1 & Pg & Ab & C2).
+      destruct pin11 as (cb' & co' & Ec' & Pgc & Pms & Psf & Psz & Ppool & _).
+      rewrite Ec in Ec'. injection Ec' as <- <-.
       pose proof (cam_frame_ok_load _ _ _ _ CF) as L96. rewrite Ec in L96.
-      split; [ exact C1 | ].
-      intros ga bad o Sg Lg. rewrite Hca in Sg. injection Sg as <-.
-      rewrite L_ca in Lg. injection Lg as <- <-.
-      exists cb, co. change (Ptrofs.unsigned (Ptrofs.repr 60) + 36) with 96. split; [ exact L96 | ].
-      split; [ exact Pg | ]. split; [ exact Ab | exact C2 ].
+      split; [ exact C1 | split ].
+      - intros ga bad o Sg Lg. rewrite Hca in Sg. injection Sg as <-.
+        rewrite L_ca in Lg. injection Lg as <- <-.
+        exists cb, co. change (Ptrofs.unsigned (Ptrofs.repr 60) + 36) with 96. split; [ exact L96 | ].
+        split; [ exact Pg | ]. split; [ exact Ab | ]. split; [ exact C2 | ].
+        split; [ exact Psz | exact Ppool ].
+      - split; [ | split; [ exact Pms | exact Psf ] ].
+        intros b Hb bb oo L. destruct (Pgc b Hb bb oo L) as (-> & ->).
+        exists bca, bgad, (Ptrofs.repr 60). split; [ exact Hca | split; [ exact L_ca | ] ].
+        change (Ptrofs.unsigned (Ptrofs.repr 60) + 36) with 96. exact L96.
     Qed.
 
     (* ---- gEnvironmentRegions (FfWorld.env_w, 2026-10-26): the real
@@ -2680,7 +2732,7 @@ Section Witness.
 
     Lemma lvl11 : lvl_w (lp_ge lp) m11.
     Proof.
-      split; [ | split; [ exact L_spis | split; [ exact warp11 | split; [ exact ctl11 | exact (conj area11 (conj (conj L_env L_dbg) cam11)) ] ] ] ].
+      split; [ | split; [ exact L_spis | split; [ exact warp11 | split; [ exact ctl11 | exact (conj area11 (conj (conj L_env L_dbg) (conj cam11 aud11))) ] ] ] ].
       intros b Hb. change (Genv.find_symbol (lp_ge lp) level_update._gCurrLevelNum = Some b) in Hb.
       rewrite HbL in Hb. injection Hb as <-. exact L_lvl.
     Qed.
