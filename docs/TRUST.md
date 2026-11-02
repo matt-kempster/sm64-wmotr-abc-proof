@@ -719,7 +719,7 @@ without pressing A".*
   real loaded terrain (`StartTerrain.dp_chk`, checked on m11 in `wchk`, `dp_chk_sound`;
   `StartSat.wff11`). Not yet consumed: `c_ff` still offers the NULL outcome; dropping it needs the
   position bounds carried in `ffw` (next chunk).
-- **FOUND D (2026-10-26, phantom ∀ in an open row, not yet repaired):** the open
+- **FOUND D (2026-10-26, phantom ∀ in an open row, repaired 2026-10-26 by B'', below):** the open
   `update_mario_inputs` row (`NaSplit.na_open`, through `HeightFrame.Hseg_na_open`) claims
   `FfWorld.fresh` afterwards from any frame-world memory. Its `update_mario_geometry_inputs`
   (mario.c:1314-1368) searches the floor under `pos`; on a miss it copies `gfx.pos` into `pos` and
@@ -730,6 +730,14 @@ without pressing A".*
   box for `gfx.pos` x/z in Φ and for `pos` x/z in `fresh` (chunk B-xz), tighten y to −8192
   (chunk B-y); with `ff_complete` the second search then always hits and the DEATH call is dead
   code on every frame-world memory. Until then the row stays open, labeled with this finding.
+  **Repaired differently 2026-10-26 (B'', the claim is now TRUE):** the frame world no longer
+  says the floor is never NULL. `ff_Wf` is now `wfl` (a WMotR surface **or NULL**). `fresh` /
+  `fresh_at` now also say the floor cell holds a pointer (`floor_nn`). umi's post (and that of
+  the two calls after it) is now `floor_null \/ fresh`. **FOUND:** the real OOB guard in
+  `execute_mario_action` (`if (gMarioState->floor == NULL) return 0;`, proved as
+  `FrameSplit.fc_null_returns` and used by `hs_fc`) makes a NULL-floor frame dispatch-free.
+  Mario is frozen until the DEATH warp, and every dispatch case still sees a fresh floor. The
+  NULL-floor reader audit, including one UB-coverage point (`mario.c:427`), is in row 3.2.
 - **level_trigger_warp's contract (2026-10-26, PROVED, no trust added, `LtwFrame`):** for the
   two Mario-side ops that reach it in WMotR (DEATH from the double miss above, WARP_FLOOR from
   `check_death_barrier`), proved from the real body and its callees' real bodies
@@ -1827,6 +1835,40 @@ link grows.
   It is in range 1..17. New worklist point (decomp UB, `no_case_values`):
   CUTSCENE_WATER_DEATH (159, from ACT_WATER_DEATH) has no case in play_cutscene's switch, so
   `cutsceneDuration` is read uninitialized. In `tools/ub_sites.py`'s `UB_WORKLIST`.
+- **NULL-floor frames (GOAL 2 chunk 2, B'', 2026-10-26).** When Mario is out of bounds,
+  `update_mario_inputs` misses twice. It sets `m->floor = NULL` and the DEATH warp, and the OOB guard
+  in `execute_mario_action` (`if (gMarioState->floor == NULL) return 0;`, proved as
+  `FrameSplit.fc_null_returns`) skips the dispatch. Mario is then frozen until the warp. The frame
+  rows now allow this (`FfWorld.ff_Wf`: a world surface **or NULL**; umi's post is
+  `floor_null \/ fresh`). Every reader of `gMarioState->floor` that runs in such a frame was audited:
+  - **UB-COVERAGE POINT, open:** `mario.c:427`, in `mario_get_floor_class`:
+    `m->action == ACT_CRAWLING && m->floor->normal.y > 0.5f`. The type switch above it is NULL-guarded
+    (`:399`); this line is not. It is reached from `mario_process_interactions`, which runs before the
+    OOB guard: `take_damage_and_knock_back` (`interaction.c:710/729`) or `interact_bully` (`:1266`) calls
+    `drop_and_set_mario_action`, which calls `set_mario_action`, then `set_mario_action_moving`
+    (`mario.c:896-897`), then `mario_get_floor_class`. It needs Mario still in `ACT_CRAWLING` while out
+    of bounds. A crawl step cannot leave bounds by itself, since a NULL floor in a ground step is a
+    wall stop with no move. Platform displacement or an object push could still carry him out. On
+    that path the Clight run is stuck, so any carry through the interaction phase covers it only
+    vacuously. *Note, not proof:* on the console, `m->floor->normal.y` with a NULL floor reads near
+    virtual address 0, which is unmapped kuseg. Expect a TLB-miss crash there, not a usable state.
+    Listed in `tools/ub_sites.py`'s `UB_WORKLIST`.
+  - Guarded:
+    - umi's tail: `if (m->floor != NULL)`, `mario.c:1336`.
+    - Special floors: `interaction.c:1863`.
+    - `push_mario_out_of_object`: uses its own local floor, guarded.
+    - `check_instant_warp`: `level_update.c:539`.
+    - The painting warp: `level_update.c:659`.
+    - `play_infinite_stairs_music`: guarded, and runs after the OOB guard.
+    - The dispatch: none runs, because of the OOB guard.
+    - The platform step: its own `find_floor`, guarded.
+    - The camera: never reads Mario's floor pointer. Its own `find_floor` calls are height-checked
+      (`camera.c:6836`), and `cutscene_enter_painting` is unreachable.
+    - The objects phase: no behaviour dereferences `gMarioState->floor` or Mario's platform.
+    - The shadow: its own queries.
+    - The render call: does not read it.
+  - Dead code: `debug_print_speed_action_normal` (`mario.c:1237`) runs only when `gShowDebugText` is
+    set, which never happens.
 
 ### Row 3.5 in detail
 

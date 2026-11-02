@@ -19,6 +19,7 @@ From SM64.Generated Require mario_step mario mario_actions_airborne memory surfa
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve
   MarioModel.OsDmaFloor MarioModel.MathGeomGated HeightInvariant HeightMoveCatalog WMotRLevel.
 From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert SndXc FfClass AirStart FfKeepCheck RetOk FfRun AhwRun WithGe.
+From SM64.Proofs.WMotRRequiresA Require Import BoxCheck.
 Import ListNotations.
 
 Module AIR := mario_actions_airborne.
@@ -55,7 +56,8 @@ End CFG.
 (* both checks of an outcome: the MoveChain class and the kept world *)
 Definition kbk_ok (acn : Z) (g : genv) (c : cpath) : bool :=
   ff_ok NBF (R0F g) (kvK acn g) RM RO kM (fst c) && fk_ok NBF (R0F g) (kvK acn g) RM RO RLD kS clokF (fst c)
-  && ret_ok NBF (R0F g) (kvK acn g) RM c.
+  && ret_ok NBF (R0F g) (kvK acn g) RM c
+  && box_ok NBF (R0F g) (kvK acn g) kX (mario_box_cells RM) (fst c).
 
 (* the landing's two helpers are merged too (should_get_stuck_in_ground,
    check_fall_damage): soft bonk's walk then takes 315 s instead of 578 s;
@@ -118,9 +120,12 @@ Lemma uf_kB_k : forall vs, uf kB vs ->
   exists b o o2, vs = [Some (Vptr b o); Some (Vptr b o2)] /\ Ptrofs.unsigned o + 24 <= Ptrofs.modulus.
 Proof. intros vs H. exact H. Qed.
 
+Lemma uf_kX_k : forall v, FfBox.s16box v -> uf kX [Some v].
+Proof. intros v H. exact (or_introl H). Qed.
+
 Let XSI := air_xc_sound_link lp (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
              (linked12_LO_mario lp H12) NBF (R0F G) gtabF (kvK acn G) m0 uf gp
-             RFI RMISS RCALLS kW kH kS (szs G mario._Surface) GPO eq_refl eq_refl eq_refl uf_kW_k uf_kH_in_k uf_kS_k.
+             RFI RMISS RCALLS kW kH kS kX (szs G mario._Surface) GPO eq_refl eq_refl eq_refl uf_kW_k uf_kH_in_k uf_kS_k uf_kX_k.
 
 (* THE TABLE IS SOUND on the real link *)
 Theorem xcK_sound : forall id k args g cps fd E m vargs t m' vres,
@@ -195,6 +200,7 @@ Theorem kb_final : forall E t m' vres c0,
   FloorRefreshOK wmotr_floor (R2 (c_posy c0)) (R2 (c_floorh c0)) ->
   exists E' gs, Ext E E' NBF /\ MMg G NBF (R0F G) gtabF (kvK acn G) m0 uf gp E' m' gs
     /\ fk_ok NBF (R0F G) (kvK acn G) RM RO RLD kS clokF gs = true
+    /\ cells_box (xboxo G m0) m' E' (mario_box_cells RM)
     /\ RET (e_blk E RM) m0 m' vres
     /\ exists c2, read_cells (e_blk E RM) m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2
        /\ fro_ff c2.
@@ -203,6 +209,7 @@ Proof.
   destruct kbcheck_lp as (cs & RUN & W).
   assert (MM0 : MMg G NBF (R0F G) gtabF (kvK acn G) m0 uf gp E m0 (g0F G)).
   { apply MMg_init; [exact EO | apply Ple_refl |].
+    apply (box_start G (R0F G) m0 _ E kX _ (ufF_kXo G m0 gp)); [| exact mbc_nlt | exact (mario_entry_box _ _ _ _ _ _ _ _ RM EO eq_refl)].
     intros f Hf. split; [exact (pc0F_nlt_k f Hf) | exact (PC f Hf)]. }
   assert (ARGS : Forall2 (fun a v => den G m0 E a = Some v /\ sok NBF (g_nx (g0F G)) a) argsF
                    [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero)]).
@@ -212,8 +219,10 @@ Proof.
               GPO MC xcK_sound 3000 (g0F G) _ argsF cs E m0 _ t m' vres RUN MM0 ARGS EV) as (c & Hin & CMc).
   destruct c as [gs r]. destruct CMc as (E' & X & MM & DR & _).
   pose proof (W _ Hin) as OK. unfold kbk_ok in OK. cbn [fst] in OK.
+  apply andb_true_iff in OK as [OK BX].
   apply andb_true_iff in OK as [OK RT]. apply andb_true_iff in OK as [OK FK].
   exists E', gs. split; [exact X | split; [exact MM | split; [exact FK |]]].
+  split; [exact (box_sound _ _ _ _ _ _ _ _ GPO E' m' gs kX _ MM (ufF_kX_out G m0 gp) _ BX) |].
   destruct EO as (_ & _ & _ & GT & KV & _).
   destruct (GT level_update._gMarioStates RM eq_refl) as (_ & HbM & _).
   destruct (X RM ltac:(vm_compute; reflexivity)) as (BM & BaM & _).
@@ -258,6 +267,7 @@ Definition kfinal (lp : Clight.program) (acn : Z) (fK : function) : Prop :=
     /\ MMg (globalenv lp) NBF (R0F (globalenv lp)) gtabF (kvK acn (globalenv lp)) m0
          (ufF (globalenv lp) m0 gp) gp E' m' gs
     /\ fk_ok NBF (R0F (globalenv lp)) (kvK acn (globalenv lp)) RM RO RLD kS clokF gs = true
+    /\ cells_box (xboxo (globalenv lp) m0) m' E' (mario_box_cells RM)
     /\ RET (e_blk E RM) m0 m' vres
     /\ exists c2, read_cells (e_blk E RM) m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2
        /\ fro_ff c2.

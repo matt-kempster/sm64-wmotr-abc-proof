@@ -110,8 +110,8 @@ Local Notation uf := (ufP G m0 gp).
 
 Let XSI := air_xc_sound_link lp (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
              (linked12_LO_mario lp H12) NBP (R0P G) gtabP (kvC acn yc G) m0 uf gp
-             RFI RMISS RCALLS kW kH kS (szs G mario._Surface) GPO eq_refl eq_refl eq_refl
-             (ufP_kW lp m0 gp) (ufP_kH_in lp m0 gp) (ufP_kS lp m0 gp).
+             RFI RMISS RCALLS kW kH kS kX (szs G mario._Surface) GPO eq_refl eq_refl eq_refl
+             (ufP_kW lp m0 gp) (ufP_kH_in lp m0 gp) (ufP_kS lp m0 gp) (ufP_kX_in lp m0 gp).
 
 (* THE TABLE IS SOUND on the real link *)
 Theorem xcC_sound : forall id k args g cps fd E m vargs t m' vres,
@@ -127,10 +127,10 @@ Proof.
     destruct (Pos.eqb_spec id mario._find_floor) as [-> | N1].
     { injection Xi as <-.
       rewrite (sfun_res_h _ _ _ _ (res_link lp _ _ _ (linked12_LO_surf lp H12) dm_ff) Hl) in EV.
-      exact (c_ff2_sound G NBP (R0P G) gtabP (kvC acn yc G) m0 uf gp GPO RFI RMISS RCALLS kW kH kS kL
+      exact (c_ff2_sound G NBP (R0P G) gtabP (kvC acn yc G) m0 uf gp GPO RFI RMISS RCALLS kW kH kS kX kL
                (szs G mario._Surface) (cenv_has_link lp (linked12_LO_surf lp H12))
                (res_link lp _ _ _ (linked12_LO_surf lp H12) dm_ffl) eq_refl eq_refl eq_refl
-               (ufP_kW lp m0 gp) (ufP_kS lp m0 gp) (ufP_kH_in lp m0 gp) (ufP_kL_in lp m0 gp)
+               (ufP_kW lp m0 gp) (ufP_kS lp m0 gp) (ufP_kH_in lp m0 gp) (ufP_kX_in lp m0 gp) (ufP_kL_in lp m0 gp)
                args g cps E m vargs t m' vres Hk MM HA EV). }
     destruct (Pos.eqb_spec id mario._find_ceil) as [-> | N2].
     { injection Xi as <-.

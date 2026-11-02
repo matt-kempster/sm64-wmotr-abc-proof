@@ -662,7 +662,7 @@ Section RK.
         - apply (Wc0 CEIL_OFF bm so (or_intror eq_refl) Hl0).
           exists Ptrofs.zero. unfold ff_rl. cbn. auto.
         - change FFW_FLOOR with FLOOR_OFF in Lf. rewrite Hl0 in Lf. injection Lf as <-.
-          destruct Wf as (b & o & E & _ & _ & _ & Nr). injection E as <- _.
+          destruct Wf as [(b & o & E & _ & _ & _ & Nr) | E]; [| exfalso; congruence]. injection E as <- _.
           apply Nr. exists Ptrofs.zero. unfold ff_rl. cbn. auto. }
       split; [exact (k_hi Hh) |]. split; [exact (k_world Hw Hmo RSA SNB Co) |].
       split; [exact (k_anim_apart Hf Han) |]. split; [exact (k_mobj Hmo) |].
@@ -692,7 +692,7 @@ Section RK.
         - apply (Wc0 CEIL_OFF bm so (or_intror eq_refl) Hl0).
           exists Ptrofs.zero. unfold ff_rl. cbn. auto.
         - change FFW_FLOOR with FLOOR_OFF in Lf. rewrite Hl0 in Lf. injection Lf as <-.
-          destruct Wf as (b & o & E & _ & _ & _ & Nr). injection E as <- _.
+          destruct Wf as [(b & o & E & _ & _ & _ & Nr) | E]; [| exfalso; congruence]. injection E as <- _.
           apply Nr. exists Ptrofs.zero. unfold ff_rl. cbn. auto. }
       split; [exact (k_hi Hh) |]. split; [exact (k_world Hw Hmo RSA SNB Co) |].
       split; [exact (k_anim_apart Hf Han) |]. split; [exact (k_mobj Hmo) |].

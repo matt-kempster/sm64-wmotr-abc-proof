@@ -436,8 +436,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
     collision finders, the double-miss NULL floor (carry "find_floor hits under Mario"; the
     find_floor half is PROVED, `FfComplete.ff_complete` from `Wff_dp` (death plane on every
     static floor cell, boot `StartTerrain.dp_chk`); open: the in-bounds pos fact in `ffw` and
-    `c_ff` dropping its NULL outcome; FOUND D, TRUST 0.8: the row's "fresh" claim is false on
-    the double miss until then), the DEATH warp it then fires (its contract is PROVED and
+    `c_ff` dropping its NULL outcome; FOUND D, TRUST 0.8: the row's old "fresh" claim was false
+    on the double miss; REPAIRED 2026-10-26 by B'': the post is now `floor_null \/ fresh`, ff_Wf is
+    `wfl` (a surface or NULL), and the real OOB guard skips the dispatch, `FrameSplit.hs_fc`; NULL
+    reader audit and the UB point mario.c:427 in TRUST 3.2), the DEATH warp it then fires (its contract is PROVED and
     staged, `LtwFrame.ltw_frame` (writes only ltw_ws + Mario's invincTimer), `ltw_cells`
     (op ∈ {18,19,20}, node ∈ {241,243} or untouched), `ltw_warp_w` (warp_w kept, incl. op ∉
     {0x17,0x18}); also for handle_special_floors' WARP_FLOOR) and
@@ -487,6 +489,32 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `Hseg_call_na` / `Hseg_any` now claim it). Old `PoleRow.pole_row` and the walks
     PoleSlow/Fast/Hold/Climb are retired. Walker trap: a clamped polePos folds
     oPosY + 720.0f to a constant, so `PoleClass.tb` has a constant + offset case.
+  - **HANDOFF, GOAL 2 chunk 2 (B-xz, design B'', 2026-10-26; branch
+    worktree-agent-ae1f447b83997067c, paused for usage).**
+    - Design:
+      - The real OOB guard (`if (gMarioState->floor == NULL) return 0;`) is proved:
+        `FrameSplit.pieces_fc`, `fc_null_returns`, `hs_fc`. So a NULL-floor frame runs no
+        dispatch, and Mario is frozen until the DEATH warp.
+      - `ff_Wf` is `wfl` (a world surface or NULL).
+      - `fresh` / `fresh_at` carry `floor_nn`.
+      - umi / special floors / interactions post `floor_null \/ fresh`.
+      - The rows rebind the world floor via `ffw_floor_w` + `fresh_floor_nn` and re-prove it with
+        `floor_nn_of`.
+      - Conditional box: `BoxCheck.xboxo` (in the s16 box or `~ebox`). ff / ahw / kb rows conclude
+        `pos_box m -> pos_box m'`. Pole / cannon / ledge rows make no box claim (phantom walls).
+    - NULL-floor audit (TRUST 3.2): every reader is guarded except **mario.c:427**
+      (`mario_get_floor_class`, ACT_CRAWLING + `m->floor->normal.y`, reached from interactions via
+      knockback / bully, before the guard). That one is UB coverage, in `tools/ub_sites.py`
+      `UB_WORKLIST`.
+    - Done: the above; HeightFrame + StartSat built pre-merge.
+    - Merging master 4cb9575a: the TRUST conflict is resolved, but the full build was not finished.
+    - Next:
+      - finish the merge build plus the audit;
+      - chunk 2 rest: the box is not yet consumed by FrameSplit. It needs a ghost / flag, e.g. an
+        FS clause `act_boxed m -> pos_box m` with pole / cannon / ledge exempt, re-established on
+        the exits from those groups;
+      - chunk 3: y bound = -8192 minus the computed one-frame overshoot, as a constant;
+      - `walls_ok` is an optional tightening (lets pole / cannon / ledge keep the box).
   - (`wmotr_gap` and `wmotr_poles` are now proved from generated level data, `WMotRLevel.v`)
   - the flank spec (TRUST 0.7): objects. The LEVEL PHASE is real code since 2026-10-24:
     `play_mode_normal`'s slices before / after `area_update_objects` (`LevelFlank`), walked

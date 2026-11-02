@@ -424,6 +424,21 @@ Proof. vm_compute. repeat split; try reflexivity. Qed.
 (* ======================================================================= *)
 Definition tySurfp : type := tptr (Tstruct mario._Surface noattr).
 
+(* THE OOB GUARD (mario.c, execute_mario_action, right after
+   mario_process_interactions): `if (gMarioState->floor == NULL) return 0;`.
+   No dispatch case runs with a NULL floor. *)
+Lemma pieces_fc : p_fc EP =
+  Ssequence (Sset mario._t'42 (Evar mario._gMarioState tyMSp))
+    (Ssequence (Sset mario._t'43 (Efield (Ederef (Etempvar mario._t'42 tyMSp)
+                                   (Tstruct mario._MarioState noattr)) mario._floor tySurfp))
+      (Sifthenelse (Ebinop Oeq (Etempvar mario._t'43 tySurfp)
+                      (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid)) tint)
+         (Sreturn (Some (Econst_int (Int.repr 0) tint))) Sskip)).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma floor_fo : mario_fo mario._MarioState mario._floor = Some (104, Full).
+Proof. vm_compute. reflexivity. Qed.
+
 Definition wind_guard (t1 t2 t3 : ident) (n : int) (s1 : statement) : statement :=
   Ssequence (Sset t1 (Evar mario._gMarioState tyMSp))
     (Ssequence (Sset t2 (Efield (Ederef (Etempvar t1 tyMSp) (Tstruct mario._MarioState noattr))
@@ -872,6 +887,62 @@ Section FrameSplit.
       injection Hm as <-; cbn [fst Mem.loadv] in Hl;
       rewrite Ptrofs.add_zero_l in Hl; change (Ptrofs.unsigned (Ptrofs.repr 12)) with 12 in Hl;
       exact Hl end.
+  Qed.
+
+  (* the OOB guard reads the floor cell through gMarioState *)
+  Lemma floor_of_tmp : forall x le m v1 v2,
+    MWF m ->
+    eval_expr ge empty_env le m (Evar mario._gMarioState tyMSp) v1 ->
+    eval_expr ge empty_env (PTree.set x v1 le) m
+      (Efield (Ederef (Etempvar x tyMSp) (Tstruct mario._MarioState noattr)) mario._floor tySurfp) v2 ->
+    Mem.load Mint32 m bm FFW_FLOOR = Some v2.
+  Proof.
+    intros x le m v1 v2 HM E1 E2.
+    pose proof (eval_gms _ _ _ E1) as (gb & Hg & Hl).
+    apply eval_expr_Efield_load in E2 as (loc & ofs & bf & L & D).
+    destruct (lv_field _ _ _ _ _ _ _ _ _ _ L eq_refl floor_fo) as (o0 & E0 & -> & Hbf).
+    cbn [fst snd] in Hbf. subst bf.
+    destruct (ex_agg _ _ _ _ _ E0 (or_intror eq_refl) I) as (bf0 & L0).
+    apply eval_lvalue_Ederef_base, eval_expr_Etempvar_val in L0.
+    rewrite PTree.gss in L0. injection L0 as ->.
+    destruct (Hgms m HM gb loc o0 Hg Hl) as [-> ->].
+    inv D; match goal with Hm : access_mode tySurfp = _ |- _ => cbn in Hm end;
+      try discriminate.
+    match goal with Hm : By_value _ = By_value ?c, Hl : Mem.loadv ?c _ _ = Some _ |- _ =>
+      injection Hm as <-; cbn [fst Mem.loadv] in Hl;
+      rewrite Ptrofs.add_zero_l in Hl; change (Ptrofs.unsigned (Ptrofs.repr 104)) with 104 in Hl;
+      exact Hl end.
+  Qed.
+
+  (* the OOB guard: with a NULL floor it returns, so it never falls through *)
+  Lemma fc_null_returns : forall le m t le' m',
+    MWF m -> floor_null bm m ->
+    exec_stmt function_entry2 ge empty_env le m (p_fc EP) t le' m' Out_normal -> False.
+  Proof.
+    intros le m t le' m' HM Hn H. rewrite pieces_fc in H.
+    apply seq_set_inv in H as (v1 & E1 & H).
+    apply seq_set_inv in H as (v2 & E2 & H).
+    pose proof (floor_of_tmp _ _ _ _ _ HM E1 E2) as L.
+    unfold floor_null in Hn. rewrite Hn in L. injection L as <-.
+    inv H.
+    match goal with He : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ =>
+      inv He; [| match goal with Hl : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hl end] end.
+    repeat match goal with
+    | He : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+        apply eval_expr_Etempvar_val in He; rewrite PTree.gss in He; injection He as <-
+    | He : eval_expr _ _ _ _ (Ecast _ _) _ |- _ =>
+        inv He; [| match goal with Hl : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ => inv Hl end]
+    | He : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+        inv He; [| match goal with Hl : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv Hl end]
+    end.
+    repeat match goal with
+    | Hc : sem_cast _ _ _ _ = Some _ |- _ => cbn in Hc; injection Hc as <-
+    end.
+    match goal with Hs : sem_binary_operation _ _ _ _ _ _ _ = Some _ |- _ =>
+      cbn in Hs; injection Hs as <- end.
+    match goal with Hb : bool_val _ _ _ = Some _ |- _ => cbn in Hb; injection Hb as <- end.
+    match goal with Hx : exec_stmt _ _ _ _ _ _ _ _ _ Out_normal |- _ =>
+      cbn in Hx; inv Hx end.
   Qed.
 
   (* ---- a store into Mario's object at the flags or interact-status cell
@@ -1465,9 +1536,13 @@ Section FrameSplit.
     exists a, Mem.load Mint32 m bm 12 = Some (Vint a)
       /\ Int.unsigned (Int.and a (Int.repr 448)) = disp_grp f.
   Definition xpre (f : ident) (m : mem) : Prop :=
-    if is_fk f then fresh bm m else if is_disp f then (fresh_at bm m /\ grp_ok f m) else True.
+    if is_fk f then (floor_null bm m \/ fresh bm m)
+    else if is_disp f then (fresh_at bm m /\ grp_ok f m) else True.
+  (* update_mario_inputs leaves the floor NULL (out of bounds: its second
+     find_floor missed; the DEATH warp is set) or fresh; the two calls
+     after it keep that *)
   Definition post_of (f : ident) (m' : mem) (vr : val) : Prop :=
-    if is_umi f || is_fk f then fresh bm m'
+    if is_umi f || is_fk f then (floor_null bm m' \/ fresh bm m')
     else if is_disp f then (vr = Vint Int.zero \/ fresh_at bm m') else True.
   Definition pre_of (f : ident) (v : val) (m : mem) : Prop := gms_val v m /\ xpre f m.
 
@@ -1877,7 +1952,29 @@ Section FrameSplit.
       end.
   Qed.
 
-  Definition FSf (c0 : cells) (m : mem) : Prop := FS c0 m /\ fresh bm m.
+  Definition FSf (c0 : cells) (m : mem) : Prop := FS c0 m /\ (floor_null bm m \/ fresh bm m).
+  Definition FSr (c0 : cells) (m : mem) : Prop := FS c0 m /\ fresh bm m.
+
+  (* the OOB guard and the rest: a NULL floor returns at the guard (the
+     frame is frozen: no dispatch); a fall-through has a fresh floor *)
+  Lemma hs_fc : forall c0 s, hs (FSr c0) (FS c0) s ->
+    hs (FSf c0) (FS c0) (Ssequence (p_fc EP) s).
+  Proof.
+    intros c0 s Hs le m t le' m' out (HF & Hfl) H.
+    pose proof pieces_pure as PP. repeat rewrite andb_true_iff in PP.
+    destruct PP as ((((_ & _) & _) & Pfc) & _).
+    set (pf := p_fc EP) in H, Pfc. assert (Epf : pf = p_fc EP) by reflexivity. clearbody pf.
+    inv H.
+    - match goal with Hp : fs_pure ?x = true, E1 : exec_stmt _ _ _ _ _ ?x _ _ _ Out_normal |- _ => rename E1 into Ef end.
+      match goal with Hq : hs _ _ ?y, E2 : exec_stmt _ _ _ _ _ ?y _ _ _ _ |- _ => rename E2 into Es end.
+      pose proof (fs_pure_mem _ _ _ _ _ _ _ _ _ Ef Pfc) as Em.
+      destruct Hfl as [Hn | Hfr].
+      + exfalso. destruct HF as ((_ & _ & HM) & _). try (rewrite Epf in Ef).
+        exact (fc_null_returns _ _ _ _ _ HM Hn Ef).
+      + rewrite Em in Es. exact (Hs _ _ _ _ _ _ (conj HF Hfr) Es).
+    - match goal with Hp : fs_pure ?x = true, E1 : exec_stmt _ _ _ _ _ ?x _ _ _ _ |- _ =>
+        rewrite (fs_pure_mem _ _ _ _ _ _ _ _ _ E1 Pfc); exact HF end.
+  Qed.
 
   (* THE STAGED SPLIT: one real execute_mario_action keeps the frame state,
      with the dispatch's floor refresh carried from update_mario_inputs to
@@ -1928,7 +2025,7 @@ Section FrameSplit.
       - intros m0 (H0 & H1). split; [exact H0 |]. unfold xpre, is_fk. rewrite Pos.eqb_refl, orb_true_r. exact H1.
       - intros m0 vr0 H0 Hp. unfold post_of, is_fk in Hp. rewrite Pos.eqb_refl, !orb_true_r in Hp.
         exact (conj H0 Hp). }
-    assert (Sloop' : hs (FSf c0) (FS c0)
+    assert (Sloop' : hs (FSr c0) (FS c0)
                        (Sloop (Ssequence (Sifthenelse (p_ei EP) Sskip Sbreak) (p_lb EP)) Sskip)).
     { intros le m0 t0 le' m1 out H0 Hx. rewrite pieces_test in Hx.
       destruct H0 as (HF0 & Hf0).
@@ -1943,7 +2040,7 @@ Section FrameSplit.
       apply (hs_seq _ (FSf c0)); [exact Su | | intros m0 H0; exact (proj1 H0)].
       apply (hs_seq _ (FSf c0)); [exact Sh | | intros m0 H0; exact (proj1 H0)].
       apply (hs_seq _ (FSf c0)); [exact Smp | | intros m0 H0; exact (proj1 H0)].
-      apply (hs_seq _ (FSf c0)); [exact (hs_pure _ _ _ Pfc (fun m0 H0 => H0)) | | intros m0 H0; exact (proj1 H0)].
+      apply hs_fc.
       apply (hs_seq _ (FS c0)); [exact Sloop' | exact Ssuf | intros; assumption]. }
     assert (Hbody : hs (FS c0) (FS c0) (fn_body mario.f_execute_mario_action)).
     { rewrite body_shape.

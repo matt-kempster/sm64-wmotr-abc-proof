@@ -21,6 +21,7 @@ From SM64.Generated Require mario_step mario mario_actions_airborne memory surfa
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve
   MarioModel.OsDmaFloor MarioModel.MathGeomGated HeightInvariant HeightMoveCatalog WMotRLevel.
 From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert FfClass AirStart FfKeepCheck RetOk FfRun WithGe KbRun.
+From SM64.Proofs.WMotRRequiresA Require Import BoxCheck.
 Import ListNotations.
 
 Module AIR := mario_actions_airborne.
@@ -35,7 +36,8 @@ Definition mergeG (id : ident) : bool :=
 Definition gpk_ok (g : genv) (c : cpath) : bool :=
   gp_ok NBF (R0F g) (kvK GPN g) RM RO kM (fst c)
   && fk_ok NBF (R0F g) (kvK GPN g) RM RO RLD kS clokF (fst c)
-  && ret_ok NBF (R0F g) (kvK GPN g) RM c.
+  && ret_ok NBF (R0F g) (kvK GPN g) RM c
+  && box_ok NBF (R0F g) (kvK GPN g) kX (mario_box_cells RM) (fst c).
 
 Definition gp_walk : bool :=
   with_ge ge12 false (fun g =>
@@ -73,6 +75,7 @@ Proof.
   destruct gpcheck_lp as (cs & RUN & W).
   assert (MM0 : MMg G NBF (R0F G) gtabF (kvK GPN G) m0 (ufF G m0 gp) gp E m0 (g0F G)).
   { apply MMg_init; [exact EO | apply Ple_refl |].
+    apply (box_start G (R0F G) m0 _ E kX _ (ufF_kXo G m0 gp)); [| exact mbc_nlt | exact (mario_entry_box _ _ _ _ _ _ _ _ RM EO eq_refl)].
     intros f Hf. split; [exact (pc0F_nlt_k lp f Hf) | exact (PC f Hf)]. }
   assert (ARGS : Forall2 (fun a v => den G m0 E a = Some v /\ sok NBF (g_nx (g0F G)) a) argsF
                    [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero)]).
@@ -83,8 +86,10 @@ Proof.
               3000 (g0F G) _ argsF cs E m0 _ t m' vres RUN MM0 ARGS EV) as (c & Hin & CMc).
   destruct c as [gs r]. destruct CMc as (E' & X & MM & DR & _).
   pose proof (W _ Hin) as OK. unfold gpk_ok in OK. cbn [fst] in OK.
+  apply andb_true_iff in OK as [OK BX].
   apply andb_true_iff in OK as [OK RT]. apply andb_true_iff in OK as [OK FK].
   exists E', gs. split; [exact X | split; [exact MM | split; [exact FK |]]].
+  split; [exact (box_sound _ _ _ _ _ _ _ _ GPO E' m' gs kX _ MM (ufF_kX_out G m0 gp) _ BX) |].
   destruct EO as (_ & _ & _ & GT & KV & _).
   destruct (GT level_update._gMarioStates RM eq_refl) as (_ & HbM & _).
   destruct (X RM ltac:(vm_compute; reflexivity)) as (BM & BaM & _).

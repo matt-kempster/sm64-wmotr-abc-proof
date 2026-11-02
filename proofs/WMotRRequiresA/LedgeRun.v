@@ -35,7 +35,7 @@ Variable acn : Z.
 Variable g : genv.
 Definition xcL (id : ident) : option xcontract :=
   if Pos.eqb id mario._find_floor
-  then Some (c_ff2 NBF (R0F g) RFI RMISS RCALLS kW kH kS kL (szs g mario._Surface))
+  then Some (c_ff2 NBF (R0F g) RFI RMISS RCALLS kW kH kS kX kL (szs g mario._Surface))
   else match xcI g id with
   | Some k => Some k
   | None =>
@@ -64,7 +64,7 @@ Definition lk_ok (acn : Z) (g : genv) (c : cpath) : bool :=
 
 Definition ledge_walk (acn : Z) (f : function) : bool :=
   with_ge ge12 false (fun g =>
-    match sx_call g NBF (R0F g) gtabF (kvK acn g) (xcL acn g) jkeys mergeK true 3000 (g0F g)
+    match sx_call g NBF (R0F g) gtabF (kvK acn g) (xcL acn g) jkeys mergeK true 3000 (g0F0 g)
             (Internal f) argsF with
     | Some cs => forallb (lk_ok acn g) cs
     | None => false end).
@@ -86,10 +86,11 @@ Lemma letgo_fresh : forall bm m m' acn,
   fresh bm m -> LETGO bm m m' ->
   Mem.load Mint16signed m' bm WL_OFF = Mem.load Mint16signed m bm WL_OFF ->
   Mem.load Mint16unsigned m' bm 2 = Mem.load Mint16unsigned m bm 2 ->
+  floor_nn bm m' ->
   fresh bm m'.
 Proof.
-  intros bm m m' acn La N (F & I) (y0 & y' & Ly0 & Ly' & Lf & Lsb & Dy) K1 K2.
-  split; [| exact (inputs_ok_keep bm m m' K1 K2 I)].
+  intros bm m m' acn La N (F & I & _) (y0 & y' & Ly0 & Ly' & Lf & Lsb & Dy) K1 K2 NN.
+  refine (conj _ (conj (inputs_ok_keep bm m m' K1 K2 I) NN)).
   intros y fh Ly Lfh. rewrite Ly' in Ly. injection Ly as <-.
   rewrite Lf in Lfh.
   destruct (F y0 fh Ly0 Lfh) as (FRO & [S | [S | S]]).
@@ -168,10 +169,13 @@ Proof.
   exists h, yv. split; [reflexivity | exact H].
 Qed.
 
+Lemma ufL_kX_in : forall v, FfBox.s16box v -> uf kX [Some v].
+Proof. intros v H. exact (or_introl H). Qed.
+
 Let XSI := air_xc_sound_link lp (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
              (linked12_LO_mario lp H12) NBF (R0F G) gtabF (kvK acn G) m0 uf gp
-             RFI RMISS RCALLS kW kH kS (szs G mario._Surface) GPO eq_refl eq_refl eq_refl
-             ufL_kW ufL_kH_in ufL_kS.
+             RFI RMISS RCALLS kW kH kS kX (szs G mario._Surface) GPO eq_refl eq_refl eq_refl
+             ufL_kW ufL_kH_in ufL_kS ufL_kX_in.
 
 (* THE TABLE IS SOUND on the real link *)
 Theorem xcL_sound : forall id k args g cps fd E m vargs t m' vres,
@@ -186,10 +190,10 @@ Proof.
   destruct (Pos.eqb_spec id mario._find_floor) as [-> | N0].
   { injection Hx as <-.
     rewrite (sfun_res_h _ _ _ _ (res_link lp _ _ _ (linked12_LO_surf lp H12) dm_ff) Hl) in EV.
-    exact (c_ff2_sound G NBF (R0F G) gtabF (kvK acn G) m0 uf gp GPO RFI RMISS RCALLS kW kH kS kL
+    exact (c_ff2_sound G NBF (R0F G) gtabF (kvK acn G) m0 uf gp GPO RFI RMISS RCALLS kW kH kS kX kL
              (szs G mario._Surface) (cenv_has_link lp (linked12_LO_surf lp H12))
              (res_link lp _ _ _ (linked12_LO_surf lp H12) dm_ffl) eq_refl eq_refl eq_refl
-             ufL_kW ufL_kS ufL_kH_in ufL_kL_in args g cps E m vargs t m' vres Hk MM HA EV). }
+             ufL_kW ufL_kS ufL_kH_in ufL_kX_in ufL_kL_in args g cps E m vargs t m' vres Hk MM HA EV). }
   destruct (xcI G id) as [k0|] eqn:Xi.
   - injection Hx as <-. exact (XSI id k0 args g cps fd E m vargs t m' vres Xi Hk Hl MM HA EV).
   - destruct (Pos.eqb_spec id mario._set_mario_animation) as [-> | N1].
@@ -211,7 +215,7 @@ Proof.
 Qed.
 
 Lemma ledgecheck_lp : exists cs,
-  sx_call G NBF (R0F G) gtabF (kvK acn G) (xcL acn G) jkeys mergeK true 3000 (g0F G)
+  sx_call G NBF (R0F G) gtabF (kvK acn G) (xcL acn G) jkeys mergeK true 3000 (g0F0 G)
     (Internal fK) argsF = Some cs
   /\ forall c, In c cs -> lk_ok acn G c = true.
 Proof.
@@ -240,15 +244,15 @@ Proof.
   assert (PCL : forall f, In f (pc0F G) -> fact_holds G (R0F G) m0 uf E f).
   { intros f Hf. pose proof (PC f Hf) as H. cbn [pc0F app ffacts In] in Hf.
     repeat (destruct Hf as [<- | Hf]; [exact H |]). contradiction. }
-  assert (MM0 : MMg G NBF (R0F G) gtabF (kvK acn G) m0 uf gp E m0 (g0F G)).
+  assert (MM0 : MMg G NBF (R0F G) gtabF (kvK acn G) m0 uf gp E m0 (g0F0 G)).
   { apply MMg_init; [exact EO | apply Ple_refl |].
     intros f Hf. split; [exact (pc0F_nlt_k lp f Hf) | exact (PCL f Hf)]. }
-  assert (ARGS : Forall2 (fun a v => den G m0 E a = Some v /\ sok NBF (g_nx (g0F G)) a) argsF
+  assert (ARGS : Forall2 (fun a v => den G m0 E a = Some v /\ sok NBF (g_nx (g0F0 G)) a) argsF
                    [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero)]).
   { constructor; [| constructor].
-    split; [reflexivity |]. cbn [sok nlt g0F g_nx]. split; [unfold Plt, Pos.lt; reflexivity | exact Logic.I]. }
+    split; [reflexivity |]. cbn [sok nlt g0F0 g_nx]. split; [unfold Plt, Pos.lt; reflexivity | exact Logic.I]. }
   destruct (sx_call_sound G NBF (R0F G) gtabF (kvK acn G) (xcL acn G) jkeys mergeK true m0 uf gp
-              GPO MC xcL_sound 3000 (g0F G) _ argsF cs E m0 _ t m' vres RUN MM0 ARGS EV) as (c & Hin & CMc).
+              GPO MC xcL_sound 3000 (g0F0 G) _ argsF cs E m0 _ t m' vres RUN MM0 ARGS EV) as (c & Hin & CMc).
   destruct c as [gs r]. destruct CMc as (E' & X & MM & DR & _).
   pose proof (W _ Hin) as OK. unfold lk_ok in OK. cbn [fst] in OK.
   apply andb_true_iff in OK as [OK RT]. apply andb_true_iff in OK as [LO FK].

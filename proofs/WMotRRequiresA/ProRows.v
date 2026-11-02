@@ -479,7 +479,7 @@ Section PR.
     assert (Hle : le0 ! AUT._m = Some v).
     { change (fn_params AUT.f_check_common_automatic_cancels) with [(AUT._m, tyMSp)] in Hbind.
       cbn [bind_parameter_temps] in Hbind. injection Hbind as <-. apply PTree.gss. }
-    pose proof Hfr as (_ & (WL & _)).
+    pose proof Hfr as (_ & (WL & _) & _).
     unfold AUT.f_check_common_automatic_cancels in H. cbn [fn_body] in H.
     apply seq_inv in H as [(t1 & le1 & m1 & t2 & H1 & H2) | (t1 & H1 & Hn)].
     2: { destruct (plunge_skip _ _ _ _ _ _ _ _ _ _ _ c Hle Hmarg WL Hc Hb H1 eq_refl eq_refl eq_refl)
@@ -504,7 +504,7 @@ Section PR.
     assert (Hle : le0 ! AIR._m = Some v).
     { change (fn_params AIR.f_check_common_airborne_cancels) with [(AIR._m, tyMSp)] in Hbind.
       cbn [bind_parameter_temps] in Hbind. injection Hbind as <-. apply PTree.gss. }
-    pose proof Hfr as (_ & (WL & INP)).
+    pose proof Hfr as (_ & (WL & INP) & _).
     pose proof Hw as (_ & HW & _ & _ & _ & Hf & _).
     unfold AIR.f_check_common_airborne_cancels in H. cbn [fn_body] in H.
     apply seq_inv in H as [(t1 & le1 & m1 & t2 & H1 & H2) | (t1 & H1 & Hn)].
@@ -730,7 +730,7 @@ Section PR.
         + exact (Wc0 FFW_WALL sb so (or_introl eq_refl) Hl).
         + exact (Wc0 FFW_CEIL sb so (or_intror eq_refl) Hl).
         + change FLOOR_OFF with FFW_FLOOR in Hl. rewrite Lf in Hl. injection Hl as ->.
-          destruct Wf as (b' & o' & E & _ & _ & _ & Nr). injection E as <- _. exact Nr.
+          destruct Wf as [(b' & o' & E & _ & _ & _ & Nr) | E]; [| exfalso; congruence]. injection E as <- _. exact Nr.
       - intros bc oc Hl. apply NR. rewrite Lc in Hl. injection Hl as ->.
         destruct Wc as (b' & o' & E & _ & _ & _ & Nr). injection E as <- _. exact Nr.
     Qed.
@@ -764,11 +764,12 @@ Section PR.
 
     Lemma hole_fresh_at : fresh_at bm m -> fresh_at bm m'.
     Proof.
-      intros (H & I). split.
+      intros (H & I & N). split.
       - intros a La Hg. hm_in La. intros y fh Ly Lf. hm_in Ly. hm_in Lf.
         destruct (H a La Hg y fh Ly Lf) as (A & [B | B]); (split; [exact A |]);
           [left; hm; exact B | right; exact B].
-      - apply (inputs_ok_keep bm m m'); [hm; reflexivity | hm; reflexivity | exact I].
+      - split; [apply (inputs_ok_keep bm m m'); [hm; reflexivity | hm; reflexivity | exact I] |].
+        apply (floor_nn_keep bm m m'); [hm; reflexivity | exact N].
     Qed.
 
     Lemma hole_ffw : ffw ge bm m -> ffw ge bm m'.

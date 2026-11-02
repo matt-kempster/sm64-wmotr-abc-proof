@@ -29,7 +29,7 @@ From SM64.Generated Require surface_collision.
 From SM64.Proofs Require Import Interp.SymExec2 WMotRRequiresA.FloorList
   WMotRRequiresA.FloorHeight.
 From SM64.Proofs.WMotRRequiresA Require Import WMotRWorld.
-From SM64.Proofs.WMotRRequiresA Require FfComplete.
+From SM64.Proofs.WMotRRequiresA Require FfComplete FfBox.
 Import ListNotations.
 
 (* the consumer's region addresses, in R0's order *)
@@ -72,10 +72,10 @@ Qed.
 
 (* THE CONTRACT.  The pointer argument must be a live local (find_floor's
    callers pass &floor, a local) and the world fact must be present. *)
-Definition c_ff (nbase : positive) (R0 : list (positive * Z)) (rFI rMS rCL kW kH kS : positive)
+Definition c_ff (nbase : positive) (R0 : list (positive * Z)) (rFI rMS rCL kW kH kS kX : positive)
     (szS : Z) : xcontract := fun args g =>
   match args with
-  | [_; ay; _; Sptr rp op] =>
+  | [ax; ay; az; Sptr rp op] =>
       if existsb (Pos.eqb rp) (g_loc g) && existsb (is_fact_W kW (wargs R0)) (g_pc g) then
         let n0 := g_nx g in
         let n1 := Pos.succ n0 in let n2 := Pos.succ n1 in let n3 := Pos.succ n2 in
@@ -96,9 +96,13 @@ Definition c_ff (nbase : positive) (R0 : list (positive * Z)) (rFI rMS rCL kW kH
               sstore nbase R0 g4 rp (Ptrofs.unsigned op) Mint32 (Sfresh n4) with
         | Some gN, Some gS =>
             Some [(gN, Sfresh n5);
-                  (add_fact (add_fact (add_fact (add_fact (add_fact gS (Fworld (Sfresh n4) szS))
+                  (add_fact (add_fact
+                    (add_fact (add_fact (add_fact (add_fact (add_fact gS (Fworld (Sfresh n4) szS))
                      (fty 56 (Sfresh n4))) (fty 1 (Sfresh n4))) (Fuser kH [Sfresh n5; ay]))
-                     (Fuser kS (Sfresh n4 :: wargs R0)),
+                     (Fuser kS (Sfresh n4 :: wargs R0)))
+                     (* the box (FfBox.ff_hit_box): a found floor means both
+                        s16 casts passed the LEVEL_BOUNDARY_MAX tests *)
+                     (Fuser kX [ax])) (Fuser kX [az]),
                    Sfresh n5)]
         | _, _ => None
         end end end end end
@@ -253,7 +257,7 @@ Let gp_plt {b} (H : gp b <> None) : Plt b (Mem.nextblock m0) :=
   | Some x => fun G => gp_old b x G
   | None => fun G => False_ind _ (H G)
   end eq_refl.
-Variables rFI rMS rCL kW kH kS : positive.
+Variables rFI rMS rCL kW kH kS kX : positive.
 Variable szS : Z.
 
 Local Notation MM := (MMg ge nbase R0 gtab kv m0 uf gp).
@@ -271,6 +275,8 @@ Hypothesis HUS : forall vs, surf_on ge m0 vs -> uf kS vs.
 (* the height fact's meaning *)
 Hypothesis HUH : forall h yv, HPi (Hit_at ge m0) (ycast yv) h -> Hit_at ge m0 h ->
   uf kH [Some (Vsingle h); Some yv].
+(* the box fact's meaning *)
+Hypothesis HUX : forall v, FfBox.s16box v -> uf kX [Some v].
 
 (* the consumer's regions are named by the world fact *)
 Lemma r0_rblk : forall E r sz, r0_size R0 r = Some sz ->
@@ -365,7 +371,7 @@ Ltac pos_ne := let HH := fresh in intro HH; repeat rewrite <- Pos.add_1_r in HH;
 
 (* THE SOUNDNESS of c_ff against the real find_floor *)
 Theorem c_ff_sound : forall args g cps E m vargs t m' vres,
-  c_ff nbase R0 rFI rMS rCL kW kH kS szS args g = Some cps ->
+  c_ff nbase R0 rFI rMS rCL kW kH kS kX szS args g = Some cps ->
   MM E m g ->
   Forall2 (fun a v => den E a = Some v /\ sok nbase (g_nx g) a) args vargs ->
   eval_funcall function_entry2 ge m (Internal surface_collision.f_find_floor) vargs t m' vres ->
@@ -732,8 +738,10 @@ Proof.
     apply FIN; [| rewrite Y5; apply LCg; reflexivity | rewrite X5; exact NXg4].
     eapply (TAIL (Sconst (Vint Int.zero)) gN gN S5N); [rewrite Efl; reflexivity | exact M5' | reflexivity | exact Y5].
   - (* a world surface: the second outcome *)
-    exists (add_fact (add_fact (add_fact (add_fact (add_fact gS (Fworld (Sfresh n4) szS)) (fty 56 (Sfresh n4)))
-              (fty 1 (Sfresh n4))) (Fuser kH [Sfresh n5; a2])) (Fuser kS (Sfresh n4 :: wargs R0)), Sfresh n5).
+    exists (add_fact (add_fact
+             (add_fact (add_fact (add_fact (add_fact (add_fact gS (Fworld (Sfresh n4) szS)) (fty 56 (Sfresh n4)))
+              (fty 1 (Sfresh n4))) (Fuser kH [Sfresh n5; a2])) (Fuser kS (Sfresh n4 :: wargs R0)))
+              (Fuser kX [a1])) (Fuser kX [a3]), Sfresh n5).
     split; [right; left; reflexivity |].
     destruct (sstore_sound ge nbase R0 gtab kv m0 uf gp gp_old E6 m4 g4 rp (Ptrofs.unsigned op) Mint32
                 (Sfresh n4) fl m5 gS M4' S5S
@@ -787,8 +795,29 @@ Proof.
           rewrite (proj1 RX), (proj1 (proj2 RX)). reflexivity. }
         cbn [surf_on]. rewrite WA. exists bs, os. split; [reflexivity |].
         split; [exact (FTy bs os Efl) |]. split; [exact NRbs | exact (FPle bs os Efl)]. }
+    (* the box: both s16 casts passed find_floor's bounds tests *)
+    assert (KX : forall gq a v, MM E6 m5 gq -> g_nx gq = g_nx gS ->
+              den E a = Some v /\ sok nbase (g_nx g) a -> FfBox.s16box v ->
+              MM E6 m5 (add_fact gq (Fuser kX [a]))).
+    { intros gq a v Mq Nq (Da & Sa) Bv. apply MMg_add_fact; [exact Mq | |].
+      - pose proof (sok_nlt _ _ _ Sa) as Na. unfold fact_nlt.
+        match goal with |- Forall (nlt ?N) _ =>
+          assert (EN : N = Pos.succ n5) by (cbn; rewrite Nq, X5, NXg4; reflexivity); rewrite EN end.
+        constructor; [| constructor].
+        refine (nlt_mono nbase (fun _ => None) (fun _ => false) uf _ _ _ Na _).
+        unfold Ple, n5, n4, n3, n2, n1, n0; lia.
+      - cbn [fact_holds map]. erewrite den_Rx; [| exact RX | eapply sok_nlt; exact Sa].
+        rewrite Da. apply HUX. exact Bv. }
+    match goal with Dx : den E a1 = Some ?xv /\ _, Dz : den E a3 = Some ?zv /\ _ |- _ =>
+      assert (BOX : FfBox.s16box xv /\ FfBox.s16box zv) end.
+    { match goal with Hx : eval_funcall _ _ _ (Internal surface_collision.f_find_floor) _ _ _ _ |- _ =>
+        refine (FfBox.ff_hit_box ge m _ _ _ bpf op _ _ _ Hvm Hx fl _ _) end;
+        [cbn [Mem.loadv] in *; exact Hld | rewrite Efl; discriminate]. }
+    destruct BOX as (BX & BZ).
+    match goal with Dx : den E a1 = Some _ /\ _, Dz : den E a3 = Some _ /\ _ |- _ =>
+      pose proof (KX _ a3 _ (KX _ a1 _ MA4 eq_refl Dx BX) eq_refl Dz BZ) as MA6 end.
     apply FIN; [| cbn; rewrite Y5; apply LCg; reflexivity | cbn; rewrite X5; exact NXg4].
-    eapply (TAIL (Sfresh n4) gS); [exact S5S | exact D5 | exact MA4 | reflexivity | cbn; exact Y5].
+    eapply (TAIL (Sfresh n4) gS); [exact S5S | exact D5 | exact MA6 | reflexivity | cbn; exact Y5].
 Qed.
 
 End FE.

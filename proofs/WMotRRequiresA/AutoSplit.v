@@ -272,7 +272,7 @@ Section AutSplitS.
       + exact (Wc0 FFW_WALL bm so (or_introl eq_refl) Hl Rb).
       + exact (Wc0 FFW_CEIL bm so (or_intror eq_refl) Hl Rb).
       + change FLOOR_OFF with FFW_FLOOR in Hl. rewrite Lf in Hl. injection Hl as ->.
-        destruct Wf as (b' & o' & E & _ & _ & _ & Nr). injection E as <- _. exact (Nr Rb).
+        destruct Wf as [(b' & o' & E & _ & _ & _ & Nr) | E]; [injection E as <- _; exact (Nr Rb) | congruence].
     - intros bc oc Hl ->. rewrite Lc in Hl. injection Hl as ->.
       destruct Wc as (b' & o' & E & _ & _ & _ & Nr). injection E as <- _. exact (Nr Rb).
   Qed.
@@ -318,12 +318,15 @@ Section AutSplitS.
     Lemma qsd_inputs : inputs_ok bm m -> inputs_ok bm m'.
     Proof. apply inputs_ok_keep; lqm; reflexivity. Qed.
 
+    Lemma qsd_nn : floor_nn bm m -> floor_nn bm m'.
+    Proof. apply floor_nn_keep; lqm; reflexivity. Qed.
+
     Lemma qsd_fresh : fresh bm m -> fresh bm m'.
-    Proof. intros (F & I). exact (conj (qsd_fresh_fl F) (qsd_inputs I)). Qed.
+    Proof. intros (F & I & N). exact (conj (qsd_fresh_fl F) (conj (qsd_inputs I) (qsd_nn N))). Qed.
 
     Lemma qsd_fresh_at : fresh_at bm m -> fresh_at bm m'.
     Proof.
-      intros (H & I). split; [| exact (qsd_inputs I)].
+      intros (H & I & N). split; [| exact (conj (qsd_inputs I) (qsd_nn N))].
       intros a La Hg. lqm_in La. exact (qsd_fresh_fl (H a La Hg)).
     Qed.
 

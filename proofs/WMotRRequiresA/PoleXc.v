@@ -12,7 +12,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Globa
 From SM64.Generated Require mario surface_collision.
 From SM64.Proofs Require Import Interp.SymExec2 WMotRRequiresA.FloorList WMotRRequiresA.TerrainSound
   WMotRRequiresA.FloorHeight WMotRRequiresA.FloorExec WMotRRequiresA.CeilExec.
-From SM64.Proofs.WMotRRequiresA Require CeilList CeilHeight.
+From SM64.Proofs.WMotRRequiresA Require CeilList CeilHeight FfBox.
 Import ListNotations.
 
 (* ---------------------------------------------------------------------- *)
@@ -27,9 +27,9 @@ Import ListNotations.
 (*   (surface_collision.c), y the s16 cast of yPos.                       *)
 (* ---------------------------------------------------------------------- *)
 
-Definition c_ff2 (nbase : positive) (R0 : list (positive * Z)) (rFI rMS rCL kW kH kS kL : positive)
+Definition c_ff2 (nbase : positive) (R0 : list (positive * Z)) (rFI rMS rCL kW kH kS kX kL : positive)
     (szS : Z) : xcontract := fun args g =>
-  match args, c_ff nbase R0 rFI rMS rCL kW kH kS szS args g with
+  match args, c_ff nbase R0 rFI rMS rCL kW kH kS kX szS args g with
   | [_; ay; _; _], Some [(gN, r); c2] => Some [(add_fact gN (Fuser kL [r; ay]), r); c2]
   | _, _ => None
   end.
@@ -260,7 +260,7 @@ Variable m0 : mem.
 Variable uf : positive -> list (option val) -> Prop.
 Variable gp : meminj.
 Hypothesis gp_old : forall b x, gp b = Some x -> Plt b (Mem.nextblock m0).
-Variables rFI rMS rCL kW kH kS kL kC : positive.
+Variables rFI rMS rCL kW kH kS kX kL kC : positive.
 Variable szS : Z.
 
 Local Notation MM := (MMg ge nbase R0 gtab kv m0 uf gp).
@@ -277,6 +277,7 @@ Hypothesis HU : forall vs, uf kW vs -> Wff ge m0 gp szS vs.
 Hypothesis HUS : forall vs, surf_on ge m0 vs -> uf kS vs.
 Hypothesis HUH : forall h yv, HPi (Hit_at ge m0) (ycast yv) h -> Hit_at ge m0 h ->
   uf kH [Some (Vsingle h); Some yv].
+Hypothesis HUX : forall v, FfBox.s16box v -> uf kX [Some v].
 (* the two new consumer facts' meaning *)
 Hypothesis HUL : forall h yv, HPi (Hit_at ge m0) (ycast yv) h -> uf kL [Some (Vsingle h); Some yv].
 Hypothesis HUC : forall h yv, ceil_ok yv h -> uf kC [Some (Vsingle h); Some yv].
@@ -289,7 +290,7 @@ Local Notation floor_head_to_m0 := (FloorExec.floor_head_to_m0 ge nbase R0 gtab 
 Local Notation ld_m0 := (FloorExec.ld_m0 ge nbase R0 gtab kv m0 uf gp).
 
 Lemma c_ff_hpi : forall args g cps E m vargs t m' vres,
-  c_ff nbase R0 rFI rMS rCL kW kH kS szS args g = Some cps ->
+  c_ff nbase R0 rFI rMS rCL kW kH kS kX szS args g = Some cps ->
   MM E m g ->
   Forall2 (fun a v => den E a = Some v /\ sok nbase (g_nx g) a) args vargs ->
   eval_funcall function_entry2 ge m (Internal surface_collision.f_find_floor) vargs t m' vres ->
@@ -356,7 +357,7 @@ Qed.
 
 (* THE SOUNDNESS of c_ff2 against the real find_floor *)
 Theorem c_ff2_sound : forall args g cps E m vargs t m' vres,
-  c_ff2 nbase R0 rFI rMS rCL kW kH kS kL szS args g = Some cps ->
+  c_ff2 nbase R0 rFI rMS rCL kW kH kS kX kL szS args g = Some cps ->
   MM E m g ->
   Forall2 (fun a v => den E a = Some v /\ sok nbase (g_nx g) a) args vargs ->
   eval_funcall function_entry2 ge m (Internal surface_collision.f_find_floor) vargs t m' vres ->
@@ -365,12 +366,12 @@ Proof.
   intros args g cps E m vargs t m' vres Hc MMh HF Hev.
   unfold c_ff2 in Hc.
   destruct args as [|a1 [|a2 [|a3 [|a4 [|a5 l]]]]]; try discriminate Hc.
-  destruct (c_ff nbase R0 rFI rMS rCL kW kH kS szS [a1; a2; a3; a4] g) as [cps0|] eqn:C0;
+  destruct (c_ff nbase R0 rFI rMS rCL kW kH kS kX szS [a1; a2; a3; a4] g) as [cps0|] eqn:C0;
     [| discriminate Hc].
   destruct cps0 as [|[gN r] [|c2 [|]]]; try discriminate Hc.
   injection Hc as <-.
-  destruct (c_ff_sound ge nbase R0 gtab kv m0 uf gp gp_old rFI rMS rCL kW kH kS szS HC Hpin HgFI HgMS HgCL
-              HU HUS HUH _ _ _ E m vargs t m' vres C0 MMh HF Hev) as (c & Hin & CMc).
+  destruct (c_ff_sound ge nbase R0 gtab kv m0 uf gp gp_old rFI rMS rCL kW kH kS kX szS HC Hpin HgFI HgMS HgCL
+              HU HUS HUH HUX _ _ _ E m vargs t m' vres C0 MMh HF Hev) as (c & Hin & CMc).
   destruct (c_ff_hpi _ _ _ E m vargs t m' vres C0 MMh HF Hev) as (ay & yv & h & Nth & Dy & -> & HP).
   cbn in Nth. injection Nth as <-.
   assert (Na : nlt (g_nx g) a2).
