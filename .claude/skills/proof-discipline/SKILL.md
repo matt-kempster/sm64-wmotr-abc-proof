@@ -605,6 +605,19 @@ all in `Unwired/`, and the theorem moved nowhere. See
        per OBJECT command (sCurrentCmd / sCurrAreaIndex / sLevelPool set; command offsets
        vm-decoded). Mario then lands in slot 34. TRUST line: "the dispatcher is not run; the
        OBJECT handler is".
+       2026-11-02 progress: Mario's slot is behind StartTerrain.MARIO_OFF (still 0 on the
+       current witness; StartSat proved against the accessor via mario_off_u). ObjWorld's
+       checkers now CHECK action-table / hidden-star / pole / cannon clauses instead of
+       rejecting those objects (act_b, red_b, kind_b + pole_b / cannon_b / *_xz_b). Probe of
+       the real order: Mario at 20672; ow passes after the checker fix; changed globals to add
+       to f_ids: gCurrActNum, gNumCalls, sCurrAreaIndex, sCurrentCmd, sLevelPool.
+       FOUND (open, decision pending): select_gfx_pool has NO CompCert execution
+       (set_segment_base_addr's `(uintptr_t) addr & 0x1FFFFFFF`, memory.c:69, is stuck on a
+       pointer), so MidKeep.mid_call / HeightFrame.frame_step have no execution: the frame
+       capstones are vacuous until it is fixed. It also blocks the real-order witness:
+       area_update_objects is stuck in obj_orient_graph -> alloc_display_list without a
+       selected gfx pool. sSegmentTable census: read back only by move_segment_table_to_dmem
+       (gSPSegment words for the RSP); every call site discards set_segment_base_addr's result.
     4. Collision census: BhvVM.vm_collision_loaders + mesh_walls.
     5. B3 (iii) stepper; the Hobj_step_act route (census_value + per-step footprint +
        set_mario_action walk); the ow_act carry.

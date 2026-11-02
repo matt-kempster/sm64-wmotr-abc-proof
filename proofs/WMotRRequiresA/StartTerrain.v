@@ -362,10 +362,27 @@ Definition e_chain (bw bL : block) (m0 : mem) : option mem :=
   | Some e5 => CM.store Mint16signed e5 bL 0 (Vint (Int.repr LEVEL_WMOTR))
   | None => None end | None => None end | None => None end | None => None end | None => None end.
 
+(* Mario's object: its offset in gObjectPool, an ACCESSOR (2026-11-02).
+   The witness's spawn order decides the slot; the checks below and in
+   StartSat read Mario's cells at MARIO_OFF + field, and ow_chk checks
+   gMarioObject / gMarioStates[0].marioObj against the same slot, so no
+   fact about the start state assumes slot 0. *)
+Definition MARIO_OFF : Z := 0.
+
+Lemma mario_off_range : 0 <= MARIO_OFF /\ MARIO_OFF + 608 <= 145920 /\ MARIO_OFF mod 8 = 0.
+Proof. unfold MARIO_OFF. split; [ lia | split; [ lia | reflexivity ] ]. Qed.
+
+Lemma mario_off_u : Ptrofs.unsigned (Ptrofs.repr MARIO_OFF) = MARIO_OFF.
+Proof.
+  apply Ptrofs.unsigned_repr. pose proof mario_off_range as R.
+  unfold Ptrofs.max_unsigned, Ptrofs.modulus, Ptrofs.wordsize, Wordsize_Ptrofs.wordsize.
+  destruct Archi.ptr64; cbn; lia.
+Qed.
+
 Definition s_chain (bm bo bc ab bt bs bar : block) (m3 : mem) : option mem :=
   match CM.store Mfloat32 m3 bm 64 (Vsingle ENTRY_Y) with
   | Some m3a =>
-  match CM.store Mfloat32 m3a bo 36 (Vsingle ENTRY_Y) with
+  match CM.store Mfloat32 m3a bo (MARIO_OFF + 36) (Vsingle ENTRY_Y) with
   | Some m3b =>
   match CM.store Mint16signed m3b bs 0 (Vint Int.zero) with
   | Some m4 =>
@@ -379,7 +396,7 @@ Definition s_chain (bm bo bc ab bt bs bar : block) (m3 : mem) : option mem :=
   | Some m8 =>
   match CM.store Mint32 m8 bm 160 (Vptr ab Ptrofs.zero) with
   | Some m9 =>
-  match CM.store Mint32 m9 bm 136 (Vptr bo Ptrofs.zero) with
+  match CM.store Mint32 m9 bm 136 (Vptr bo (Ptrofs.repr MARIO_OFF)) with
   | Some m10 => CM.store Mint32 m10 ab 8 (Vptr bt Ptrofs.zero)
   | None => None end | None => None end | None => None end | None => None end | None => None end
   | None => None end | None => None end | None => None end | None => None end.
@@ -569,7 +586,7 @@ Definition ifs_ok (ge : genv) (m0 : mem) (bm bc ab bsi bpcs bbs bhud : block) : 
   | None => false
   end.
 
-(* Mario's object (pool slot 0, the slot spawn_objects_from_info gave it):
+(* Mario's object (pool offset MARIO_OFF, the slot spawn_objects_from_info gave it):
    oInteractStatus, numCollidedObjs, gfx.throwMatrix and collidedObjs[0..3]
    are zero on the witness (what the frame world reads of it) *)
 Definition bo_cells : list (memory_chunk * Z) :=
@@ -585,17 +602,17 @@ Definition f32_is (m : mem) (bo : block) (z : Z) (f : float32) : bool :=
   end.
 Definition bo_chk (m : mem) (bo : block) : bool :=
   forallb (fun c => let '(ch, z) := c in
-             match CM.load ch m bo z with Some (Vint i) => Int.eq i Int.zero | _ => false end)
+             match CM.load ch m bo (MARIO_OFF + z) with Some (Vint i) => Int.eq i Int.zero | _ => false end)
           bo_cells
-  && f32_is m bo 508 FFW_F100 && f32_is m bo 520 FFW_F0.
+  && f32_is m bo (MARIO_OFF + 508) FFW_F100 && f32_is m bo (MARIO_OFF + 520) FFW_F0.
 
 Lemma bo_chk_sound : forall m bo, bo_chk m bo = true ->
-    forall ch z, In (ch, z) bo_cells -> Mem.load ch m bo z = Some (Vint Int.zero).
+    forall ch z, In (ch, z) bo_cells -> Mem.load ch m bo (MARIO_OFF + z) = Some (Vint Int.zero).
 Proof.
   intros m bo H ch z Hin. unfold bo_chk in H.
   apply andb_prop in H as [H _]. apply andb_prop in H as [H _]. rewrite forallb_forall in H.
   specialize (H _ Hin). cbv beta iota in H. rewrite CM.load_eq in H.
-  destruct (Mem.load ch m bo z) as [[| i | | | |]|]; try discriminate H.
+  destruct (Mem.load ch m bo (MARIO_OFF + z)) as [[| i | | | |]|]; try discriminate H.
   pose proof (Int.eq_spec i Int.zero) as E. rewrite H in E. subst i. reflexivity.
 Qed.
 
@@ -731,8 +748,8 @@ Proof.
 Qed.
 
 Lemma bo_chk_hh : forall m bo, bo_chk m bo = true ->
-    Mem.load Mfloat32 m bo 508 = Some (Vsingle FFW_F100)
-    /\ Mem.load Mfloat32 m bo 520 = Some (Vsingle FFW_F0).
+    Mem.load Mfloat32 m bo (MARIO_OFF + 508) = Some (Vsingle FFW_F100)
+    /\ Mem.load Mfloat32 m bo (MARIO_OFF + 520) = Some (Vsingle FFW_F0).
 Proof.
   intros m bo H. unfold bo_chk in H. apply andb_prop in H as [H H2]. apply andb_prop in H as [_ H1].
   exact (conj (f32_is_sound _ _ _ _ H1) (f32_is_sound _ _ _ _ H2)).
@@ -750,7 +767,7 @@ Definition done_b {A} (r : res A) : bool :=
 Definition frame_ok (ge : genv) (bm bo : block) (m : mem) : bool :=
   negb (BootRun.a_pressed_b bm m)
   && match ex_call ge BootRun.world FUEL m (Internal mario.f_execute_mario_action)
-             [Vptr bo Ptrofs.zero] with
+             [Vptr bo (Ptrofs.repr MARIO_OFF)] with
      | Done (_, m', _) => BootRun.ld32_is m' bm 12 BootRun.ACT_SPAWN_NO_SPIN_AIRBORNE
      | Stuck _ _ _ => false
      end.
@@ -1057,14 +1074,14 @@ Inductive wout (ge : genv) (m0 : mem) (bm bc ab bo bw bL : block) : Prop :=
     Mem.alloc L 0 16384 = (m1, bt) -> Mem.alloc m1 0 48 = (m2, bs) -> Mem.alloc m2 0 60 = (m2b, bar) ->
     Mem.alloc m2b 0 1680 = (m3, bd) ->
     Mem.store Mfloat32 m3 bm 64 (Vsingle ENTRY_Y) = Some m3a ->
-    Mem.store Mfloat32 m3a bo 36 (Vsingle ENTRY_Y) = Some m3b ->
+    Mem.store Mfloat32 m3a bo (MARIO_OFF + 36) (Vsingle ENTRY_Y) = Some m3b ->
     Mem.store Mint16signed m3b bs 0 (Vint Int.zero) = Some m4 ->
     Mem.store Mint32 m4 bm 12 (Vint ACT_SPAWN_NO_SPIN_AIRBORNE) = Some m5 ->
     Mem.store Mint32 m5 bm 104 (Vptr bs Ptrofs.zero) = Some m6 ->
     Mem.store Mint32 m6 bm 144 (Vptr bar Ptrofs.zero) = Some m7 ->
     Mem.store Mint32 m7 bm 156 (Vptr bc Ptrofs.zero) = Some m8 ->
     Mem.store Mint32 m8 bm 160 (Vptr ab Ptrofs.zero) = Some m9 ->
-    Mem.store Mint32 m9 bm 136 (Vptr bo Ptrofs.zero) = Some m10 ->
+    Mem.store Mint32 m9 bm 136 (Vptr bo (Ptrofs.repr MARIO_OFF)) = Some m10 ->
     Mem.store Mint32 m10 ab 8 (Vptr bt Ptrofs.zero) = Some ms ->
     sym ge "gPlayerSpawnInfos" = Some bsi -> sym ge "gPlayerCameraState" = Some bpcs ->
     sym ge "gBodyStates" = Some bbs -> sym ge "gHudDisplay" = Some bhud ->
@@ -1167,7 +1184,7 @@ Proof.
   destruct (x_chain bm ab bt bar bd bsi bpcs bbs bhud bC bc bpads bw bca bgad _ _ ms) as [m11|] eqn:Xc; [ | discriminate ].
   unfold s_chain in Sc.
   destruct (CM.store Mfloat32 m3 bm 64 _) as [m3a|] eqn:S1a; [ | discriminate ].
-  destruct (CM.store Mfloat32 m3a bo 36 _) as [m3b|] eqn:S1b; [ | discriminate ].
+  destruct (CM.store Mfloat32 m3a bo (MARIO_OFF + 36) _) as [m3b|] eqn:S1b; [ | discriminate ].
   destruct (CM.store Mint16signed m3b bs 0 _) as [m4|] eqn:S1; [ | discriminate ].
   destruct (CM.store Mint32 m4 bm 12 _) as [m5|] eqn:S2; [ | discriminate ].
   destruct (CM.store Mint32 m5 bm 104 _) as [m6|] eqn:S3; [ | discriminate ].
@@ -1268,7 +1285,7 @@ Qed.
 Lemma frame_ok_sound : forall ge bm bo m, BootRun.world_ok ge -> frame_ok ge bm bo m = true ->
     AGates.a_pressed_real bm m = false
     /\ exists t m' v, eval_funcall function_entry2 ge m (Internal mario.f_execute_mario_action)
-                        [Vptr bo Ptrofs.zero] t m' v
+                        [Vptr bo (Ptrofs.repr MARIO_OFF)] t m' v
        /\ Mem.load Mint32 m' bm 12 = Some (Vint (Int.repr BootRun.ACT_SPAWN_NO_SPIN_AIRBORNE)).
 Proof.
   intros ge bm bo m Wk H. unfold frame_ok in H. apply andb_prop in H as [Ha H].

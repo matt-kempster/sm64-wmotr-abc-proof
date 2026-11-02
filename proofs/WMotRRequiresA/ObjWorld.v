@@ -47,7 +47,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctype
 From SM64.Generated Require object_list_processor behavior_data behavior_script object_helpers debug.
 From SM64.Proofs Require Interp.CMem.
 From SM64.Proofs Require Import CensusV2.
-From SM64.Proofs.WMotRRequiresA Require Import WMotRWorld.
+From SM64.Proofs.WMotRRequiresA Require Import WMotRLevel WMotRWorld.
 From SM64.Proofs.WMotRRequiresA Require BehaviorScripts ObjAct ObjCensus BhvVM.
 
 Import ListNotations.
@@ -352,8 +352,10 @@ Definition obj_w (ge : genv) (bm : block) (m : mem) : Prop :=
 
 (* ---------------------------------------------------------------------- *)
 (* 5. The checker (stronger than obj_w where that is cheaper: a pole or    *)
-(*    cannon base, an action-table behavior, the hidden red-coin star are *)
-(*    rejected outright -- the boot witness holds none of them).          *)
+(*    cannon base, an action-table behavior, the hidden red-coin star    *)
+(*    are checked against their clause: 2026-11-02, the real-order boot  *)
+(*    witness holds WMotR's placed objects -- exclamation boxes, the red- *)
+(*    coin star, poles, cannons).                                         *)
 (* ---------------------------------------------------------------------- *)
 Fixpoint nodupb (l : list Z) : bool :=
   match l with [] => true | x :: l' => negb (existsb (Z.eqb x) l') && nodupb l' end.
@@ -502,19 +504,92 @@ Section CHK.
   Qed.
 
 
-  Definition act_b (k : Z) : bool := forallb (fun p => not_bhv_b k (fst p)) act_pairs.
+  Definition act_in_b (k t : Z) : bool :=
+    match ld32 m pool (k * OSZ + O_ACTION) with
+    | Some (Vint a) => Z.leb 0 (Int.signed a) && Z.ltb (Int.signed a) t
+    | _ => false
+    end.
+
+  Definition act_b (k : Z) : bool :=
+    forallb (fun p => not_bhv_b k (fst p) || act_in_b k (tlen (snd p))) act_pairs.
 
   Lemma act_b_sound : forall k, act_b k = true -> act_ok ge pool m k.
   Proof.
-    intros k H bh t Hin Hb. exfalso.
-    pose proof (proj1 (forallb_forall _ _) H _ Hin) as Hn. exact (not_bhv_b_sound k bh Hn Hb).
+    intros k H bh t Hin Hb.
+    pose proof (proj1 (forallb_forall _ _) H _ Hin) as Hn. cbn [fst snd] in Hn.
+    apply orb_true_iff in Hn as [Hn | Hn]; [ exfalso; exact (not_bhv_b_sound k bh Hn Hb) | ].
+    unfold act_in_b, ld32 in Hn. rewrite CM.load_eq in Hn.
+    destruct (Mem.load Mint32 m pool (k * OSZ + O_ACTION)) as [[| a | | | |]|]; try discriminate Hn.
+    apply andb_prop in Hn as [H1 H2]. apply Z.leb_le in H1. apply Z.ltb_lt in H2.
+    exists a. split; [ reflexivity | lia ].
+  Qed.
+
+  (* the float cells of a pole / cannon base (WMotRWorld's pins) *)
+  Definition f32_at_b (o : Z) (v : val) : bool :=
+    match CM.load Mfloat32 m pool o with Some w => veqb w v | None => false end.
+
+  Lemma f32_at_b_sound : forall o v, f32_at_b o v = true -> Mem.load Mfloat32 m pool o = Some v.
+  Proof.
+    intros o v H. unfold f32_at_b in H. rewrite CM.load_eq in H.
+    destruct (Mem.load Mfloat32 m pool o) as [w|]; [ | discriminate H ]. unfold veqb in H.
+    destruct (Val.eq w v) as [-> | _]; [ reflexivity | discriminate H ].
+  Qed.
+
+  Definition pole_b (o : Z) : bool :=
+    existsb (fun '(base, top) => f32_at_b (o + O_POSY) (f32z base)
+                                 && f32_at_b (o + HITBOX_DOWN_OFF) (Vsingle Float32.zero)
+                                 && f32_at_b (o + HITBOX_H_OFF) (f32z (top - base))) wmotr_pole_list.
+
+  Lemma pole_b_sound : forall o, pole_b o = true -> pole_obj_ok m pool o.
+  Proof.
+    intros o H. apply existsb_exists in H as ([base top] & Hin & H).
+    apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
+    exists base, top. split; [ exact Hin | ].
+    exact (conj (f32_at_b_sound _ _ H1) (conj (f32_at_b_sound _ _ H2) (f32_at_b_sound _ _ H3))).
+  Qed.
+
+  Definition cannon_b (o : Z) : bool :=
+    existsb (fun y => f32_at_b (o + O_POSY) (f32z (y - CANNON_SEAT))) wmotr_cannon_list.
+
+  Lemma cannon_b_sound : forall o, cannon_b o = true -> cannon_obj_ok m pool o.
+  Proof.
+    intros o H. apply existsb_exists in H as (y & Hin & H).
+    exists y. exact (conj Hin (f32_at_b_sound _ _ H)).
+  Qed.
+
+  Definition pole_xz_b (o : Z) : bool :=
+    existsb (fun '(x, z, base, top) => f32_at_b (o + O_POSX) (f32z x)
+                                       && f32_at_b (o + O_POSY) (f32z base)
+                                       && f32_at_b (o + O_POSZ) (f32z z)) wmotr_pole_xz_list.
+
+  Lemma pole_xz_b_sound : forall o, pole_xz_b o = true -> pole_xz_ok m pool o.
+  Proof.
+    intros o H. apply existsb_exists in H as ([[[x z] base] top] & Hin & H).
+    apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
+    exists x, z, base, top. split; [ exact Hin | ].
+    exact (conj (f32_at_b_sound _ _ H1) (conj (f32_at_b_sound _ _ H2) (f32_at_b_sound _ _ H3))).
+  Qed.
+
+  Definition cannon_xz_b (o : Z) : bool :=
+    existsb (fun '(x, z, y) => f32_at_b (o + O_POSX) (f32z x)
+                               && f32_at_b (o + O_POSY) (f32z (y - CANNON_SEAT))
+                               && f32_at_b (o + O_POSZ) (f32z z)) wmotr_cannon_xzy.
+
+  Lemma cannon_xz_b_sound : forall o, cannon_xz_b o = true -> cannon_xz_ok m pool o.
+  Proof.
+    intros o H. apply existsb_exists in H as ([[x z] y] & Hin & H).
+    apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
+    exists x, z, y. split; [ exact Hin | ].
+    exact (conj (f32_at_b_sound _ _ H1) (conj (f32_at_b_sound _ _ H2) (f32_at_b_sound _ _ H3))).
   Qed.
 
   Definition kind_b (k : Z) : bool :=
     match ld32 m pool (k * OSZ + O_INTERACT_TYPE) with
     | Some (Vint t) => existsb (Z.eqb (Int.unsigned t)) wmotr_interact_types
-                       && negb (Z.eqb (Int.unsigned t) INTERACT_POLE)
-                       && negb (Z.eqb (Int.unsigned t) INTERACT_CANNON_BASE)
+                       && (negb (Z.eqb (Int.unsigned t) INTERACT_POLE)
+                           || (pole_b (k * OSZ) && pole_xz_b (k * OSZ)))
+                       && (negb (Z.eqb (Int.unsigned t) INTERACT_CANNON_BASE)
+                           || (cannon_b (k * OSZ) && cannon_xz_b (k * OSZ)))
     | _ => false
     end.
 
@@ -524,18 +599,34 @@ Section CHK.
     destruct (Mem.load Mint32 m pool (k * OSZ + O_INTERACT_TYPE)) as [[| t | | | |]|] eqn:Hl; try discriminate H.
     apply andb_prop in H as [H Hc]. apply andb_prop in H as [Hi Hp].
     apply existsb_exists in Hi as (z & Hz & E). apply Z.eqb_eq in E. subst z.
-    apply negb_true_iff, Z.eqb_neq in Hp. apply negb_true_iff, Z.eqb_neq in Hc.
     exists t. split; [ exact Hl | split; [ exact Hz | ] ].
-    repeat split; intro E; contradiction.
+    split; [ | split; [ | split ] ].
+    - intro E. apply Z.eqb_eq in E. rewrite E in Hp. cbn in Hp.
+      apply andb_prop in Hp as [Hp _]. exact (pole_b_sound _ Hp).
+    - intro E. apply Z.eqb_eq in E. rewrite E in Hc. cbn in Hc.
+      apply andb_prop in Hc as [Hc _]. exact (cannon_b_sound _ Hc).
+    - intro E. apply Z.eqb_eq in E. rewrite E in Hp. cbn in Hp.
+      apply andb_prop in Hp as [_ Hp]. exact (pole_xz_b_sound _ Hp).
+    - intro E. apply Z.eqb_eq in E. rewrite E in Hc. cbn in Hc.
+      apply andb_prop in Hc as [_ Hc]. exact (cannon_xz_b_sound _ Hc).
   Qed.
 
   Definition red_b (k : Z) : bool :=
-    not_bhv_b k behavior_data._bhvStarSpawnCoordinates && not_bhv_b k behavior_data._bhvHiddenRedCoinStar.
+    not_bhv_b k behavior_data._bhvStarSpawnCoordinates
+    && (not_bhv_b k behavior_data._bhvHiddenRedCoinStar
+        || match ld32 m pool (k * OSZ + O_HSCOUNT) with
+           | Some (Vint c) => Z.ltb (Int.signed c) 8
+           | _ => false
+           end).
 
   Lemma red_b_sound : forall k, red_b k = true -> red_ok ge pool m k.
   Proof.
     intros k H. apply andb_prop in H as [H1 H2].
-    split; [ exact (not_bhv_b_sound _ _ H1) | intros Hb; exfalso; exact (not_bhv_b_sound _ _ H2 Hb) ].
+    split; [ exact (not_bhv_b_sound _ _ H1) | intros Hb ].
+    apply orb_true_iff in H2 as [H2 | H2]; [ exfalso; exact (not_bhv_b_sound _ _ H2 Hb) | ].
+    unfold ld32 in H2. rewrite CM.load_eq in H2.
+    destruct (Mem.load Mint32 m pool (k * OSZ + O_HSCOUNT)) as [[| c | | | |]|]; try discriminate H2.
+    apply Z.ltb_lt in H2. exists c. split; [ reflexivity | exact H2 ].
   Qed.
 
   Definition slot_ptr_b (v : val) : bool :=
