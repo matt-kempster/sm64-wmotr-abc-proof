@@ -48,6 +48,12 @@ Definition ls_ids : list ident :=
   [AX._gAudioLoadLock; AX._gSequencePlayers; AX._gSeqLoadedPool; AX._gBankLoadedPool;
    buffers._gAudioHeap].
 
+(* FALSE AS STATED (unscoped, 2026-11-02): claimed for every memory, but
+   load.c stores through audio pointers read from memory.  The scoped form
+   is AudioInv.ls_frame_ai (AudioInv m -> this frame /\ AudioInv m'), checked
+   at boot (AudioBoot) and wired through the cap path (AudioWire,
+   HitboxFrame.hitbox_hh_ai); the spine switches to it in the deferred root
+   rebuild (TRUST 4.1). *)
 Definition ls_frame (lp : Clight.program) : Prop :=
   forall fd m vargs t m' vres,
     eval_funcall function_entry2 (lp_ge lp) m fd vargs t m' vres ->

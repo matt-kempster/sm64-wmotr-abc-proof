@@ -2291,7 +2291,14 @@ link grows.
     wrappers) reach it through `seq_player_play_sequence`. It is narrower than every row it replaces.
     **Read 2026-10-24** (US path: load.c, heap.c, seqplayer.c, playback.c, synthesis.c): every store
     lands in audio state: `gAudioLoadLock`, `gSequencePlayers`, the two loaded pools, `gAudioHeap`
-    (pools, notes, banks), or load.c globals with no block in the model. The DMA / message calls are
+    (pools, notes, banks), or load.c globals with no block in the model. AudioInv
+    (`WMotRRequiresA/AudioInv.v`, 2026-11-02) is checked on a model audio state that is all
+    zeros, because audio_init and the audio thread are not linked. The real driver's channel /
+    layer / note pointers live outside the model, so `ls_frame_ai`'s preservation of AudioInv is
+    part of the labeled audio trust, not evidence about the real driver. **Scoping TODO:**
+    `disable_all_sequence_players` (linked) passes `&gSequencePlayers[i]` to the unlinked
+    `sequence_player_disable`, which is another unlinked audio call to scope the same way if it
+    is reachable on the WMotR path. The DMA / message calls are
     3.5. The footprint form (`ls_contract` = `call_pres_ext` + `ls_frame`, the blocks of
     `ls_ids`: `gAudioLoadLock`, `gSequencePlayers`, the two loaded pools, `gAudioHeap`; memory
     may grow, the new blocks freed) is `WMotRRequiresA/LsContract.v`. `ObjFrame`'s whole-walk
@@ -2306,16 +2313,35 @@ link grows.
     driver's own invariants". So in a memory where those pointers aim at, say, Mario's object,
     the real load_sequence writes outside `ls_ids`, and the row is a phantom ∀. Audio may stay a
     labeled open premise, but not a false one.
-    **Fix plan (next):**
-    - Define a concrete `AudioInv m`, exactly what the header above relies on:
-      - the pool cursors lie inside their pool blocks (`gAudioHeap`'s pools,
-        `gSeqLoadedPool`, `gBankLoadedPool`);
-      - the note / layer / bank pointers lie inside the audio heap;
-      - and so on.
-    - vm-check `AudioInv` at boot.
-    - Restate `ls_frame` as `AudioInv m → only ls_ids change ∧ AudioInv m'`.
-    - Carry `AudioInv` through the frame. The rest of the frame writes no audio heap byte
-      except via the audio TUs, which keep it.
+    **Fix (2026-11-02, landing in stages):**
+    - DONE: `AudioInv.AudioInv G m`. Every pointer loaded from an `ls_ids` block points into
+      an audio block (`aud_ids` = `ls_ids` + `gSequenceChannelNone`, the disabled-channel
+      sentinel). This is the model-level form of the header's "pointer stores stay inside
+      those" (pool cursors, player / note / layer / bank pointers). It has a decision
+      procedure `aud_chk` (`aud_chk_sound`).
+    - DONE: the restatement `AudioInv.ls_frame_ai`: AudioInv m → only the `ls_ids` blocks
+      change (Q2) ∧ AudioInv m'.
+    - DONE: the boot check (`AudioBoot.audio_inv_boot`, vm). AudioInv holds on `Genv.init_mem`
+      and on the start witness (StartTerrain's chain, rebuilt by `AudioBoot.wit11`). A probe
+      also found no global in either memory holding a pointer into the audio set.
+    - Census (generated AST, all linked TUs):
+      - no linked code mentions `gAudioHeap`;
+      - the pools appear only in `unused_8031E4F0`;
+      - `&gSequencePlayers[p]` lives only in temps and is never stored to memory.
+    - DONE: wired through the consumers, from `ls_frame_ai` alone (no use of the false
+      `ls_frame`).
+      - `AudioWire`: the cap music path's frames carry AudioInv (`afi`: CapAudio's Q2 frame
+        plus AudioInv). Every store's root is not an `ls_ids` global, or its value is never a
+        pointer, so no pointer enters an audio block (`Mem.load_pointer_store`). It also has
+        `ucf_frame_ai`.
+      - `HitboxFrame.ucf_hole_ai` / `hitbox_hh_ai`: `hitbox_hh` (its frame and Mario's
+        hitboxHeight) from an AudioInv memory, with AudioInv after.
+      - Not yet wired: `ObjFrame`'s whole-walk frame and `CamFootInst`'s load_sequence leaf.
+        Their rows are labeled or being restated, and they move in the rebuild.
+    - NEXT, in the deferred root rebuild: AudioInv becomes `FfWorld.lvl_w`'s eighth clause
+      `aud_w`, carried by every phase. Footprints that avoid `ls_ids` get it free through
+      `AudioInv_Q2`. The audio walks need a stored-value check. The spine's `Hls` then
+      switches from `ls_frame` to `ls_frame_ai`.
 
     Consumers on the spine: CapAudio / NaSplit (the hitbox row) and, off-spine for now,
     `CamFootInst`'s load_sequence leaf.

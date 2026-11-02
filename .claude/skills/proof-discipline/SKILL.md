@@ -564,10 +564,19 @@ all in `Unwired/`, and the theorem moved nowhere. See
       - both rows are restated on update_camera_foot;
       - the residual row is Mario's state / gTimeStopState / gSecondCameraFocus. Its phantom
         check: npc is dead under cam_w (uc_wmotr).
-    **FOUND FALSE 2026-11-02 (unscoped):** `LsContract.ls_frame` (Hls's footprint half) holds
-    for every memory. Fix next: a concrete `AudioInv` (pool cursors in their pools, note /
-    layer pointers in the audio heap), vm-checked at boot, with
-    ls_frame := AudioInv m → only ls_ids change ∧ AudioInv m'.
+    **FOUND FALSE 2026-11-02 (unscoped):** `LsContract.ls_frame` (Hls's footprint half) is
+    claimed for every memory. Fix, in stages:
+    - DONE: `AudioInv.v` (pointers loaded from `ls_ids` blocks aim at `aud_ids` = ls_ids +
+      gSequenceChannelNone), `ls_frame_ai` (AudioInv m → Q2 off ls_ids ∧ AudioInv m'), and a
+      decision procedure `aud_chk` (sound).
+    - DONE: `AudioBoot.audio_inv_boot`, by vm on init_mem and on the start witness. The witness
+      is StartTerrain's chain, mirrored as `wit11`; re-point the one line `aud_wit`. Both
+      memories have NO audio pointers, and no global points into the audio set.
+    - DONE: `AudioWire` (cap path `afi`, `ucf_frame_ai`) and `HitboxFrame.hitbox_hh_ai`, all
+      from `ls_frame_ai` alone.
+    - NEXT (deferred root rebuild): `aud_w` = AudioInv becomes lvl_w's 8th clause, carried by
+      every phase (AudioInv_Q2 for footprints off ls_ids, store-value checks for the audio
+      walks). Then Hls switches to `ls_frame_ai`, and ObjFrame / CamFootInst move over.
     Left labeled.
     Mario's render call and
     `apply_mario_platform_displacement` (platform_displacement.c, TU 45) are REAL calls whose

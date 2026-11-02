@@ -360,6 +360,9 @@ proofs/WMotRRequiresA/CamFootKit.v
 proofs/WMotRRequiresA/CamFootSound.v
 proofs/WMotRRequiresA/CamFootTable.v
 proofs/WMotRRequiresA/CamFootInst.v
+proofs/WMotRRequiresA/AudioInv.v
+proofs/WMotRRequiresA/AudioBoot.v
+proofs/WMotRRequiresA/AudioWire.v
 proofs/WMotRRequiresA/ActWriterCensus.v
 proofs/WMotRRequiresA/FnPtrCensus.v
 proofs/WMotRRequiresA/ActIdxCensus.v
