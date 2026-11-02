@@ -99,6 +99,12 @@ UB_WORKLIST = [
      "GEO_CAMERA mode 16 is a TRUST 3.2 line)",
      "carry Mario's action != ACT_WATER_DEATH (set only by mario_actions_submerged.c; WMotR "
      "has no water, env_w: gEnvironmentRegions NULL)"),
+    ("mario.c:427 mario_get_floor_class",
+     "m->floor->normal.y read with no NULL check when m->action == ACT_CRAWLING; reached in a "
+     "NULL-floor frame from mario_process_interactions (knockback / bully -> set_mario_action_moving), "
+     "before execute_mario_action's OOB guard (CompCert: stuck; N64: read near 0, TLB-miss crash)",
+     "show Mario is never ACT_CRAWLING with a NULL floor at the interaction phase "
+     "(e.g. carry the x/z box so umi's second find_floor always hits)"),
 ]
 
 

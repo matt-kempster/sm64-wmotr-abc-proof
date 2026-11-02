@@ -26,7 +26,10 @@ Import ListNotations.
 
 Module AUT := mario_actions_automatic.
 
-Lemma dm_tpt : (prog_defmap AUT.prog) ! AUT._act_top_of_pole_transition
+Lemma rs3 : forall A B C : Prop, (A /\ B) /\ C -> A /\ B /\ C.
+Proof. tauto. Qed.
+
+Lemma dm_tpt :(prog_defmap AUT.prog) ! AUT._act_top_of_pole_transition
   = Some (Gfun (Internal AUT.f_act_top_of_pole_transition)).
 Proof. vm_compute. reflexivity. Qed.
 Lemma dm_tp : (prog_defmap AUT.prog) ! AUT._act_top_of_pole = Some (Gfun (Internal AUT.f_act_top_of_pole)).
@@ -106,7 +109,7 @@ Ltac pole_case lbl dm fin :=
   end;
   intros m t m' vr c Hok Hw (-> & Hact & Hfr) Hok' Hc Hb Hev;
   destruct Hok as (Vm & _);
-  exact (KbRow.kb_reshape _ _ _ (pole_rowT lp H12 bm Hbm _ _ fin ltac:(unfold POLE6; cbn [In]; auto 8)
+  exact (rs3 _ _ _ (pole_rowT lp H12 bm Hbm _ _ fin ltac:(unfold POLE6; cbn [In]; auto 8)
            m t m' vr c Vm Hw Hc Hb Hact Hfr Hev)).
 
 (* the cases CannonRow leaves: the three later pole actions *)

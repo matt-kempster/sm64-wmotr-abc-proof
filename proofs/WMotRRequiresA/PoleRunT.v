@@ -86,9 +86,9 @@ Definition kvT : list (positive * Z * memory_chunk * sval) :=
   kvP acn g ++ [(RLD, 0, Mint32, Sptr RTAB Ptrofs.zero); (RLD, 8, Mint32, Sptr RBUF Ptrofs.zero)]
   ++ tab_kv ++ av_kv v.
 Definition xcIT (id : ident) : option xcontract :=
-  if Pos.eqb id mario._find_floor then Some (c_ff2 NBT R0T RFI RMISS RCALLS kW kH kS kL (szSP g))
+  if Pos.eqb id mario._find_floor then Some (c_ff2 NBT R0T RFI RMISS RCALLS kW kH kS kX kL (szSP g))
   else if Pos.eqb id mario._find_ceil then Some (c_fc2 NBT R0T RCALLS kW kC (szSP g))
-  else air_xc NBT R0T RFI RMISS RCALLS kW kH kS (szSP g) id.
+  else air_xc NBT R0T RFI RMISS RCALLS kW kH kS kX (szSP g) id.
 Definition xcT (id : ident) : option xcontract :=
   match xcIT id with
   | Some k => Some k
@@ -160,6 +160,8 @@ Definition ufT (m0 : mem) (gp : meminj) : positive -> list (option val) -> Prop 
     else if Pos.eqb k kGA then
       exists b, vs = [Some (Vptr b Ptrofs.zero)]
         /\ forall o ch z, In (o, ch, z) ga_cells -> Mem.load ch m0 b o = Some (Vint (Int.repr z))
+    else if Pos.eqb k kX then
+      match vs with [Some v] => FfBox.s16box v | _ => False end
     else False.
 
 (* each outcome: PoleRun's checks, the table untouched, the animation state *)
@@ -262,10 +264,13 @@ Lemma ufT_kGA : forall vs, uf kGA vs -> exists b, vs = [Some (Vptr b Ptrofs.zero
   /\ forall o ch z, In (o, ch, z) ga_cells -> Mem.load ch m0 b o = Some (Vint (Int.repr z)).
 Proof. intros vs H. exact H. Qed.
 
+Lemma ufT_kX_in : forall w, FfBox.s16box w -> uf kX [Some w].
+Proof. intros w H. exact H. Qed.
+
 Let XSI := air_xc_sound_link lp (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
              (linked12_LO_mario lp H12) NBT R0 gtabT KV m0 uf gp
-             RFI RMISS RCALLS kW kH kS (szs G mario._Surface) GPO eq_refl eq_refl eq_refl
-             ufT_kW ufT_kH_in ufT_kS.
+             RFI RMISS RCALLS kW kH kS kX (szs G mario._Surface) GPO eq_refl eq_refl eq_refl
+             ufT_kW ufT_kH_in ufT_kS ufT_kX_in.
 
 (* THE TABLE IS SOUND on the real link *)
 Theorem xcT_sound : forall id k args g cps fd E m vargs t m' vres,
@@ -281,10 +286,10 @@ Proof.
     destruct (Pos.eqb_spec id mario._find_floor) as [-> | N1].
     { injection Xi as <-.
       rewrite (sfun_res_h _ _ _ _ (res_link lp _ _ _ (linked12_LO_surf lp H12) dm_ff) Hl) in EV.
-      exact (c_ff2_sound G NBT R0 gtabT KV m0 uf gp GPO RFI RMISS RCALLS kW kH kS kL
+      exact (c_ff2_sound G NBT R0 gtabT KV m0 uf gp GPO RFI RMISS RCALLS kW kH kS kX kL
                (szs G mario._Surface) (cenv_has_link lp (linked12_LO_surf lp H12))
                (res_link lp _ _ _ (linked12_LO_surf lp H12) dm_ffl) eq_refl eq_refl eq_refl
-               ufT_kW ufT_kS ufT_kH_in ufT_kL_in args g cps E m vargs t m' vres Hk MM HA EV). }
+               ufT_kW ufT_kS ufT_kH_in ufT_kX_in ufT_kL_in args g cps E m vargs t m' vres Hk MM HA EV). }
     destruct (Pos.eqb_spec id mario._find_ceil) as [-> | N2].
     { injection Xi as <-.
       rewrite (sfun_res_h _ _ _ _ (res_link lp _ _ _ (linked12_LO_surf lp H12) dm_fc) Hl) in EV.

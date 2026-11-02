@@ -29,7 +29,7 @@ From SM64.Generated Require mario_step mario mario_actions_airborne memory surfa
   camera audio_external.
 From SM64.Proofs Require Import Interp.SymExec2 Interp.LinkGenv MarioModel.LinkedTwelve
   MarioModel.OsDmaFloor MarioModel.MathGeomGated HeightInvariant HeightMoveCatalog WMotRLevel.
-From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert SndXc FfClass AirStart FfKeepCheck RetOk.
+From SM64.Proofs.WMotRRequiresA Require Import FloorHeight FloorExec AirXc AirRun AirWr WallExec AirMatch AirMove SmaXc AirSum FpuFloor FpWalk ExtInert SndXc FfClass AirStart FfKeepCheck RetOk BoxCheck.
 From SM64.Proofs Require Generic.SymbolicLinking.
 Import ListNotations.
 
@@ -106,7 +106,7 @@ Definition pc0F : list fact :=
    Fuser kB [Sinit RLD 8 Mint32; Sptr RBUF Ptrofs.zero];
    Fuser kS (Sinit RM (AirRun.fo g mario._MarioState mario._floor) Mint32 :: wargs R0F)]
   ++ ffacts (Sinit RM (AirRun.fo g mario._MarioState mario._floor) Mint32).
-Definition xcI : ident -> option xcontract := air_xc NBF R0F RFI RMISS RCALLS kW kH kS (szs g mario._Surface).
+Definition xcI : ident -> option xcontract := air_xc NBF R0F RFI RMISS RCALLS kW kH kS kX (szs g mario._Surface).
 Definition jkI : list (positive * Z * memory_chunk) := jkeys ++ [(RM, AirRun.fo g mario._MarioState mario._wall, Mint32)].
 Definition ext_ids : list ident := [AIR._sqrtf].
 (* play_sound's clobber (SndXc.c_ps_sound) *)
@@ -124,7 +124,9 @@ Definition xcF (id : ident) : option xcontract :=
     else if existsb (Pos.eqb id) ext_ids then Some xc_fresh else None
   end.
 Definition mergeF (id : ident) : bool := mergef id || Pos.eqb id AIR._check_fall_damage_or_get_stuck.
-Definition g0F : gst := mkg nil pc0F NBF nil nil.
+(* the start facts with the box fact on Mario's pos x / z (BoxCheck: in
+   find_floor's box, or the entry was not) *)
+Definition g0F : gst := mkg nil (pc0F ++ box_facts kX (mario_box_cells RM)) NBF nil nil.
 Definition argsF : list sval := [Sptr RM Ptrofs.zero].
 
 (* the consumer facts' meaning *)
@@ -140,14 +142,40 @@ Definition ufF (m0 : mem) (gp : meminj) : positive -> list (option val) -> Prop 
     else if Pos.eqb k kM then MV vs
     else if Pos.eqb k kB then
       exists b o o2, vs = [Some (Vptr b o); Some (Vptr b o2)] /\ Ptrofs.unsigned o + 24 <= Ptrofs.modulus
+    else if Pos.eqb k kX then
+      match vs with [o] => xboxo g m0 o | _ => False end
     else False.
 End CFG.
+
+(* the box fact's meaning, both ways *)
+Lemma ufF_kX : forall g m0 gp v, FfBox.s16box v -> ufF g m0 gp kX [Some v].
+Proof. intros g m0 gp v H. exact (or_introl H). Qed.
+Lemma ufF_kXo : forall g m0 gp o, xboxo g m0 o -> ufF g m0 gp kX [o].
+Proof. intros g m0 gp o H. exact H. Qed.
+Lemma ufF_kX_out : forall g m0 gp vs, ufF g m0 gp kX vs -> exists o, vs = [o] /\ xboxo g m0 o.
+Proof.
+  intros g m0 gp vs H. cbn in H. destruct vs as [| o [| o2 r]]; try contradiction.
+  exists o. split; [reflexivity | exact H].
+Qed.
+
+(* the start state without the box facts: for the walks whose outcomes
+   are not checked for the box (the ledge handlers, SbRet0's return) *)
+Definition g0F0 (g : genv) : gst := mkg nil (pc0F g) NBF nil nil.
 
 (* both checks of an outcome: the MoveChain class and the kept world *)
 Definition clokF : list positive := [RBUF; RIOM; RMQ; RRM; RSR; RSRC; RSMS].
 Definition ffk_ok (g : genv) (c : cpath) : bool :=
   ff_ok NBF (R0F g) (kvF g) RM RO kM (fst c) && fk_ok NBF (R0F g) (kvF g) RM RO RLD kS clokF (fst c)
-  && ret_ok NBF (R0F g) (kvF g) RM c.
+  && ret_ok NBF (R0F g) (kvF g) RM c
+  && box_ok NBF (R0F g) (kvF g) kX (mario_box_cells RM) (fst c).
+
+(* the box cells are regions of the walk *)
+Lemma mbc_nlt : forall r o ch, In (r, o, ch) (mario_box_cells RM) -> Plt r NBF.
+Proof.
+  intros r o ch Hin. cbn [mario_box_cells In] in Hin.
+  repeat (destruct Hin as [Hin | Hin]; [injection Hin as <- _ _; vm_compute; reflexivity |]).
+  destruct Hin.
+Qed.
 
 (* THE WALK, computed once on the real link *)
 Lemma ffcheck12 : match ge12 with
@@ -272,10 +300,12 @@ Proof. intros vs H. exact H. Qed.
 Lemma uf_kB : forall vs, uf kB vs ->
   exists b o o2, vs = [Some (Vptr b o); Some (Vptr b o2)] /\ Ptrofs.unsigned o + 24 <= Ptrofs.modulus.
 Proof. intros vs H. exact H. Qed.
+Lemma uf_kX : forall v, FfBox.s16box v -> uf kX [Some v].
+Proof. intros v H. exact (or_introl H). Qed.
 
 Let XSI := air_xc_sound_link lp (linked12_LO_surf lp H12) (linked12_LO_math lp H12)
              (linked12_LO_mario lp H12) NBF (R0F G) gtabF (kvF G) m0 uf gp
-             RFI RMISS RCALLS kW kH kS (szs G mario._Surface) GPO eq_refl eq_refl eq_refl uf_kW uf_kH_in uf_kS.
+             RFI RMISS RCALLS kW kH kS kX (szs G mario._Surface) GPO eq_refl eq_refl eq_refl uf_kW uf_kH_in uf_kS uf_kX.
 
 (* THE TABLE IS SOUND on the real link *)
 Theorem xcF_sound : forall id k args g cps fd E m vargs t m' vres,
@@ -345,6 +375,7 @@ Theorem ff_final : forall E t m' vres c0,
   FloorRefreshOK wmotr_floor (R2 (c_posy c0)) (R2 (c_floorh c0)) ->
   exists E' gs, Ext E E' NBF /\ MMg G NBF (R0F G) gtabF (kvF G) m0 uf gp E' m' gs
     /\ fk_ok NBF (R0F G) (kvF G) RM RO RLD kS clokF gs = true
+    /\ cells_box (xboxo G m0) m' E' (mario_box_cells RM)
     /\ RET (e_blk E RM) m0 m' vres
     /\ exists c2, read_cells (e_blk E RM) m' c2 /\ MoveChain wmotr_floor wmotr_pole wmotr_cannon c0 c2
        /\ fro_ff c2.
@@ -353,6 +384,7 @@ Proof.
   destruct ffcheck_lp as (cs & RUN & W).
   assert (MM0 : MMg G NBF (R0F G) gtabF (kvF G) m0 uf gp E m0 (g0F G)).
   { apply MMg_init; [exact EO | apply Ple_refl |].
+    apply (box_start G (R0F G) m0 uf E kX _ (ufF_kXo G m0 gp)); [| exact mbc_nlt | exact (mario_entry_box _ _ _ _ _ _ _ _ RM EO eq_refl)].
     intros f Hf. split; [exact (pc0F_nlt f Hf) | exact (PC f Hf)]. }
   assert (ARGS : Forall2 (fun a v => den G m0 E a = Some v /\ sok NBF (g_nx (g0F G)) a) argsF
                    [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero)]).
@@ -362,8 +394,10 @@ Proof.
               GPO MC xcF_sound 3000 (g0F G) _ argsF cs E m0 _ t m' vres RUN MM0 ARGS EV) as (c & Hin & CMc).
   destruct c as [gs r]. destruct CMc as (E' & X & MM & DR & _).
   pose proof (W _ Hin) as OK. unfold ffk_ok in OK. cbn [fst] in OK.
+  apply andb_true_iff in OK as [OK BX].
   apply andb_true_iff in OK as [OK RT]. apply andb_true_iff in OK as [OK FK].
   exists E', gs. split; [exact X | split; [exact MM | split; [exact FK |]]].
+  split; [exact (box_sound G NBF (R0F G) gtabF (kvF G) m0 uf gp GPO E' m' gs kX _ MM (ufF_kX_out G m0 gp) _ BX) |].
   (* the entry, through E' *)
   destruct EO as (_ & _ & _ & GT & KV & _).
   destruct (GT level_update._gMarioStates RM eq_refl) as (_ & HbM & _).
@@ -400,6 +434,6 @@ Theorem ff_move : forall E t m' vres c0,
     /\ fro_ff c2.
 Proof.
   intros E t m' vres c0 EO PC EV RC Hb FRO.
-  destruct (ff_final E t m' vres c0 EO PC EV RC Hb FRO) as (_ & _ & _ & _ & _ & _ & H). exact H.
+  destruct (ff_final E t m' vres c0 EO PC EV RC Hb FRO) as (_ & _ & _ & _ & _ & _ & _ & H). exact H.
 Qed.
 End LP.

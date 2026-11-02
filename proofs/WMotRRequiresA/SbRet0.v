@@ -26,7 +26,7 @@ Definition r0_ok (c : cpath) : bool :=
 
 Definition kb_walk0 (acn : Z) (f : function) : bool :=
   with_ge ge12 false (fun g =>
-    match sx_call g NBF (R0F g) gtabF (kvK acn g) (xcK acn g) jkeys mergeK true 3000 (g0F g)
+    match sx_call g NBF (R0F g) gtabF (kvK acn g) (xcK acn g) jkeys mergeK true 3000 (g0F0 g)
             (Internal f) argsF with
     | Some cs => forallb r0_ok cs
     | None => false end).
@@ -62,21 +62,21 @@ Theorem kb_kret0 : kret0 lp acn fK.
 Proof.
   intros m0 gp GPO MC FD E t m' vres EO PC EV.
   assert (W : exists cs,
-    sx_call G NBF (R0F G) gtabF (kvK acn G) (xcK acn G) jkeys mergeK true 3000 (g0F G)
+    sx_call G NBF (R0F G) gtabF (kvK acn G) (xcK acn G) jkeys mergeK true 3000 (g0F0 G)
       (Internal fK) argsF = Some cs /\ forall c, In c cs -> r0_ok c = true).
   { pose proof Hwalk as W. unfold kb_walk0, with_ge in W. rewrite (ge12_ok lp H12) in W.
     exact (consume _ r0_ok W). }
   destruct W as (cs & RUN & W).
-  assert (MM0 : MMg G NBF (R0F G) gtabF (kvK acn G) m0 (ufF G m0 gp) gp E m0 (g0F G)).
+  assert (MM0 : MMg G NBF (R0F G) gtabF (kvK acn G) m0 (ufF G m0 gp) gp E m0 (g0F0 G)).
   { apply MMg_init; [exact EO | apply Ple_refl |].
     intros f Hf. split; [exact (pc0F_nlt_k lp f Hf) | exact (PC f Hf)]. }
-  assert (ARGS : Forall2 (fun a v => den G m0 E a = Some v /\ sok NBF (g_nx (g0F G)) a) argsF
+  assert (ARGS : Forall2 (fun a v => den G m0 E a = Some v /\ sok NBF (g_nx (g0F0 G)) a) argsF
                    [Vptr (e_blk E RM) (Ptrofs.add (e_base E RM) Ptrofs.zero)]).
   { constructor; [| constructor].
-    split; [reflexivity |]. cbn [sok nlt g0F g_nx]. split; [unfold Plt, Pos.lt; reflexivity | exact Logic.I]. }
+    split; [reflexivity |]. cbn [sok nlt g0F0 g_nx]. split; [unfold Plt, Pos.lt; reflexivity | exact Logic.I]. }
   destruct (sx_call_sound G NBF (R0F G) gtabF (kvK acn G) (xcK acn G) jkeys mergeK true m0 (ufF G m0 gp) gp
               GPO MC (xcK_sound lp H12 Hdma Hsq Hsqf acn m0 gp GPO MC FD)
-              3000 (g0F G) _ argsF cs E m0 _ t m' vres RUN MM0 ARGS EV) as (c & Hin & CMc).
+              3000 (g0F0 G) _ argsF cs E m0 _ t m' vres RUN MM0 ARGS EV) as (c & Hin & CMc).
   destruct c as [gs r]. destruct CMc as (E' & X & MM & DR & _).
   pose proof (W _ Hin) as OK. unfold r0_ok in OK. cbn [snd] in OK.
   destruct r as [v | | | | | | | | |]; try discriminate OK.

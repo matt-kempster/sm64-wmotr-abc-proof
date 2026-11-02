@@ -819,8 +819,15 @@ Section HeightLinked12.
      (2026-10-21, FrameSplit.frame_stage): the dispatch's floor refresh is
      threaded through the body in order.  update_mario_inputs leaves the
      floor fresh (FfWorld.fresh: floorHeight is -11000 or a WMotR floor
-     height within 241 of Mario's y); mario_handle_special_floors and
-     mario_process_interactions keep it; each dispatcher, called with the
+     height within 241 of Mario's y, and the floor cell a pointer) OR NULL
+     (since 2026-10-26, B'': out of bounds its second find_floor misses and
+     it sets the DEATH warp; the earlier claim of fresh alone was FALSE
+     there); mario_handle_special_floors and mario_process_interactions
+     keep that; the real OOB guard then returns 0 on a NULL floor
+     (FrameSplit.fc_null_returns, proved), so no dispatch runs in such a
+     frame: Mario is frozen until the warp, and the non-Mario phases'
+     carries never read the floor fact (ff_Wf is used only by the action
+     rows and StartSat); each dispatcher, called with the
      floor fresh when the action is airborne (fresh_at), returns 0 (the
      loop ends) or leaves it fresh-when-airborne (the loop goes on with no
      new refresh).  These are claims of the rows (pre_of / post_of).
