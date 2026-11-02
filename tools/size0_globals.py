@@ -77,6 +77,34 @@ _RSP = ('RSP microcode / output symbol (render path): create_gfx_task_structure 
 _MAIN = ('main.c BSS (unlinked definer, = 0); loaded by name on the render / reset path '
          '(draw_reset_bars, end_master_display_list, thread5_game_loop): those have no '
          'execution, outside every capstone and witness')
+# 2026-11-01, linking engine/level_script.c (TU 53): level_script_execute
+# (level_script.c:823-836) ends each game-loop iteration with init_rcp();
+# render_game(), so the whole render path (area.c render_game -> geo graph,
+# hud.c, ingame_menu.c, print.c) is now boot-reached.  These globals are
+# display lists, glyph / name tables and shadow.c flags whose definers
+# (segment-2 / segment-3 / level geo assets, shadow.c) are not linked.  Each
+# use is [addr] (a display-list address stored into the gfx pool for the RDP,
+# or a table indexed by render code) or a render-only load; no frame / entry
+# root reaches any of them, the render path has no capstone row, no witness
+# runs render_game, and frame code never reads the gfx pool (RDP floor).
+_RENDER = ('render path only (level_script_execute -> render_game, level_script.c:836): '
+           'display list / glyph or name table / shadow flag of an unlinked definer; '
+           'stored into the gfx pool or read by render code only (RDP floor); '
+           'outside every capstone and witness')
+_RENDER_SYMS = [
+    'castle_grounds_seg7_dl_0700EA58', 'castle_grounds_seg7_us_dl_0700F2E8',
+    'coin_seg3_dl_03007940', 'coin_seg3_dl_03007968', 'coin_seg3_dl_03007990',
+    'coin_seg3_dl_030079B8', 'dl_draw_text_bg_box', 'dl_draw_triangle',
+    'dl_hud_img_begin', 'dl_hud_img_end', 'dl_hud_img_load_tex_block',
+    'dl_ia_text_begin', 'dl_ia_text_end', 'dl_ia_text_tex_settings',
+    'dl_power_meter_base', 'dl_power_meter_health_segments_begin',
+    'dl_power_meter_health_segments_end', 'dl_rgba16_load_tex_block',
+    'dl_rgba16_text_begin', 'dl_rgba16_text_end', 'gMarioOnIceOrCarpet',
+    'gShadowAboveWaterOrLava', 'main_credits_font_lut', 'main_font_lut',
+    'main_hud_camera_lut', 'main_hud_lut', 'menu_hud_lut',
+    'power_meter_health_segments_lut', 'seg2_act_name_table',
+    'seg2_course_name_table', 'seg2_dialog_table',
+]
 BOOT_KNOWN = {
     '__osContPifRam': 'libultra osContStartReadData.c BSS (unlinked); osContInit / '
                       '__osPackRequestData access it by name: init_controllers and '
@@ -95,8 +123,11 @@ BOOT_KNOWN = {
     'rspF3DDataStart': _RSP, 'rspF3DStart': _RSP,
     'gNmiResetBarsTimer': _MAIN, 'gResetTimer': _MAIN, 'gShowProfiler': _MAIN,
     'level_script_entry': 'the level script (unlinked); thread5_game_loop passes its '
-                          'address to level_script_execute, unlinked',
+                          'address to level_script_execute (linked since 2026-11-01, '
+                          'TU 53), whose first command fetch from it has no execution: '
+                          'the game loop is outside every capstone and witness',
 }
+BOOT_KNOWN.update({g: _RENDER for g in _RENDER_SYMS})
 
 
 # (a)-candidates checked by hand to be ADDRESS-ONLY in every reached user (no

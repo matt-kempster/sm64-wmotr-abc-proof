@@ -339,14 +339,14 @@ Definition v_wmotr_geo_0001F0 := {|
 |}.
 
 Definition v_wmotr_seg7_collision := {|
-  gvar_info := (tarray tshort 0);
+  gvar_info := (tarray tshort 6159);
   gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false
 |}.
 
 Definition v_wmotr_seg7_macro_objs := {|
-  gvar_info := (tarray tshort 0);
+  gvar_info := (tarray tshort 131);
   gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false

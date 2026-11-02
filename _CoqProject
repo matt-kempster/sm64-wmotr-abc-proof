@@ -60,6 +60,7 @@ generated/libultra_osContInit.v
 generated/libultra_osInitialize.v
 generated/libultra_osContStartReadData.v
 generated/hud.v
+generated/level_script.v
 
 # --- shared infrastructure (used by GOAL 1; reusable) ---
 proofs/Generic/Frame.v

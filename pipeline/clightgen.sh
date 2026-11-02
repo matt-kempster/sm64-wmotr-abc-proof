@@ -97,6 +97,9 @@ TABLE = [
     ("gLevelToCourseNumTable", r"tschar", 38),
     ("gPlayerSpawnInfos", r"\(Tstruct _SpawnInfo noattr\)", 1),
     ("gObjectPool", r"\(Tstruct _Object noattr\)", 240),
+    # 2026-11-01, linking engine/level_script.c (TU 53): gAreaData
+    # (struct Area[8], sized in area.c; declared in level_script.c)
+    ("gAreaData", r"\(Tstruct _Area noattr\)", 8),
 ]
 for name, elt, n in TABLE:
     s2 = re.sub(
@@ -231,6 +234,9 @@ fi
 # noattr)) 0, readonly true), which the TU now defines from the vendor
 # actors/*/anims/*.inc.c (FOUND: the placed bob-omb buddy's ANIMATE read a
 # size-0 block; census BhvVM.closure_data_linked).
+# 2026-11-01: a declaration may also be readonly false (levels/wmotr/script.c
+# sees the level arrays through make_const_nonconst.h, as the definer does);
+# it is completed the same way (wmotr_script joins the link as TU 52).
 LVL_DEF="$(dirname "$0")/../generated/wmotr_level_data.v"
 if [ "$TUNAME" != "wmotr_level_data" ] && [ -f "$LVL_DEF" ]; then
 python3 - "$TMP" "$LVL_DEF" <<'PYEOF'
@@ -254,7 +260,7 @@ def sub(m):
     return (m.group(1) + '(tarray ' + elt + ' ' + str(defs[n][1]) + ')' + m.group(4)
             + 'nil;' + m.group(5) + 'false;')
 s2 = re.sub(r'(Definition v_(\w+) := \{\|\s*gvar_info := )\(tarray ' + ELT + r' 0\)'
-            r'(;\s*gvar_init := )nil;(\s*gvar_readonly := )true;', sub, s)
+            r'(;\s*gvar_init := )nil;(\s*gvar_readonly := )(?:true|false);', sub, s)
 if done:
     open(path, 'w').write(s2)
     print(f"level-data completion: {', '.join(done)} in {path}")

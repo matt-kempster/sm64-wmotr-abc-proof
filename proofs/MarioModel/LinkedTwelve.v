@@ -61,7 +61,7 @@ From SM64.Generated Require mario mario_actions_stationary
   camera rendering_graph_node ingame_menu debug_course mario_anim_data
   audio_external sound_init print behavior_script obj_behaviors
   platform_displacement libultra_osContStartReadData
-  spawn_sound debug object_collision obj_behaviors_2 hud.
+  spawn_sound debug object_collision obj_behaviors_2 hud wmotr_script level_script.
 From SM64.Proofs Require Import SymbolicLinking CensusV2 RealFrameLinked
   EngineV2Consumer RestSurface.
 
@@ -267,7 +267,13 @@ Definition tu_rest : list Clight.program :=
     debug.prog;
     object_collision.prog;
     obj_behaviors_2.prog;
-    hud.prog ].
+    hud.prog;
+    (* TUs 52 / 53 (2026-11-01, the GOAL 2 real-order witness): WMotR's
+       level script (levels/wmotr/script.c: the OBJECT commands' words)
+       and engine/level_script.c (the real level_cmd_place_object,
+       run per OBJECT command to build the area's SpawnInfo list) *)
+    wmotr_script.prog;
+    level_script.prog ].
 
 Definition linked12 (lp : Clight.program) : Prop :=
   link_chain mario.prog tu_rest = Some lp.
@@ -490,6 +496,14 @@ Section Linked12LO.
   Lemma linked12_LO_hud : linkorder hud.prog lp.
   Proof.
     exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))))))))))))))))))))))))))))))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_wmotr_script : linkorder wmotr_script.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _))))))))))))))))))))))))))))))))))))))))))))))))))) H12).
+  Qed.
+  Lemma linked12_LO_level_script : linkorder level_script.prog lp.
+  Proof.
+    exact (link_chain_linkorder_in _ _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_cons _ _ _ (in_eq _ _)))))))))))))))))))))))))))))))))))))))))))))))))))) H12).
   Qed.
   Lemma linked12_LO_behavior_data : linkorder behavior_data.prog lp.
   Proof.
@@ -816,6 +830,12 @@ Proof. vm_compute. reflexivity. Qed.
 Lemma no_internal_hud :
   no_internal_ids hud.prog truly_ext_pin_ids = true.
 Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_wmotr_script :
+  no_internal_ids wmotr_script.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma no_internal_level_script :
+  no_internal_ids level_script.prog truly_ext_pin_ids = true.
+Proof. vm_compute. reflexivity. Qed.
 
 (* resolves_lp -> defmap entry (the genv->defmap bridge, spike-style) *)
 Lemma resolves_defmap :
@@ -845,7 +865,7 @@ Proof.
   destruct (link_chain_internal_origin _ _ _ _ _ H12 Hres)
     as [Hbase | (q & Hq & Hqdm)].
   - exact (no_internal_ids_correct _ _ _ _ no_internal_mario Hmem Hbase).
-  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
+  - destruct Hq as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]].
     + exact (no_internal_ids_correct _ _ _ _ no_internal_sta Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_mov Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_air Hmem Hqdm).
@@ -896,6 +916,8 @@ Proof.
     + exact (no_internal_ids_correct _ _ _ _ no_internal_object_collision Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_obj_behaviors_2 Hmem Hqdm).
     + exact (no_internal_ids_correct _ _ _ _ no_internal_hud Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_wmotr_script Hmem Hqdm).
+    + exact (no_internal_ids_correct _ _ _ _ no_internal_level_script Hmem Hqdm).
 Qed.
 
 (* ---------------------------------------------------------------------- *)
