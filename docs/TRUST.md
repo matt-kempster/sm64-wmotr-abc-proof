@@ -1234,7 +1234,7 @@ without pressing A".*
         real `update_camera(c)`, with c the Camera or NULL, run from ANY memory whose five pins
         hold (gCamera, sMarioCamState, sLuigiCamState, gSecondCameraFocus, gMarioState), does
         three things:
-        - it changes memory only in the blocks of `cf_FP`'s 105 globals, the Camera's 108
+        - it changes memory only in the blocks of `cf_FP`'s 115 globals, the Camera's 108
           bytes and the pin cells;
         - it keeps every permission;
         - it keeps the pins.
@@ -1243,8 +1243,22 @@ without pressing A".*
         Camera range, and fresh blocks), with no pruning. The five AVOID_UB vec helpers are
         proved (`shadow_leaf`), and sqrtf comes from 3.5.
       - **R1's leaves.** `load_sequence` uses `LsContract.ls_frame` (4.1, itself FALSE
-        unscoped, being restated). `set_mario_npc_dialog` and `save_file_do_save` are open
-        leaf premises (`Hopen`), TRUE given the pins.
+        unscoped, being restated). The two former open leaves (`Hopen`) are PROVED
+        (2026-11-02), so R1 has no open premise beyond the pins and the floors (3.5, and
+        4.1 via ls_frame):
+        - `save_file_do_save` (`CamFootSave.sds_foot`, any argument): its whole tree is walked
+          by `FootWalk` (SaveDoSaveBody's recognizers over a listed footprint), down to the
+          3.5 floor calls; FootWalk's floor list gained `osSetTimer(&__osEepromTimer)` and
+          `bcopy` (both already in 3.5). Permissions via `PermWalk`. It writes only
+          `sds_gvars` (save buffer, two dirty flags, EEPROM PIF image / last command, SI
+          access and event queues, EEPROM timer, queue and message); those 10 extra globals
+          joined `cf_FP` (105 -> 115).
+        - `set_mario_npc_dialog` (`CamFootNpc.npc_spec`, any argument): walked under the pins
+          with a three-body sub-table. Its `set_mario_action` call passes the LITERAL
+          `ACT_READING_NPC_DIALOG`; `sma_prune` proves the real body's run equals the run with
+          the switch's moving / airborne / submerged arms emptied (same selected suffix), so
+          only the cutscene arm is walked. This is an argument-constant specialization of
+          one call site, not a state pruning.
       - **The residual row** after the rebuild names the out-of-class stores in `cf_FP` that
         PhiW / ow_ids care about: Mario's state (gMarioStates, only via
         `set_mario_npc_dialog`), `gTimeStopState` and `gSecondCameraFocus`.
