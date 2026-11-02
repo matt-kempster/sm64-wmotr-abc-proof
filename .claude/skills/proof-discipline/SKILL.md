@@ -546,10 +546,40 @@ all in `Unwired/`, and the theorem moved nowhere. See
     globals and the anim buffer. It is proved at boot (`StartSat.cam11`, via
     `StartTerrain.cut_chk`) and kept by every proved keeper (`lvl_w_unch` over `lw_blk` +
     gMarioAnimsBuf cell 8; footprints checked against `lvl_rd_ids`). So Hcam_phi / Hcam_ow
-    assume cam_w (through PhiW) and are TRUE, just unproved; there is no phantom ∀ there
-    anymore. Still open:
-    - (b) a footprint walk of that closure, giving camera / audio / dialog globals plus the
-      Camera's block, no ow_ids block. UcKit's type-certificate walk cannot prune.
+    assume cam_w (through PhiW).
+    **FOUND FALSE 2026-11-02 (unpinned):** Hcam_phi and Hcam_ow_fp. The camera stores through
+    sMarioCamState / sLuigiCamState (and gSecondCameraFocus), and PhiW does not pin them.
+    - In the game they are &gPlayerCameraState[0/1] and NULL. The initializer is the only
+      writer, link-wide (`CamPinCensus`).
+    - (b) is DONE as R1 (`CamFootInst.update_camera_foot`, off-spine for now): for ALL states
+      with the 5 pins, the real update_camera changes only cf_FP's 115 globals' blocks, the
+      Camera's 108 bytes and the pin cells, and keeps the pins.
+      - The walk is all 503 bodies, with byte-level store classes (`CamFootKit` /
+        `CamFootSound`).
+      - The vec helpers are proved by shadow_leaf.
+      - Its leaves: load_sequence via ls_frame (FALSE unscoped, below). npc and
+        save_file_do_save are PROVED (2026-11-02; `Hopen` gone): `CamFootSave.sds_foot`
+        (FootWalk + PermWalk to the 3.5 floor; cf_FP 105 -> 115 globals) and
+        `CamFootNpc.npc_spec` (the literal-action set_mario_action call: `sma_prune` empties
+        the dead switch arms). New premise of update_camera_foot: `Hfloor` (3.5, existing).
+    - NEXT, the deferred rebuild (with R3 + B'' (b)/(c)):
+      - cam_w gains the pins (proved at boot, kept by every phase);
+      - both rows are restated on update_camera_foot;
+      - the residual row is Mario's state / gTimeStopState / gSecondCameraFocus. Its phantom
+        check: npc is dead under cam_w (uc_wmotr).
+    **FOUND FALSE 2026-11-02 (unscoped):** `LsContract.ls_frame` (Hls's footprint half) is
+    claimed for every memory. Fix, in stages:
+    - DONE: `AudioInv.v` (pointers loaded from `ls_ids` blocks aim at `aud_ids` = ls_ids +
+      gSequenceChannelNone), `ls_frame_ai` (AudioInv m → Q2 off ls_ids ∧ AudioInv m'), and a
+      decision procedure `aud_chk` (sound).
+    - DONE: `AudioBoot.audio_inv_boot`, by vm on init_mem and on the start witness. The witness
+      is StartTerrain's chain, mirrored as `wit11`; re-point the one line `aud_wit`. Both
+      memories have NO audio pointers, and no global points into the audio set.
+    - DONE: `AudioWire` (cap path `afi`, `ucf_frame_ai`) and `HitboxFrame.hitbox_hh_ai`, all
+      from `ls_frame_ai` alone.
+    - NEXT (deferred root rebuild): `aud_w` = AudioInv becomes lvl_w's 8th clause, carried by
+      every phase (AudioInv_Q2 for footprints off ls_ids, store-value checks for the audio
+      walks). Then Hls switches to `ls_frame_ai`, and ObjFrame / CamFootInst move over.
     Left labeled.
     Mario's render call and
     `apply_mario_platform_displacement` (platform_displacement.c, TU 45) are REAL calls whose
@@ -573,7 +603,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
     hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
     rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref, Hobj_stores /
     Hobj_counter, Hobj_debug, Hobj_surfaces, Hobj_collisions, Hobj_unload, Hobj_mplat;
-    Hcam_ow (the camera statement keeps obj_w; narrower than Hlvl_ow). PROVED 2026-10-26:
+    Hcam_ow_fp (2026-11-02: the camera statement leaves ow_ids blocks + Mario's 5 object cells unchanged; Hcam_ow PROVED from it by obj_w_unch; FALSE as stated, unpinned, see the level rows). PROVED 2026-10-26:
     Hplat_keep (plat_keep_linked12), Hlvl_ow (lvl_ow_linked12: pre_eff / post_split footprints
     + Hcam_ow), Hrender_ow (render_ow_linked12: render_eff + PollKeep.obj_w_slots). Proved: the walk of update_objects' body, the clock
     calls, objects_keep, the platform call inside. B2 DONE (ObjLoop.v): update_terrain_objects

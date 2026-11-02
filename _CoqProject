@@ -297,6 +297,7 @@ proofs/WMotRRequiresA/HeightFloatSteps.v
 proofs/WMotRRequiresA/HeightBudgetArith.v
 proofs/WMotRRequiresA/HeightMoveCatalog.v
 proofs/WMotRRequiresA/WMotRLevel.v
+proofs/WMotRRequiresA/FloorLow.v
 proofs/WMotRRequiresA/PoleAnim.v
 proofs/WMotRRequiresA/WMotRWorld.v
 proofs/WMotRRequiresA/NoAActions.v
@@ -354,6 +355,16 @@ proofs/WMotRRequiresA/ObjStepSplit.v
 proofs/WMotRRequiresA/ObjCensus.v
 proofs/WMotRRequiresA/BhvVM.v
 proofs/WMotRRequiresA/RoCensus.v
+proofs/WMotRRequiresA/CamPinCensus.v
+proofs/WMotRRequiresA/CamFootKit.v
+proofs/WMotRRequiresA/CamFootSound.v
+proofs/WMotRRequiresA/CamFootTable.v
+proofs/WMotRRequiresA/CamFootSave.v
+proofs/WMotRRequiresA/CamFootNpc.v
+proofs/WMotRRequiresA/CamFootInst.v
+proofs/WMotRRequiresA/AudioInv.v
+proofs/WMotRRequiresA/AudioBoot.v
+proofs/WMotRRequiresA/AudioWire.v
 proofs/WMotRRequiresA/ActWriterCensus.v
 proofs/WMotRRequiresA/FnPtrCensus.v
 proofs/WMotRRequiresA/SegTableCensus.v

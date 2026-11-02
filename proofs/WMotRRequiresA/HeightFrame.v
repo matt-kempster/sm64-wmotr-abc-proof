@@ -1258,7 +1258,22 @@ Section HeightLinked12.
        CamCutCensus.uc_wmotr's 428 functions (no set_mario_npc_dialog, no
        live object store), and no live code stores 144 / 168
        (cut_census_wmotr), so cam_w holds after: the row is TRUE in the
-       game, and unproved (the footprint walk, TRUST 0.7). *)
+       game, and unproved (the footprint walk, TRUST 0.7).
+     FALSE AS STATED (unpinned; found 2026-11-02 by the R1 footprint walk,
+       WMotRRequiresA/CamFootInst.v).  The camera writes through
+       sMarioCamState / sLuigiCamState (and would through a non-NULL
+       gSecondCameraFocus), and neither mem_ok nor PhiW pins those
+       pointers.  So the row ranges over states where sMarioCamState aims
+       at Mario's wall / floor cells or a PhiW global, and there the
+       camera breaks PhiW.  In the game they are &gPlayerCameraState[0/1]
+       and NULL: the initializer is the only writer, link-wide
+       (CamPinCensus).  FIX PLAN (the deferred cam_w rebuild, with R3
+       and B'' (b)/(c)): cam_w gains the pins (proved at boot, kept by
+       every phase); this row is then restated on
+       CamFootInst.update_camera_foot, the proved all-states footprint.
+       What remains is a residual row naming the camera's out-of-class
+       stores: Mario's state (set_mario_npc_dialog, dead under cam_w),
+       gTimeStopState and gSecondCameraFocus. *)
   Hypothesis Hcam_phi : LevelKeep.cam_phi_row lp bm MWF.
 
   Lemma lvl_pre_linked12 :
@@ -1423,8 +1438,40 @@ Section HeightLinked12.
      states the live closure (CamCutCensus.uc_wmotr) stores to no object
      (its one gSecondCameraFocus store is init_camera's LEVEL_BOWSER_1 arm,
      dead under lvl_w) and calls no set_mario_npc_dialog: TRUE, unproved *)
-  Hypothesis Hcam_ow : forall m m', LevelFlank.cam_step lp m m' ->
+  (* NARROWED (2026-11-02) to a pure footprint: the camera statement leaves
+     the object world's globals' blocks (PollKeep.ow_ids) and Mario's five
+     object-pointer cells unchanged.  The object-world carry itself is
+     PROVED from it (PollKeep.obj_w_unch, Hcam_ow below), so the row no
+     longer mentions obj_w's clauses; it is exactly what a footprint walk
+     of update_camera's live closure must give.  TRUE over Phi states (the
+     phantom check above): the live closure's one object store, through
+     gSecondCameraFocus, is init_camera's LEVEL_BOWSER_1 arm, dead under
+     lvl_w (the Bowser-arena shots are outside CamCutCensus.uc_wmotr under
+     cam_w), and the closure writes no MarioState field (no
+     set_mario_npc_dialog); open.
+     FALSE AS STATED (unpinned, 2026-11-02, same finding as Hcam_phi
+     above): Phi does not pin sMarioCamState / sLuigiCamState /
+     gSecondCameraFocus, so the row ranges over states where the
+     camera's stores through them hit an ow_ids block or Mario's object
+     cells.  FIX PLAN: the cam_w pins plus CamFootInst.update_camera_foot,
+     whose FP has no ow_ids global, in the deferred rebuild. *)
+  Hypothesis Hcam_ow_fp : forall m m', LevelFlank.cam_step lp m m' ->
+    mem_ok_lp bm MWF m -> Phi m ->
+    (forall id b, In id PollKeep.ow_ids -> Genv.find_symbol (lp_ge lp) id = Some b ->
+       forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
+    /\ (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
+       Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z)
+    (* 2026-11-02: the surface clause of obj_w (ObjWorld.surf_obj_ok: the
+       partitions' lists and their surfaces' objects) is kept *)
+    /\ PollKeep.surf_keep m m' (lp_ge lp).
+
+  Lemma Hcam_ow : forall m m', LevelFlank.cam_step lp m m' ->
     mem_ok_lp bm MWF m -> Phi m -> OWl m -> OWl m'.
+  Proof.
+    intros m m' Hc Hok Hphi How.
+    destruct (Hcam_ow_fp m m' Hc Hok Hphi) as (K & Kbm & KS).
+    exact (PollKeep.obj_w_unch_s m m' (lp_ge lp) bm K KS Kbm How).
+  Qed.
 
   (* PROVED (2026-10-26): the level slices keep the object world.  The PRE
      slice's footprint is lvl_safe_gvars (LevelKeep.pre_eff); the POST slice

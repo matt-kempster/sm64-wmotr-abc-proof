@@ -29,7 +29,7 @@ From compcert Require Import Coqlib Maps AST Integers Floats Values Events Memor
 From SM64.Generated Require mario sound_init.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame RealFrameValue RealFrameLinked
   CensusV2 MtxfBody ObjExtBodies AudioBodies LinkedTwelve.
-From SM64.Proofs.WMotRRequiresA Require Import BodyFrame FrameSplit LsContract CapAudio.
+From SM64.Proofs.WMotRRequiresA Require Import BodyFrame FrameSplit LsContract CapAudio AudioInv AudioWire.
 From SM64.Proofs Require AirborneSurface.
 From SM64.Proofs.WMotRRequiresA Require ProRows.
 From SM64.Proofs.WMotRRequiresA Require FfWorld.
@@ -83,6 +83,10 @@ Definition mf_store_ok (lv : expr) : bool :=
   end.
 
 Definition cap_calls : list ident := [SI._stop_cap_music; SI._fadeout_cap_music].
+
+(* the store's chain root is the temp x *)
+Definition root_is (x : ident) (lv : expr) : bool :=
+  match chain_root_l lv with Some t => Pos.eqb t x | None => false end.
 
 Definition ucf_call_ok (optid : option ident) (a : expr) (al : list expr) : bool :=
   gcall_ok cap_calls a al && match optid with None => true | Some _ => false end.
@@ -178,6 +182,69 @@ Section HB.
     - intros optid a al le m1 t1 le1 m2 out Hs Hp Hx HQ1.
       destruct (ucf_call optid a al le m1 t1 le1 m2 out Hs Hx) as (Hq & ->).
       split; [| exact Hp].
+      apply (Q2_trans _ _ _ _ HQ1).
+      apply (Q2_mono (ak lp cap_ids)); [intros b z (H & _); exact H | exact Hq].
+    - intros le1 Hb. cbn in Hb. injection Hb as <-. apply PTree.gss.
+  Qed.
+
+  (* ---- the same frame from the SCOPED contract (AudioInv.ls_frame_ai,
+     2026-11-02), carrying AudioInv; the spine switches to it in the
+     deferred root rebuild (TRUST 4.1) ---- *)
+  Hypothesis Hlsai : ls_frame_ai lp.
+  Hypothesis NLm1 : ~ gblk ge ls_ids bm.
+
+  Lemma ucf_chk_ai : lw_chk ucf_set_ok (fun lv _ => mf_store_ok lv && root_is mario._m lv) ucf_call_ok
+                       (fn_body mario.f_update_and_return_cap_flags) = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma ucf_call_ai : forall optid a al le m t le' m' out,
+    ucf_call_ok optid a al = true ->
+    exec_stmt function_entry2 ge empty_env le m (Scall optid a al) t le' m' out ->
+    AudioInv ge m -> (Q2 (ak lp cap_ids) m m' /\ AudioInv ge m') /\ le' = le.
+  Proof.
+    intros optid a al le m t le' m' out Hok Hx A.
+    unfold ucf_call_ok in Hok. apply andb_prop in Hok as [Hc Ho].
+    destruct optid as [ti|]; [discriminate Ho |].
+    assert (Hids : forall g, mem_id g cap_calls = true -> afi lp cap_ids g).
+    { intros g Hg. cbn [mem_id existsb cap_calls] in Hg.
+      apply orb_true_iff in Hg as [Hg | Hg]; [apply Pos.eqb_eq in Hg; subst g;
+        exact (ai_stop_cap_music lp H12 Hlsai) |].
+      apply orb_true_iff in Hg as [Hg | Hg]; [apply Pos.eqb_eq in Hg; subst g;
+        exact (ai_fadeout_cap_music lp H12) | discriminate Hg]. }
+    assert (HP : au_P lp nil le) by (intros t0 g b o Ht; discriminate Ht).
+    assert (Hok : au_call_ok nil cap_calls None a al = true)
+      by (unfold au_call_ok; rewrite Hc; reflexivity).
+    destruct (afi_call lp cap_ids nil cap_calls Hids None a al le m t le' m' out Hok HP Hx A) as (Hq & _).
+    split; [exact Hq |]. inv Hx. reflexivity.
+  Qed.
+
+  Theorem ucf_hole_ai : forall m v t m' vres, marg_ok bm [v] ->
+    eval_funcall function_entry2 ge m (Internal mario.f_update_and_return_cap_flags) [v] t m' vres ->
+    AudioInv ge m -> Q2 K1 m m' /\ AudioInv ge m'.
+  Proof.
+    intros m v t m' vres Hmarg Hev A.
+    refine (lw_body_frame ge (fun m1 => Q2 K1 m m1 /\ AudioInv ge m1) mario.f_update_and_return_cap_flags
+              (fun le => le ! mario._m = Some v) ucf_set_ok (fun lv _ => mf_store_ok lv && root_is mario._m lv)
+              ucf_call_ok eq_refl ucf_chk_ai _ _ _ m [v] t m' vres Hev _ (conj (Q2_refl _ m) A)).
+    - intros id a le m1 v1 Hs Hp _ _. unfold ucf_set_ok in Hs.
+      rewrite PTree.gso; [exact Hp |]. intros E. rewrite E, Pos.eqb_refl in Hs. discriminate Hs.
+    - intros lv rhs le m1 t1 le1 m2 out Hs Hp Hx (HQ1 & A1).
+      apply andb_prop in Hs as [Hs Hr].
+      split.
+      + apply (Q2_trans _ _ _ _ HQ1).
+        apply (Q2_mono (fun b z => ~ (b = bm /\ mhole z))); [intros b z (_ & H); exact H |].
+        exact (mf_step v lv rhs le m1 t1 le1 m2 out Hs Hp Hmarg Hx).
+      + unfold root_is in Hr. destruct (chain_root_l lv) as [t0|] eqn:Ec; [ | discriminate Hr ].
+        apply Pos.eqb_eq in Hr. subst t0.
+        inv Hx.
+        match goal with Hl : eval_lvalue _ _ _ _ lv ?loc _ _ |- _ =>
+          destruct (chain_root_l_block _ _ _ _ _ _ _ _ _ Ec Hl) as (o0 & Hle) end.
+        rewrite Hp in Hle. injection Hle as ->. destruct Hmarg as [-> ->].
+        match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ =>
+          exact (ai_assign ge _ _ _ _ _ _ _ _ Ha (or_introl NLm1) A1) end.
+    - intros optid a al le m1 t1 le1 m2 out Hs Hp Hx (HQ1 & A1).
+      destruct (ucf_call_ai optid a al le m1 t1 le1 m2 out Hs Hx A1) as ((Hq & A2) & ->).
+      split; [| exact Hp]. split; [ | exact A2 ].
       apply (Q2_trans _ _ _ _ HQ1).
       apply (Q2_mono (ak lp cap_ids)); [intros b z (H & _); exact H | exact Hq].
     - intros le1 Hb. cbn in Hb. injection Hb as <-. apply PTree.gss.
@@ -801,6 +868,184 @@ Section HF.
     destruct Hx as [-> | ->].
     - split; [exact f100_fin |]. rewrite f100_val. lra.
     - split; [exact f160_fin |]. rewrite f160_val. lra.
+  Qed.
+
+  (* ---- the hitbox body from the SCOPED contract (AudioInv.ls_frame_ai,
+     2026-11-02): its frame, Mario's hitboxHeight, and AudioInv after.
+     The spine switches to it in the deferred root rebuild (TRUST 4.1). ---- *)
+  Hypothesis Hlsai : ls_frame_ai lp.
+  Hypothesis NLo : ~ gblk ge ls_ids bo.
+  Hypothesis NLb : ~ gblk ge ls_ids bbs.
+
+  Lemma nlm : ~ gblk ge ls_ids bm.
+  Proof.
+    intros (g & Hin & Hg). apply NGm. exists g. split; [ | exact Hg ].
+    unfold cap_ids. apply in_or_app. right. exact Hin.
+  Qed.
+
+  (* every hitbox store is rooted at a class-2 (Mario's object) or class-3
+     (gBodyStates) temp *)
+  Definition hb_root_ok (lv : expr) : bool :=
+    match chain_root_l lv with
+    | Some x => Nat.eqb (cls x) 2 || Nat.eqb (cls x) 3
+    | None => false
+    end.
+
+  Lemma hb_store_ai : forall lv rhs le m1 t le' m2 out,
+    hb_root_ok lv = true -> hb_P le ->
+    exec_stmt function_entry2 ge empty_env le m1 (Sassign lv rhs) t le' m2 out ->
+    AudioInv ge m1 -> AudioInv ge m2.
+  Proof.
+    intros lv rhs le m1 t le' m2 out Hr HP Hx A.
+    unfold hb_root_ok in Hr. destruct (chain_root_l lv) as [x|] eqn:Ec; [ | discriminate Hr ].
+    inv Hx.
+    match goal with Hl : eval_lvalue _ _ _ _ lv ?loc _ _ |- _ =>
+      destruct (chain_root_l_block _ _ _ _ _ _ _ _ _ Ec Hl) as (o0 & Hle) end.
+    pose proof (HP _ _ Hle) as Hi.
+    match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ =>
+      refine (ai_assign ge _ _ _ _ _ _ _ _ Ha (or_introl _) A) end.
+    apply orb_true_iff in Hr as [E | E]; apply Nat.eqb_eq in E; rewrite E in Hi; cbn [hb_inv] in Hi.
+    - destruct (Hi _ _ eq_refl) as (-> & _). exact NLo.
+    - rewrite (Hi _ _ eq_refl). exact NLb.
+  Qed.
+
+  Lemma hb_callstep_ai : forall optid a al le m1 t le' m2 out,
+    hb_call_ok optid a al = true -> hb_P le ->
+    exec_stmt function_entry2 ge empty_env le m1 (Scall optid a al) t le' m2 out ->
+    AudioInv ge m1 -> (Q2 K2 m1 m2 /\ AudioInv ge m2) /\ hb_P le'.
+  Proof.
+    intros optid a al le m1 t le' m2 out Hok HP Hx A.
+    unfold hb_call_ok in Hok.
+    repeat match type of Hok with
+    | match ?x with _ => _ end = true => destruct x; try discriminate Hok
+    end.
+    repeat rewrite andb_true_iff in Hok. destruct Hok as ((Ef & Et) & Ex).
+    apply Pos.eqb_eq in Ef. apply Nat.eqb_eq in Et, Ex. subst.
+    inv Hx.
+    match goal with Hc : classify_fun _ = fun_case_f _ _ _ |- _ =>
+      cbn in Hc; injection Hc as <- <- <- end.
+    match goal with He : eval_expr _ _ _ _ (Evar _ _) _ |- _ =>
+      destruct (ProRows.ev_fun _ _ _ _ _ _ _ _ He) as (b & Hsy & ->) end.
+    match goal with Hl : eval_exprlist _ _ _ _ _ _ _ |- _ => inv Hl end.
+    match goal with Hl : eval_exprlist _ _ _ _ _ _ _ |- _ => inv Hl end.
+    match goal with Ea : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ =>
+      apply eval_expr_Etempvar_val in Ea; rename Ea into Lx end.
+    match goal with Hc : sem_cast _ _ _ _ = Some ?v2 |- _ =>
+      assert (Hm2 : marg_ok bm [v2])
+        by (destruct v2; cbn; try exact I;
+            apply sem_cast_ptr_result_inv in Hc; subst;
+            pose proof (HP _ _ Lx) as Hi; rewrite Ex in Hi; exact (Hi _ _ eq_refl)) end.
+    match goal with Hff : Genv.find_funct _ _ = Some ?fd, Hev : eval_funcall _ _ _ ?fd _ _ _ _ |- _ =>
+      rename Hev into Hcall; rename Hff into Hff0 end.
+    pose proof (AirborneSurface.resolve_pin_fd lp _ _ _ _ (linked12_LO_mario lp H12) dm_ucf
+                  (ex_intro _ b (conj Hsy Hff0))) as Efd.
+    rewrite Efd in Hcall.
+    destruct (ucf_hole_ai lp H12 bm Hlsai nlm _ _ _ _ _ Hm2 Hcall A) as (Hq & A').
+    split.
+    - split; [ | exact A' ].
+      apply (Q2_mono (K1 lp bm)); [intros b' z (H & _); exact H | exact Hq].
+    - intros y p Hy. cbn [set_opttemp] in Hy.
+      match type of Hy with (PTree.set ?t0 _ _) ! _ = _ =>
+        destruct (peq y t0) as [-> | Ny] end.
+      + rewrite PTree.gss in Hy. injection Hy as <-. rewrite Et. exact I.
+      + rewrite PTree.gso in Hy by exact Ny. exact (HP _ _ Hy).
+  Qed.
+
+  Definition hbi_store_ok (lv rhs : expr) : bool := hb_store_ok lv rhs && hb_root_ok lv.
+
+  Lemma hb_walk_ai : forall le m s t le' m' out,
+    exec_stmt function_entry2 ge empty_env le m s t le' m' out ->
+    lw_chk hb_set_ok hbi_store_ok hb_call_ok s = true -> hb_P le -> Q2 K2 m0 m /\ AudioInv ge m ->
+    (Q2 K2 m0 m' /\ AudioInv ge m') /\ hb_P le'.
+  Proof.
+    intros le m s t le' m' out Hx Hc HP HQ.
+    refine (lw_walk ge empty_env (fun m1 => Q2 K2 m0 m1 /\ AudioInv ge m1) hb_P hb_set_ok hbi_store_ok
+              hb_call_ok _ _ _ empty_env le m s t le' m' out Hx eq_refl Hc HP HQ).
+    - intros id a le1 m1 v1 Hs Hp (HQ1 & _) Ea. exact (hb_set id a le1 m1 v1 Hs Hp HQ1 Ea).
+    - intros lv rhs le1 m1 t1 le2 m2 out1 Hs Hp Hx1 (HQ1 & A1).
+      apply andb_prop in Hs as [Hs Hr].
+      split; [ exact (Q2_trans _ _ _ _ HQ1 (hb_store lv rhs le1 m1 t1 le2 m2 out1 Hs Hp Hx1)) | ].
+      exact (hb_store_ai lv rhs le1 m1 t1 le2 m2 out1 Hr Hp Hx1 A1).
+    - intros optid a al le1 m1 t1 le2 m2 out1 Hs Hp Hx1 (HQ1 & A1).
+      destruct (hb_callstep_ai optid a al le1 m1 t1 le2 m2 out1 Hs Hp Hx1 A1) as ((Hq & A2) & Hp').
+      exact (conj (conj (Q2_trans _ _ _ _ HQ1 Hq) A2) Hp').
+  Qed.
+
+  Lemma hb_peel_ai : forall le m s1 s2 t le' m' out,
+    exec_stmt function_entry2 ge empty_env le m (Ssequence s1 s2) t le' m' out ->
+    nb s1 = true -> lw_chk hb_set_ok hbi_store_ok hb_call_ok s1 = true -> hb_P le ->
+    Q2 K2 m0 m /\ AudioInv ge m ->
+    exists le1 m1 t2, hb_P le1 /\ (Q2 K2 m0 m1 /\ AudioInv ge m1)
+      /\ exec_stmt function_entry2 ge empty_env le1 m1 s2 t2 le' m' out.
+  Proof.
+    intros le m s1 s2 t le' m' out Hx Hn Hc HP HQ.
+    destruct (seq_split _ _ _ _ _ _ _ _ _ _ Hn Hx) as (t1 & le1 & m1 & t2 & Hx1 & Hx2).
+    destruct (hb_walk_ai _ _ _ _ _ _ _ Hx1 Hc HP HQ) as (HQ1 & HP1).
+    exists le1, m1, t2. exact (conj HP1 (conj HQ1 Hx2)).
+  Qed.
+
+  Lemma tail_walk_ai : forall le m s t le' m' out,
+    exec_stmt function_entry2 ge empty_env le m s t le' m' out ->
+    lw_chk hb_set_ok (fun lv _ => bs_st lv && hb_root_ok lv) (fun _ _ _ => false) s = true ->
+    hb_P le -> (Q2 K2 m0 m /\ HH m) /\ AudioInv ge m -> (Q2 K2 m0 m' /\ HH m') /\ AudioInv ge m'.
+  Proof.
+    intros le m s t le' m' out Hx Hc HP HQ.
+    refine (proj1 (lw_walk ge empty_env (fun m => (Q2 K2 m0 m /\ HH m) /\ AudioInv ge m) hb_P hb_set_ok
+              (fun lv _ => bs_st lv && hb_root_ok lv) (fun _ _ _ => false) _ _ _
+              empty_env le m s t le' m' out Hx eq_refl Hc HP HQ)).
+    - intros id a le1 m1 v1 Hs Hp ((HQ1 & _) & _) Ea. exact (hb_set id a le1 m1 v1 Hs Hp HQ1 Ea).
+    - intros lv rhs le1 m1 t1 le2 m2 out1 Hs Hp Hx1 ((HQ1 & x & Hl & Hx') & A1).
+      apply andb_prop in Hs as [Hs Hr].
+      pose proof (bs_step0 lv rhs le1 m1 t1 le2 m2 out1 Hs Hp Hx1) as Hq.
+      split; [ split | exact (hb_store_ai lv rhs le1 m1 t1 le2 m2 out1 Hr Hp Hx1 A1) ].
+      + apply (Q2_trans _ _ _ _ HQ1).
+        apply (Q2_mono (fun b _ => b <> bbs)); [intros b z (_ & H & _); exact H | exact Hq].
+      + exists x. split; [| exact Hx'].
+        rewrite (Q2_load _ _ _ Hq); [exact Hl |].
+        intros i _ E. exact (Nbo (eq_sym E)).
+    - intros optid a al le1 m1 t1 le2 m2 out1 Hs. discriminate Hs.
+  Qed.
+
+  Ltac peel_ai :=
+    match goal with
+    | HP : hb_P ?le, HQ : Q2 K2 m0 ?m /\ AudioInv _ ?m,
+      Hx : exec_stmt _ _ _ ?le ?m (Ssequence _ _) _ _ _ _ |- _ =>
+        let le1 := fresh "le" in let m1 := fresh "m" in let t2 := fresh "t" in
+        let HP1 := fresh "HP" in let HQ1 := fresh "HQ" in let Hx1 := fresh "Hx" in
+        destruct (hb_peel_ai _ _ _ _ _ _ _ _ Hx ltac:(reflexivity) ltac:(vm_compute; reflexivity) HP HQ)
+          as (le1 & m1 & t2 & HP1 & HQ1 & Hx1);
+        clear HP HQ Hx
+    end.
+
+  (* hitbox_hh, from the scoped contract, with AudioInv after *)
+  Theorem hitbox_hh_ai : forall v t m' vr, marg_ok bm [v] ->
+    eval_funcall function_entry2 ge m0 (Internal mario.f_mario_update_hitbox_and_cap_model) [v] t m' vr ->
+    AudioInv ge m0 ->
+    (Q2 K2 m0 m' /\ HH m') /\ AudioInv ge m'.
+  Proof.
+    intros v t m' vr Hmarg Hev A0.
+    destruct (ProRows.fc_entry ge m0 mario.f_mario_update_hitbox_and_cap_model [v] t m' vr eq_refl Hev) as (le & le' & t' & out & Hb & Hx).
+    pose proof (hb_init v le Hmarg Hb) as HP. pose proof (conj (Q2_refl K2 m0) A0) as HQ.
+    clear Hb Hev.
+    cbn [fn_body mario.f_mario_update_hitbox_and_cap_model] in Hx.
+    do 8 peel_ai.
+    match goal with Hx : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ =>
+      destruct (seq_split2 _ _ _ _ _ _ _ _ _ _ Hx ltac:(reflexivity)) as (tA & leA & mA & tB & Hh & Ht);
+      clear Hx end.
+    peel_ai.
+    match goal with Hx : exec_stmt _ _ _ _ _ (Sifthenelse _ _ _) _ _ _ _ |- _ => inv Hx end.
+    match goal with Hx : exec_stmt _ _ _ _ _ (if ?b then _ else _) _ _ _ _ |- _ =>
+      destruct b; cbv iota in Hx end;
+      peel_ai;
+      match goal with HP : hb_P ?l, HQ : Q2 K2 m0 ?mm /\ AudioInv _ ?mm,
+                      Hx : exec_stmt _ _ _ ?l ?mm (Sassign ?lv _) _ _ _ _ |- _ =>
+        pose proof (hb_store_ai lv _ _ _ _ _ _ _ ltac:(vm_compute; reflexivity) HP Hx (proj2 HQ)) as HA2;
+        destruct (hh_set_val _ _ _ _ _ _ _ _ Hx ltac:(vm_compute; reflexivity) HP) as (Hq & -> & Hl);
+        destruct HQ as (HQ & _) end;
+      match goal with HQ : Q2 K2 m0 ?mm, Hq : Q2 K2 ?mm _, Ht : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ =>
+        refine (tail_walk_ai _ _ _ _ _ _ _ Ht ltac:(vm_compute; reflexivity) _
+                  (conj (conj (Q2_trans _ _ _ _ HQ Hq) _) HA2));
+        [assumption | eexists; split; [exact Hl | unfold f100, f160; tauto]] end.
   Qed.
 End HF.
 

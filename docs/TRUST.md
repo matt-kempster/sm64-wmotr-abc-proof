@@ -30,6 +30,7 @@ without pressing A".*
 | 0.9 | GOAL 2's pos[1] writer census is complete (`YWriterCensus.v`) | **Machine-checked list, trusted edges.** Coq scans every function body of the 12 generated Mario TUs and proves: 31 direct `pos[1]` stores and 21 write-escapes (16 whole-vector arg-0 passes to `vec3f_copy`/`vec3f_set`/`vec3s_to_vec3f`, 5 `&pos[1]` passes to `f32_find_wall_collision`), 52 in all; `pos`'s address never reaches a temp, memory, a condition or a return, and no struct copy covers it. Details: [row 0.9 in detail](#row-09-in-detail). |
 | 0.10 | GOAL 2's object census: what objects can exist in WMotR and their interaction types (`BehaviorScripts.v`) | **Machine-checked over generated code, frontier trusted.** `generated/behavior_data.v` (clightgen of `data/behavior_data.c`) gives every behavior script as data; a fail-closed decoder mirrors the command layouts. Details: [row 0.10 in detail](#row-010-in-detail). |
 | 0.7 | GOAL 2's flank segments (`HeightFrame.v`: level/warp phase, non-Mario objects) do what their specs say: y / action loads as the censuses found them, and each carries GOAL 1's `MWF_real` and Φ (since 2026-09-29 Φ here is `PhiW`, so each flank also keeps the WMotR world: object updates reload only WMotR's surfaces and never hand Mario an object to hold or ride; collision detection registers only WMotR-kind objects, with poles at their level positions, cannon bases at home or risen at most 345 while Mario sits in them (2026-10-24), and no star while coin #2 stands (0.3); no object sets a stomp bit on Mario's object). Since 2026-10-24 the objects spec also ends with the platform fact: gMarioPlatform is NULL or an object with zero angle velocity (`PlatformKeep.plat_still`; it is the object phase that sets gMarioPlatform). The linked segments' surface premise (Mario's wall / ceiling / floor surfaces are not in the block of a global the step writes, `RenderKeep.surf_apart`) is **PROVED since 2026-10-26** (`RenderKeep.surf_apart_ffw`: design B's `ff_Spl` puts Mario's surfaces in dynamic blocks past every global, so no step states it any more); **the controller poll has NO labeled premise left (2026-10-26)**: its Φ, `plat_still` and object-world carries are proved (`PollKeep`), and the code between its two calls (`audio_game_loop_tick`, `select_gfx_pool`) is now real walked code in the segment (`MidKeep`), so no adjacency assumption remains | **Objects: ONE real call, labeled rows over its stages** (2026-10-26, `ObjPhase.v`): the objects segment is the generated `area_update_objects` (gAreaUpdateCounter++; `update_objects(0)`) run as one `eval_funcall` (`ObjPhase.objects_call`); Mario's own frame is not a separate segment any more but the hole in it (`execute_mario_action`, reached through `update_non_terrain_objects`, filled by the proved Mario-frame carries `Hframe_action` + `seg_action_phi`). The body of `update_objects` is walked (its 18 calls, its stack array `cycleCounts`); the clock calls are proved; the stages are **named, labeled rows** over the real callees (`Hobj_debug`, `Hobj_surfaces` = clear_dynamic_surfaces, `Hobj_collisions`, `Hobj_unload`, `Hobj_mplat`, plus the frame rows `Hobj_blind` / `Hobj_fresh` / `Hobj_noref` and store rows `Hobj_stores` / `Hobj_counter`); the two list walks `update_terrain_objects` / `update_non_terrain_objects` are **PROVED** (B2, `ObjLoop.v`: the real `update_objects_in_list`, both per-list loops over the rings of `obj_w`, the list heads, the order table) from narrower per-object rows `Hobj_step_terrain` / `Hobj_step_nonterrain` (given the Mario hole: the real loop body up to `cur_obj_update()` keeps the invariant and leaves the node in its ring; since 2026-10-26 each is split, `ObjStepSplit`, into `Hobj_step_act_*`, the update keeps Mario's action outside T, GOAL 1's claim, and `Hobj_step_rest_*`, the rest given that) and `Hobj_ctr`; `apply_mario_platform_displacement` inside it keeps its proved carry. The invariant through the phase includes the object world `ObjWorld.obj_w` (carried at frame boundaries; PROVED at the boot witness from the real `clear_objects`, the level's placed objects (Step B, 2026-11-02: the real `level_cmd_place_object` per OBJECT command, WMotR's macro objects, the area's spawn infos; 3.6) and Mario's `spawn_objects_from_info`, and one real `area_update_objects` runs there: `StartSat.objects_runs`; since 2026-11-02 the WHOLE `HeightFrame.play_frame_step` runs from it, every segment a real execution, `StartSat.frame_runs`), so the rows do not quantify over object lists the game never builds. **FOUND 2026-11-02 (rows false over unpinned pools) + REPAIRED in part:** `obj_w` did not pin the surface pools; now it does (`ow_spool` / `ow_surf_obj` / `ow_coll`). Still suspect: the per-step rows' surface counter is unbounded (walk-indexed bound planned). Details below. **The level phase is real code** (2026-10-24: `play_mode_normal`'s slices around `area_update_objects`, walked, carries proved in `LevelKeep`; `update_camera` keeps mem_ok by the real camera.c; stated: its PhiW carry `cam_phi_row`; `warp_w` at the slice's end is PROVED from the walked tail, 2026-10-26, `LevelWarp.tail_warp_w`; gCurrentArea's target is carried, `FfWorld.area_w`, 2026-10-25; the Camera it updates is a real one on the witness, and `update_camera` runs there, `StartSat.frame_runs`, 2026-10-26). Three segments are **real calls with proved carries**: Mario's render call (`seg_render_spec`, 2026-10-22; GOAL-1 carry `RenderFlank.render_mem_ok`, Φ carry `RenderKeep.render_keeps_phiw` 2026-10-23), platform displacement (`seg_platform_spec`, 2026-10-23: the real `apply_mario_platform_displacement`, platform_displacement.c linked as TU 45; GOAL-1, held-A and Φ carries `PlatformKeep.plat_mem_ok` / `plat_a_down` / `plat_keeps_phiw`), and **the controller poll** (`seg_input_spec`, 2026-10-23: the real `osContStartReadData` and `read_controller_inputs`, osContStartReadData.c linked as TU 46, walked down to the OS / SI floor (3.5); GOAL-1 carry, A-freedom and the controller cells proved, `PollFlank.srd_ok` / `poll_ok`; the Φ, `plat_still` and object-world carries proved 2026-10-26, `PollKeep.srd_keeps` / `rci_keeps`; the two middle calls `audio_game_loop_tick` / `select_gfx_pool` real and walked, `MidKeep.mid_keeps`, 2026-10-26: **no labeled premise**). Details: [row 0.7 in detail](#row-07-in-detail). |
+; `warp_w` at the slice's end is PROVED from the walked tail, 2026-10-26, `LevelWarp.tail_warp_w`; gCurrentArea's target is carried, `FfWorld.area_w`, 2026-10-25; the Camera it updates is a real one on the witness, and `update_camera` runs there, `StartSat.frame_runs`, 2026-10-26). Three segments are **real calls with proved carries**: Mario's render call (`seg_render_spec`, 2026-10-22; GOAL-1 carry `RenderFlank.render_mem_ok`, Φ carry `RenderKeep.render_keeps_phiw` 2026-10-23), platform displacement (`seg_platform_spec`, 2026-10-23: the real `apply_mario_platform_displacement`, platform_displacement.c linked as TU 45; GOAL-1, held-A and Φ carries `PlatformKeep.plat_mem_ok` / `plat_a_down` / `plat_keeps_phiw`), and **the controller poll** (`seg_input_spec`, 2026-10-23: the real `osContStartReadData` and `read_controller_inputs`, osContStartReadData.c linked as TU 46, walked down to the OS / SI floor (3.5); GOAL-1 carry, A-freedom and the controller cells proved, `PollFlank.srd_ok` / `poll_ok`; the Φ, `plat_still` and object-world carries proved 2026-10-26, `PollKeep.srd_keeps` / `rci_keeps`; the two middle calls `audio_game_loop_tick` / `select_gfx_pool` real and walked, `MidKeep.mid_keeps`, 2026-10-26: **no labeled premise**). Details: [row 0.7 in detail](#row-07-in-detail). |
 | 0.4 | The starting states the theorem quantifies over (`mem_ok_lp`: Mario's block valid, his action untainted, `MWF_real`) | **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by `NoAImpliesNoFlyTwelve.noA_never_flying_from_boot`). **GOAL 2: the witness is in WMotR by real code** (2026-10-21: `area.c` linked as the 23rd TU; `gCurrLevelNum = LEVEL_WMOTR` is stored by the generated `initiate_warp` + `warp_level`, `EntryWarp.v`; 2026-10-22: one real no-A frame runs from the witness, `frame_runs`, and its `init_mario_from_save_file` cells are tethered to the real body, `ifs_tether`; 2026-10-26: the witness's area has a real Camera, built by the generated `init_graph_node_camera` / `create_camera` in a level pool and stored in `gAreaData[1].camera` (`StartTerrain.cam_chain`; deviations in [row 3.6 in detail](#row-36-in-detail)), and a full frame runs through it: `area_update_objects`, then `update_camera` on that Camera, `frame_runs`). Details: [row 0.4 in detail](#row-04-in-detail). |
 | 0.5 | The step relation = what one real frame does | GOAL 1: **only `execute_mario_action`** in the twelve-TU capstone; **since 2026-10-26 also stated over GOAL 2's whole frame** (`NoAImpliesNoFlyFrame.noA_never_flying_frame_linked12`, skeleton: its open rows are GOAL 2's, see the detail). GOAL 2's `frame_step` composes the real `area_update_objects` call (which contains Mario's `execute_mario_action`; its stages are labeled rows, 0.7, since 2026-10-26), the level phase as real `play_mode_normal` slices (2026-10-24; `update_camera`'s PhiW carry a labeled row), and three real linked calls (the controller poll `osContStartReadData` + `read_controller_inputs`; Mario's render call; `apply_mario_platform_displacement`, the latter two and the poll since 2026-10-23). The specified flanks are not linked code. This is the largest scope gap. Details: [row 0.5 in detail](#row-05-in-detail). |
 
@@ -1022,8 +1023,14 @@ without pressing A".*
   unobservable), `Hobj_stores` / `Hobj_counter`, `Hobj_debug`, `Hobj_surfaces`,
   `Hobj_collisions`, `Hobj_unload`, `Hobj_mplat` (`Hobj_terrain` / `Hobj_nonterrain` are
   PROVED since B2, below, from `Hobj_step_terrain` / `Hobj_step_nonterrain` / `Hobj_ctr`);
-  `Hcam_ow` (narrower than the old `Hlvl_ow`: the `update_camera` statement, the camera row's
-  step `LevelFlank.cam_step`, keeps the object world between mem_ok states in Φ; the real
+  `Hcam_ow_fp` (narrowed 2026-11-02 from `Hcam_ow`, which is now PROVED from it by
+  `PollKeep.obj_w_unch`: the `update_camera` statement, the camera row's step
+  `LevelFlank.cam_step`, from a mem_ok state in Φ, leaves the `PollKeep.ow_ids` globals'
+  blocks and Mario's five object-pointer cells (136, 120..132) unchanged; a pure footprint,
+  except one `obj_w` clause added 2026-11-02 with the surface pins: it also keeps
+  `ObjWorld.surf_obj_ok` (`PollKeep.surf_keep`; the main-pool Camera shares its block with the
+  surface pools, so "no non-symbol block changes" would be false; the cam_w pins plus
+  `CamFootInst.update_camera_foot` are to discharge it with the rest of the row); before: it kept the object world between mem_ok states in Φ; the real
   update_camera is walked only for mem_ok, over SafeB, which includes the object pool, so no
   footprint excludes the pool; its gates are machine-checked since 2026-10-26, `CamCutCensus`,
   and what is left is the carry (a) and the footprint walk (b) under `Hcam_phi` below).
@@ -1242,13 +1249,61 @@ without pressing A".*
       only path there, reset_dialog_render_state's `trigger_cutscene_dialog(2)`, stores
       nothing. `LevelWalk.tcd_noop` proves this from the generated body, and the walker
       accepts the constant-argument call (`tcd_skip_ok`). `Hcam_phi` assumes cam_w in PhiW and
-      claims it after, and `Hcam_ow` assumes it.
-      Both rows are now TRUE in the game and only unproved (no longer a phantom ∀). The
+      claims it after, and `Hcam_ow_fp` (was `Hcam_ow`) assumes it.
+      Both rows were then believed TRUE in the game and only unproved. **They are FALSE as
+      stated (unpinned, found 2026-11-02, see (b'))**. The
       objects-phase rows (`Hobj_*`, over Pobjl ⊇ PhiW) also claim cam_w after: true by
       `cut_census_wmotr`, which is link-wide.
+    - (b') **FALSE AS STATED: `Hcam_phi` and `Hcam_ow_fp` are unpinned (found 2026-11-02 by the
+      R1 walk).** update_camera stores through `sMarioCamState` / `sLuigiCamState` and, on the
+      Bowser arm, through `gSecondCameraFocus`. Neither mem_ok nor PhiW says where these point.
+      So the rows quantify over states (phantom ∀) where `sMarioCamState` aims at Mario's
+      floor / wall cells, a PhiW global or an `ow_ids` block, and the camera breaks the claim
+      there. In the game they are `&gPlayerCameraState[0]`, `&gPlayerCameraState[1]` and NULL.
+      `WMotRRequiresA/CamPinCensus.v` proves from the generated AST, over all linked TUs, that
+      the initializer is the only writer of the three.
+      **Fix plan (the deferred rebuild, with R3 and B'' (b)/(c)):**
+      - `cam_w` gains the pins: sMarioCamState / sLuigiCamState = `&gPlayerCameraState[0/1]`,
+        and gSecondCameraFocus = NULL. They are proved at boot and kept by every phase.
+      - Both rows are restated on `CamFootInst.update_camera_foot` (R1, below).
+      - **R1 (PROVED 2026-11-02, `WMotRRequiresA/CamFootInst.v`, not yet on the spine).** The
+        real `update_camera(c)`, with c the Camera or NULL, run from ANY memory whose five pins
+        hold (gCamera, sMarioCamState, sLuigiCamState, gSecondCameraFocus, gMarioState), does
+        three things:
+        - it changes memory only in the blocks of `cf_FP`'s 115 globals, the Camera's 108
+          bytes and the pin cells;
+        - it keeps every permission;
+        - it keeps the pins.
+      - **How R1 is proved.** All 503 bodies of the all-states call tree pass a byte-level
+        store-class walk (`CamFootKit` / `CamFootSound`: the classes are listed globals, the
+        Camera range, and fresh blocks), with no pruning. The five AVOID_UB vec helpers are
+        proved (`shadow_leaf`), and sqrtf comes from 3.5.
+      - **R1's leaves.** `load_sequence` uses `LsContract.ls_frame` (4.1, itself FALSE
+        unscoped, being restated). The two former open leaves (`Hopen`) are PROVED
+        (2026-11-02), so R1 has no open premise beyond the pins and the floors (3.5, and
+        4.1 via ls_frame):
+        - `save_file_do_save` (`CamFootSave.sds_foot`, any argument): its whole tree is walked
+          by `FootWalk` (SaveDoSaveBody's recognizers over a listed footprint), down to the
+          3.5 floor calls; FootWalk's floor list gained `osSetTimer(&__osEepromTimer)` and
+          `bcopy` (both already in 3.5). Permissions via `PermWalk`. It writes only
+          `sds_gvars` (save buffer, two dirty flags, EEPROM PIF image / last command, SI
+          access and event queues, EEPROM timer, queue and message); those 10 extra globals
+          joined `cf_FP` (105 -> 115).
+        - `set_mario_npc_dialog` (`CamFootNpc.npc_spec`, any argument): walked under the pins
+          with a three-body sub-table. Its `set_mario_action` call passes the LITERAL
+          `ACT_READING_NPC_DIALOG`; `sma_prune` proves the real body's run equals the run with
+          the switch's moving / airborne / submerged arms emptied (same selected suffix), so
+          only the cutscene arm is walked. This is an argument-constant specialization of
+          one call site, not a state pruning.
+      - **The residual row** after the rebuild names the out-of-class stores in `cf_FP` that
+        PhiW / ow_ids care about: Mario's state (gMarioStates, only via
+        `set_mario_npc_dialog`), `gTimeStopState` and `gSecondCameraFocus`.
+        - Its phantom check: under cam_w, npc is not in the live closure
+          (`CamCutCensus.uc_wmotr`).
+        - The other two are not PhiW / ow_ids cells.
     - (b) a FOOTPRINT walk of update_camera's 428-function WMotR closure. UcKit walks all 507
       bodies for mem_ok, through type certificates, so it cannot prune (a)'s cutscenes. The
-      footprint for `Hcam_ow` is the camera, audio, dialog and hud globals of `uc_census`, plus
+      footprint for `Hcam_ow_fp` is the camera, audio, dialog and hud globals of `uc_census`, plus
       the Camera's pool block; none of these is a `PollKeep.ow_ids` block or gMarioStates. For
       `Hcam_phi`, add Camera bytes disjoint from the frame's surface regions.
   - `surf_apart` over `level_gvars`: PROVED from Φ since 2026-10-26 (`RenderKeep.phiw_surf_apart`).
@@ -2065,7 +2120,7 @@ link grows.
 
 | # | Item | Status / notes |
 |---|---|---|
-| 4.1 | Functions outside the 53 linked files (41 game TUs incl. `platform_displacement.c`, `camera.c`, `hud.c` (TU 51), `engine/level_script.c` (TU 53), `ingame_menu.c`, `debug_course.c`, `audio/external.c`, `sound_init.c`, `print.c`, `engine/behavior_script.c`, `obj_behaviors.c`, `spawn_sound.c`, `debug.c`, `object_collision.c`, `obj_behaviors_2.c` + `behavior_data.c` + WMotR's level data + WMotR's level script (TU 52) + 7 libultra TUs incl. `osContStartReadData.c`; the audio thread, rendering) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. Details: [row 4.1 in detail](#row-41-in-detail). |
+| 4.1 | Functions outside the 53 linked files (41 game TUs incl. `platform_displacement.c`, `camera.c`, `hud.c` (TU 51), `engine/level_script.c` (TU 53), `ingame_menu.c`, `debug_course.c`, `audio/external.c`, `sound_init.c`, `print.c`, `engine/behavior_script.c`, `obj_behaviors.c`, `spawn_sound.c`, `debug.c`, `object_collision.c`, `obj_behaviors_2.c` + `behavior_data.c` + WMotR's level data + WMotR's level script (TU 52) + 7 libultra TUs incl. `osContStartReadData.c`; the audio thread, rendering) behave as the capstone's rows say (`Hocp_*`, `Hpres_*`, `Hext_*`, …) | **ASSUMED, the ~30 project rows.** Shrinks by linking more files until only truly external things remain. `Hls`'s footprint half `LsContract.ls_frame` is FALSE as stated (unscoped, 2026-11-02; fix: an `AudioInv` precondition). Details: [row 4.1 in detail](#row-41-in-detail). |
 | 4.2 | CompCert's `external_functions_sem` is an abstract Parameter. Anything left external is constrained *only* by our rows | Permanent for whatever stays external. The goal is that nothing game-logic stays external. |
 | 4.3 | Level data (WMotR collision triangles, object placements, the red-coin positions) is what the ROM contains | **Collision and macro data in the link (2026-10-22, TU 34).** `pipeline/tu/wmotr_level_data.c` includes the vendor `levels/wmotr/areas/1/collision.inc.c` / `macro.inc.c` verbatim, under `leveldata.c`'s `make_const_nonconst.h`. So the data is the decomp's, but that the decomp's `.inc.c` matches the ROM bytes is the decomp's build check (2.1), not ours. Object placements beyond collision (`script.c`) and the red-coin positions are not yet in. |
 | 4.4 | The proof's internal vocabulary (`MWF_real`, `SafeB`, `call_pres_ext_*`) appears in the *statement's* hypotheses | Anti-goal: a reader shouldn't have to understand proof internals to know what's assumed. Rows must eventually be about the game, or be gone. |
@@ -2301,7 +2356,14 @@ link grows.
     wrappers) reach it through `seq_player_play_sequence`. It is narrower than every row it replaces.
     **Read 2026-10-24** (US path: load.c, heap.c, seqplayer.c, playback.c, synthesis.c): every store
     lands in audio state: `gAudioLoadLock`, `gSequencePlayers`, the two loaded pools, `gAudioHeap`
-    (pools, notes, banks), or load.c globals with no block in the model. The DMA / message calls are
+    (pools, notes, banks), or load.c globals with no block in the model. AudioInv
+    (`WMotRRequiresA/AudioInv.v`, 2026-11-02) is checked on a model audio state that is all
+    zeros, because audio_init and the audio thread are not linked. The real driver's channel /
+    layer / note pointers live outside the model, so `ls_frame_ai`'s preservation of AudioInv is
+    part of the labeled audio trust, not evidence about the real driver. **Scoping TODO:**
+    `disable_all_sequence_players` (linked) passes `&gSequencePlayers[i]` to the unlinked
+    `sequence_player_disable`, which is another unlinked audio call to scope the same way if it
+    is reachable on the WMotR path. The DMA / message calls are
     3.5. The footprint form (`ls_contract` = `call_pres_ext` + `ls_frame`, the blocks of
     `ls_ids`: `gAudioLoadLock`, `gSequencePlayers`, the two loaded pools, `gAudioHeap`; memory
     may grow, the new blocks freed) is `WMotRRequiresA/LsContract.v`. `ObjFrame`'s whole-walk
@@ -2310,6 +2372,44 @@ link grows.
     of `CapAudio.v` (on the spine). This is the one trust the hitbox row adds (it is what the US
     load.c read above says); discharge path: link load.c / heap.c / seqplayer.c / playback.c
     and walk them.
+    **FALSE AS STATED (unscoped, marked 2026-11-02).** `ls_frame` claims the footprint for
+    EVERY memory. But load.c's pointer stores (pool cursors, note / layer lists, bank-patch
+    pointers) go through pointers read from memory. The read above holds only "given the audio
+    driver's own invariants". So in a memory where those pointers aim at, say, Mario's object,
+    the real load_sequence writes outside `ls_ids`, and the row is a phantom ∀. Audio may stay a
+    labeled open premise, but not a false one.
+    **Fix (2026-11-02, landing in stages):**
+    - DONE: `AudioInv.AudioInv G m`. Every pointer loaded from an `ls_ids` block points into
+      an audio block (`aud_ids` = `ls_ids` + `gSequenceChannelNone`, the disabled-channel
+      sentinel). This is the model-level form of the header's "pointer stores stay inside
+      those" (pool cursors, player / note / layer / bank pointers). It has a decision
+      procedure `aud_chk` (`aud_chk_sound`).
+    - DONE: the restatement `AudioInv.ls_frame_ai`: AudioInv m → only the `ls_ids` blocks
+      change (Q2) ∧ AudioInv m'.
+    - DONE: the boot check (`AudioBoot.audio_inv_boot`, vm). AudioInv holds on `Genv.init_mem`
+      and on the start witness (StartTerrain's chain, rebuilt by `AudioBoot.wit11`). A probe
+      also found no global in either memory holding a pointer into the audio set.
+    - Census (generated AST, all linked TUs):
+      - no linked code mentions `gAudioHeap`;
+      - the pools appear only in `unused_8031E4F0`;
+      - `&gSequencePlayers[p]` lives only in temps and is never stored to memory.
+    - DONE: wired through the consumers, from `ls_frame_ai` alone (no use of the false
+      `ls_frame`).
+      - `AudioWire`: the cap music path's frames carry AudioInv (`afi`: CapAudio's Q2 frame
+        plus AudioInv). Every store's root is not an `ls_ids` global, or its value is never a
+        pointer, so no pointer enters an audio block (`Mem.load_pointer_store`). It also has
+        `ucf_frame_ai`.
+      - `HitboxFrame.ucf_hole_ai` / `hitbox_hh_ai`: `hitbox_hh` (its frame and Mario's
+        hitboxHeight) from an AudioInv memory, with AudioInv after.
+      - Not yet wired: `ObjFrame`'s whole-walk frame and `CamFootInst`'s load_sequence leaf.
+        Their rows are labeled or being restated, and they move in the rebuild.
+    - NEXT, in the deferred root rebuild: AudioInv becomes `FfWorld.lvl_w`'s eighth clause
+      `aud_w`, carried by every phase. Footprints that avoid `ls_ids` get it free through
+      `AudioInv_Q2`. The audio walks need a stored-value check. The spine's `Hls` then
+      switches from `ls_frame` to `ls_frame_ai`.
+
+    Consumers on the spine: CapAudio / NaSplit (the hitbox row) and, off-spine for now,
+    `CamFootInst`'s load_sequence leaf.
   - **GOAL 2 (`SndXc`):** `play_sound` and `set_sound_moving_speed` store at an index read from
     memory, so the walks cannot run them store by store. Each call is a CLOBBER contract over the
     regions of the globals it writes (`FfRun.RSR` / `RSRC` / `RSMS`: `sSoundRequests`,

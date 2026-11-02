@@ -420,17 +420,41 @@ Section OWK.
   (* THE LEMMA, slot-field form: obj_w survives any change off its globals'
      blocks (the pool: off every slot's fields from offset 96 on) and off
      Mario's five object-pointer cells *)
-  Theorem obj_w_slots : forall (ge : genv) bm,
+  (* the surface clause (ObjWorld.surf_obj_ok) is kept: from "no non-symbol
+     block changes" (surf_keep_of_KN), or stated by a row *)
+  Definition surf_keep (ge : genv) : Prop :=
+    forall pool, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool ->
+      OW.surf_obj_ok ge pool m -> OW.surf_obj_ok ge pool m'.
+
+  Lemma surf_keep_of_KN : forall (ge : genv),
     (forall id b, In id ow_ids -> id <> object_list_processor._gObjectPool -> Genv.find_symbol ge id = Some b ->
        forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
     (forall pool, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool -> SKp pool) ->
-    (* no non-symbol block changes (the main pool: the surface pools) *)
     (forall b, Ple (Genv.genv_next ge) b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+    surf_keep ge.
+  Proof.
+    intros ge KG KP KN pool S1 Cso. assert (Kp := KP pool S1).
+    intros id bp j hd Hin Hs Hj L.
+    assert (Kb : forall ch z, Mem.load ch m' bp z = Mem.load ch m bp z).
+    { apply (KG id); [ | | exact Hs ];
+        unfold FloorList.part_ids in Hin; cbn [In] in Hin; destruct Hin as [<- | [<- | []]];
+        first [ solve [ unfold ow_ids; cbn [In]; repeat (first [ left; reflexivity | right ]) ]
+              | vm_compute; discriminate ]. }
+    rewrite Kb in L. destruct (Cso id bp j hd Hin Hs Hj L) as (l & W & F).
+    exists l. rewrite (swalk_eq ge KN). split; [ exact W | ].
+    exact (Forall_impl _ (fun s => surf_obj_at_eq ge KN pool s Kp) F).
+  Qed.
+
+  Theorem obj_w_slots_s : forall (ge : genv) bm,
+    (forall id b, In id ow_ids -> id <> object_list_processor._gObjectPool -> Genv.find_symbol ge id = Some b ->
+       forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+    (forall pool, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool -> SKp pool) ->
+    surf_keep ge ->
     (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
        Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z) ->
     OW.obj_w ge bm m -> OW.obj_w ge bm m'.
   Proof.
-    intros ge bm K KP KN Kbm (pool & la & fl & gol & gmo & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
+    intros ge bm K KP KS Kbm (pool & la & fl & gol & gmo & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
     assert (Kp := KP pool S1).
     assert (Kl := K object_list_processor._gObjectListArray la ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S2).
     assert (Kf := K object_list_processor._gFreeObjectList fl ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S3).
@@ -473,15 +497,7 @@ Section OWK.
         by (intros id Hin Hn ch v; apply gcell_K; exact (KG id Hin Hn)).
       split; [ | split; [ | split; [ | split ] ] ];
         (apply Kc; [ unfold ow_ids; cbn [In]; auto 20 | vm_compute; discriminate | assumption ]).
-    - intros id bp j hd Hin Hs Hj L.
-      assert (Kb : forall ch z, Mem.load ch m' bp z = Mem.load ch m bp z).
-      { apply (KG id); [ | | exact Hs ];
-          unfold FloorList.part_ids in Hin; cbn [In] in Hin; destruct Hin as [<- | [<- | []]];
-          first [ solve [ unfold ow_ids; cbn [In]; repeat (first [ left; reflexivity | right ]) ]
-                | vm_compute; discriminate ]. }
-      rewrite Kb in L. destruct (Cso id bp j hd Hin Hs Hj L) as (l & W & F).
-      exists l. rewrite (swalk_eq ge KN). split; [ exact W | ].
-      exact (Forall_impl _ (fun s => surf_obj_at_eq ge KN pool s Kp) F).
+    - exact (KS pool S1 Cso).
     - destruct Cco as (C1 & C2 & C3).
       assert (Ef : forall id, filter (OW.is_bhv_b ge pool m' id) (concat rs) = filter (OW.is_bhv_b ge pool m id) (concat rs))
         by (intros id; apply filter_ext; intros k; exact (is_bhv_b_eq ge pool id k Kp)).
@@ -489,6 +505,37 @@ Section OWK.
       intros k Hk Hb. rewrite (is_bhv_b_eq ge pool _ k Kp) in Hb.
       destruct (C3 k Hk Hb) as (x & y & z & Hin & L1 & L2 & L3).
       unfold OW.box_pos_ok. exists x, y, z. rewrite !Kp by sk_side. exact (conj Hin (conj L1 (conj L2 L3))).
+  Qed.
+
+  (* THE LEMMA, slot-field form: obj_w survives any change off its globals'
+     blocks (the pool: off every slot's fields from offset 96 on), off the
+     non-symbol blocks, and off Mario's five object-pointer cells *)
+  Theorem obj_w_slots : forall (ge : genv) bm,
+    (forall id b, In id ow_ids -> id <> object_list_processor._gObjectPool -> Genv.find_symbol ge id = Some b ->
+       forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+    (forall pool, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool -> SKp pool) ->
+    (* no non-symbol block changes (the main pool: the surface pools) *)
+    (forall b, Ple (Genv.genv_next ge) b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+    (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
+       Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z) ->
+    OW.obj_w ge bm m -> OW.obj_w ge bm m'.
+  Proof.
+    intros ge bm K KP KN Kbm. apply obj_w_slots_s; [ exact K | exact KP | | exact Kbm ].
+    exact (surf_keep_of_KN ge K KP KN).
+  Qed.
+
+  (* the same with the surface clause's keep given (a row's footprint) *)
+  Theorem obj_w_unch_s : forall (ge : genv) bm,
+    (forall id b, In id ow_ids -> Genv.find_symbol ge id = Some b ->
+       forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+    surf_keep ge ->
+    (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
+       Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z) ->
+    OW.obj_w ge bm m -> OW.obj_w ge bm m'.
+  Proof.
+    intros ge bm K KS Kbm. apply obj_w_slots_s; [ | | exact KS | exact Kbm ].
+    - intros id b Hin _ Hs. exact (K id b Hin Hs).
+    - intros pool Hs. apply SKp_full. apply (K object_list_processor._gObjectPool pool); [ unfold ow_ids; cbn [In]; auto 10 | exact Hs ].
   Qed.
 
   (* THE LEMMA: obj_w survives any change off its globals' blocks and off
