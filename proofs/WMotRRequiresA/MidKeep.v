@@ -65,7 +65,7 @@ Definition mk_sig : usig := ([], kN, true).
 Definition mk_ut : utab :=
   [(SI._audio_game_loop_tick, mk_sig); (AX._audio_signal_game_loop_tick, mk_sig);
    (AX._noop_8031EEC8, mk_sig); (GI._select_gfx_pool, mk_sig);
-   (memory._set_segment_base_addr, ([kN; kA], kA, true))].
+   (memory._set_segment_base_addr, ([kN; kS], kA, true))].
 
 Lemma uc_agt : uchk gfx_safe_syms mk_ut [] mk_sig SI.f_audio_game_loop_tick = true.
 Proof. vm_compute. reflexivity. Qed.
@@ -75,7 +75,7 @@ Lemma uc_noop : uchk gfx_safe_syms mk_ut [] mk_sig AX.f_noop_8031EEC8 = true.
 Proof. vm_compute. reflexivity. Qed.
 Lemma uc_sgp : uchk gfx_safe_syms mk_ut [] mk_sig GI.f_select_gfx_pool = true.
 Proof. vm_compute. reflexivity. Qed.
-Lemma uc_ssb : uchk gfx_safe_syms mk_ut [] ([kN; kA], kA, true) memory.f_set_segment_base_addr = true.
+Lemma uc_ssb : uchk gfx_safe_syms mk_ut [] ([kN; kS], kA, true) memory.f_set_segment_base_addr = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Section UCW.

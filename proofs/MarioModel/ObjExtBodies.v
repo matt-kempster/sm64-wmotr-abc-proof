@@ -893,6 +893,55 @@ Section ObjExtRows.
           eapply Mem.load_store_other; [ exact Hst | exact Hdis ].
   Qed.
 
+  (* 2026-11-02: a SafeB-pointer store into such a global keeps them too
+     (R7 gains only a SafeB pointer).  The identity set_segment_base_addr
+     (TRUST 2.2) stores gGfxPool's buffer into sSegmentTable. *)
+  Lemma safe_store_pres : forall g bg ch z v m1 m2,
+      mem_id g mwf_syms = false -> Genv.find_symbol (lp_ge lp) g = Some bg ->
+      (forall bb oo, v = Vptr bb oo -> SafeB bb) ->
+      Mem.store ch m1 bg z v = Some m2 ->
+      ow_facts bm MWF m1 -> ow_facts bm MWF m2.
+  Proof.
+    intros g bg ch z v m1 m2 Hg Hfs Hsv Hst (Hvb & Hsat & HM).
+    pose proof Hspawn as (init & _ & Hbm & Hbc & _).
+    assert (Hne : forall id b, mem_id id mwf_syms = true ->
+                 Genv.find_symbol (lp_ge lp) id = Some b -> bg <> b)
+      by (intros id b; exact (np_ne g bg id b Hg Hfs)).
+    assert (Hnbm : bg <> bm) by exact (Hne level_update._gMarioStates bm eq_refl Hbm).
+    split; [ eauto using Mem.store_valid_block_1 | split ].
+    - eapply action_sat_unchanged_on with (m := m1); [ | exact Hvb | exact Hsat ].
+      eapply Mem.store_unchanged_on; [ exact Hst | ].
+      intros i _ [Hb _]. exact (Hnbm Hb).
+    - apply (MWF_real_transfer lp bm bc oc0 SafeB ox_Hbc_bm m1 m2); [ .. | exact HM ].
+      + intros b Hv. eapply Mem.store_valid_block_1; eauto.
+      + intros v0 Hld. pose proof HM as (_ & R1 & _). apply R1.
+        rewrite <- Hld. symmetry.
+        eapply Mem.load_store_other; [ exact Hst | left; congruence ].
+      + intros ch1 b ofs v0 Hrow Hld.
+        rewrite <- Hld. symmetry.
+        eapply Mem.load_store_other; [ exact Hst | left ].
+        intro E. subst b.
+        destruct Hrow as [ [Eb _] | [ Eb | [ Hfs2 | [ Hfs2 | [ Hfs2 | [ Hkt | Hab ] ] ] ] ] ].
+        * exact (Hnbm Eb).
+        * exact (Hne mario._gControllers bc eq_refl Hbc Eb).
+        * exact (Hne mario._gMarioState bg eq_refl Hfs2 eq_refl).
+        * exact (Hne interaction._gGlobalTimer bg eq_refl Hfs2 eq_refl).
+        * exact (Hne interaction._sInteractionHandlers bg eq_refl Hfs2 eq_refl).
+        * destruct Hkt as (gid2 & Hg2 & Hfs2).
+          refine (Hne gid2 bg _ Hfs2 eq_refl).
+          unfold mwf_syms. rewrite mem_id_app, Hg2. apply orb_true_r.
+        * exact (Hne mario._gMarioAnimsBuf bg eq_refl Hab eq_refl).
+      + intros b ofs b' o' Hs Hld.
+        pose proof HM as (_ & _ & _ & _ & _ & _ & _ & R7 & _).
+        cbn in Hld.
+        destruct (Mem.load_pointer_store _ _ _ _ _ _ _ _ _ _ _ Hst Hld)
+          as [ (Evv & _) | Hdis ].
+        * exact (Hsv _ _ Evv).
+        * apply (R7 b ofs b' o' Hs). cbn.
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | exact Hdis ].
+  Qed.
+
   Lemma ast_store_pres : forall lv rhs le m t le' m' out,
       ast_ok lv rhs = true ->
       exec_stmt function_entry2 (lp_ge lp) empty_env le m (Sassign lv rhs) t le' m' out ->

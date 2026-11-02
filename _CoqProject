@@ -367,6 +367,7 @@ proofs/WMotRRequiresA/AudioBoot.v
 proofs/WMotRRequiresA/AudioWire.v
 proofs/WMotRRequiresA/ActWriterCensus.v
 proofs/WMotRRequiresA/FnPtrCensus.v
+proofs/WMotRRequiresA/SegTableCensus.v
 proofs/WMotRRequiresA/ActIdxCensus.v
 proofs/WMotRRequiresA/CamIdxCensus.v
 proofs/WMotRRequiresA/CamCutCensus.v

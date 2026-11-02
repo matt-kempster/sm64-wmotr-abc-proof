@@ -233,16 +233,21 @@ Section Link.
     mem_ok_lp bm MWF m -> plat_call lp m m' -> plat_still lp m ->
     (forall id b, Genv.find_symbol G id = Some b -> id <> PD._D_8032FEC0 -> id <> level_update._gMarioStates ->
        forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
-    /\ (forall ch z, PlatformEff.bmw ch z -> Mem.load ch m' bm z = Mem.load ch m bm z).
+    /\ (forall ch z, PlatformEff.bmw ch z -> Mem.load ch m' bm z = Mem.load ch m bm z)
+    (* no non-symbol block changes (2026-11-02, the surface pools) *)
+    /\ (forall b, Ple (Genv.genv_next G) b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z).
   Proof.
     intros m m' (_ & _ & HM) Hc Hst.
     pose proof HM as ((_ & _ & _ & _ & _ & _ & _ & Hgn) & _).
     destruct plat_D_sym as (bD & HbD).
     destruct (plat_step_eff bD m m' HbD Hgn Hc Hst) as (_ & _ & _ & LD & LM & _).
-    split; [ | exact LM ].
-    intros id b Hs N1 N2 ch z. apply LD.
-    - intro E; subst b. exact (Genv.global_addresses_distinct G N1 Hs HbD eq_refl).
-    - intro E; subst b. exact (Genv.global_addresses_distinct G N2 Hs Hbm_sym eq_refl).
+    split; [ | split; [ exact LM | ] ].
+    - intros id b Hs N1 N2 ch z. apply LD.
+      + intro E; subst b. exact (Genv.global_addresses_distinct G N1 Hs HbD eq_refl).
+      + intro E; subst b. exact (Genv.global_addresses_distinct G N2 Hs Hbm_sym eq_refl).
+    - intros b Hb ch z. apply LD; intro E; subst b;
+        [ pose proof (Genv.genv_symb_range _ _ HbD) as R | pose proof (Genv.genv_symb_range _ _ Hbm_sym) as R ];
+        unfold Plt, Ple in *; lia.
   Qed.
 End Link.
 

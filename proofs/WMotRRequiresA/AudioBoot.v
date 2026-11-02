@@ -33,7 +33,8 @@ Import ListNotations.
 Module CM := SM64.Proofs.Interp.CMem.
 Arguments Done {A}.
 
-(* StartTerrain.wchk's chain, returning its memory m11 *)
+(* StartTerrain.wchk's chain (the real-order Step-B chain, 2026-11-02),
+   returning its memory m11 *)
 Definition wit11 (ge : genv) (m0 : mem) : option mem :=
   match Genv.find_symbol ge level_update._gMarioStates, Genv.find_symbol ge mario._gControllers,
         Genv.find_symbol ge mario._gMarioAnimsBuf, Genv.find_symbol ge object_list_processor._gObjectPool,
@@ -50,16 +51,22 @@ Definition wit11 (ge : genv) (m0 : mem) : option mem :=
         sym ge "wmotr_seg7_collision", sym ge "gSurfacesAllocated" with
   | Some s1, Some s2, Some s3, Some s4, Some s5, Some bcol, Some bn =>
   match sym ge "gObjParentGraphNode", sym ge "bhvMario",
-        off ge "SpawnInfo" "behaviorArg", off ge "SpawnInfo" "behaviorScript" with
-  | Some bpg, Some bmb, Some oba, Some obs =>
+        off ge "SpawnInfo" "behaviorArg", off ge "SpawnInfo" "behaviorScript",
+        sym ge "wmotr_seg7_macro_objs" with
+  | Some bpg, Some bmb, Some oba, Some obs, Some bmac =>
   match e_chain bw bL m0 with
   | Some e6 =>
     let (P0, bp) := Mem.alloc e6 0 POOL in
     match apply_writes P0 (pool_writes s1 s2 s3 s4 s5 bp) 0 with
     | inl P =>
+      (* the game loop's select_gfx_pool before the level script runs
+         (Step B, 2026-11-02: with the identity set_segment_base_addr,
+         TRUST 2.2) *)
+      match ex_call ge world FUEL P (Internal game_init.f_select_gfx_pool) [] with
+      | Done (_, Pgfx, _) =>
       (* level_cmd_init_level: init_graph_node_start(NULL,
          &gObjParentGraphNode); clear_objects() *)
-      match ex_call ge world FUEL P (Internal graph_node.f_init_graph_node_start)
+      match ex_call ge world FUEL Pgfx (Internal graph_node.f_init_graph_node_start)
               [Vint Int.zero; Vptr bpg Ptrofs.zero] with
       | Done (_, PG, _) =>
       match ex_call ge world FUEL PG (Internal object_list_processor.f_clear_objects) [] with
@@ -67,10 +74,16 @@ Definition wit11 (ge : genv) (m0 : mem) : option mem :=
       (* LOAD_AREA's geo: the area's Camera (cam_chain) *)
       match cam_chain ge bgad PO with
       | Some (Pc, cam) =>
-      match ex_call ge world FUEL Pc (Internal surface_load.f_alloc_surface_pools) [] with
+      (* ALLOC_LEVEL_POOL, AREA(1), the act, the OBJECT commands (lvl_objs) *)
+      match lvl_objs ge Pc with
+      | Some Pq =>
+      match ex_call ge world FUEL Pq (Internal surface_load.f_alloc_surface_pools) [] with
       | Done (_, L1, _) =>
-        match ex_call ge world FUEL L1 (Internal surface_load.f_load_area_terrain) (terr_args bcol) with
-        | Done (_, L0, _) =>
+        match ex_call ge world FUEL L1 (Internal surface_load.f_load_area_terrain) (terr_args2 bcol bmac) with
+        | Done (_, L00, _) =>
+        (* load_area: the area's spawn infos (the placed objects) *)
+        match area_spawn ge bgad L00 with
+        | Some L0 =>
         (* load_mario_area: spawn_objects_from_info(0, gMarioSpawnInfo);
            the two SpawnInfo cells level_cmd_init_mario sets (behaviorArg 1,
            behaviorScript bhvMario) are stores (level_script.c is not
@@ -98,18 +111,21 @@ Definition wit11 (ge : genv) (m0 : mem) : option mem :=
         end
         | None => None end
         | None => None end
+        | None => None end
         | Stuck _ _ _ => None
         end
       | Stuck _ _ _ => None
       end
       | None => None end
+      | None => None end
+      | Stuck _ _ _ => None end
       | Stuck _ _ _ => None end
       | Stuck _ _ _ => None end
     | inr _ => None
     end
   | None => None
   end
-  | _, _, _, _ => None
+  | _, _, _, _, _ => None
   end
   | _, _, _, _, _, _, _ => None
   end

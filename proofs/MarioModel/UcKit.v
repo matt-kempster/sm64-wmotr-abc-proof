@@ -262,7 +262,8 @@ Definition kp_stored dm lv gs tc (l r : expr) : bool :=
   | kS => kle (kxd dm lv gs tc r) kS || nonptr_scalar (typeof l)
   | kL => dm || kle (kxd dm lv gs tc r) kW || nonptr_scalar (typeof l)
   | kT => kle (kxd dm lv gs tc r) kS || nonptr_scalar (typeof l)
-  | kW => kle (kxd dm lv gs tc r) kN || nonptr_scalar (typeof l)
+  (* 2026-11-02: kS, not only kN (ObjExtBodies.safe_store_pres) *)
+  | kW => kle (kxd dm lv gs tc r) kS || nonptr_scalar (typeof l)
   | _ => false
   end.
 Definition kp_retd dm lv gs tc (rc : kcls) (a : expr) : bool :=
@@ -840,7 +841,7 @@ Section UK.
          | kS => kle K kS || nonptr_scalar ty
          | kL => dm || kle K kW || nonptr_scalar ty
          | kT => kle K kS || nonptr_scalar ty
-         | kW => kle K kN || nonptr_scalar ty
+         | kW => kle K kS || nonptr_scalar ty
          | _ => false end) = true ->
         upc nb0 c b ->
         (forall K', kle K K' || nonptr_scalar ty = true ->
@@ -867,10 +868,23 @@ Section UK.
           * assert (Hp' : Ple nb0 b) by (unfold Plt, Ple in *; lia).
             refine (u_store_local nb0 HN _ _ _ _ _ _ _ Hp' _ Hst Hi).
             intros _. exact (kle_vok _ _ _ _ _ _ _ (eq_refl : kle kS kW = true) Hv).
-      - destruct (Hval kN Hc) as (_ & Hnp).
-        refine (u_store_w nb0 HN _ _ _ _ _ _ _ Hp _ Hst Hi).
-        apply Hnp. apply orb_true_iff in Hc as [Hk | Hn']; [ left | right; exact Hn' ].
-        destruct K; try discriminate Hk; reflexivity.
+      - destruct (Hval kS Hc) as (Hv & _).
+        destruct Hp as [Hp | [Hp | Hp]].
+        + exact (u_store_safe nb0 HN _ _ _ _ _ _ _ Hp Hv Hst Hi).
+        + destruct (plt b nb0) as [Hlt | Hge].
+          * assert (Hl : Ple nl b) by (destruct Hp as [Hp | Hp]; [ exact Hp | exact (Ple_trans _ _ _ HN Hp) ]).
+            destruct Hi as (Hf & Hnb & HL).
+            split; [ exact (u_local_of _ _ _ _ _ _ Hl Hst Hf) | split ].
+            -- rewrite (Mem.nextblock_store _ _ _ _ _ _ Hst). exact Hnb.
+            -- intros Hd. exact (u_rl_other nb0 _ _ _ _ _ _ Hlt Hst (HL Hd)).
+          * assert (Hp' : Ple nb0 b) by (unfold Plt, Ple in *; lia).
+            refine (u_store_local nb0 HN _ _ _ _ _ _ _ Hp' _ Hst Hi).
+            intros _. exact (kle_vok _ _ _ _ _ _ _ (eq_refl : kle kS kW = true) Hv).
+        + destruct Hp as (g & Hg & Hng). destruct Hi as (Hf & Hnb & HL).
+          destruct (hn_base _ HN) as (_ & _ & Hn_glob).
+          split; [ exact (ObjExtBodies.safe_store_pres lp bm bc oc0 SafeB Hspawn g b ch z vv m m' Hng Hg Hv Hst Hf) | split ].
+          * rewrite (Mem.nextblock_store _ _ _ _ _ _ Hst). exact Hnb.
+          * intros Hd. exact (u_rl_other nb0 _ _ _ _ _ _ (Hn_glob _ _ Hg) Hst (HL Hd)).
     Qed.
 
     Lemma ub_store : forall l r le m t le' m' out,

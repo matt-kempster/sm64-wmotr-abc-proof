@@ -1451,8 +1451,8 @@ Section HeightLinked12.
   Proof.
     intros m m' (Hok & _ & _ & Hst & _ & How) Hc.
     split; [ exact (PlatformKeep.plat_keeps_still lp H12 bm Hbm_sym bc oc0 SafeB m m' Hok Hc Hst) | ].
-    destruct (PlatformKeep.plat_loads lp H12 bm Hbm_sym bc oc0 SafeB m m' Hok Hc Hst) as (LG & LM).
-    apply (PollKeep.obj_w_unch m m' (lp_ge lp) bm); [ | | exact How ].
+    destruct (PlatformKeep.plat_loads lp H12 bm Hbm_sym bc oc0 SafeB m m' Hok Hc Hst) as (LG & LM & LN).
+    apply (PollKeep.obj_w_unch m m' (lp_ge lp) bm); [ | exact LN | | exact How ].
     - intros id b Hin Hs ch z. apply (LG id b Hs).
       + intro E. subst id. unfold PollKeep.ow_ids in Hin. cbn [In] in Hin.
         repeat (destruct Hin as [E | Hin]; [ vm_compute in E; discriminate E | ]). exact Hin.
@@ -1505,14 +1505,17 @@ Section HeightLinked12.
     (forall id b, In id PollKeep.ow_ids -> Genv.find_symbol (lp_ge lp) id = Some b ->
        forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
     /\ (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
-       Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z).
+       Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z)
+    (* 2026-11-02: the surface clause of obj_w (ObjWorld.surf_obj_ok: the
+       partitions' lists and their surfaces' objects) is kept *)
+    /\ PollKeep.surf_keep m m' (lp_ge lp).
 
   Lemma Hcam_ow : forall m m', LevelFlank.cam_step lp m m' ->
     mem_ok_lp bm MWF m -> Phi m -> OWl m -> OWl m'.
   Proof.
     intros m m' Hc Hok Hphi How.
-    destruct (Hcam_ow_fp m m' Hc Hok Hphi) as (K & Kbm).
-    exact (PollKeep.obj_w_unch m m' (lp_ge lp) bm K Kbm How).
+    destruct (Hcam_ow_fp m m' Hc Hok Hphi) as (K & Kbm & KS).
+    exact (PollKeep.obj_w_unch_s m m' (lp_ge lp) bm K KS Kbm How).
   Qed.
 
   (* PROVED (2026-10-26): the level slices keep the object world.  The PRE
@@ -1562,7 +1565,8 @@ Section HeightLinked12.
     intros m m' Hphi How Hc.
     destruct (RenderKeep.render_eff lp H12 bm m m' Hphi Hc) as (mb & mo & Lmo & LD).
     pose proof How as (pool & la & fl & gol & gmo & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
-    destruct C as [_ Cr _ _ _ Cm _ _ _ _ _ _ _ _ _].
+    pose proof (ObjWorld.ow_rings _ _ _ _ _ _ _ _ _ _ _ _ C) as Cr.
+    pose proof (ObjWorld.ow_mario _ _ _ _ _ _ _ _ _ _ _ _ C) as Cm.
     destruct Cm as (k & Hk & _ & Lb & _).
     assert (Lb' : Mem.load Mint32 m bm 136 = Some (ObjWorld.slot_v pool k)) by exact Lb.
     rewrite Lmo in Lb'. unfold ObjWorld.slot_v in Lb'. injection Lb' as Eb Emo. subst mb mo.
@@ -1573,7 +1577,10 @@ Section HeightLinked12.
     { apply Ptrofs.unsigned_repr. unfold ObjWorld.OSZ, ObjWorld.NSLOT in *.
       change Ptrofs.max_unsigned with 4294967295. lia. }
     rewrite Uo in LD.
-    apply (PollKeep.obj_w_slots m m' (lp_ge lp) bm); [ | | | exact How ].
+    apply (PollKeep.obj_w_slots m m' (lp_ge lp) bm); [ | | | | exact How ].
+    3: { intros b Hb ch z. apply LD.
+         - intros (id & _ & Hs). pose proof (Genv.genv_symb_range _ _ Hs) as R. unfold Plt, Ple in *. lia.
+         - left. intro E. subst b. pose proof (Genv.genv_symb_range _ _ S1) as R. unfold Plt, Ple in *. lia. }
     - intros id b Hin Hne Hs ch z. apply LD.
       + apply (render_sym_apart id b Hs). unfold PollKeep.ow_ids in Hin. cbn [In] in Hin.
         repeat (destruct Hin as [<- | Hin]; [ vm_compute; reflexivity | ]). destruct Hin.

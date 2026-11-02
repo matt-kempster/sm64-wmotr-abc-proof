@@ -637,8 +637,8 @@ all in `Unwired/`, and the theorem moved nowhere. See
     bob-omb buddy ANIMATEs from it, so the object phase is Clight-stuck while the buddy lives.
     REPAIRED: the level-data TU links the 5 closure anim tables (clightgen level-data rule
     extended); systematic guard BhvVM.closure_data_linked (every closure gvar defined
-    non-empty in the link) + vm_data_args_linked. OPEN: witness holds only Mario -- run
-    WMotR's macro/special spawns in it.
+    non-empty in the link) + vm_data_args_linked. REPAIRED 2026-11-02 (Step B): the witness
+    holds WMotR's placed objects (OBJECT commands, macro list, area spawn infos).
     Objects agent queue (resumed 2026-11-01).
     1. DONE 2026-11-01: x/z accessors WMotRLevel.wmotr_pole_xz_list / wmotr_cannon_xzy
        (+ _proj, _box lemmas), WMotRWorld.O_POSX/O_POSZ, pole_xz_ok / cannon_xz_ok, carried
@@ -663,6 +663,27 @@ all in `Unwired/`, and the theorem moved nowhere. See
        per OBJECT command (sCurrentCmd / sCurrAreaIndex / sLevelPool set; command offsets
        vm-decoded). Mario then lands in slot 34. TRUST line: "the dispatcher is not run; the
        OBJECT handler is".
+       2026-11-02 progress: Mario's slot is behind StartTerrain.MARIO_OFF (still 0 on the
+       current witness; StartSat proved against the accessor via mario_off_u). ObjWorld's
+       checkers now CHECK action-table / hidden-star / pole / cannon clauses instead of
+       rejecting those objects (act_b, red_b, kind_b + pole_b / cannon_b / *_xz_b). Probe of
+       the real order: Mario at 20672; ow passes after the checker fix; changed globals to add
+       to f_ids: gCurrActNum, gNumCalls, sCurrAreaIndex, sCurrentCmd, sLevelPool.
+       FOUND + REPAIRED 2026-11-02: select_gfx_pool had NO CompCert execution
+       (set_segment_base_addr's mask on a pointer); approved identity shim (TRUST 2.2,
+       SegTableCensus); UcKit kp_stored kW now accepts a SafeB pointer value.
+       DONE 2026-11-02 (Step B): StartTerrain.wchk runs select_gfx_pool, lvl_objs (level pool,
+       AREA/act stores, real level_cmd_place_object per OBJECT command), load_area_terrain
+       with the macro list, area_spawn, Mario at MARIO_OFF = 20672 (slot 34); f_ids +10.
+       StartSat.frame_runs now exhibits the WHOLE HeightFrame.play_frame_step from the
+       witness (frame_w / frame_whole_of; no segment stuck), with obj_w + ctr_ok after the
+       objects phase and at the frame's end.
+       FOUND (rows false over unpinned pools) + REPAIRED in part: obj_w core gains ow_spool
+       (pool pins SP_OFF 58608 / NP_OFF 2592, size 2300, NS 1352 / NN 2908), ow_surf_obj,
+       ow_coll (<= 7 boxes, <= 2 lids, box positions). ctr_ok (counter bound) is
+       frame-boundary only. STILL SUSPECT: per-step rows have no counter fact (unbounded).
+       NEXT: walk-indexed counter in ObjLoop's ring predicate (counter <= NS + dyn surfaces
+       of the collision objects already stepped).
     4. Collision census: BhvVM.vm_collision_loaders + mesh_walls.
     5. B3 (iii) stepper; the Hobj_step_act route (census_value + per-step footprint +
        set_mario_action walk); the ow_act carry.

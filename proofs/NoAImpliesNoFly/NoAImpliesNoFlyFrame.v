@@ -192,7 +192,10 @@ Section NoAImpliesNoFlyFrame.
     (forall id b, In id PollKeep.ow_ids -> Genv.find_symbol (lp_ge lp) id = Some b ->
        forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
     /\ (forall z, z = 136 \/ In z [120; 124; 128; 132] ->
-       Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z).
+       Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z)
+    (* 2026-11-02: the surface clause of obj_w (ObjWorld.surf_obj_ok: the
+       partitions' lists and their surfaces' objects) is kept *)
+    /\ PollKeep.surf_keep m m' (lp_ge lp).
 
   (* THE CAPSTONE: GOAL 1 over GOAL 2's real frame *)
   Theorem noA_never_flying_frame_linked12 :
