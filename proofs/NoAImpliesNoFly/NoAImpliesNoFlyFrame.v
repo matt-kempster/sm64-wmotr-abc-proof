@@ -80,8 +80,10 @@
 (*  - Hcam_phi (update_camera keeps PhiW): GOAL 1 needs floor_safe and   *)
 (*    lvl_w after the camera (the painting call's guard and the next     *)
 (*    frame's); the camera's own mem_ok carry is PROVED.                 *)
-(*  - Hcam_ow (update_camera keeps obj_w): needed only because the      *)
-(*    object rows are stated over a Pobj that contains obj_w.            *)
+(*  - Hcam_ow_fp (update_camera leaves obj_w's blocks and Mario's five   *)
+(*    object-pointer cells unchanged; the obj_w carry is proved from it):*)
+(*    needed only because the object rows are stated over a Pobj that    *)
+(*    contains obj_w.                                                     *)
 (*  - Hls, Hdma_floor, Hdma_anim, Hsqrtf, Hsqrtf_float: GOAL 1's own     *)
 (*    model-boundary rows (audio load_sequence, the OS DMA floor, sqrtf).*)
 (* ====================================================================== *)
@@ -94,7 +96,7 @@ From SM64.Proofs Require Import ReachableRun RealFrameLinked LinkedTwelve SpawnI
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 From SM64.Proofs Require FpuFloor OsDmaFloor.
 From SM64.Proofs.WMotRRequiresA Require NaSplit ExtInert LsContract LevelKeep LevelFlank
-  ObjPhase ObjLoop ObjStepSplit ObjWorld FrameCalls PlatformKeep PollFlank HeightFrame.
+  ObjPhase ObjLoop ObjStepSplit ObjWorld FrameCalls PlatformKeep PollFlank PollKeep HeightFrame.
 
 Section NoAImpliesNoFlyFrame.
   Variable lp : Clight.program.
@@ -172,8 +174,14 @@ Section NoAImpliesNoFlyFrame.
     Mem.store Mint32 m b 0 (Vint c) = Some m' -> Pobjl m'.
   Hypothesis Hobj_unload : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._unload_deactivated_objects.
   Hypothesis Hobj_mplat : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._update_mario_platform.
-  Hypothesis Hcam_ow : forall m m', LevelFlank.cam_step lp m m' ->
-    mem_ok_lp bm MWF m -> Phi m -> OWl m -> OWl m'.
+  (* the camera statement's object-world footprint (HeightFrame.Hcam_ow_fp;
+     the obj_w carry is proved from it) *)
+  Hypothesis Hcam_ow_fp : forall m m', LevelFlank.cam_step lp m m' ->
+    mem_ok_lp bm MWF m -> Phi m ->
+    (forall id b, In id PollKeep.ow_ids -> Genv.find_symbol (lp_ge lp) id = Some b ->
+       forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
+    /\ (forall z, z = 136 \/ In z [120; 124; 128; 132] ->
+       Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z).
 
   (* THE CAPSTONE: GOAL 1 over GOAL 2's real frame *)
   Theorem noA_never_flying_frame_linked12 :
@@ -190,7 +198,7 @@ Section NoAImpliesNoFlyFrame.
                     Hcam_phi Hobj_blind Hobj_fresh Hobj_noref Hobj_stores Hobj_counter Hobj_debug
                     Hobj_surfaces Hobj_collisions Hobj_step_act_terrain Hobj_step_rest_terrain
                     Hobj_step_act_nonterrain Hobj_step_rest_nonterrain Hobj_ctr
-                    Hobj_unload Hobj_mplat Hcam_ow
+                    Hobj_unload Hobj_mplat Hcam_ow_fp
                     init is m Hok Hphi Hst How HA Hr)).
   Qed.
 End NoAImpliesNoFlyFrame.

@@ -1423,8 +1423,31 @@ Section HeightLinked12.
      states the live closure (CamCutCensus.uc_wmotr) stores to no object
      (its one gSecondCameraFocus store is init_camera's LEVEL_BOWSER_1 arm,
      dead under lvl_w) and calls no set_mario_npc_dialog: TRUE, unproved *)
-  Hypothesis Hcam_ow : forall m m', LevelFlank.cam_step lp m m' ->
+  (* NARROWED (2026-11-02) to a pure footprint: the camera statement leaves
+     the object world's globals' blocks (PollKeep.ow_ids) and Mario's five
+     object-pointer cells unchanged.  The object-world carry itself is
+     PROVED from it (PollKeep.obj_w_unch, Hcam_ow below), so the row no
+     longer mentions obj_w's clauses; it is exactly what a footprint walk
+     of update_camera's live closure must give.  TRUE over Phi states (the
+     phantom check above): the live closure's one object store, through
+     gSecondCameraFocus, is init_camera's LEVEL_BOWSER_1 arm, dead under
+     lvl_w (the Bowser-arena shots are outside CamCutCensus.uc_wmotr under
+     cam_w), and the closure writes no MarioState field (no
+     set_mario_npc_dialog); open *)
+  Hypothesis Hcam_ow_fp : forall m m', LevelFlank.cam_step lp m m' ->
+    mem_ok_lp bm MWF m -> Phi m ->
+    (forall id b, In id PollKeep.ow_ids -> Genv.find_symbol (lp_ge lp) id = Some b ->
+       forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
+    /\ (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
+       Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z).
+
+  Lemma Hcam_ow : forall m m', LevelFlank.cam_step lp m m' ->
     mem_ok_lp bm MWF m -> Phi m -> OWl m -> OWl m'.
+  Proof.
+    intros m m' Hc Hok Hphi How.
+    destruct (Hcam_ow_fp m m' Hc Hok Hphi) as (K & Kbm).
+    exact (PollKeep.obj_w_unch m m' (lp_ge lp) bm K Kbm How).
+  Qed.
 
   (* PROVED (2026-10-26): the level slices keep the object world.  The PRE
      slice's footprint is lvl_safe_gvars (LevelKeep.pre_eff); the POST slice

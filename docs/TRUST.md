@@ -1022,8 +1022,11 @@ without pressing A".*
   unobservable), `Hobj_stores` / `Hobj_counter`, `Hobj_debug`, `Hobj_surfaces`,
   `Hobj_collisions`, `Hobj_unload`, `Hobj_mplat` (`Hobj_terrain` / `Hobj_nonterrain` are
   PROVED since B2, below, from `Hobj_step_terrain` / `Hobj_step_nonterrain` / `Hobj_ctr`);
-  `Hcam_ow` (narrower than the old `Hlvl_ow`: the `update_camera` statement, the camera row's
-  step `LevelFlank.cam_step`, keeps the object world between mem_ok states in Φ; the real
+  `Hcam_ow_fp` (narrowed 2026-11-02 from `Hcam_ow`, which is now PROVED from it by
+  `PollKeep.obj_w_unch`: the `update_camera` statement, the camera row's step
+  `LevelFlank.cam_step`, from a mem_ok state in Φ, leaves the `PollKeep.ow_ids` globals'
+  blocks and Mario's five object-pointer cells (136, 120..132) unchanged; a pure footprint,
+  no `obj_w` clause; before: it kept the object world between mem_ok states in Φ; the real
   update_camera is walked only for mem_ok, over SafeB, which includes the object pool, so no
   footprint excludes the pool; its gates are machine-checked since 2026-10-26, `CamCutCensus`,
   and what is left is the carry (a) and the footprint walk (b) under `Hcam_phi` below).
@@ -1210,13 +1213,13 @@ without pressing A".*
       only path there, reset_dialog_render_state's `trigger_cutscene_dialog(2)`, stores
       nothing. `LevelWalk.tcd_noop` proves this from the generated body, and the walker
       accepts the constant-argument call (`tcd_skip_ok`). `Hcam_phi` assumes cam_w in PhiW and
-      claims it after, and `Hcam_ow` assumes it.
+      claims it after, and `Hcam_ow_fp` (was `Hcam_ow`) assumes it.
       Both rows are now TRUE in the game and only unproved (no longer a phantom ∀). The
       objects-phase rows (`Hobj_*`, over Pobjl ⊇ PhiW) also claim cam_w after: true by
       `cut_census_wmotr`, which is link-wide.
     - (b) a FOOTPRINT walk of update_camera's 428-function WMotR closure. UcKit walks all 507
       bodies for mem_ok, through type certificates, so it cannot prune (a)'s cutscenes. The
-      footprint for `Hcam_ow` is the camera, audio, dialog and hud globals of `uc_census`, plus
+      footprint for `Hcam_ow_fp` is the camera, audio, dialog and hud globals of `uc_census`, plus
       the Camera's pool block; none of these is a `PollKeep.ow_ids` block or gMarioStates. For
       `Hcam_phi`, add Camera bytes disjoint from the frame's surface regions.
   - `surf_apart` over `level_gvars`: PROVED from Φ since 2026-10-26 (`RenderKeep.phiw_surf_apart`).
