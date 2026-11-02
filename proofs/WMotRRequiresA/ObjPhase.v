@@ -244,6 +244,179 @@ Proof.
 Qed.
 
 (* ---------------------------------------------------------------------- *)
+(* 3b. THE STAGED WINDOW (2026-11-02).  FOUND: with one invariant P for   *)
+(*     every callee, the terrain row (call_keeps P update_terrain_objects) *)
+(*     was FALSE over phantom states: P holds at a frame boundary with    *)
+(*     gSurfacesAllocated = NS + 88 and no time stop, and from there the  *)
+(*     terrain walk loads every collision mesh a second time.  The real   *)
+(*     walk starts right after clear_dynamic_surfaces, which resets the   *)
+(*     counters (or, under TIME_STOP_ACTIVE, leaves them and loading is   *)
+(*     off).  So the phase is staged: the clear yields P /\ R, the window  *)
+(*     between the two calls (get_clock_difference and the store          *)
+(*     cycleCounts[2]) keeps R, and the terrain call starts from P /\ R.   *)
+(*     The window is cut out of the generated body (uo_split, tail_shape). *)
+(* ---------------------------------------------------------------------- *)
+Definition call_rel (ge : genv) (A B : mem -> Prop) (f : ident) : Prop :=
+  forall bf fd m vargs t m' vr,
+    Genv.find_symbol ge f = Some bf ->
+    Genv.find_funct ge (Vptr bf Ptrofs.zero) = Some fd ->
+    A m -> eval_funcall function_entry2 ge m fd vargs t m' vr -> B m'.
+
+Definition srel (ge : genv) (e : env) (A B : mem -> Prop) (s : statement) : Prop :=
+  forall le m t le' m' out, A m -> exec_stmt function_entry2 ge e le m s t le' m' out -> B m'.
+
+Lemma srel_seq : forall ge e A B C s1 s2, srel ge e A B s1 -> srel ge e B C s2 ->
+  (forall m, B m -> C m) -> srel ge e A C (Ssequence s1 s2).
+Proof.
+  intros ge e A B C s1 s2 H1 H2 BC le m t le' m' out HA H. inv H.
+  - match goal with E1 : exec_stmt _ _ _ _ _ s1 _ _ _ _, E2 : exec_stmt _ _ _ _ _ s2 _ _ _ _ |- _ =>
+      exact (H2 _ _ _ _ _ _ (H1 _ _ _ _ _ _ HA E1) E2) end.
+  - match goal with E1 : exec_stmt _ _ _ _ _ s1 _ _ _ _ |- _ => exact (BC _ (H1 _ _ _ _ _ _ HA E1)) end.
+Qed.
+
+Lemma srel_call : forall ge e A B o f fty al, is_fun_ty fty = true -> e ! f = None ->
+  call_rel ge A B f -> srel ge e A B (Scall o (Evar f fty) al).
+Proof.
+  intros ge e A B o f fty al Ht He Hk le m t le' m' out HA H. inv H.
+  match goal with Hv : eval_expr _ _ _ _ (Evar f _) _ |- _ => inv Hv end.
+  match goal with Hl : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hl end;
+    [ congruence | ].
+  destruct fty; try discriminate Ht.
+  match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inv Hd end;
+    match goal with Ha : access_mode _ = _ |- _ => cbn in Ha; try discriminate Ha end.
+  match goal with
+  | Hs : Genv.find_symbol _ f = Some _, Hff : Genv.find_funct _ _ = Some _,
+    Hf : eval_funcall _ _ _ _ _ _ _ _ |- _ => exact (Hk _ _ _ _ _ _ _ Hs Hff HA Hf)
+  end.
+Qed.
+
+Lemma fold_safe : forall ge P e l s, Forall (safeE ge P e) l -> safeE ge P e s ->
+  safeE ge P e (fold_right Ssequence s l).
+Proof.
+  intros ge P e l s F Hs. induction F as [| x l Hx F IH]; [ exact Hs | ].
+  cbn [fold_right]. exact (safeE_seq _ _ _ _ _ Hx IH).
+Qed.
+
+Definition is_clr (s : statement) : bool :=
+  match s with Scall None (Evar f _) nil => Pos.eqb f OLP._clear_dynamic_surfaces | _ => false end.
+
+Fixpoint peel (n : nat) (s : statement) : list statement * statement :=
+  match n with
+  | O => ([], s)
+  | S n' =>
+      match s with
+      | Ssequence a b => if is_clr a then ([], s) else let '(l, r) := peel n' b in (a :: l, r)
+      | _ => ([], s)
+      end
+  end.
+
+Definition uo_pre : list statement := fst (peel 30 (fn_body OLP.f_update_objects)).
+Definition uo_tail : statement := snd (peel 30 (fn_body OLP.f_update_objects)).
+
+Lemma uo_split : fn_body OLP.f_update_objects = fold_right Ssequence uo_tail uo_pre.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition clr_call : statement :=
+  Scall None (Evar OLP._clear_dynamic_surfaces (Tfunction nil tvoid cc_default)) nil.
+Definition ter_call : statement :=
+  Scall None (Evar OLP._update_terrain_objects (Tfunction nil tvoid cc_default)) nil.
+Definition uo_win : statement :=
+  match uo_tail with Ssequence _ (Ssequence w _) => w | _ => Sskip end.
+Definition uo_post : statement :=
+  match uo_tail with Ssequence _ (Ssequence _ (Ssequence _ p)) => p | _ => Sskip end.
+
+(* clear; <window>; update_terrain_objects; <the rest> *)
+Lemma tail_shape : uo_tail = Ssequence clr_call (Ssequence uo_win (Ssequence ter_call uo_post)).
+Proof. vm_compute. reflexivity. Qed.
+
+Definition ol (s : statement) : list obl := match clE s with Some l => l | None => [] end.
+Definition pieces : list statement := uo_win :: uo_post :: uo_pre.
+
+Lemma pieces_cl : forallb (fun s => match clE s with Some _ => true | None => false end) pieces = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma list_split : uo_list = flat_map ol uo_pre
+  ++ OAny OLP._clear_dynamic_surfaces (Tfunction nil tvoid cc_default) nil
+  :: ol uo_win ++ OAny OLP._update_terrain_objects (Tfunction nil tvoid cc_default) nil :: ol uo_post.
+Proof. vm_compute. reflexivity. Qed.
+
+(* the callees of the pieces: every callee but the two staged ones *)
+Definition rest_callees : list ident :=
+  [OLP._get_current_clock; OLP._reset_debug_objectinfo; OLP._stub_debug_5; OLP._get_clock_difference;
+   OLP._apply_mario_platform_displacement; OLP._detect_object_collisions;
+   OLP._update_non_terrain_objects; OLP._unload_deactivated_objects; OLP._update_mario_platform;
+   OLP._try_print_debug_mario_object_info].
+
+Lemma pieces_callees :
+  forallb (fun f => existsb (Pos.eqb f) rest_callees) (callees (flat_map ol pieces)) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma rest_in_uo : forallb (fun f => existsb (Pos.eqb f) uo_callees) rest_callees = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* the window: t'18 = cycleCounts[0]; t'3 = get_clock_difference(t'18);
+   cycleCounts[2] = t'3 *)
+Definition cc2 : statement :=
+  Sassign (Ederef (Ebinop Oadd (Evar OLP._cycleCounts (tarray tlong 30))
+                     (Econst_int (Int.repr 2) tint) (tptr tlong)) tlong)
+          (Etempvar OLP._t'3 tlong).
+
+Lemma win_cl : clE uo_win = Some
+  [OAny OLP._get_clock_difference (Tfunction (tlong :: nil) tlong cc_default) [Etempvar OLP._t'18 tlong];
+   OBlk cc2].
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma existsb_in : forall f l, existsb (Pos.eqb f) l = true -> In f l.
+Proof.
+  intros f l H. apply existsb_exists in H as (x & Hx & E). apply Pos.eqb_eq in E. subst x. exact Hx.
+Qed.
+
+Lemma piece_in : forall s o, In s pieces -> In o (ol s) -> In o uo_list.
+Proof.
+  intros s o Hs Ho. rewrite list_split.
+  destruct Hs as [<- | [<- | Hs]].
+  - apply in_or_app. right. right. apply in_or_app. left. exact Ho.
+  - apply in_or_app. right. right. apply in_or_app. right. right. exact Ho.
+  - apply in_or_app. left. apply in_flat_map. exists s. exact (conj Hs Ho).
+Qed.
+
+(* the window's store cycleCounts[2] = t'3 writes the frame block only *)
+Lemma cc2_store : forall (ge : genv) b (R : mem -> Prop),
+  (forall ch m ofs v m', R m -> Mem.store ch m b ofs v = Some m' -> R m') ->
+  safeE ge R (uo_env b) cc2.
+Proof.
+  intros ge b R HR le m t le' m' out Hm H. unfold cc2 in H.
+  inv H.
+  match goal with Hl : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hl end.
+  match goal with He : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ => inv He end;
+    try (match goal with Hl : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv Hl end).
+  match goal with He : eval_expr _ _ _ _ (Evar _ _) _ |- _ => inv He end.
+  match goal with Hl : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hl end;
+    [ | match goal with Hn : (uo_env b) ! _ = None |- _ =>
+          unfold uo_env in Hn; rewrite PTree.gss in Hn; discriminate Hn end ].
+  match goal with Hg : (uo_env b) ! _ = Some _ |- _ =>
+    unfold uo_env in Hg; rewrite PTree.gss in Hg; injection Hg as <- end.
+  match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inv Hd end;
+    try (match goal with Ha : access_mode _ = _ |- _ => cbn in Ha; discriminate Ha end).
+  match goal with Hc : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ => inv Hc end;
+    try (match goal with Hl : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv Hl end).
+  match goal with Hb : sem_binary_operation _ _ _ _ _ _ _ = Some _ |- _ =>
+    cbn in Hb; injection Hb as <- <- end.
+  match goal with Ha : assign_loc _ _ _ _ _ _ _ _ |- _ => inv Ha end;
+    try (match goal with Ha : access_mode _ = _ |- _ => cbn in Ha; discriminate Ha end).
+  match goal with Hs : Mem.storev _ _ _ _ = Some _ |- _ =>
+    cbn [Mem.storev] in Hs; exact (HR _ _ _ _ _ Hm Hs) end.
+Qed.
+
+Lemma piece_callee : forall s f fty al, In s pieces -> In (OAny f fty al) (ol s) -> In f rest_callees.
+Proof.
+  intros s f fty al Hs Ho.
+  assert (Hin : In f (callees (flat_map ol pieces)))
+    by (apply (In_callees _ _ fty al); apply in_flat_map; exists s; exact (conj Hs Ho)).
+  apply existsb_in. exact (proj1 (forallb_forall _ _) pieces_callees f Hin).
+Qed.
+
+(* ---------------------------------------------------------------------- *)
 (* 4. THE OBJECTS CALL, on the link.                                       *)
 (* ---------------------------------------------------------------------- *)
 Definition objects_call (lp : Clight.program) (m m' : mem) : Prop :=
@@ -314,6 +487,13 @@ Section Phase.
 
   Section Rows.
     Variable P : mem -> Prop.
+    (* THE POST-CLEAR FACT (2026-11-02, the staged window 3b): what
+       clear_dynamic_surfaces leaves for update_terrain_objects (on the
+       link: the counters reset, or a time stop).  It reads globals only, so
+       a store into a non-symbol block (the frame block) keeps it. *)
+    Variable R : mem -> Prop.
+    Hypothesis HR_store : forall ch m b ofs v m', Ple (Genv.genv_next G) b -> R m ->
+      Mem.store ch m b ofs v = Some m' -> R m'.
 
     (* ---- THE FRAME ROWS (the stack array cycleCounts[30]) ---- *)
     (* P does not read a non-symbol block that no stored pointer names *)
@@ -337,20 +517,33 @@ Section Phase.
     (* ---- THE STAGE ROWS: one per real callee of update_objects ---- *)
     Hypothesis Hobj_debug : call_keeps G P OLP._reset_debug_objectinfo
       /\ call_keeps G P OLP._stub_debug_5 /\ call_keeps G P OLP._try_print_debug_mario_object_info.
-    Hypothesis Hobj_surfaces : call_keeps G P OLP._clear_dynamic_surfaces.
-    Hypothesis Hobj_terrain : call_keeps G P OLP._update_terrain_objects.
+    (* staged (3b): the clear yields R, the terrain walk starts from it.
+       FOUND 2026-11-02: the single-P terrain row (call_keeps P) is false at
+       gSurfacesAllocated = NS + 88 with no time stop (a box adds 12 more). *)
+    Hypothesis Hobj_surfaces : call_rel G P (fun m => P m /\ R m) OLP._clear_dynamic_surfaces.
+    Hypothesis Hobj_terrain : call_rel G (fun m => P m /\ R m) P OLP._update_terrain_objects.
     Hypothesis Hobj_platform : call_keeps G P OLP._apply_mario_platform_displacement.
     Hypothesis Hobj_collisions : call_keeps G P OLP._detect_object_collisions.
     Hypothesis Hobj_nonterrain : call_keeps G P OLP._update_non_terrain_objects.
     Hypothesis Hobj_unload : call_keeps G P OLP._unload_deactivated_objects.
     Hypothesis Hobj_mplat : call_keeps G P OLP._update_mario_platform.
 
-    Lemma uo_calls_P : forall f, In f uo_callees -> call_keeps G P f.
+    Lemma rest_P : forall f, In f rest_callees -> call_keeps G P f.
     Proof.
-      intros f Hin. rewrite uo_callees_eq in Hin.
+      intros f Hin. unfold rest_callees in Hin.
       destruct (Hclock P) as (Hc1 & Hc2).
       destruct Hobj_debug as (Hd1 & Hd2 & Hd3).
       repeat (destruct Hin as [<- | Hin]; [ assumption | ]). destruct Hin.
+    Qed.
+
+    Lemma rest_uo : forall f, In f rest_callees -> In f uo_callees.
+    Proof. intros f Hin. apply existsb_in. exact (proj1 (forallb_forall _ _) rest_in_uo f Hin). Qed.
+
+    Lemma env_none : forall b f, In f uo_callees -> (uo_env b) ! f = None.
+    Proof.
+      intros b f Hin. unfold uo_env. rewrite PTree.gso, PTree.gempty; [ reflexivity | ].
+      pose proof uo_env_callees as E. unfold uo_callees in E. rewrite forallb_forall in E.
+      specialize (E f Hin). intros ->. rewrite Pos.eqb_refl in E. discriminate E.
     Qed.
 
     Theorem uo_keeps : forall m vargs t m' vr,
@@ -369,17 +562,51 @@ Section Phase.
       { apply (Hobj_blind b1 m ma Hple HP (noref_alloc _ _ _ _ _ Hal Hn1)).
         apply (Mem.unchanged_on_implies (fun _ _ => True)); [ | intros; exact I ].
         exact (Mem.alloc_unchanged_on _ _ _ _ _ _ Hal). }
-      assert (F : Forall (obl_okE G (fun m0 => P m0 /\ noref b1 m0) (uo_env b1)) uo_list).
-      { rewrite Forall_forall. intros [f | f fty al | s] Ho.
-        - exact (In_no_ocall _ _ uo_no_ocall Ho).
-        - pose proof (In_callees _ _ _ _ Ho) as Hin. split.
-          + unfold uo_env. rewrite PTree.gso, PTree.gempty; [ reflexivity | ].
-            pose proof uo_env_callees as E. unfold uo_callees in E. rewrite forallb_forall in E.
-            specialize (E f Hin). intros ->. rewrite Pos.eqb_refl in E. discriminate E.
-          + exact (call_keeps_and _ _ _ _ (uo_calls_P f Hin) (Hobj_noref b1 f Hin Hple)).
-        - exact (Hobj_stores b1 s Ho Hple). }
+      set (Q := fun m0 => P m0 /\ noref b1 m0).
+      (* every piece outside the window's two calls keeps Q *)
+      assert (Hpc : forall s, In s pieces -> safeE G Q (uo_env b1) s).
+      { intros s Hs.
+        pose proof (proj1 (forallb_forall _ _) pieces_cl s Hs) as Hc. cbv beta in Hc.
+        destruct (clE s) as [l|] eqn:El; [ | discriminate Hc ].
+        apply (clE_sound G Q (uo_env b1) s l El).
+        assert (Hol : ol s = l) by (unfold ol; rewrite El; reflexivity).
+        rewrite Forall_forall. intros [f | f fty al | s'] Ho; rewrite <- Hol in Ho.
+        - exact (In_no_ocall _ _ uo_no_ocall (piece_in _ _ Hs Ho)).
+        - pose proof (piece_callee _ _ _ _ Hs Ho) as Hr. split.
+          + exact (env_none b1 f (rest_uo f Hr)).
+          + exact (call_keeps_and _ _ _ _ (rest_P f Hr) (Hobj_noref b1 f (rest_uo f Hr) Hple)).
+        - exact (Hobj_stores b1 s' (piece_in _ _ Hs Ho) Hple). }
+      set (QR := fun m0 => Q m0 /\ R m0).
+      assert (Hin_clr : In OLP._clear_dynamic_surfaces uo_callees)
+        by (rewrite uo_callees_eq; cbn; tauto).
+      assert (Hin_ter : In OLP._update_terrain_objects uo_callees)
+        by (rewrite uo_callees_eq; cbn; tauto).
+      assert (HT : safeE G Q (uo_env b1) uo_tail).
+      { rewrite tail_shape.
+        apply (srel_seq G (uo_env b1) Q QR Q); [ | | intros m0 (H0 & _); exact H0 ].
+        - apply srel_call; [ reflexivity | exact (env_none b1 _ Hin_clr) | ].
+          intros bf fd m0 vargs0 t0 m0' vr0 Hs Hf (Hp & Hn) Hc.
+          destruct (Hobj_surfaces _ _ _ _ _ _ _ Hs Hf Hp Hc) as (Hp' & Hr').
+          exact (conj (conj Hp' (Hobj_noref b1 _ Hin_clr Hple _ _ _ _ _ _ _ Hs Hf Hn Hc)) Hr').
+        - apply (srel_seq G (uo_env b1) QR QR Q); [ | | intros m0 (H0 & _); exact H0 ].
+          + intros le0 m0 t0 le0' m0' out0 (Hq & Hr) Hx0. split.
+            * exact (Hpc uo_win (or_introl eq_refl) _ _ _ _ _ _ Hq Hx0).
+            * refine (clE_sound G R (uo_env b1) uo_win _ win_cl _ _ _ _ _ _ _ Hr Hx0).
+              constructor; [ split; [ exact (env_none b1 _ ltac:(rewrite uo_callees_eq; cbn; tauto))
+                                    | exact (proj2 (Hclock R)) ] | ].
+              constructor; [ | constructor ].
+              exact (cc2_store G b1 R (fun ch m1 ofs v m1' Hr1 Hs1 => HR_store ch m1 b1 ofs v m1' Hple Hr1 Hs1)).
+          + apply (srel_seq G (uo_env b1) QR Q Q); [ | | intros m0 H0; exact H0 ].
+            * apply srel_call; [ reflexivity | exact (env_none b1 _ Hin_ter) | ].
+              intros bf fd m0 vargs0 t0 m0' vr0 Hs Hf ((Hp & Hn) & Hr) Hc.
+              exact (conj (Hobj_terrain _ _ _ _ _ _ _ Hs Hf (conj Hp Hr) Hc)
+                          (Hobj_noref b1 _ Hin_ter Hple _ _ _ _ _ _ _ Hs Hf Hn Hc)).
+            * exact (Hpc uo_post (or_intror (or_introl eq_refl))). }
+      assert (Hbody : safeE G Q (uo_env b1) (fn_body OLP.f_update_objects)).
+      { rewrite uo_split. apply fold_safe; [ | exact HT ].
+        rewrite Forall_forall. intros s Hs. exact (Hpc s (or_intror (or_intror Hs))). }
       match goal with Hx : exec_stmt _ _ _ _ _ (fn_body _) _ _ _ _ |- _ =>
-        destruct (clE_sound _ _ _ _ _ uo_list_eq F _ _ _ _ _ _ (conj HP1 Hn1) Hx) as (HP2 & Hn2) end.
+        destruct (Hbody _ _ _ _ _ _ (conj HP1 Hn1) Hx) as (HP2 & Hn2) end.
       match goal with Hfr : Mem.free_list _ _ = Some _ |- _ =>
         change (blocks_of_env G (uo_env b1)) with [(b1, 0, 240)] in Hfr;
         apply free_list_one in Hfr; rename Hfr into Hfree end.

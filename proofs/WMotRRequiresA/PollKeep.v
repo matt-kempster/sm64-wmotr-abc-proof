@@ -237,7 +237,9 @@ Definition ow_ids : list ident :=
    (* 3b, 2026-11-02: the surface pins and the partitions *)
    surface_load._sSurfacePool; surface_load._sSurfaceNodePool; surface_load._sSurfacePoolSize;
    surface_load._gNumStaticSurfaces; surface_load._gNumStaticSurfaceNodes;
-   surface_load._gStaticSurfacePartition; surface_load._gDynamicSurfacePartition].
+   surface_load._gStaticSurfacePartition; surface_load._gDynamicSurfacePartition;
+   (* 3c, 2026-11-02: the surface counter and the two collision meshes *)
+   surface_load._gSurfacesAllocated; OW.BOXM; OW.LIDM].
 
 (* a slot offset is a slot index times the object size *)
 Lemma slot_of_eq : forall o k, OW.slot_of o = Some k -> o = k * OW.OSZ /\ 0 <= k < OW.NSLOT.
@@ -375,6 +377,21 @@ Section OWK.
       - intros Hb. exact (N (is_bhv_eq' k _ Hb)).
       - intros Hb. destruct (R (is_bhv_eq' k _ Hb)) as (c & Lc & Rc). exists c. rewrite Kp by sk_side. exact (conj Lc Rc).
     Qed.
+
+    (* the surface budget (ObjWorld 3c): the script a slot runs and its
+       collisionData (offsets 460, 536) *)
+    Lemma runs_eq : forall k id, OW.runs ge pool m' k id = OW.runs ge pool m k id.
+    Proof. intros k id. unfold OW.runs. rewrite (ld32_sk pool Kp) by (unfold OW.O_CMD, OW.OSZ; lia). reflexivity. Qed.
+
+    Lemma sdyn_eq : forall k, OW.sdyn ge pool m' k = OW.sdyn ge pool m k.
+    Proof. intros k. unfold OW.sdyn. rewrite !runs_eq. reflexivity. Qed.
+
+    Lemma coll_pin_eq : forall k, OW.coll_pin ge pool m k -> OW.coll_pin ge pool m' k.
+    Proof.
+      intros k (C1 & C2). unfold OW.coll_pin. rewrite !runs_eq.
+      rewrite (Kp Mint32 k OW.O_COLL) by (unfold OW.O_COLL, OW.OSZ; cbn [size_chunk]; lia).
+      exact (conj C1 C2).
+    Qed.
   End POOL.
 
   (* the surface clauses (ObjWorld 3b): a global's cell, the list walks
@@ -464,7 +481,7 @@ Section OWK.
     assert (Kd := K debug._gDebugInfo gdi ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S7).
     exists pool, la, fl, gol, gmo, sdp, gdi, rs, fs.
     refine (conj S1 (conj S2 (conj S3 (conj S4 (conj S5 (conj S6 (conj S7 _))))))).
-    destruct C as [Cg Cr Cf Cp Cfo Cm Cs Ca Crd Cdb Cst Co Cd12 Cct Cvm Csp Cso Cco].
+    destruct C as [Cg Cr Cf Cp Cfo Cm Cs Ca Crd Cdb Cst Co Cd12 Cct Cvm Csp Cso Cco Cctr Cter].
     assert (KG : forall id, In id ow_ids -> id <> object_list_processor._gObjectPool ->
                forall b, Genv.find_symbol ge id = Some b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
       by (intros id Hin Hn b Hs; exact (K id b Hin Hn Hs)).
@@ -505,6 +522,21 @@ Section OWK.
       intros k Hk Hb. rewrite (is_bhv_b_eq ge pool _ k Kp) in Hb.
       destruct (C3 k Hk Hb) as (x & y & z & Hin & L1 & L2 & L3).
       unfold OW.box_pos_ok. exists x, y, z. rewrite !Kp by sk_side. exact (conj Hin (conj L1 (conj L2 L3))).
+    - destruct Cctr as (a & Hg & Hb). exists a. split; [ | exact Hb ].
+      apply gcell_K; [ | exact Hg ].
+      apply (KG surface_load._gSurfacesAllocated); [ unfold ow_ids; cbn [In]; auto 30 | vm_compute; discriminate ].
+    - destruct Cter as (T1 & T2 & T3 & T4 & T5 & T6).
+      assert (Kme : forall id l, In id ow_ids -> id <> object_list_processor._gObjectPool ->
+                 OW.mesh_ok ge id l m -> OW.mesh_ok ge id l m').
+      { intros id l Hin Hn (b & Hs & L). exists b. split; [ exact Hs | ].
+        intros j x Hj. rewrite (KG id Hin Hn b Hs). exact (L j x Hj). }
+      split; [ | split; [ | split; [ | split; [ | split ] ] ] ].
+      + intros i k Hk. rewrite (sdyn_eq ge pool Kp). exact (T1 i k Hk).
+      + intros i k Hi Hk. rewrite !(runs_eq ge pool Kp). exact (T2 i k Hi Hk).
+      + rewrite (map_ext _ _ (sdyn_eq ge pool Kp)). exact T3.
+      + intros k Hk. exact (coll_pin_eq ge pool Kp k (T4 k Hk)).
+      + apply Kme; [ unfold ow_ids; cbn [In]; auto 30 | vm_compute; discriminate | exact T5 ].
+      + apply Kme; [ unfold ow_ids; cbn [In]; auto 30 | vm_compute; discriminate | exact T6 ].
   Qed.
 
   (* THE LEMMA, slot-field form: obj_w survives any change off its globals'
