@@ -1180,12 +1180,13 @@ Section FrameSplit.
       split; [exact (obj_store_anim_w Hf Haw) |].
       (* the level cells are globals' blocks, not Mario's object (ffw's D4) *)
       apply (AnimKeep.lvl_w_keep_ne ge m m' (fun b => b <> mb)); [| intros ch' b z Hb; exact (LD ch' b z (or_introl Hb)) | exact Hlv].
-      intros b Hs.
+      (* ... and the camera cells are no global's but lvl_w's (cam_w) *)
+      intros b Hb.
       destruct Hf as (_ & EX & _).
       ffw_unpack EX.
       assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
       rewrite Hmo in Lo'. injection Lo' as <- <-.
-      exact (proj1 (D4 b (or_intror (or_intror Hs)))).
+      exact (FfWorld.lvl_rd_not_sym ge m b _ _ Hlv Hb (FfWorld.ff_Spool _ _ _ _ FWF) ltac:(vm_compute; reflexivity)).
     Qed.
 
     Lemma obj_store_cells : forall c, read_cells bm m c -> read_cells bm m' c.

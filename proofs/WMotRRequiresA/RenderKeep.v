@@ -163,7 +163,7 @@ Section RK.
   Hypothesis HXs : forall id, In id Xs -> existsb (Pos.eqb id) core_ids = false.
   (* a step that keeps lvl_w by k_all writes no lvl_w global (the level
      POST tail and the controller poll write some and use k_all_lvl) *)
-  Hypothesis HXl : forall id, In id Xs -> existsb (Pos.eqb id) lvl_ids = false.
+  Hypothesis HXl : forall id, In id Xs -> existsb (Pos.eqb id) lvl_rd_ids = false.
 
   (* a written global's block *)
   Definition rgb (b : block) : Prop := exists id, In id Xs /\ Genv.find_symbol G id = Some b.
@@ -173,14 +173,6 @@ Section RK.
   Proof.
     intros id b Hs Hn (id' & Hin & Hs').
     assert (Ne : id <> id') by (intros <-; rewrite (HXs id Hin) in Hn; discriminate Hn).
-    exact (Genv.global_addresses_distinct G Ne Hs Hs' eq_refl).
-  Qed.
-
-  Lemma rgb_not_l : forall id b, Genv.find_symbol G id = Some b ->
-    existsb (Pos.eqb id) lvl_ids = true -> ~ rgb b.
-  Proof.
-    intros id b Hs Hn (id' & Hin & Hs').
-    assert (Ne : id <> id') by (intros <-; rewrite (HXl id Hin) in Hn; discriminate Hn).
     exact (Genv.global_addresses_distinct G Ne Hs Hs' eq_refl).
   Qed.
 
@@ -477,6 +469,16 @@ Section RK.
       - exact (proj1 (D4 b (or_intror (or_intror Hb)))).
     Qed.
 
+    (* ... nor is a block lvl_w reads (cam_w's Camera is no global's) *)
+    Lemma ffw_ne_rd : ffw G bm m -> lvl_w G m -> forall b,
+      lw_blk G m b \/ Genv.find_symbol G mario._gMarioAnimsBuf = Some b -> b <> mb.
+    Proof.
+      intros (_ & EX & _) LW b Hb.
+      ffw_unpack EX.
+      destruct (obj_eq bo oo Lo) as (-> & ->).
+      exact (lvl_rd_not_sym G m b _ _ LW Hb (ff_Spool _ _ _ _ FWF) ltac:(vm_compute; reflexivity)).
+    Qed.
+
     Lemma k_anim_apart : ffw G bm m -> anim_apart lp bm m -> anim_apart lp bm m'.
     Proof.
       intros Hf Han ab bt ot Hs Hl.
@@ -634,10 +636,9 @@ Section RK.
     Proof.
       intros Hf Hl.
       apply (AnimKeep.lvl_w_keep_ne G m m' (fun b => b <> mb /\ b <> bm /\ ~ rgb b)); [| | exact Hl].
-      - intros b Hs. split; [exact (ffw_ne Hf b (or_intror Hs)) |].
-        lvl_cases Hs; (split;
-          [ exact (AnimKeep.symne_ids G _ _ _ _ Hs Sbm eq_refl)
-          | exact (rgb_not_l _ b Hs ltac:(vm_compute; reflexivity)) ]).
+      - intros b Hb. split; [exact (ffw_ne_rd Hf Hl b Hb) |].
+        split; [ exact (lvl_rd_not_sym G m b _ bm Hl Hb Sbm ltac:(vm_compute; reflexivity))
+               | exact (lvl_rd_not_in G m b Xs Hl HXl Hb) ].
       - intros ch b z (A & B & C). exact (LHb ch b z A B C).
     Qed.
 
@@ -798,7 +799,7 @@ Section RK.
       - rewrite signed_small in Rr by lia. exact Rr.
       - rewrite Int.repr_signed. cbn [Mem.loadv] in Lr. rewrite U8 in Lr. exact Lr. }
     clear Fp Hev.
-    exact (k_all render_gvars (flank_core_incl _ HXR) (avoid_of render_gvars lvl_ids ltac:(vm_compute; reflexivity))
+    exact (k_all render_gvars (flank_core_incl _ HXR) (avoid_of render_gvars lvl_rd_ids ltac:(vm_compute; reflexivity))
              m m' mb mo Lmo NB' PM' LD LM Hbm Nbm Bmb RGa CL FR Hphi RSA).
   Qed.
   (* the render call's effect, for later carries: only the render globals

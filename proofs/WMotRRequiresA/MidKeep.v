@@ -325,7 +325,7 @@ Section LINK.
     [ apply (LevelKeep.lvl_keeps_core lp bm Hbm_sym FP
                (avoid_of FP core_ids ltac:(vmr)) ltac:(vmr) _ _ Hphi Hfx Hcl
                (phiw_surf_apart lp bm FP _ Hphi));
-      exact (PollKeep.lvl_w_fx0 lp bm Hbm_sym FP _ _ (avoid_of FP lvl_ids ltac:(vmr)) Hfx Hl)
+      exact (PollKeep.lvl_w_fx0 lp bm Hbm_sym FP _ _ (avoid_of FP lvl_rd_ids ltac:(vmr)) Hfx Hl)
     | exact (LevelKeep.fx_plat_still lp bm Hbm_sym FP _ _ ltac:(vmr) ltac:(vmr) Hfx)
     | exact (PollKeep.fx_obj_w lp bm Hbm_sym FP _ _ (avoid_of PollKeep.ow_ids FP ltac:(vmr)) ltac:(vmr) Hfx) ].
 

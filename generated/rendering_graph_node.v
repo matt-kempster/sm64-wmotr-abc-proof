@@ -664,7 +664,7 @@ Definition v_gDisplayListHead := {|
 
 Definition v_gShowDebugText := {|
   gvar_info := tschar;
-  gvar_init := nil;
+  gvar_init := (Init_space 1 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
 |}.

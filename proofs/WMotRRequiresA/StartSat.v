@@ -2509,12 +2509,32 @@ Section Witness.
     Qed.
 
     (* gCurrentArea = &gAreaData[1] (the ZA store) *)
+    Lemma L_ca : Mem.load Mint32 m11 bca 0 = Some (Vptr bgad (Ptrofs.repr 60)).
+    Proof.
+      rewrite (Mem.load_store_other _ _ _ _ _ _ Z18) by (left; exact (symne lp _ _ _ _ Hca Hbw eq_refl)).
+      exact (Mem.load_store_same _ _ _ _ _ _ ZA).
+    Qed.
+
     Lemma area11 : area_w (lp_ge lp) m11.
     Proof.
       intros ga Sa. rewrite Hca in Sa. injection Sa as <-.
-      exists bgad, (Ptrofs.repr 60). split; [ exact Hgad | ].
-      rewrite (Mem.load_store_other _ _ _ _ _ _ Z18) by (left; exact (symne lp _ _ _ _ Hca Hbw eq_refl)).
-      exact (Mem.load_store_same _ _ _ _ _ _ ZA).
+      exists bgad, (Ptrofs.repr 60). split; [ exact Hgad | exact L_ca ].
+    Qed.
+
+    (* ---- the cutscene cells (FfWorld.cam_w, 2026-11-01): the witness's
+       real Camera (gAreaData[1].camera, built by create_camera's
+       c->cutscene = 0) and sObjectCutscene's boot 0, read off m11 by
+       StartTerrain.cut_chk (inside cam_frame_ok); the Camera is the main
+       pool's block, past the globals and not the animation buffer ---- *)
+    Lemma cam11 : cam_w (lp_ge lp) m11.
+    Proof.
+      destruct (cut_chk_sound _ _ _ (cam_frame_ok_cut _ _ _ _ CF)) as (cb & co & Ec & C1 & Pg & Ab & C2).
+      pose proof (cam_frame_ok_load _ _ _ _ CF) as L96. rewrite Ec in L96.
+      split; [ exact C1 | ].
+      intros ga bad o Sg Lg. rewrite Hca in Sg. injection Sg as <-.
+      rewrite L_ca in Lg. injection Lg as <- <-.
+      exists cb, co. change (Ptrofs.unsigned (Ptrofs.repr 60) + 36) with 96. split; [ exact L96 | ].
+      split; [ exact Pg | ]. split; [ exact Ab | exact C2 ].
     Qed.
 
     (* ---- gEnvironmentRegions (FfWorld.env_w, 2026-10-26): the real
@@ -2581,7 +2601,7 @@ Section Witness.
 
     Lemma lvl11 : lvl_w (lp_ge lp) m11.
     Proof.
-      split; [ | split; [ exact L_spis | split; [ exact warp11 | split; [ exact ctl11 | exact (conj area11 (conj L_env L_dbg)) ] ] ] ].
+      split; [ | split; [ exact L_spis | split; [ exact warp11 | split; [ exact ctl11 | exact (conj area11 (conj (conj L_env L_dbg) cam11)) ] ] ] ].
       intros b Hb. change (Genv.find_symbol (lp_ge lp) level_update._gCurrLevelNum = Some b) in Hb.
       rewrite HbL in Hb. injection Hb as <-. exact L_lvl.
     Qed.

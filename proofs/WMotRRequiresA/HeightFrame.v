@@ -77,7 +77,7 @@ From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFlo
 From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT LsContract.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
 From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep PollKeep MidKeep.
-From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop.
+From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop ObjStepSplit.
 From SM64.Generated Require object_list_processor area platform_displacement.
 From SM64.Proofs Require OsDmaFloor LptBody ObjExtBodies UpdateCameraBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
@@ -1247,7 +1247,18 @@ Section HeightLinked12.
        PhiW and Mario's wall / ceiling / floor cells (LevelKeep.cam_phi_row;
        TRUST 0.7).  A camera-private clobber spec would not give it (the
        main-pool Camera shares its block with the surface pool); the writes
-       it must cover are UpdateCameraBody.uc_census's out-of-class ones. *)
+       it must cover are UpdateCameraBody.uc_census's out-of-class ones.
+     PHANTOM CHECK (2026-11-01): the row assumes PhiW before the camera
+       and claims it after, and PhiW's lvl_w now has FfWorld.cam_w (the
+       Camera's cutscene byte and sObjectCutscene are not 144 / 168, the
+       Camera is gCurrentArea->camera, a pool block apart from the globals
+       and the animation buffer).  Before cam_w the row ranged over states
+       where update_camera runs the Bowser-arena / pyramid cutscenes, so it
+       was FALSE there.  Over cam_w states update_camera's live closure is
+       CamCutCensus.uc_wmotr's 428 functions (no set_mario_npc_dialog, no
+       live object store), and no live code stores 144 / 168
+       (cut_census_wmotr), so cam_w holds after: the row is TRUE in the
+       game, and unproved (the footprint walk, TRUST 0.7). *)
   Hypothesis Hcam_phi : LevelKeep.cam_phi_row lp bm MWF.
 
   Lemma lvl_pre_linked12 :
@@ -1320,12 +1331,47 @@ Section HeightLinked12.
      leaves the node in its ring.  Terrain lists (11, 9): no Mario hole.
      The other lists (order[2..9], Mario's among them): under the hole,
      and keeping any non-symbol block's noref (the caller's filler). *)
-  Hypothesis Hobj_step_terrain :
+  (* split 2026-10-26 (ObjStepSplit): GOAL 1's claim -- one object's update
+     keeps Mario's action outside T -- is its own row (Hobj_step_act_terrain / _nonterrain,
+     backed by ActWriterCensus.census_value: outside Mario's frame only
+     set_mario_npc_dialog writes the action, with ACT_READING_NPC_DIALOG;
+     on the non-terrain lists Mario's own update is the hole); the rest of
+     each step row (Hobj_step_rest_terrain / _nonterrain) may assume it *)
+  Hypothesis Hobj_step_act_terrain :
+    ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
+      object_list_processor.f_update_objects_starting_at
+    /\ ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
+      object_list_processor.f_update_objects_during_time_stop.
+  Hypothesis Hobj_step_rest_terrain :
+    ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
+      object_list_processor.f_update_objects_starting_at
+    /\ ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
+      object_list_processor.f_update_objects_during_time_stop.
+  Hypothesis Hobj_step_act_nonterrain : mario_hole lp bm MWF Phi ->
+    ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
+      object_list_processor.f_update_objects_starting_at
+    /\ ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
+      object_list_processor.f_update_objects_during_time_stop.
+  Hypothesis Hobj_step_rest_nonterrain : mario_hole lp bm MWF Phi ->
+    ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
+      object_list_processor.f_update_objects_starting_at
+    /\ ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
+      object_list_processor.f_update_objects_during_time_stop
+    /\ ObjLoop.step_nr_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
+      object_list_processor.f_update_objects_starting_at
+    /\ ObjLoop.step_nr_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
+      object_list_processor.f_update_objects_during_time_stop.
+  (* the step rows ObjLoop's walk reads, reassembled *)
+  Lemma Hobj_step_terrain :
     ObjLoop.step_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
       object_list_processor.f_update_objects_starting_at
     /\ ObjLoop.step_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
       object_list_processor.f_update_objects_during_time_stop.
-  Hypothesis Hobj_step_nonterrain : mario_hole lp bm MWF Phi ->
+  Proof.
+    destruct Hobj_step_act_terrain as (A1 & A2). destruct Hobj_step_rest_terrain as (R1 & R2).
+    exact (conj (ObjStepSplit.step_row_split _ _ _ _ _ A1 R1) (ObjStepSplit.step_row_split _ _ _ _ _ A2 R2)).
+  Qed.
+  Lemma Hobj_step_nonterrain : mario_hole lp bm MWF Phi ->
     ObjLoop.step_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_starting_at
     /\ ObjLoop.step_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
@@ -1334,6 +1380,12 @@ Section HeightLinked12.
       object_list_processor.f_update_objects_starting_at
     /\ ObjLoop.step_nr_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_during_time_stop.
+  Proof.
+    intros Hh. destruct (Hobj_step_act_nonterrain Hh) as (A1 & A2).
+    destruct (Hobj_step_rest_nonterrain Hh) as (R1 & R2 & N1 & N2).
+    exact (conj (ObjStepSplit.step_row_split _ _ _ _ _ A1 R1)
+             (conj (ObjStepSplit.step_row_split _ _ _ _ _ A2 R2) (conj N1 N2))).
+  Qed.
   (* the walks' own store: gObjectCounter = <an int> *)
   Hypothesis Hobj_ctr : forall m b c m', Pobjl m ->
     Genv.find_symbol (lp_ge lp) object_list_processor._gObjectCounter = Some b ->
@@ -1364,7 +1416,13 @@ Section HeightLinked12.
      statement (LevelFlank.cam_step, the camera row's step), between mem_ok
      states in Phi, keeps the object world.  The real update_camera is
      walked only for mem_ok (UcKit, over SafeB, which includes the object
-     pool), so no footprint excludes the pool here *)
+     pool), so no footprint excludes the pool here.
+     PHANTOM CHECK (2026-11-01): Phi m is PhiW, whose lvl_w has
+     FfWorld.cam_w, so the camera never starts the Bowser-arena / pyramid
+     cutscenes here (Hcam_phi claims cam_w after the step).  Over those
+     states the live closure (CamCutCensus.uc_wmotr) stores to no object
+     (its one gSecondCameraFocus store is init_camera's LEVEL_BOWSER_1 arm,
+     dead under lvl_w) and calls no set_mario_npc_dialog: TRUE, unproved *)
   Hypothesis Hcam_ow : forall m m', LevelFlank.cam_step lp m m' ->
     mem_ok_lp bm MWF m -> Phi m -> OWl m -> OWl m'.
 

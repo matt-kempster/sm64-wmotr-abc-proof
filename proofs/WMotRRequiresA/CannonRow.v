@@ -553,8 +553,13 @@ Proof.
     vm_compute. intuition discriminate. }
   (* ---- the frame world at m' ---- *)
   (* the level cells (FfWorld.lvl_w): globals' blocks off the regions *)
+  (* ... and the animation buffer's pointer (gMarioAnimsBuf + 8, for cam_w) *)
+  assert (K8w : forall ab0, Genv.find_symbol G mario._gMarioAnimsBuf = Some ab0 ->
+             Mem.load Mint32 m' ab0 8 = Mem.load Mint32 m ab0 8).
+  { intros ab0 S0. pose proof (ff_S5 _ _ _ _ FWF) as S5w. cbn [fw_ab] in S5w.
+    pose proof (eq_trans (eq_sym S0) S5w) as E0. injection E0 as ->. apply (CL 8 Mint32). mem_tac. }
   assert (LV' : lvl_w G m')
-    by exact (AnimKeep.lvl_w_keep G bm m m' _ FWF AW Hgn OFF LV).
+    by exact (AnimKeep.lvl_w_keep G bm m m' _ FWF AW Hgn OFF K8w LV).
   split; [| split; [| split; [| split; [| split; [| split; [| exact (conj UO' (conj AW' LV'))]]]]]].
   - (* the action *)
     destruct KA as (a & La' & Ina). intros v Hl. rewrite La' in Hl. injection Hl as <-. exact Ina.

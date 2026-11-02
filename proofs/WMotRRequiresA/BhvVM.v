@@ -32,6 +32,7 @@ From Coq Require Import ZArith List Bool String.
 From compcert Require Import Coqlib Integers AST Ctypes Maps Ctypesdefs.
 From SM64.Generated Require behavior_data.
 From SM64.Proofs.WMotRRequiresA Require Import BehaviorScripts.
+From SM64.Proofs.WMotRRequiresA Require ObjTable.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -225,4 +226,102 @@ Lemma entry_excluded :
   [ "cannon_lid_seg8_collision_08004950"; "exclamation_box_outline_seg8_collision_08025F78";
     "peach_seg5_anims_0501C41C"; "toad_seg6_anims_0600FB58"; "bowser_key_seg3_anims_list";
     "bobomb_seg8_anims_0802396C"; "bhvSmallWaterWave398"; "blue_fish_seg3_anims_0301C2B0" ]%string.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ----------------------------------------------------------------------- *)
+(* Indexed arguments at the reachable states (B3 iii groundwork): no       *)
+(* handler indexes out of its array.                                       *)
+(*  - field commands (ADD/SET_FLOAT, ADD/SET_INT, OR_INT, BIT_CLEAR, the   *)
+(*    random ones, DELAY_VAR, LOAD_ANIMATIONS, ANIMATE_TEXTURE,            *)
+(*    SET_INT_UNUSED, PARENT_BIT_CLEAR, SUM_FLOAT / SUM_INT's three        *)
+(*    fields) index o->rawData.asU32[0x50]: every field byte is < 0x50;    *)
+(*  - SET_MODEL / SPAWN_CHILD / SPAWN_CHILD_WITH_PARAM / SPAWN_OBJ index   *)
+(*    gLoadedGraphNodes = D_8033A160[0x100]: every model id is in [0,256). *)
+(* ----------------------------------------------------------------------- *)
+Definition w0 (st : vst) : Z := match word_at (v_s st) (v_i st) with Some w => w | None => -1 end.
+Definition opc (st : vst) : Z := Z.shiftr (w0 st) 24.
+Definition byte2 (w : Z) : Z := Z.land (Z.shiftr w 16) 255.
+Definition byte3 (w : Z) : Z := Z.land (Z.shiftr w 8) 255.
+Definition byte4 (w : Z) : Z := Z.land w 255.
+
+Definition field_ops : list Z := [13; 14; 15; 16; 17; 18; 19; 20; 21; 22; 23; 37; 39; 51; 52; 54].
+Definition fields_of (st : vst) : list Z :=
+  let w := w0 st in
+  if existsb (Z.eqb (opc st)) field_ops then [byte2 w]
+  else if (opc st =? 31) || (opc st =? 32) then [byte2 w; byte3 w; byte4 w] else [].
+
+Lemma vm_fields_in_rawdata :
+  forallb (fun st => forallb (fun f => (0 <=? f) && (f <? 80)) (fields_of st)) vm_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition model_of (st : vst) : option Z :=
+  if opc st =? 27 then Some (Z.land (w0 st) 65535)
+  else if (opc st =? 28) || (opc st =? 41) || (opc st =? 44)
+  then word_at (v_s st) (v_i st + 1)%nat else None.
+
+Lemma vm_models_in_table :
+  forallb (fun st => match model_of st with Some z => (0 <=? z) && (z <? 256) | None => true end) vm_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ANIMATE (0x28) indexes the object's oAnimations table.  The reachable
+   ANIMATE states and the tables their scripts load (LOAD_ANIMATIONS,
+   0x27).  FOUND 2026-10-26: these tables were only DECLARED in the link
+   (behavior_data's extern, size 0) -- the actor animation data was not
+   linked -- and bhvBobombBuddyOpensCannon is PLACED in WMotR.  REPAIRED
+   the same day: pipeline/tu/wmotr_level_data.c links the vendor anim
+   .inc.c files (closure_data_linked / vm_data_args_linked below). *)
+Definition ptr_at (st : vst) (k : nat) : option ident :=
+  match nth_error (words (v_s st)) (v_i st + k)%nat with Some (Init_addrof t _) => Some t | _ => None end.
+
+Lemma vm_animate_users :
+  map (fun st => (string_of_ident (v_s st), byte2 (w0 st))) (filter (fun st => opc st =? 40) vm_tab) =
+  [ ("bhvBobombBuddyOpensCannon", 0); ("bhvEndToad", 0); ("bhvEndPeach", 0) ]%string.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma vm_anim_tables :
+  map (fun st => (string_of_ident (v_s st), option_map string_of_ident (ptr_at st 1)))
+      (filter (fun st => opc st =? 39) vm_tab) =
+  [ ("bhvBobombBuddyOpensCannon", Some "bobomb_seg8_anims_0802396C");
+    ("bhvBowserKeyCourseExit", Some "bowser_key_seg3_anims_list");
+    ("bhvBowserKeyUnlockDoor", Some "bowser_key_seg3_anims_list");
+    ("bhvEndToad", Some "toad_seg6_anims_0600FB58");
+    ("bhvEndPeach", Some "peach_seg5_anims_0501C41C") ]%string.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ----------------------------------------------------------------------- *)
+(* Linked-data census (2026-10-26, systematic; replaces the one-off        *)
+(* vm_anim_tables_unlinked).  A global that is only DECLARED in every TU  *)
+(* of the link is a size-0 block, so any load from it has no Clight       *)
+(* execution, and a theorem over runs that reach such a load is vacuous   *)
+(* there.  Two fail-closed checks over the real link (ObjTable.lprogs):   *)
+(*  (a) every global VARIABLE in the WMotR closure (BehaviorScripts: the  *)
+(*      placed behaviors, every script / function / table they reach, all *)
+(*      the anim tables, collision meshes, model / geo pointers, dialog,  *)
+(*      trajectories and hitboxes the closure's bodies and scripts name)  *)
+(*      has a definer in the link with a non-empty initializer;           *)
+(*  (b) every data argument of a reachable script command                 *)
+(*      (LOAD_ANIMATIONS 0x27, LOAD_COLLISION_DATA 0x2A,                  *)
+(*      SPAWN_WATER_DROPLET 0x37 word 1) is such a symbol.                *)
+(* ----------------------------------------------------------------------- *)
+Definition defined_nonempty (t : ident) : bool :=
+  existsb (fun p => existsb (fun '(id, g) =>
+     Pos.eqb id t && match g with Gvar v => 0 <? init_data_list_size (gvar_init v)
+                                 | _ => false end) (prog_defs p)) ObjTable.lprogs.
+
+Definition is_gvar_in_link (t : ident) : bool :=
+  existsb (fun p => existsb (fun '(id, g) =>
+     Pos.eqb id t && match g with Gvar _ => true | _ => false end) (prog_defs p)) ObjTable.lprogs.
+
+Lemma closure_data_linked :
+  forallb (fun t => negb (is_gvar_in_link t) || defined_nonempty t) wmotr_closure = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition data_args (st : vst) : list ident :=
+  if (opc st =? 39) || (opc st =? 42) || (opc st =? 55) then
+    match ptr_at st 1 with Some t => [t] | None => [] end else [].
+
+Lemma vm_data_args_linked :
+  forallb (fun st => implb ((opc st =? 39) || (opc st =? 42) || (opc st =? 55))
+                     (match ptr_at st 1 with Some _ => true | None => false end
+                      && forallb defined_nonempty (data_args st))) vm_tab = true.
 Proof. vm_compute. reflexivity. Qed.

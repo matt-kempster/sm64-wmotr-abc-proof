@@ -18,12 +18,15 @@
 (*    Edges: the direct calls, and for an INDIRECT call every address-    *)
 (*    taken function (an initializer's Init_addrof, or a function value   *)
 (*    in a body) whose type is exactly the call site's function type.     *)
-(*    This is a UB-COVERAGE POINT, not a soundness argument (TRUST 3.2):  *)
-(*    a call through a pointer of another type is C UB; Clight gives it   *)
-(*    no execution (exec_Scall: type_of_fundef f = Tfunction tyargs tyres *)
-(*    cc), but the N64 would run the target.  Discharge path: check that  *)
-(*    every function-pointer store / initializer in the closure holds a   *)
-(*    function of the type it is read at.  2217 functions;                *)
+(*    A call through a pointer of another type is C UB (Clight: no       *)
+(*    execution, exec_Scall; the N64 would run the target), so this was   *)
+(*    a UB-coverage point (TRUST 3.2).  REPAIRED 2026-10-26 by            *)
+(*    FnPtrCensus: every function address in the link enters at exactly  *)
+(*    its type (initializers, bodies), the only re-entry from another     *)
+(*    type is bhv_cmd_call_native's script word (all void(void)), and no *)
+(*    function pointer leaves its type -- so the call sites of clos see   *)
+(*    only functions of their own type (out-of-bounds table reads stay a  *)
+(*    3.2 point).  2217 functions;                                        *)
 (*    the externals reached (osSetTimer, __osSiRawStartDma, osRecvMesg,   *)
 (*    osSendMesg, bcopy, load_sequence, sqrtf) are GOAL 1's model-        *)
 (*    boundary rows.                                                       *)
@@ -283,7 +286,7 @@ Lemma clos_size : List.length clos = 2217%nat.
 Proof. vm_compute. reflexivity. Qed.
 
 (* THE CENSUS: two action events in the whole objects + camera closure
-   (its indirect edges are type-exact: a UB-coverage point, TRUST 3.2) *)
+   (its indirect edges are type-exact; FnPtrCensus shows they are the real ones) *)
 Lemma census_value :
   census = [(mario._set_mario_action, AStore None);
             (mario_actions_cutscene._set_mario_npc_dialog,

@@ -24,8 +24,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
   capstone rows (shared invariant: the level slices' mem_ok carries read PhiW). The header lists
   what GOAL 1 needs from each row; the key one is `Hobj_step_*` (no object sets Mario's action
   into T; objects reach it only via `set_mario_npc_dialog`, MACHINE-CHECKED by
-  `ActWriterCensus.census_value` over the objects + camera closure). TRUST 0.5. Next: split
-  "keeps action ∉ T" from `Hobj_step_*` (census + the step's footprint); then a GOAL-1 world
+  `ActWriterCensus.census_value` over the objects + camera closure; its indirect edges are the
+  real ones by `FnPtrCensus`, every function address of the link enters at exactly its type,
+  TRUST 3.2 REPAIRED up to out-of-bounds table reads; those are census-checked by
+  `ActIdxCensus` (every oAction write in range: ow_act's carry certificate) and `CamIdxCensus`
+  (camera mode / trigger / cutscene indices), closed for WMotR by `CamCutCensus` (path guards,
+  level-dead arms, the cutscene-switch carry; left: the GEO_CAMERA mode, a TRUST 3.2 line);
+  BehaviorCmdTable by ow_vm). TRUST 0.5. The split
+  is DONE (2026-10-26, `ObjStepSplit`: `Hobj_step_act_*` = "keeps action ∉ T", the rest rows
+  assume it); prove the act rows from the census + the step's footprint; then a GOAL-1 world
   invariant without the height budget (after Hseg's B-xz chunk).
 - **GOAL 1** (no-A ⇒ no-fly): `NoAImpliesNoFly/NoAImpliesNoFlyTwelve.v`,
   `noA_no_spawn_never_flying_linked12`. The step is one real `execute_mario_action` over
@@ -529,10 +536,20 @@ all in `Unwired/`, and the theorem moved nowhere. See
     alloc_only_pool_init / init_graph_node_camera / create_camera / reset_camera; FOUND:
     alloc_only_pool_resize has no CompCert execution, pointer minus pointer in main_pool_free,
     so the level pool is made at its resized size, TRUST 3.6), and `StartSat.frame_runs` runs
-    area_update_objects and then update_camera on it. Hcam_phi gates (TRUST 0.7 detail):
-    set_mario_npc_dialog is reached only from the SSL_PYRAMID_EXPLODE / ENTER_BOWSER_ARENA cutscene
-    shots (boot tables), so an honest discharge needs a camera-world carry. That carry pins the
-    Camera's cutscene and keeps the cutscene tables, and it is tied to what objects can start.
+    area_update_objects and then update_camera on it. Hcam_phi / Hcam_ow gates are
+    MACHINE-CHECKED (2026-10-26, `CamCutCensus`, no FOUND). Without the two cutscene arrays and
+    the trigger table, update_camera's 428-function closure has no set_mario_npc_dialog, and
+    its only object store is a level-dead init_camera arm (`uc_wmotr`). No live code anywhere
+    stores cutscene 144 or 168 (`cut_census_wmotr`), and the tables are read-only
+    (`tables_read_only`). The carry (a) is DONE (2026-11-01). `FfWorld.lvl_w` has a `cam_w`
+    clause: the cutscene bytes are not 144 / 168, and the Camera is a pool block apart from the
+    globals and the anim buffer. It is proved at boot (`StartSat.cam11`, via
+    `StartTerrain.cut_chk`) and kept by every proved keeper (`lvl_w_unch` over `lw_blk` +
+    gMarioAnimsBuf cell 8; footprints checked against `lvl_rd_ids`). So Hcam_phi / Hcam_ow
+    assume cam_w (through PhiW) and are TRUE, just unproved; there is no phantom ∀ there
+    anymore. Still open:
+    - (b) a footprint walk of that closure, giving camera / audio / dialog globals plus the
+      Camera's block, no ow_ids block. UcKit's type-certificate walk cannot prune.
     Left labeled.
     Mario's render call and
     `apply_mario_platform_displacement` (platform_displacement.c, TU 45) are REAL calls whose
@@ -585,6 +602,13 @@ all in `Unwired/`, and the theorem moved nowhere. See
     kernel conversion (it runs the VM). `Local Opaque` it, and state the soundness lemmas
     over an arbitrary list, as in ObjWorld.vm_b_sound_gen. Never `Eval vm_compute` it into a
     Definition: the readback takes 200 s.
+    B3 (iii-a) census: field bytes < 0x50, model ids < 256 at every reachable state.
+    FOUND (vacuity): bobomb_seg8_anims_0802396C is unlinked (size-0 extern), and the PLACED
+    bob-omb buddy ANIMATEs from it, so the object phase is Clight-stuck while the buddy lives.
+    REPAIRED: the level-data TU links the 5 closure anim tables (clightgen level-data rule
+    extended); systematic guard BhvVM.closure_data_linked (every closure gvar defined
+    non-empty in the link) + vm_data_args_linked. OPEN: witness holds only Mario -- run
+    WMotR's macro/special spawns in it.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
     PROVED at the boot witness, which now runs the real init_graph_node_start + clear_objects
     and Mario's spawn_objects_from_info; one real area_update_objects runs from it

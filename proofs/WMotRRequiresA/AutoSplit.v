@@ -481,7 +481,7 @@ Section AutSplitS.
       split; [exact (qsd_ffw Hf) |]. split; [exact (qsd_used Hf Hu) |].
       split; [exact (qsd_anim_w Hf Haw) |].
       exact (AnimKeep.lvl_w_keep_ne ge m m' (fun b => b <> bm)
-               (AnimKeep.lvl_ne_bm ge bm m Haw) (fun ch b z H => LQb ch b z H) Hl).
+               (fun b Hb => AnimKeep.lvl_rd_ne_bm ge bm m b Haw Hl Hb) (fun ch b z H => LQb ch b z H) Hl).
     Qed.
 
     Lemma qsd_mem_ok : mem_ok m -> mem_ok m'.

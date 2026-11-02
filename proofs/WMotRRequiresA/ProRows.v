@@ -606,6 +606,13 @@ Section PR.
      mario_actions_moving._sFloorAlignMatrix].
   Definition xsym (x : block) : Prop := exists id, In id XIDS /\ Genv.find_symbol ge id = Some x.
 
+  (* none of them is a global lvl_w reads (FfWorld.lvl_rd_ids) *)
+  Lemma xids_rd : forall id, In id XIDS -> existsb (Pos.eqb id) lvl_rd_ids = false.
+  Proof.
+    intros id Hin. unfold XIDS in Hin. cbn [In] in Hin.
+    repeat (destruct Hin as [<- | Hin]; [vm_compute; reflexivity |]). destruct Hin.
+  Qed.
+
   Lemma xsym_ne : forall x id b, xsym x -> Genv.find_symbol ge id = Some b ->
     existsb (Pos.eqb id) XIDS = false -> b <> x.
   Proof.
@@ -1023,11 +1030,12 @@ Section PR.
       ffw_unpack EX.
       assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
       apply (AnimKeep.lvl_w_keep_ne ge m m' (fun b => (b <> bm /\ b <> bsr /\ b <> bsrc) /\ b <> bo)); [| | exact Hl].
-      - intros b Hs. split; [split; [exact (AnimKeep.lvl_ne_bm ge bm m AW b Hs) |] |].
-        + lvl_cases Hs; split;
-            first [ exact (xsym_ne _ _ _ SR0 Hs eq_refl)
-                  | exact (xsym_ne _ _ _ SRC0 Hs eq_refl) ].
-        + exact (proj1 (D4 b (or_intror (or_intror Hs)))).
+      - (* the blocks lvl_w reads: its globals and the Camera (cam_w) *)
+        intros b Hb. split; [split; [exact (AnimKeep.lvl_rd_ne_bm ge bm m b AW Hl Hb) |] |].
+        + destruct SR0 as (i1 & In1 & S1'). destruct SRC0 as (i2 & In2 & S2').
+          split; [ exact (lvl_rd_not_sym ge m b _ _ Hl Hb S1' (xids_rd i1 In1))
+                 | exact (lvl_rd_not_sym ge m b _ _ Hl Hb S2' (xids_rd i2 In2)) ].
+        + exact (lvl_rd_not_sym ge m b _ _ Hl Hb (ff_Spool _ _ _ _ FWF) ltac:(vm_compute; reflexivity)).
       - intros ch b z ((A & B & C) & E). apply LHz; [exact A | exact B | exact C |].
         apply ozp_ne. intros mb mo Hl0. rewrite Lo' in Hl0. injection Hl0 as <- _. exact E.
     Qed.

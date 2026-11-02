@@ -36,8 +36,10 @@
 (* so the instant and painting warp guards are no-ops; FfWorld.area_w for *)
 (* update_camera's argument).  So each row is needed in its full form,   *)
 (* and its GOAL-1 content is:                                             *)
-(*  - Hobj_step_terrain / Hobj_step_nonterrain (one object's update,     *)
-(*    cur_obj_update: its behavior script and natives) -- THE KEY ROW:   *)
+(*  - Hobj_step_act_terrain / Hobj_step_act_nonterrain (one object's     *)
+(*    update, cur_obj_update: its behavior script and natives; split    *)
+(*    2026-10-26 from the step rows, ObjStepSplit; the rest rows         *)
+(*    Hobj_step_rest_* assume it) -- THE KEY ROW, GOAL 1's exact claim: *)
 (*    no object sets Mario's action into T.  MACHINE-CHECKED on the      *)
 (*    generated code (ActWriterCensus.census_value, 2026-10-26): in the  *)
 (*    closure of area_update_objects and update_camera (Mario's frame    *)
@@ -92,7 +94,7 @@ From SM64.Proofs Require Import ReachableRun RealFrameLinked LinkedTwelve SpawnI
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 From SM64.Proofs Require FpuFloor OsDmaFloor.
 From SM64.Proofs.WMotRRequiresA Require NaSplit ExtInert LsContract LevelKeep LevelFlank
-  ObjPhase ObjLoop ObjWorld FrameCalls PlatformKeep PollFlank HeightFrame.
+  ObjPhase ObjLoop ObjStepSplit ObjWorld FrameCalls PlatformKeep PollFlank HeightFrame.
 
 Section NoAImpliesNoFlyFrame.
   Variable lp : Clight.program.
@@ -140,20 +142,31 @@ Section NoAImpliesNoFlyFrame.
     /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._try_print_debug_mario_object_info.
   Hypothesis Hobj_surfaces : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._clear_dynamic_surfaces.
   Hypothesis Hobj_collisions : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._detect_object_collisions.
-  Hypothesis Hobj_step_terrain :
-    ObjLoop.step_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
+  Hypothesis Hobj_step_act_terrain :
+    ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
       object_list_processor.f_update_objects_starting_at
-    /\ ObjLoop.step_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
+    /\ ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
       object_list_processor.f_update_objects_during_time_stop.
-  Hypothesis Hobj_step_nonterrain : HeightFrame.mario_hole lp bm MWF Phi ->
-    ObjLoop.step_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
+  Hypothesis Hobj_step_rest_terrain :
+    ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
       object_list_processor.f_update_objects_starting_at
-    /\ ObjLoop.step_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
+    /\ ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
+      object_list_processor.f_update_objects_during_time_stop.
+  Hypothesis Hobj_step_act_nonterrain : HeightFrame.mario_hole lp bm MWF Phi ->
+    ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
+      object_list_processor.f_update_objects_starting_at
+    /\ ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
+      object_list_processor.f_update_objects_during_time_stop.
+  Hypothesis Hobj_step_rest_nonterrain : HeightFrame.mario_hole lp bm MWF Phi ->
+    ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
+      object_list_processor.f_update_objects_starting_at
+    /\ ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_during_time_stop
     /\ ObjLoop.step_nr_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_starting_at
     /\ ObjLoop.step_nr_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_during_time_stop.
+
   Hypothesis Hobj_ctr : forall m b c m', Pobjl m ->
     Genv.find_symbol (lp_ge lp) object_list_processor._gObjectCounter = Some b ->
     Mem.store Mint32 m b 0 (Vint c) = Some m' -> Pobjl m'.
@@ -175,7 +188,8 @@ Section NoAImpliesNoFlyFrame.
     exact (proj1 (HeightFrame.wmotr_noA_run_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms
                     Hbm_sym Hbc_sym Hoc0 Hls Hdma_floor Hseg_na_open Hdma_anim Hsqrtf Hsqrtf_float
                     Hcam_phi Hobj_blind Hobj_fresh Hobj_noref Hobj_stores Hobj_counter Hobj_debug
-                    Hobj_surfaces Hobj_collisions Hobj_step_terrain Hobj_step_nonterrain Hobj_ctr
+                    Hobj_surfaces Hobj_collisions Hobj_step_act_terrain Hobj_step_rest_terrain
+                    Hobj_step_act_nonterrain Hobj_step_rest_nonterrain Hobj_ctr
                     Hobj_unload Hobj_mplat Hcam_ow
                     init is m Hok Hphi Hst How HA Hr)).
   Qed.

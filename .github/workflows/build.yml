@@ -18,11 +18,13 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 360
     env:
       SM64_PROOF_SWITCH: sm64-proof
       OPAMCOLOR: never
       OPAMYES: "1"
       OPAMROOT: ${{ github.workspace }}/.opamroot
+      SM64_VO_CACHE: ${{ github.workspace }}/.vo-cache
     steps:
       - uses: actions/checkout@v4
 
@@ -46,6 +48,17 @@ jobs:
         if: steps.opam-cache.outputs.cache-hit != 'true'
         run: bash pipeline/install-toolchain.sh
 
+      # Content-addressed .vo cache (pipeline/coqc_cache.py), the same one used
+      # locally. A from-scratch build exceeds the job time limit, so each run
+      # restores the newest cache and only recompiles what changed. Saved with
+      # if: always() so even a failed or timed-out run seeds the next one.
+      - name: Restore vo cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.SM64_VO_CACHE }}
+          key: vo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: vo-${{ runner.os }}-
+
       # The actual gate: full type-check of generated ASTs + all proofs.
       # NOTE: deliberately does NOT build the forbidden path in
       #   proofs/Generic/SymbolicLinking.v -- the file is in _CoqProject but only
@@ -56,6 +69,13 @@ jobs:
       # clightgen, and we want CI to verify exactly the artifacts in the repo.
       - name: Build (proofs against committed generated/)
         run: bash pipeline/build.sh proofs
+
+      - name: Save vo cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.SM64_VO_CACHE }}
+          key: vo-${{ runner.os }}-${{ github.sha }}
 
       # Structure check: enforce 'unused => unwired'. No file outside an Unwired/
       # subtree may import into it (firewall), and every non-Unwired file must be
