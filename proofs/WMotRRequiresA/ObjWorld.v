@@ -45,7 +45,7 @@ From Coq Require Import ZArith List Lia Bool String.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypesdefs
   Globalenvs Ctypes Clight Errors.
 From SM64.Generated Require object_list_processor behavior_data behavior_script object_helpers debug
-  surface_load macro_special_objects.
+  surface_load macro_special_objects wmotr_level_data.
 From SM64.Proofs Require Interp.CMem.
 From SM64.Proofs Require Import CensusV2.
 From SM64.Proofs.WMotRRequiresA Require Import WMotRLevel WMotRWorld.
@@ -454,9 +454,15 @@ Definition coll_ok (ge : genv) (pool : block) (m : mem) (rs : list (list Z)) : P
   /\ forall k, In k (concat rs) -> is_bhv_b ge pool m macro_special_objects._bhvExclamationBox k = true ->
        box_pos_ok pool m k.
 
-(* THE FRAME-BOUNDARY COUNTER FACT (not in ow_core: see 3b).  Between
-   frames clear_dynamic_surfaces has reset both counters to the static
-   counts and each collision object has loaded its mesh at most once:
+(* THE FRAME-BOUNDARY COUNTER FACT (not in ow_core: see 3b).  In a frame
+   without time stop, clear_dynamic_surfaces resets both counters to the
+   static counts and each collision object then loads its mesh at most
+   once.  In a time-stop frame (TIME_STOP_ACTIVE at the clear) the clear
+   does NOT reset, and load_object_collision_model loads nothing either
+   (the same gate; CollisionCensus.gates_value), and no terrain script
+   writes gTimeStopState (CollisionCensus.terrain_value), so the counters
+   keep the previous frame's values (FOUND 2026-11-02: this comment said
+   the clear always resets).  The bound:
    DS = the placed collision objects' triangles (7 boxes x 12 + 2 lids x 2);
    DN = 4 DS: a dynamic triangle spans at most 2 x 2 cells, since its x / z
    extent is at most 2 * scale * |vertex| + 2 <= 802 < 924 (mesh_radius;
@@ -483,6 +489,124 @@ Definition ctr_ok (ge : genv) (m : mem) : Prop :=
     /\ NS <= Int.signed a <= NS + DS
     /\ gcell ge surface_load._gSurfaceNodesAllocated Mint32 (Vint n) m
     /\ NN <= Int.signed n <= NN + DN.
+
+(* ---------------------------------------------------------------------- *)
+(* 3c. THE SURFACE BUDGET (2026-11-02; the census: CollisionCensus).       *)
+(*   A slot's dynamic surfaces per step, by the script it RUNS (the block  *)
+(*   its curBhvCommand points into, not its behavior field): the box      *)
+(*   script 12 (its mesh's triangles), the lid script 2, any other 0 (no  *)
+(*   other reached script reaches load_object_collision_model:           *)
+(*   CollisionCensus.loaders_value); 0 in a time stop (the loader's gate, *)
+(*   gates_value).  CTR_S: NS <= gSurfacesAllocated <= NS + DS.  TER: a   *)
+(*   slot with dynamic surfaces is in list 9; lists 9 and 11 run only the *)
+(*   box, lid and bhvCoinFormation scripts (terrain_value: the reached    *)
+(*   scripts that BEGIN in 9 or 11); list 9's budgets sum to at most DS;  *)
+(*   a box / lid slot's collisionData is NULL (not yet loaded) or its     *)
+(*   mesh; both meshes hold their initializers (the arrays are writable   *)
+(*   globals, wmotr_level_data, so this is pinned, not assumed).          *)
+(*   NOT here: the node counter.  FOUND 2026-11-02: a per-step node bound *)
+(*   (4 per triangle) is false over states whose box / lid transform      *)
+(*   (header.gfx.throwMatrix, the lid's scale, offsets < 96) is not        *)
+(*   pinned; it stays a frame-boundary check (ctr_ok) and an open item.   *)
+(* ---------------------------------------------------------------------- *)
+Definition O_COLL : Z := 536.     (* collisionData *)
+Lemma coll_pinned : fo object_helpers._Object object_helpers._collisionData = Some O_COLL.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition BOXS : ident := behavior_data._bhvExclamationBox.
+Definition LIDS : ident := behavior_data._bhvCannonClosed.
+Definition COINF : ident := behavior_data._bhvCoinFormation.
+Definition BOXM : ident := wmotr_level_data._exclamation_box_outline_seg8_collision_08025F78.
+Definition LIDM : ident := wmotr_level_data._cannon_lid_seg8_collision_08004950.
+Definition D_BOX : Z := 12.
+Definition D_LID : Z := 2.
+
+(* the meshes' triangle counts (the parse DS is the sum of) *)
+Lemma mesh_tris_pinned :
+  (Z.of_nat (List.length (parse (shorts box_init))), Z.of_nat (List.length (parse (shorts lid_init))))
+  = (D_BOX, D_LID).
+Proof. vm_compute. reflexivity. Qed.
+
+Definition sym_is (ge : genv) (id : ident) (b : block) : bool :=
+  match Genv.find_symbol ge id with Some b' => Pos.eqb b b' | None => false end.
+
+(* slot k runs the script id *)
+Definition runs (ge : genv) (pool : block) (m : mem) (k : Z) (id : ident) : bool :=
+  match ld32 m pool (k * OSZ + O_CMD) with Some (Vptr b _) => sym_is ge id b | _ => false end.
+
+Definition sdyn (ge : genv) (pool : block) (m : mem) (k : Z) : Z :=
+  if runs ge pool m k BOXS then D_BOX else if runs ge pool m k LIDS then D_LID else 0.
+
+Definition sumz (l : list Z) : Z := fold_right Z.add 0 l.
+
+Definition mesh_ptr (ge : genv) (id : ident) (ov : option val) : Prop :=
+  ov = Some (Vint Int.zero) \/ exists b, Genv.find_symbol ge id = Some b /\ ov = Some (Vptr b Ptrofs.zero).
+
+Definition coll_pin (ge : genv) (pool : block) (m : mem) (k : Z) : Prop :=
+  (runs ge pool m k BOXS = true -> mesh_ptr ge BOXM (Mem.load Mint32 m pool (k * OSZ + O_COLL)))
+  /\ (runs ge pool m k LIDS = true -> mesh_ptr ge LIDM (Mem.load Mint32 m pool (k * OSZ + O_COLL))).
+
+Definition mesh_ok (ge : genv) (id : ident) (l : list Z) (m : mem) : Prop :=
+  exists b, Genv.find_symbol ge id = Some b
+    /\ forall j x, nth_error l j = Some x -> Mem.load Mint16signed m b (2 * Z.of_nat j) = Some (Vint (Int.repr x)).
+
+Definition ter_ok (ge : genv) (pool : block) (m : mem) (rs : list (list Z)) : Prop :=
+  (forall i k, In k (nth i rs []) -> sdyn ge pool m k <> 0 -> i = 9%nat)
+  /\ (forall i k, (i = 9 \/ i = 11)%nat -> In k (nth i rs []) ->
+        runs ge pool m k BOXS = true \/ runs ge pool m k LIDS = true \/ runs ge pool m k COINF = true)
+  /\ sumz (map (sdyn ge pool m) (nth 9 rs [])) <= DS
+  /\ (forall k, In k (concat rs) -> coll_pin ge pool m k)
+  /\ mesh_ok ge BOXM (shorts box_init) m /\ mesh_ok ge LIDM (shorts lid_init) m.
+
+Definition ctr_s_ok (ge : genv) (m : mem) : Prop :=
+  exists a, gcell ge surface_load._gSurfacesAllocated Mint32 (Vint a) m /\ NS <= Int.signed a <= NS + DS.
+
+(* the time-stop gate and the counter, as values *)
+Definition tsa (ge : genv) (m : mem) : bool :=
+  match Genv.find_symbol ge surface_load._gTimeStopState with
+  | Some b => match Mem.load Mint32 m b 0 with
+              | Some (Vint x) => negb (Int.eq (Int.and x (Int.repr 64)) Int.zero)
+              | _ => false
+              end
+  | None => false
+  end.
+
+Definition ctrv (ge : genv) (m : mem) : Z :=
+  match Genv.find_symbol ge surface_load._gSurfacesAllocated with
+  | Some b => match Mem.load Mint32 m b 0 with Some (Vint a) => Int.signed a | _ => NS + DS + 1 end
+  | None => NS + DS + 1
+  end.
+
+Definition dyn (ge : genv) (pool : block) (m : mem) (k : Z) : Z :=
+  if tsa ge m then 0 else sdyn ge pool m k.
+
+(* THE POST-CLEAR FACT R (ObjPhase 3b): after clear_dynamic_surfaces the
+   counter is back at the static count, or a time stop is on.  PHANTOM
+   CHECK: on the real path the clear makes it true (surface_load.c:643:
+   gSurfacesAllocated = gNumStaticSurfaces, pinned NS by ow_spool, unless
+   TIME_STOP_ACTIVE), and the boot witness satisfies it before the first
+   objects phase (counters = (NS, NN) at m11, once the boot side checks
+   ctr_b there). *)
+Definition post_clear (ge : genv) (m : mem) : Prop := tsa ge m = true \/ ctrv ge m = NS.
+
+Lemma sym_load_store : forall (ge : genv) id bs ch m b ofs v m' ch' z,
+  Genv.find_symbol ge id = Some bs -> Ple (Genv.genv_next ge) b ->
+  Mem.store ch m b ofs v = Some m' -> Mem.load ch' m' bs z = Mem.load ch' m bs z.
+Proof.
+  intros ge id bs ch m b ofs v m' ch' z Hs Hp Hst.
+  apply (Mem.load_store_other _ _ _ _ _ _ Hst). left.
+  intros ->. pose proof (Genv.genv_symb_range _ _ Hs) as Hr. unfold Plt, Ple in *. lia.
+Qed.
+
+Lemma post_clear_store : forall (ge : genv) ch m b ofs v m', Ple (Genv.genv_next ge) b ->
+  post_clear ge m -> Mem.store ch m b ofs v = Some m' -> post_clear ge m'.
+Proof.
+  intros ge ch m b ofs v m' Hp H Hst. unfold post_clear, tsa, ctrv in *.
+  destruct (Genv.find_symbol ge surface_load._gTimeStopState) as [bt|] eqn:Et;
+  destruct (Genv.find_symbol ge surface_load._gSurfacesAllocated) as [ba|] eqn:Ea;
+  rewrite ?(sym_load_store ge _ _ _ _ _ _ _ _ _ _ Et Hp Hst), ?(sym_load_store ge _ _ _ _ _ _ _ _ _ _ Ea Hp Hst);
+  exact H.
+Qed.
 
 (* ---------------------------------------------------------------------- *)
 (* 4. obj_w.                                                                *)
@@ -512,7 +636,10 @@ Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
   (* 3b, 2026-11-02 *)
   ow_spool : spool_ok ge m;
   ow_surf_obj : surf_obj_ok ge pool m;
-  ow_coll : coll_ok ge pool m rs
+  ow_coll : coll_ok ge pool m rs;
+  (* 3c, 2026-11-02 *)
+  ow_ctr : ctr_s_ok ge m;
+  ow_ter : ter_ok ge pool m rs
 }.
 
 Definition obj_w (ge : genv) (bm : block) (m : mem) : Prop :=
@@ -1062,6 +1189,121 @@ Proof.
   exists a, n. split; [ exists ba; exact (conj Ha La) | split; [ lia | split; [ exists bn; exact (conj Hn Ln) | lia ] ] ].
 Qed.
 
+Definition ctr_s_b (ge : genv) (m : mem) : bool :=
+  match Genv.find_symbol ge surface_load._gSurfacesAllocated with
+  | Some ba => match CM.load Mint32 m ba 0 with
+               | Some (Vint a) => (NS <=? Int.signed a) && (Int.signed a <=? NS + DS)
+               | _ => false
+               end
+  | None => false
+  end.
+
+Lemma ctr_s_b_sound : forall ge m, ctr_s_b ge m = true -> ctr_s_ok ge m.
+Proof.
+  intros ge m H. unfold ctr_s_b in H.
+  destruct (Genv.find_symbol ge surface_load._gSurfacesAllocated) as [ba|] eqn:Ha; [ | discriminate H ].
+  rewrite CM.load_eq in H.
+  destruct (Mem.load Mint32 m ba 0) as [[| a | | | |]|] eqn:La; try discriminate H.
+  apply andb_prop in H as [H1 H2]. apply Z.leb_le in H1, H2.
+  exists a. split; [ exists ba; exact (conj Ha La) | lia ].
+Qed.
+
+Fixpoint idx_from (n : nat) (l : list Z) : list (nat * Z) :=
+  match l with [] => [] | x :: r => (n, x) :: idx_from (S n) r end.
+
+Lemma idx_from_in : forall l n j x, nth_error l j = Some x -> In (n + j, x)%nat (idx_from n l).
+Proof.
+  induction l as [| y l IH]; intros n j x H; [ destruct j; discriminate H | ].
+  destruct j as [| j]; cbn in H.
+  - injection H as <-. left. f_equal. lia.
+  - right. replace (n + S j)%nat with (S n + j)%nat by lia. exact (IH _ _ _ H).
+Qed.
+
+Definition mesh_b (ge : genv) (id : ident) (l : list Z) (m : mem) : bool :=
+  match Genv.find_symbol ge id with
+  | Some b => forallb (fun p => match CM.load Mint16signed m b (2 * Z.of_nat (fst p)) with
+                               | Some v => veqb v (Vint (Int.repr (snd p)))
+                               | None => false
+                               end) (idx_from 0 l)
+  | None => false
+  end.
+
+Lemma mesh_b_sound : forall ge id l m, mesh_b ge id l m = true -> mesh_ok ge id l m.
+Proof.
+  intros ge id l m H. unfold mesh_b in H.
+  destruct (Genv.find_symbol ge id) as [b|] eqn:Hs; [ | discriminate H ].
+  exists b. split; [ first [ exact Hs | reflexivity ] | ]. intros j x Hj.
+  pose proof (proj1 (forallb_forall _ _) H _ (idx_from_in l 0 j x Hj)) as E. cbv beta in E.
+  cbn [fst snd Nat.add] in E. rewrite CM.load_eq in E.
+  destruct (Mem.load Mint16signed m b (2 * Z.of_nat j)) as [v|]; [ | discriminate E ].
+  rewrite (veqb_eq _ _ E). reflexivity.
+Qed.
+
+Definition mesh_ptr_b (ge : genv) (id : ident) (ov : option val) : bool :=
+  match ov with
+  | Some (Vint i) => Int.eq i Int.zero
+  | Some (Vptr b o) => sym_is ge id b && Ptrofs.eq o Ptrofs.zero
+  | _ => false
+  end.
+
+Lemma mesh_ptr_b_sound : forall ge id ov, mesh_ptr_b ge id ov = true -> mesh_ptr ge id ov.
+Proof.
+  intros ge id [[| i | | | | b o]|] H; try discriminate H; cbn in H.
+  - left. apply Int.same_if_eq in H. subst i. reflexivity.
+  - right. apply andb_prop in H as [H1 H2]. unfold sym_is in H1.
+    destruct (Genv.find_symbol ge id) as [b'|] eqn:Hs; [ | discriminate H1 ].
+    apply Pos.eqb_eq in H1. subst b'. apply Ptrofs.same_if_eq in H2. subst o.
+    exists b. split; [ first [ exact Hs | reflexivity ] | reflexivity ].
+Qed.
+
+Definition coll_pin_b (ge : genv) (pool : block) (m : mem) (k : Z) : bool :=
+  (negb (runs ge pool m k BOXS) || mesh_ptr_b ge BOXM (CM.load Mint32 m pool (k * OSZ + O_COLL)))
+  && (negb (runs ge pool m k LIDS) || mesh_ptr_b ge LIDM (CM.load Mint32 m pool (k * OSZ + O_COLL))).
+
+Lemma coll_pin_b_sound : forall ge pool m k, coll_pin_b ge pool m k = true -> coll_pin ge pool m k.
+Proof.
+  intros ge pool m k H. unfold coll_pin_b in H. rewrite CM.load_eq in H.
+  apply andb_prop in H as [H1 H2]. split; intros E.
+  - rewrite E in H1. exact (mesh_ptr_b_sound _ _ _ H1).
+  - rewrite E in H2. exact (mesh_ptr_b_sound _ _ _ H2).
+Qed.
+
+Definition ter_b (ge : genv) (pool : block) (m : mem) (rs : list (list Z)) : bool :=
+  forallb (fun i => forallb (fun k => Z.eqb (sdyn ge pool m k) 0 || Nat.eqb i 9) (nth i rs []))
+          (seq 0 (List.length rs))
+  && forallb (fun k => runs ge pool m k BOXS || runs ge pool m k LIDS || runs ge pool m k COINF)
+             (nth 9 rs [] ++ nth 11 rs [])
+  && (sumz (map (sdyn ge pool m) (nth 9 rs [])) <=? DS)
+  && forallb (coll_pin_b ge pool m) (concat rs)
+  && mesh_b ge BOXM (shorts box_init) m && mesh_b ge LIDM (shorts lid_init) m.
+
+Lemma ter_b_sound : forall ge pool m rs, ter_b ge pool m rs = true -> ter_ok ge pool m rs.
+Proof.
+  intros ge pool m rs H. unfold ter_b in H.
+  apply andb_prop in H as [H H6]. apply andb_prop in H as [H H5]. apply andb_prop in H as [H H4].
+  apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
+  split; [ | split; [ | split; [ | split; [ | split ] ] ] ].
+  - intros i k Hk Hn. destruct (Nat.lt_ge_cases i (List.length rs)) as [Hi | Hi].
+    + assert (Hs : In i (seq 0 (List.length rs))) by (apply in_seq; lia).
+      pose proof (proj1 (forallb_forall _ _) H1 i Hs) as E. cbv beta in E.
+      pose proof (proj1 (forallb_forall _ _) E k Hk) as E2. apply orb_true_iff in E2 as [E2 | E2].
+      * apply Z.eqb_eq in E2. contradiction.
+      * apply Nat.eqb_eq in E2. exact E2.
+    + rewrite nth_overflow in Hk by exact Hi. destruct Hk.
+  - intros i k Hi Hk.
+    assert (Hk' : In k (nth 9 rs [] ++ nth 11 rs []))
+      by (apply in_or_app; destruct Hi as [-> | ->]; [ left | right ]; exact Hk).
+    pose proof (proj1 (forallb_forall _ _) H2 k Hk') as E. cbv beta in E.
+    apply orb_true_iff in E as [E | E]; [ apply orb_true_iff in E as [E | E] | ].
+    + left. exact E.
+    + right. left. exact E.
+    + right. right. exact E.
+  - apply Z.leb_le. exact H3.
+  - intros k Hk. exact (coll_pin_b_sound _ _ _ _ (proj1 (forallb_forall _ _) H4 k Hk)).
+  - exact (mesh_b_sound _ _ _ _ H5).
+  - exact (mesh_b_sound _ _ _ _ H6).
+Qed.
+
 Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem) : bool :=
   match rings m pool la, free_list m pool fl, ld32 m gmo 0 with
   | Some rs, Some fs, Some (Vptr pb po) =>
@@ -1084,6 +1326,7 @@ Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : 
       && cmdtab_b ge m
       && forallb (fun k => existsb (st_b ge pool m k) BhvVM.vm_tab) (concat rs)
       && spool_b ge m && surf_b ge pool m && coll_b ge pool m rs
+      && ctr_s_b ge m && ter_b ge pool m rs
       | None => false
       end
   | _, _, _ => false
@@ -1113,6 +1356,7 @@ Proof.
   destruct (ld32 m gmo 0) as [[| | | | | pb po]|] eqn:Hg;
     [ discriminate H .. | | discriminate H ].
   destruct (slot_of (Ptrofs.unsigned po)) as [k|] eqn:Hk; [ | discriminate H ].
+  apply andb_prop in H as [H Hter]. apply andb_prop in H as [H Hctr].
   apply andb_prop in H as [H Hcoll]. apply andb_prop in H as [H Hsurf]. apply andb_prop in H as [H Hspool].
   apply andb_prop in H as [H Hvm].
   apply andb_prop in H as [H Hcmd].
@@ -1159,6 +1403,8 @@ Proof.
   - exact (spool_b_sound _ _ Hspool).
   - exact (surf_b_sound _ _ _ Hsurf).
   - exact (coll_b_sound _ _ _ _ Hcoll).
+  - exact (ctr_s_b_sound _ _ Hctr).
+  - exact (ter_b_sound _ _ _ _ Hter).
 Qed.
 
 Definition ow_chk (ge : genv) (bm : block) (m : mem) : bool :=

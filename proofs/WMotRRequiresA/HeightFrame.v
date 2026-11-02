@@ -366,8 +366,23 @@ Section HeightFrame.
     ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._reset_debug_objectinfo
     /\ ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._stub_debug_5
     /\ ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._try_print_debug_mario_object_info.
-  Hypothesis Hobj_surfaces : ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._clear_dynamic_surfaces.
-  Hypothesis Hobj_terrain : ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._update_terrain_objects.
+  (* THE STAGED SURFACE FACT (2026-11-02, ObjPhase 3b): Robj is what
+     clear_dynamic_surfaces leaves for update_terrain_objects (on the link
+     ObjWorld.post_clear: the surface counter back at NS, or a time stop);
+     the window between them (get_clock_difference and the cycleCounts[2]
+     store into update_objects' frame block) keeps it, since it reads only
+     symbol blocks (Hobj_R_store; PROVED on the link,
+     ObjWorld.post_clear_store).  FOUND 2026-11-02: the terrain row with
+     one invariant (call_keeps Pobj) is false -- at a counter of NS + 88
+     with no time stop a box adds 12 more surfaces -- so the clear's row
+     yields Pobj /\ Robj and the terrain row assumes it. *)
+  Variable Robj : mem -> Prop.
+  Hypothesis Hobj_R_store : forall ch m b ofs v m', Ple (Genv.genv_next (lp_ge lp)) b -> Robj m ->
+    Mem.store ch m b ofs v = Some m' -> Robj m'.
+  Hypothesis Hobj_surfaces :
+    ObjPhase.call_rel (lp_ge lp) Pobj (fun m => Pobj m /\ Robj m) object_list_processor._clear_dynamic_surfaces.
+  Hypothesis Hobj_terrain :
+    ObjPhase.call_rel (lp_ge lp) (fun m => Pobj m /\ Robj m) Pobj object_list_processor._update_terrain_objects.
   Hypothesis Hobj_collisions : ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._detect_object_collisions.
   Hypothesis Hobj_nonterrain :
     mario_hole -> ObjPhase.call_keeps (lp_ge lp) Pobj object_list_processor._update_non_terrain_objects.
@@ -531,7 +546,7 @@ Section HeightFrame.
   Proof.
     intros ma m3 (Hok & Hphi & Hst & How) HD Hc.
     pose proof (Hphi_sa PlatformKeep.plat_gvars ma Hphi) as Hsa.
-    destruct (ObjPhase.objects_keep lp Hobj_clock Hobj_auo Pobj
+    destruct (ObjPhase.objects_keep lp Hobj_clock Hobj_auo Pobj Robj Hobj_R_store
                 Hobj_blind Hobj_fresh Hobj_noref Hobj_stores Hobj_counter
                 Hobj_debug Hobj_surfaces Hobj_terrain Hobj_platform Hobj_collisions
                 (Hobj_nonterrain mario_hole_filled) Hobj_unload Hobj_mplat
@@ -1332,10 +1347,17 @@ Section HeightLinked12.
     ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._reset_debug_objectinfo
     /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._stub_debug_5
     /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._try_print_debug_mario_object_info.
-  Hypothesis Hobj_surfaces : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._clear_dynamic_surfaces.
+  (* the clear, with the post-clear fact (2026-11-02, ObjPhase 3b).  TRUTH:
+     clear_dynamic_surfaces sets gSurfacesAllocated = gNumStaticSurfaces
+     (surface_load.c:643), pinned NS by obj_w's ow_spool, unless
+     TIME_STOP_ACTIVE (then post_clear's other disjunct holds); it writes
+     only the surface pools' counters, so Pobjl's other clauses are those of
+     the old row.  Open. *)
+  Hypothesis Hobj_surfaces : ObjPhase.call_rel (lp_ge lp) Pobjl
+    (fun m => Pobjl m /\ ObjWorld.post_clear (lp_ge lp) m) object_list_processor._clear_dynamic_surfaces.
   Hypothesis Hobj_collisions : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._detect_object_collisions.
   (* OPEN, B2 (2026-10-26): the two list walks update_terrain_objects /
-     update_non_terrain_objects are PROVED (ObjLoop.terrain_keeps /
+     update_non_terrain_objects are PROVED (ObjLoop.terrain_keeps_ix /
      nonterrain_keeps: the real update_objects_in_list, the two real
      per-list loops, the list heads gObjectLists + i, the order table
      sObjectListUpdateOrder, the frame block filler[4]) from these rows.
@@ -1357,11 +1379,12 @@ Section HeightLinked12.
       object_list_processor.f_update_objects_starting_at
     /\ ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
       object_list_processor.f_update_objects_during_time_stop.
+  (* 2026-11-02: the terrain rest row carries the surface budget
+     (ObjLoop.ter_row: the object starts under its budget, vbud, and the step
+     claims ter_post (a)-(d); the truth / phantom checks are at ter_row) *)
   Hypothesis Hobj_step_rest_terrain :
-    ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
-      object_list_processor.f_update_objects_starting_at
-    /\ ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
-      object_list_processor.f_update_objects_during_time_stop.
+    ObjStepSplit.ter_rest_row (lp_ge lp) bm Pobjl object_list_processor.f_update_objects_starting_at
+    /\ ObjStepSplit.ter_rest_row (lp_ge lp) bm Pobjl object_list_processor.f_update_objects_during_time_stop.
   Hypothesis Hobj_step_act_nonterrain : mario_hole lp bm MWF Phi ->
     ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_starting_at
@@ -1378,13 +1401,11 @@ Section HeightLinked12.
       object_list_processor.f_update_objects_during_time_stop.
   (* the step rows ObjLoop's walk reads, reassembled *)
   Lemma Hobj_step_terrain :
-    ObjLoop.step_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
-      object_list_processor.f_update_objects_starting_at
-    /\ ObjLoop.step_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
-      object_list_processor.f_update_objects_during_time_stop.
+    ObjLoop.ter_row (lp_ge lp) bm Pobjl object_list_processor.f_update_objects_starting_at
+    /\ ObjLoop.ter_row (lp_ge lp) bm Pobjl object_list_processor.f_update_objects_during_time_stop.
   Proof.
     destruct Hobj_step_act_terrain as (A1 & A2). destruct Hobj_step_rest_terrain as (R1 & R2).
-    exact (conj (ObjStepSplit.step_row_split _ _ _ _ _ A1 R1) (ObjStepSplit.step_row_split _ _ _ _ _ A2 R2)).
+    exact (conj (ObjStepSplit.ter_row_split _ _ _ _ A1 R1) (ObjStepSplit.ter_row_split _ _ _ _ A2 R2)).
   Qed.
   Lemma Hobj_step_nonterrain : mario_hole lp bm MWF Phi ->
     ObjLoop.step_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
@@ -1586,13 +1607,21 @@ Section HeightLinked12.
   Lemma pobj_ow : forall m, Pobjl m -> OWl m.
   Proof. intros m (_ & _ & _ & _ & _ & H). exact H. Qed.
 
-  (* the terrain walk, PROVED (ObjLoop) from the rows above *)
+  (* the terrain walk, PROVED (ObjLoop.terrain_keeps_ix, with the surface
+     budget: from the post-clear fact and ter_ok, through the rows above) *)
   Lemma obj_terrain_linked12 :
-    ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._update_terrain_objects.
+    ObjPhase.call_rel (lp_ge lp) (fun m => Pobjl m /\ ObjWorld.post_clear (lp_ge lp) m) Pobjl
+      object_list_processor._update_terrain_objects.
   Proof.
-    exact (ObjLoop.terrain_keeps lp H12 bm Pobjl pobj_ow
+    exact (ObjLoop.terrain_keeps_ix lp H12 bm Pobjl pobj_ow
              (proj1 Hobj_step_terrain) (proj2 Hobj_step_terrain) Hobj_ctr).
   Qed.
+
+  (* the window between the clear and the terrain walk keeps the post-clear
+     fact: PROVED (it reads symbol blocks only) *)
+  Lemma obj_R_store_linked12 : forall ch m b ofs v m', Ple (Genv.genv_next (lp_ge lp)) b ->
+    ObjWorld.post_clear (lp_ge lp) m -> Mem.store ch m b ofs v = Some m' -> ObjWorld.post_clear (lp_ge lp) m'.
+  Proof. exact (ObjWorld.post_clear_store (lp_ge lp)). Qed.
 
   (* the non-terrain walk, PROVED (ObjLoop) from the rows above *)
   Lemma obj_nonterrain_linked12 : mario_hole lp bm MWF Phi ->
@@ -1615,7 +1644,8 @@ Section HeightLinked12.
                     frame_action_linked12 render_ok_linked12 render_phi_linked12
                     obj_clock_linked12 obj_auo_linked12
                     Hobj_blind (Hobj_fresh 240) Hobj_noref Hobj_stores Hobj_counter
-                    Hobj_debug Hobj_surfaces obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
+                    Hobj_debug (ObjWorld.post_clear (lp_ge lp)) obj_R_store_linked12
+                    Hobj_surfaces obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
                     Hobj_unload Hobj_mplat obj_platform_linked12 Hlvl_ow Hrender_ow
                     lvl_pre_linked12 lvl_post_linked12 seg_action_phi Hphi_y Hphi_sa_linked12
                     srd_ok_linked12 srd_keep_linked12 mid_keep_linked12 poll_ok_linked12
@@ -1637,7 +1667,8 @@ Section HeightLinked12.
                     frame_action_linked12 render_ok_linked12 render_phi_linked12
                     obj_clock_linked12 obj_auo_linked12
                     Hobj_blind (Hobj_fresh 240) Hobj_noref Hobj_stores Hobj_counter
-                    Hobj_debug Hobj_surfaces obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
+                    Hobj_debug (ObjWorld.post_clear (lp_ge lp)) obj_R_store_linked12
+                    Hobj_surfaces obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
                     Hobj_unload Hobj_mplat obj_platform_linked12 Hlvl_ow Hrender_ow
                     lvl_pre_linked12 lvl_post_linked12 seg_action_phi Hphi_y Hphi_sa_linked12
                     srd_ok_linked12 srd_keep_linked12 mid_keep_linked12 poll_ok_linked12

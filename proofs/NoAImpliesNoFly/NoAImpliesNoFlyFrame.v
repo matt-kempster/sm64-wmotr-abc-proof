@@ -63,7 +63,9 @@
 (*    holds SafeB pool slots (MWF_real's chase).                          *)
 (*  - Hobj_surfaces (clear_dynamic_surfaces): Mario's floor / wall /    *)
 (*    ceiling pointers into the dynamic pool stay chase-safe after the   *)
-(*    pool counts drop back.                                              *)
+(*    pool counts drop back.  (2026-11-02: it also yields the post-clear *)
+(*    fact, ObjWorld.post_clear, the surface budget the terrain walk     *)
+(*    starts from; the terrain rest rows carry that budget, ter_row.)    *)
 (*  - Hobj_unload (unload_deactivated_objects): an unloaded slot that    *)
 (*    Mario's usedObj / heldObj / riddenObj names is still a SafeB pool  *)
 (*    slot.                                                               *)
@@ -149,7 +151,8 @@ Section NoAImpliesNoFlyFrame.
     ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._reset_debug_objectinfo
     /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._stub_debug_5
     /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._try_print_debug_mario_object_info.
-  Hypothesis Hobj_surfaces : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._clear_dynamic_surfaces.
+  Hypothesis Hobj_surfaces : ObjPhase.call_rel (lp_ge lp) Pobjl
+    (fun m => Pobjl m /\ ObjWorld.post_clear (lp_ge lp) m) object_list_processor._clear_dynamic_surfaces.
   Hypothesis Hobj_collisions : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._detect_object_collisions.
   Hypothesis Hobj_step_act_terrain :
     ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
@@ -157,10 +160,8 @@ Section NoAImpliesNoFlyFrame.
     /\ ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
       object_list_processor.f_update_objects_during_time_stop.
   Hypothesis Hobj_step_rest_terrain :
-    ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
-      object_list_processor.f_update_objects_starting_at
-    /\ ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
-      object_list_processor.f_update_objects_during_time_stop.
+    ObjStepSplit.ter_rest_row (lp_ge lp) bm Pobjl object_list_processor.f_update_objects_starting_at
+    /\ ObjStepSplit.ter_rest_row (lp_ge lp) bm Pobjl object_list_processor.f_update_objects_during_time_stop.
   Hypothesis Hobj_step_act_nonterrain : HeightFrame.mario_hole lp bm MWF Phi ->
     ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_starting_at
