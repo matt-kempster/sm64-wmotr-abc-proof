@@ -12,6 +12,8 @@
 (* It becomes its own row, step_act_row; the rest of the step row,         *)
 (* step_rest_row, may assume it.  step_row_split puts them back together,  *)
 (* so ObjLoop's walk (terrain_keeps / nonterrain_keeps) is unchanged.      *)
+(* ter_rest_row / ter_row_split (2026-11-02): the same split of the       *)
+(* terrain row with the surface budget (ObjLoop.ter_row).                 *)
 (* ======================================================================= *)
 
 From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs
@@ -45,3 +47,22 @@ Section Split.
     exact (Rr hd v le m t le' m' out Hp Hi Hv Hh Hx (A hd v le m t le' m' out Hp Hi Hv Hh Hx)).
   Qed.
 End Split.
+
+(* the terrain step row with the surface budget (2026-11-02, ObjLoop.ter_row):
+   the rest of it, given the action claim, as above *)
+Section TerSplit.
+  Variables (G : genv) (bm : block) (P : mem -> Prop) (f : function).
+  Notation inr := (ObjLoop.in_ring_l G bm ObjLoop.ter_ls).
+
+  Definition ter_rest_row : Prop :=
+    forall hd v le m t le' m' out, P m -> inr m hd v -> ObjLoop.vbud G m v ->
+      le ! OLP._firstObj = Some v -> le ! OLP._objList = Some hd ->
+      exec_stmt function_entry2 G empty_env le m (ObjLoop.app_seq (ObjLoop.loop_pre f) Sskip) t le' m' out ->
+      action_sat not_tainted m' bm -> P m' /\ inr m' hd v /\ ObjLoop.ter_post G m m' v.
+
+  Lemma ter_row_split : step_act_row G bm P inr f -> ter_rest_row -> ObjLoop.ter_row G bm P f.
+  Proof.
+    intros A Rr hd v le m t le' m' out Hp Hi Hb Hv Hh Hx.
+    exact (Rr hd v le m t le' m' out Hp Hi Hb Hv Hh Hx (A hd v le m t le' m' out Hp Hi Hv Hh Hx)).
+  Qed.
+End TerSplit.

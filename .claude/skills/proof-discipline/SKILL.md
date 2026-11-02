@@ -681,10 +681,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
        FOUND (rows false over unpinned pools) + REPAIRED in part: obj_w core gains ow_spool
        (pool pins SP_OFF 58608 / NP_OFF 2592, size 2300, NS 1352 / NN 2908), ow_surf_obj,
        ow_coll (<= 7 boxes, <= 2 lids, box positions). ctr_ok (counter bound) is
-       frame-boundary only. STILL SUSPECT: per-step rows have no counter fact (unbounded).
-       NEXT: walk-indexed counter in ObjLoop's ring predicate (counter <= NS + dyn surfaces
-       of the collision objects already stepped).
-    4. Collision census: BhvVM.vm_collision_loaders + mesh_walls.
+       frame-boundary only.
+       REPAIRED 2026-11-02 (surface counter): obj_w gains ow_ctr / ow_ter (budget sdyn by
+       the RUNNING script: box 12, lid 2; list 9 sums <= 88; meshes pinned). ObjPhase is
+       staged: Hobj_surfaces yields Pobj /\ post_clear; Hobj_terrain takes it (PROVED:
+       ObjLoop.terrain_keeps_ix, cursor-indexed bud via ring_i_order). Terrain rest row is
+       now ObjStepSplit.ter_rest_row (vbud premise, ter_post (a)-(d) claim).
+       FOUND: single-P terrain row false (counter NS+88, no time stop, box adds 12).
+       FOUND: per-step node bound false over unpinned transforms; nodes stay ctr_ok-only (open).
+    4. Collision census: DONE (CollisionCensus.v, 2026-11-02).
     5. B3 (iii) stepper; the Hobj_step_act route (census_value + per-step footprint +
        set_mario_action walk); the ow_act carry.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
