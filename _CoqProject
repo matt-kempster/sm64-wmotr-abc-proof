@@ -355,6 +355,11 @@ proofs/WMotRRequiresA/ObjStepSplit.v
 proofs/WMotRRequiresA/ObjCensus.v
 proofs/WMotRRequiresA/BhvVM.v
 proofs/WMotRRequiresA/RoCensus.v
+proofs/WMotRRequiresA/CamPinCensus.v
+proofs/WMotRRequiresA/CamFootKit.v
+proofs/WMotRRequiresA/CamFootSound.v
+proofs/WMotRRequiresA/CamFootTable.v
+proofs/WMotRRequiresA/CamFootInst.v
 proofs/WMotRRequiresA/ActWriterCensus.v
 proofs/WMotRRequiresA/FnPtrCensus.v
 proofs/WMotRRequiresA/ActIdxCensus.v

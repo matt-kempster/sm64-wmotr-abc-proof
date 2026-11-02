@@ -546,10 +546,28 @@ all in `Unwired/`, and the theorem moved nowhere. See
     globals and the anim buffer. It is proved at boot (`StartSat.cam11`, via
     `StartTerrain.cut_chk`) and kept by every proved keeper (`lvl_w_unch` over `lw_blk` +
     gMarioAnimsBuf cell 8; footprints checked against `lvl_rd_ids`). So Hcam_phi / Hcam_ow
-    assume cam_w (through PhiW) and are TRUE, just unproved; there is no phantom ∀ there
-    anymore. Still open:
-    - (b) a footprint walk of that closure, giving camera / audio / dialog globals plus the
-      Camera's block, no ow_ids block. UcKit's type-certificate walk cannot prune.
+    assume cam_w (through PhiW).
+    **FOUND FALSE 2026-11-02 (unpinned):** Hcam_phi and Hcam_ow_fp. The camera stores through
+    sMarioCamState / sLuigiCamState (and gSecondCameraFocus), and PhiW does not pin them.
+    - In the game they are &gPlayerCameraState[0/1] and NULL. The initializer is the only
+      writer, link-wide (`CamPinCensus`).
+    - (b) is DONE as R1 (`CamFootInst.update_camera_foot`, off-spine for now): for ALL states
+      with the 5 pins, the real update_camera changes only cf_FP's 105 globals' blocks, the
+      Camera's 108 bytes and the pin cells, and keeps the pins.
+      - The walk is all 503 bodies, with byte-level store classes (`CamFootKit` /
+        `CamFootSound`).
+      - The vec helpers are proved by shadow_leaf.
+      - Its leaves: load_sequence via ls_frame (FALSE unscoped, below); npc / save_file_do_save
+        as `Hopen` (TRUE given pins).
+    - NEXT, the deferred rebuild (with R3 + B'' (b)/(c)):
+      - cam_w gains the pins (proved at boot, kept by every phase);
+      - both rows are restated on update_camera_foot;
+      - the residual row is Mario's state / gTimeStopState / gSecondCameraFocus. Its phantom
+        check: npc is dead under cam_w (uc_wmotr).
+    **FOUND FALSE 2026-11-02 (unscoped):** `LsContract.ls_frame` (Hls's footprint half) holds
+    for every memory. Fix next: a concrete `AudioInv` (pool cursors in their pools, note /
+    layer pointers in the audio heap), vm-checked at boot, with
+    ls_frame := AudioInv m → only ls_ids change ∧ AudioInv m'.
     Left labeled.
     Mario's render call and
     `apply_mario_platform_displacement` (platform_displacement.c, TU 45) are REAL calls whose
@@ -573,7 +591,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
     hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
     rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref, Hobj_stores /
     Hobj_counter, Hobj_debug, Hobj_surfaces, Hobj_collisions, Hobj_unload, Hobj_mplat;
-    Hcam_ow_fp (2026-11-02: the camera statement leaves ow_ids blocks + Mario's 5 object cells unchanged; Hcam_ow PROVED from it by obj_w_unch). PROVED 2026-10-26:
+    Hcam_ow_fp (2026-11-02: the camera statement leaves ow_ids blocks + Mario's 5 object cells unchanged; Hcam_ow PROVED from it by obj_w_unch; FALSE as stated, unpinned, see the level rows). PROVED 2026-10-26:
     Hplat_keep (plat_keep_linked12), Hlvl_ow (lvl_ow_linked12: pre_eff / post_split footprints
     + Hcam_ow), Hrender_ow (render_ow_linked12: render_eff + PollKeep.obj_w_slots). Proved: the walk of update_objects' body, the clock
     calls, objects_keep, the platform call inside. B2 DONE (ObjLoop.v): update_terrain_objects

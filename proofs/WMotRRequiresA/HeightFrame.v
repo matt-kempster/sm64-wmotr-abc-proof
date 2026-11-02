@@ -1258,7 +1258,22 @@ Section HeightLinked12.
        CamCutCensus.uc_wmotr's 428 functions (no set_mario_npc_dialog, no
        live object store), and no live code stores 144 / 168
        (cut_census_wmotr), so cam_w holds after: the row is TRUE in the
-       game, and unproved (the footprint walk, TRUST 0.7). *)
+       game, and unproved (the footprint walk, TRUST 0.7).
+     FALSE AS STATED (unpinned; found 2026-11-02 by the R1 footprint walk,
+       WMotRRequiresA/CamFootInst.v).  The camera writes through
+       sMarioCamState / sLuigiCamState (and would through a non-NULL
+       gSecondCameraFocus), and neither mem_ok nor PhiW pins those
+       pointers.  So the row ranges over states where sMarioCamState aims
+       at Mario's wall / floor cells or a PhiW global, and there the
+       camera breaks PhiW.  In the game they are &gPlayerCameraState[0/1]
+       and NULL: the initializer is the only writer, link-wide
+       (CamPinCensus).  FIX PLAN (the deferred cam_w rebuild, with R3
+       and B'' (b)/(c)): cam_w gains the pins (proved at boot, kept by
+       every phase); this row is then restated on
+       CamFootInst.update_camera_foot, the proved all-states footprint.
+       What remains is a residual row naming the camera's out-of-class
+       stores: Mario's state (set_mario_npc_dialog, dead under cam_w),
+       gTimeStopState and gSecondCameraFocus. *)
   Hypothesis Hcam_phi : LevelKeep.cam_phi_row lp bm MWF.
 
   Lemma lvl_pre_linked12 :
@@ -1433,7 +1448,13 @@ Section HeightLinked12.
      gSecondCameraFocus, is init_camera's LEVEL_BOWSER_1 arm, dead under
      lvl_w (the Bowser-arena shots are outside CamCutCensus.uc_wmotr under
      cam_w), and the closure writes no MarioState field (no
-     set_mario_npc_dialog); open *)
+     set_mario_npc_dialog); open.
+     FALSE AS STATED (unpinned, 2026-11-02, same finding as Hcam_phi
+     above): Phi does not pin sMarioCamState / sLuigiCamState /
+     gSecondCameraFocus, so the row ranges over states where the
+     camera's stores through them hit an ow_ids block or Mario's object
+     cells.  FIX PLAN: the cam_w pins plus CamFootInst.update_camera_foot,
+     whose FP has no ow_ids global, in the deferred rebuild. *)
   Hypothesis Hcam_ow_fp : forall m m', LevelFlank.cam_step lp m m' ->
     mem_ok_lp bm MWF m -> Phi m ->
     (forall id b, In id PollKeep.ow_ids -> Genv.find_symbol (lp_ge lp) id = Some b ->
