@@ -53,6 +53,23 @@ void *virtual_to_segmented(u32 segment, const void *addr) {
 }
 #define segmented_to_virtual rom_segmented_to_virtual
 #define virtual_to_segmented rom_virtual_to_segmented
+
+/* set_segment_base_addr (2026-11-02, approved): the ROM body stores
+   `(uintptr_t) addr & 0x1FFFFFFF` (memory.c:69), undefined on a pointer in
+   CompCert, so select_gfx_pool (every frame) had NO execution and the frame
+   capstones were vacuous (FOUND, TRUST.md 2.2).  Same address model as
+   segmented_to_virtual above: the table holds the address unmasked.  The
+   value is read back only by move_segment_table_to_dmem (gSPSegment words
+   for the RSP), and every caller discards the result
+   (SegTableCensus, vm-checked).  The ROM body stays in the TU, renamed
+   rom_set_segment_base_addr; memory.c's own load_segment* (boot / level
+   load, not walked) call that one. */
+extern uintptr_t sSegmentTable[32];
+uintptr_t set_segment_base_addr(s32 segment, void *addr) {
+    sSegmentTable[segment] = (uintptr_t) addr;
+    return sSegmentTable[segment];
+}
+#define set_segment_base_addr rom_set_segment_base_addr
 #endif
 
 #endif

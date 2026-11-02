@@ -842,7 +842,7 @@ Section XW.
         * exact (False_ind _ (Plt_strict _ (Plt_Ple_trans _ _ _ (Hsafe_nl _ Hpc) Hl))).
         * exact (False_ind _ (Plt_strict _ (Plt_Ple_trans _ _ _ Hlt Hpc))).
         * destruct (Hval kS Hcl) as (Hv & _). exact (Hv bb oo Ev).
-        * destruct (Hval kN Hcl) as (Hv & _). exact (False_ind _ (Hv bb oo Ev)).
+        * destruct (Hval kS Hcl) as (Hv & _). exact (Hv bb oo Ev).
       + eexists. split; [ exact Hpc | ].
         eapply Mem.store_unchanged_on; [ exact Hst0 | ]. intros i _ Hne. exact (Hne eq_refl).
     - unfold MtxfBody.is_byval in Hbv.

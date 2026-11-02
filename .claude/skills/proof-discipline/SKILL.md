@@ -607,8 +607,8 @@ all in `Unwired/`, and the theorem moved nowhere. See
     bob-omb buddy ANIMATEs from it, so the object phase is Clight-stuck while the buddy lives.
     REPAIRED: the level-data TU links the 5 closure anim tables (clightgen level-data rule
     extended); systematic guard BhvVM.closure_data_linked (every closure gvar defined
-    non-empty in the link) + vm_data_args_linked. OPEN: witness holds only Mario -- run
-    WMotR's macro/special spawns in it.
+    non-empty in the link) + vm_data_args_linked. REPAIRED 2026-11-02 (Step B): the witness
+    holds WMotR's placed objects (OBJECT commands, macro list, area spawn infos).
     Objects agent queue (resumed 2026-11-01).
     1. DONE 2026-11-01: x/z accessors WMotRLevel.wmotr_pole_xz_list / wmotr_cannon_xzy
        (+ _proj, _box lemmas), WMotRWorld.O_POSX/O_POSZ, pole_xz_ok / cannon_xz_ok, carried
@@ -639,13 +639,21 @@ all in `Unwired/`, and the theorem moved nowhere. See
        rejecting those objects (act_b, red_b, kind_b + pole_b / cannon_b / *_xz_b). Probe of
        the real order: Mario at 20672; ow passes after the checker fix; changed globals to add
        to f_ids: gCurrActNum, gNumCalls, sCurrAreaIndex, sCurrentCmd, sLevelPool.
-       FOUND (open, decision pending): select_gfx_pool has NO CompCert execution
-       (set_segment_base_addr's `(uintptr_t) addr & 0x1FFFFFFF`, memory.c:69, is stuck on a
-       pointer), so MidKeep.mid_call / HeightFrame.frame_step have no execution: the frame
-       capstones are vacuous until it is fixed. It also blocks the real-order witness:
-       area_update_objects is stuck in obj_orient_graph -> alloc_display_list without a
-       selected gfx pool. sSegmentTable census: read back only by move_segment_table_to_dmem
-       (gSPSegment words for the RSP); every call site discards set_segment_base_addr's result.
+       FOUND + REPAIRED 2026-11-02: select_gfx_pool had NO CompCert execution
+       (set_segment_base_addr's mask on a pointer); approved identity shim (TRUST 2.2,
+       SegTableCensus); UcKit kp_stored kW now accepts a SafeB pointer value.
+       DONE 2026-11-02 (Step B): StartTerrain.wchk runs select_gfx_pool, lvl_objs (level pool,
+       AREA/act stores, real level_cmd_place_object per OBJECT command), load_area_terrain
+       with the macro list, area_spawn, Mario at MARIO_OFF = 20672 (slot 34); f_ids +10.
+       StartSat.frame_runs now exhibits the WHOLE HeightFrame.play_frame_step from the
+       witness (frame_w / frame_whole_of; no segment stuck), with obj_w + ctr_ok after the
+       objects phase and at the frame's end.
+       FOUND (rows false over unpinned pools) + REPAIRED in part: obj_w core gains ow_spool
+       (pool pins SP_OFF 58608 / NP_OFF 2592, size 2300, NS 1352 / NN 2908), ow_surf_obj,
+       ow_coll (<= 7 boxes, <= 2 lids, box positions). ctr_ok (counter bound) is
+       frame-boundary only. STILL SUSPECT: per-step rows have no counter fact (unbounded).
+       NEXT: walk-indexed counter in ObjLoop's ring predicate (counter <= NS + dyn surfaces
+       of the collision objects already stepped).
     4. Collision census: BhvVM.vm_collision_loaders + mesh_walls.
     5. B3 (iii) stepper; the Hobj_step_act route (census_value + per-step footprint +
        set_mario_action walk); the ow_act carry.

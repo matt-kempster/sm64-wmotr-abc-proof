@@ -37,30 +37,30 @@ Definition _MemoryPool : ident := $"MemoryPool".
 Definition _OSMesgQueue_s : ident := $"OSMesgQueue_s".
 Definition _OSThread_s : ident := $"OSThread_s".
 Definition _OffsetSizePair : ident := $"OffsetSizePair".
-Definition __255 : ident := $"_anon_07a69785bc06".
-Definition __256 : ident := $"_anon_a9a983b34860".
-Definition __258 : ident := $"_anon_4f5eb5534ceb".
-Definition __260 : ident := $"_anon_f4fa7cbf403d".
-Definition __428 : ident := $"_anon_0b0451f5f7fd".
-Definition __430 : ident := $"_anon_6900b593b1b6".
-Definition __476 : ident := $"_anon_492449ad5917".
-Definition __517 : ident := $"_anon_b68c7cd607b8".
-Definition __519 : ident := $"_anon_cc23475d879a".
-Definition __521 : ident := $"_anon_582ea1ea7a16".
-Definition __523 : ident := $"_anon_1f056269c846".
-Definition __525 : ident := $"_anon_e728cafb3139_0".
-Definition __527 : ident := $"_anon_e728cafb3139_1".
-Definition __529 : ident := $"_anon_082533b0d3da".
-Definition __531 : ident := $"_anon_326d1d817e71".
-Definition __533 : ident := $"_anon_93f6c6d42751".
-Definition __535 : ident := $"_anon_7fe8a69a4b23".
-Definition __537 : ident := $"_anon_4f0efebcc12b".
-Definition __539 : ident := $"_anon_aa3f148f9bf1".
-Definition __541 : ident := $"_anon_336f2d3e0b53".
-Definition __543 : ident := $"_anon_5b5ce0cbc558".
-Definition __545 : ident := $"_anon_f17a035c1639".
-Definition __554 : ident := $"_anon_50f496f0a47e".
-Definition __556 : ident := $"_anon_56e646c222b2".
+Definition __260 : ident := $"_anon_07a69785bc06".
+Definition __261 : ident := $"_anon_a9a983b34860".
+Definition __263 : ident := $"_anon_4f5eb5534ceb".
+Definition __265 : ident := $"_anon_f4fa7cbf403d".
+Definition __433 : ident := $"_anon_0b0451f5f7fd".
+Definition __435 : ident := $"_anon_6900b593b1b6".
+Definition __481 : ident := $"_anon_492449ad5917".
+Definition __522 : ident := $"_anon_b68c7cd607b8".
+Definition __524 : ident := $"_anon_cc23475d879a".
+Definition __526 : ident := $"_anon_582ea1ea7a16".
+Definition __528 : ident := $"_anon_1f056269c846".
+Definition __530 : ident := $"_anon_e728cafb3139_0".
+Definition __532 : ident := $"_anon_e728cafb3139_1".
+Definition __534 : ident := $"_anon_082533b0d3da".
+Definition __536 : ident := $"_anon_326d1d817e71".
+Definition __538 : ident := $"_anon_93f6c6d42751".
+Definition __540 : ident := $"_anon_7fe8a69a4b23".
+Definition __542 : ident := $"_anon_4f0efebcc12b".
+Definition __544 : ident := $"_anon_aa3f148f9bf1".
+Definition __546 : ident := $"_anon_336f2d3e0b53".
+Definition __548 : ident := $"_anon_5b5ce0cbc558".
+Definition __550 : ident := $"_anon_f17a035c1639".
+Definition __559 : ident := $"_anon_50f496f0a47e".
+Definition __561 : ident := $"_anon_56e646c222b2".
 Definition ___builtin_ais_annot : ident := $"__builtin_ais_annot".
 Definition ___builtin_annot : ident := $"__builtin_annot".
 Definition ___builtin_annot_intval : ident := $"__builtin_annot_intval".
@@ -328,6 +328,7 @@ Definition _ret : ident := $"ret".
 Definition _retQueue : ident := $"retQueue".
 Definition _rhead : ident := $"rhead".
 Definition _rom_segmented_to_virtual : ident := $"rom_segmented_to_virtual".
+Definition _rom_set_segment_base_addr : ident := $"rom_set_segment_base_addr".
 Definition _rom_virtual_to_segmented : ident := $"rom_virtual_to_segmented".
 Definition _s : ident := $"s".
 Definition _s0 : ident := $"s0".
@@ -464,8 +465,29 @@ Definition f_virtual_to_segmented := {|
 (Sreturn (Some (Ecast (Etempvar _addr (tptr tvoid)) (tptr tvoid))))
 |}.
 
+Definition f_set_segment_base_addr := {|
+  fn_return := tuint;
+  fn_callconv := cc_default;
+  fn_params := ((_segment, tint) :: (_addr, (tptr tvoid)) :: nil);
+  fn_vars := nil;
+  fn_temps := ((_t'1, tuint) :: nil);
+  fn_body :=
+(Ssequence
+  (Sassign
+    (Ederef
+      (Ebinop Oadd (Evar _sSegmentTable (tarray tuint 32))
+        (Etempvar _segment tint) (tptr tuint)) tuint)
+    (Ecast (Etempvar _addr (tptr tvoid)) tuint))
+  (Ssequence
+    (Sset _t'1
+      (Ederef
+        (Ebinop Oadd (Evar _sSegmentTable (tarray tuint 32))
+          (Etempvar _segment tint) (tptr tuint)) tuint))
+    (Sreturn (Some (Etempvar _t'1 tuint)))))
+|}.
+
 Definition v_gDisplayListHead := {|
-  gvar_info := (tptr (Tunion __556 noattr));
+  gvar_info := (tptr (Tunion __561 noattr));
   gvar_init := nil;
   gvar_readonly := false;
   gvar_volatile := false
@@ -486,7 +508,7 @@ Definition v_gDecompressionHeap := {|
 |}.
 
 Definition v_gDmaIoMesg := {|
-  gvar_info := (Tstruct __430 noattr);
+  gvar_info := (Tstruct __435 noattr);
   gvar_init := (Init_space 20 :: nil);
   gvar_readonly := false;
   gvar_volatile := false
@@ -576,7 +598,7 @@ Definition v_gMainPoolState := {|
   gvar_volatile := false
 |}.
 
-Definition f_set_segment_base_addr := {|
+Definition f_rom_set_segment_base_addr := {|
   fn_return := tuint;
   fn_callconv := cc_default;
   fn_params := ((_segment, tint) :: (_addr, (tptr tvoid)) :: nil);
@@ -674,8 +696,8 @@ Definition f_move_segment_table_to_dmem := {|
   fn_callconv := cc_default;
   fn_params := nil;
   fn_vars := nil;
-  fn_temps := ((_i, tint) :: (__g, (tptr (Tunion __556 noattr))) ::
-               (_t'1, (tptr (Tunion __556 noattr))) :: (_t'2, tuint) :: nil);
+  fn_temps := ((_i, tint) :: (__g, (tptr (Tunion __561 noattr))) ::
+               (_t'1, (tptr (Tunion __561 noattr))) :: (_t'2, tuint) :: nil);
   fn_body :=
 (Ssequence
   (Sset _i (Econst_int (Int.repr 0) tint))
@@ -688,19 +710,19 @@ Definition f_move_segment_table_to_dmem := {|
       (Ssequence
         (Ssequence
           (Ssequence
-            (Sset _t'1 (Evar _gDisplayListHead (tptr (Tunion __556 noattr))))
-            (Sassign (Evar _gDisplayListHead (tptr (Tunion __556 noattr)))
-              (Ebinop Oadd (Etempvar _t'1 (tptr (Tunion __556 noattr)))
-                (Econst_int (Int.repr 1) tint) (tptr (Tunion __556 noattr)))))
+            (Sset _t'1 (Evar _gDisplayListHead (tptr (Tunion __561 noattr))))
+            (Sassign (Evar _gDisplayListHead (tptr (Tunion __561 noattr)))
+              (Ebinop Oadd (Etempvar _t'1 (tptr (Tunion __561 noattr)))
+                (Econst_int (Int.repr 1) tint) (tptr (Tunion __561 noattr)))))
           (Sset __g
-            (Ecast (Etempvar _t'1 (tptr (Tunion __556 noattr)))
-              (tptr (Tunion __556 noattr)))))
+            (Ecast (Etempvar _t'1 (tptr (Tunion __561 noattr)))
+              (tptr (Tunion __561 noattr)))))
         (Ssequence
           (Sassign
             (Efield
               (Efield
-                (Ederef (Etempvar __g (tptr (Tunion __556 noattr)))
-                  (Tunion __556 noattr)) _words (Tstruct __554 noattr)) _w0
+                (Ederef (Etempvar __g (tptr (Tunion __561 noattr)))
+                  (Tunion __561 noattr)) _words (Tstruct __559 noattr)) _w0
               tuint)
             (Ebinop Oor
               (Ebinop Oor
@@ -740,8 +762,8 @@ Definition f_move_segment_table_to_dmem := {|
             (Sassign
               (Efield
                 (Efield
-                  (Ederef (Etempvar __g (tptr (Tunion __556 noattr)))
-                    (Tunion __556 noattr)) _words (Tstruct __554 noattr)) _w1
+                  (Ederef (Etempvar __g (tptr (Tunion __561 noattr)))
+                    (Tunion __561 noattr)) _words (Tstruct __559 noattr)) _w1
                 tuint) (Ecast (Etempvar _t'2 tuint) tuint))))))
     (Sset _i
       (Ebinop Oadd (Etempvar _i tint) (Econst_int (Int.repr 1) tint) tint))))
@@ -1412,12 +1434,12 @@ Definition f_dma_read := {|
         (Ssequence
           (Scall None
             (Evar _osPiStartDma (Tfunction
-                                  ((tptr (Tstruct __430 noattr)) :: tint ::
+                                  ((tptr (Tstruct __435 noattr)) :: tint ::
                                    tint :: tuint :: (tptr tvoid) :: tuint ::
                                    (tptr (Tstruct _OSMesgQueue_s noattr)) ::
                                    nil) tint cc_default))
-            ((Eaddrof (Evar _gDmaIoMesg (Tstruct __430 noattr))
-               (tptr (Tstruct __430 noattr))) ::
+            ((Eaddrof (Evar _gDmaIoMesg (Tstruct __435 noattr))
+               (tptr (Tstruct __435 noattr))) ::
              (Econst_int (Int.repr 0) tint) ::
              (Econst_int (Int.repr 0) tint) ::
              (Ecast (Etempvar _srcStart (tptr tuchar)) tuint) ::
@@ -1508,8 +1530,9 @@ Definition f_load_segment := {|
     (Sifthenelse (Ebinop One (Etempvar _addr (tptr tvoid))
                    (Ecast (Econst_int (Int.repr 0) tint) (tptr tvoid)) tint)
       (Scall None
-        (Evar _set_segment_base_addr (Tfunction (tint :: (tptr tvoid) :: nil)
-                                       tuint cc_default))
+        (Evar _rom_set_segment_base_addr (Tfunction
+                                           (tint :: (tptr tvoid) :: nil)
+                                           tuint cc_default))
         ((Etempvar _segment tint) :: (Etempvar _addr (tptr tvoid)) :: nil))
       Sskip)
     (Sreturn (Some (Etempvar _addr (tptr tvoid))))))
@@ -1667,10 +1690,11 @@ Definition f_load_segment_decompress := {|
                        (Etempvar _dest (tptr tvoid)) :: nil))
                     (Ssequence
                       (Scall None
-                        (Evar _set_segment_base_addr (Tfunction
-                                                       (tint ::
-                                                        (tptr tvoid) :: nil)
-                                                       tuint cc_default))
+                        (Evar _rom_set_segment_base_addr (Tfunction
+                                                           (tint ::
+                                                            (tptr tvoid) ::
+                                                            nil) tuint
+                                                           cc_default))
                         ((Etempvar _segment tint) ::
                          (Etempvar _dest (tptr tvoid)) :: nil))
                       (Scall None
@@ -1737,9 +1761,10 @@ Definition f_load_segment_decompress_heap := {|
                    (Evar _gDecompressionHeap (tarray tuchar 0)) :: nil))
                 (Ssequence
                   (Scall None
-                    (Evar _set_segment_base_addr (Tfunction
-                                                   (tint :: (tptr tvoid) ::
-                                                    nil) tuint cc_default))
+                    (Evar _rom_set_segment_base_addr (Tfunction
+                                                       (tint ::
+                                                        (tptr tvoid) :: nil)
+                                                       tuint cc_default))
                     ((Etempvar _segment tuint) ::
                      (Evar _gDecompressionHeap (tarray tuchar 0)) :: nil))
                   (Scall None
@@ -2704,7 +2729,7 @@ Definition f_alloc_display_list := {|
   fn_params := ((_size, tuint) :: nil);
   fn_vars := nil;
   fn_temps := ((_ptr, (tptr tvoid)) :: (_t'3, (tptr tuchar)) ::
-               (_t'2, (tptr (Tunion __556 noattr))) ::
+               (_t'2, (tptr (Tunion __561 noattr))) ::
                (_t'1, (tptr tuchar)) :: nil);
   fn_body :=
 (Ssequence
@@ -2718,11 +2743,11 @@ Definition f_alloc_display_list := {|
       (Ssequence
         (Sset _t'1 (Evar _gGfxPoolEnd (tptr tuchar)))
         (Ssequence
-          (Sset _t'2 (Evar _gDisplayListHead (tptr (Tunion __556 noattr))))
+          (Sset _t'2 (Evar _gDisplayListHead (tptr (Tunion __561 noattr))))
           (Sifthenelse (Ebinop Oge
                          (Ebinop Osub (Etempvar _t'1 (tptr tuchar))
                            (Etempvar _size tuint) (tptr tuchar))
-                         (Ecast (Etempvar _t'2 (tptr (Tunion __556 noattr)))
+                         (Ecast (Etempvar _t'2 (tptr (Tunion __561 noattr)))
                            (tptr tuchar)) tint)
             (Ssequence
               (Ssequence
@@ -2931,11 +2956,11 @@ Definition f_load_patchable_table := {|
 |}.
 
 Definition composites : list composite_definition :=
-(Composite __256 Struct
+(Composite __261 Struct
    (Member_plain _f_odd tfloat :: Member_plain _f_even tfloat :: nil)
    noattr ::
- Composite __255 Union (Member_plain _f (Tstruct __256 noattr) :: nil) noattr ::
- Composite __258 Struct
+ Composite __260 Union (Member_plain _f (Tstruct __261 noattr) :: nil) noattr ::
+ Composite __263 Struct
    (Member_plain _at tulong :: Member_plain _v0 tulong ::
     Member_plain _v1 tulong :: Member_plain _a0 tulong ::
     Member_plain _a1 tulong :: Member_plain _a2 tulong ::
@@ -2954,24 +2979,24 @@ Definition composites : list composite_definition :=
     Member_plain _hi tulong :: Member_plain _sr tuint ::
     Member_plain _pc tuint :: Member_plain _cause tuint ::
     Member_plain _badvaddr tuint :: Member_plain _rcp tuint ::
-    Member_plain _fpcsr tuint :: Member_plain _fp0 (Tunion __255 noattr) ::
-    Member_plain _fp2 (Tunion __255 noattr) ::
-    Member_plain _fp4 (Tunion __255 noattr) ::
-    Member_plain _fp6 (Tunion __255 noattr) ::
-    Member_plain _fp8 (Tunion __255 noattr) ::
-    Member_plain _fp10 (Tunion __255 noattr) ::
-    Member_plain _fp12 (Tunion __255 noattr) ::
-    Member_plain _fp14 (Tunion __255 noattr) ::
-    Member_plain _fp16 (Tunion __255 noattr) ::
-    Member_plain _fp18 (Tunion __255 noattr) ::
-    Member_plain _fp20 (Tunion __255 noattr) ::
-    Member_plain _fp22 (Tunion __255 noattr) ::
-    Member_plain _fp24 (Tunion __255 noattr) ::
-    Member_plain _fp26 (Tunion __255 noattr) ::
-    Member_plain _fp28 (Tunion __255 noattr) ::
-    Member_plain _fp30 (Tunion __255 noattr) :: nil)
+    Member_plain _fpcsr tuint :: Member_plain _fp0 (Tunion __260 noattr) ::
+    Member_plain _fp2 (Tunion __260 noattr) ::
+    Member_plain _fp4 (Tunion __260 noattr) ::
+    Member_plain _fp6 (Tunion __260 noattr) ::
+    Member_plain _fp8 (Tunion __260 noattr) ::
+    Member_plain _fp10 (Tunion __260 noattr) ::
+    Member_plain _fp12 (Tunion __260 noattr) ::
+    Member_plain _fp14 (Tunion __260 noattr) ::
+    Member_plain _fp16 (Tunion __260 noattr) ::
+    Member_plain _fp18 (Tunion __260 noattr) ::
+    Member_plain _fp20 (Tunion __260 noattr) ::
+    Member_plain _fp22 (Tunion __260 noattr) ::
+    Member_plain _fp24 (Tunion __260 noattr) ::
+    Member_plain _fp26 (Tunion __260 noattr) ::
+    Member_plain _fp28 (Tunion __260 noattr) ::
+    Member_plain _fp30 (Tunion __260 noattr) :: nil)
    noattr ::
- Composite __260 Struct
+ Composite __265 Struct
    (Member_plain _flag tuint :: Member_plain _count tuint ::
     Member_plain _time tulong :: nil)
    noattr ::
@@ -2982,8 +3007,8 @@ Definition composites : list composite_definition :=
     Member_plain _tlnext (tptr (Tstruct _OSThread_s noattr)) ::
     Member_plain _state tushort :: Member_plain _flags tushort ::
     Member_plain _id tint :: Member_plain _fp tint ::
-    Member_plain _thprof (tptr (Tstruct __260 noattr)) ::
-    Member_plain _context (Tstruct __258 noattr) :: nil)
+    Member_plain _thprof (tptr (Tstruct __265 noattr)) ::
+    Member_plain _context (Tstruct __263 noattr) :: nil)
    noattr ::
  Composite _OSMesgQueue_s Struct
    (Member_plain _mtqueue (tptr (Tstruct _OSThread_s noattr)) ::
@@ -2992,37 +3017,37 @@ Definition composites : list composite_definition :=
     Member_plain _msgCount tint :: Member_plain _msg (tptr (tptr tvoid)) ::
     nil)
    noattr ::
- Composite __428 Struct
+ Composite __433 Struct
    (Member_plain _type tushort :: Member_plain _pri tuchar ::
     Member_plain _status tuchar ::
     Member_plain _retQueue (tptr (Tstruct _OSMesgQueue_s noattr)) :: nil)
    noattr ::
- Composite __430 Struct
-   (Member_plain _hdr (Tstruct __428 noattr) ::
+ Composite __435 Struct
+   (Member_plain _hdr (Tstruct __433 noattr) ::
     Member_plain _dramAddr (tptr tvoid) :: Member_plain _devAddr tuint ::
     Member_plain _size tuint :: nil)
    noattr ::
- Composite __476 Struct
+ Composite __481 Struct
    (Member_plain _flag tuchar :: Member_plain _v (tarray tuchar 3) :: nil)
    noattr ::
- Composite __517 Struct
+ Composite __522 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _par I32 Unsigned noattr 8 false ::
     Member_bitfield _len I32 Unsigned noattr 16 false ::
     Member_plain _addr tuint :: nil)
    noattr ::
- Composite __519 Struct
+ Composite __524 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad I32 Signed noattr 24 false ::
-    Member_plain _tri (Tstruct __476 noattr) :: nil)
+    Member_plain _tri (Tstruct __481 noattr) :: nil)
    noattr ::
- Composite __521 Struct
+ Composite __526 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad1 I32 Signed noattr 24 false ::
     Member_bitfield _pad2 I32 Signed noattr 24 false ::
     Member_bitfield _param I8 Unsigned noattr 8 false :: nil)
    noattr ::
- Composite __523 Struct
+ Composite __528 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad0 I32 Signed noattr 8 false ::
     Member_bitfield _mw_index I32 Signed noattr 8 false ::
@@ -3030,36 +3055,36 @@ Definition composites : list composite_definition :=
     Member_bitfield _pad1 I32 Signed noattr 8 false ::
     Member_bitfield _base I32 Signed noattr 24 false :: nil)
    noattr ::
- Composite __525 Struct
+ Composite __530 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad0 I32 Signed noattr 8 false ::
     Member_bitfield _sft I32 Signed noattr 8 false ::
     Member_bitfield _len I32 Signed noattr 8 false ::
     Member_bitfield _data I32 Unsigned noattr 32 false :: nil)
    noattr ::
- Composite __527 Struct
+ Composite __532 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad0 I32 Signed noattr 8 false ::
     Member_bitfield _sft I32 Signed noattr 8 false ::
     Member_bitfield _len I32 Signed noattr 8 false ::
     Member_bitfield _data I32 Unsigned noattr 32 false :: nil)
    noattr ::
- Composite __529 Struct
+ Composite __534 Struct
    (Member_plain _cmd tuchar :: Member_plain _lodscale tuchar ::
     Member_plain _tile tuchar :: Member_plain _on tuchar ::
     Member_plain _s tushort :: Member_plain _t tushort :: nil)
    noattr ::
- Composite __531 Struct
+ Composite __536 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad I32 Signed noattr 24 false ::
-    Member_plain _line (Tstruct __476 noattr) :: nil)
+    Member_plain _line (Tstruct __481 noattr) :: nil)
    noattr ::
- Composite __533 Struct
+ Composite __538 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad1 I32 Signed noattr 24 false ::
     Member_plain _pad2 tshort :: Member_plain _scale tshort :: nil)
    noattr ::
- Composite __535 Struct
+ Composite __540 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _fmt I32 Unsigned noattr 3 false ::
     Member_bitfield _siz I32 Unsigned noattr 2 false ::
@@ -3067,17 +3092,17 @@ Definition composites : list composite_definition :=
     Member_bitfield _wd I32 Unsigned noattr 12 false ::
     Member_plain _dram tuint :: nil)
    noattr ::
- Composite __537 Struct
+ Composite __542 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _muxs0 I32 Unsigned noattr 24 false ::
     Member_bitfield _muxs1 I32 Unsigned noattr 32 false :: nil)
    noattr ::
- Composite __539 Struct
+ Composite __544 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_plain _pad tuchar :: Member_plain _prim_min_level tuchar ::
     Member_plain _prim_level tuchar :: Member_plain _color tuint :: nil)
    noattr ::
- Composite __541 Struct
+ Composite __546 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _x0 I32 Signed noattr 10 false ::
     Member_bitfield _x0frac I32 Signed noattr 2 false ::
@@ -3089,7 +3114,7 @@ Definition composites : list composite_definition :=
     Member_bitfield _y1 I32 Signed noattr 10 false ::
     Member_bitfield _y1frac I32 Signed noattr 2 false :: nil)
    noattr ::
- Composite __543 Struct
+ Composite __548 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _fmt I32 Unsigned noattr 3 false ::
     Member_bitfield _siz I32 Unsigned noattr 2 false ::
@@ -3108,7 +3133,7 @@ Definition composites : list composite_definition :=
     Member_bitfield _masks I32 Unsigned noattr 4 false ::
     Member_bitfield _shifts I32 Unsigned noattr 4 false :: nil)
    noattr ::
- Composite __545 Struct
+ Composite __550 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _sl I32 Unsigned noattr 12 false ::
     Member_bitfield _tl I32 Unsigned noattr 12 false ::
@@ -3117,28 +3142,28 @@ Definition composites : list composite_definition :=
     Member_bitfield _sh I32 Unsigned noattr 12 false ::
     Member_bitfield _th I32 Unsigned noattr 12 false :: nil)
    noattr ::
- Composite __554 Struct
+ Composite __559 Struct
    (Member_plain _w0 tuint :: Member_plain _w1 tuint :: nil)
    noattr ::
- Composite __556 Union
-   (Member_plain _words (Tstruct __554 noattr) ::
-    Member_plain _dma (Tstruct __517 noattr) ::
-    Member_plain _tri (Tstruct __519 noattr) ::
-    Member_plain _line (Tstruct __531 noattr) ::
-    Member_plain _popmtx (Tstruct __521 noattr) ::
-    Member_plain _segment (Tstruct __523 noattr) ::
-    Member_plain _setothermodeH (Tstruct __527 noattr) ::
-    Member_plain _setothermodeL (Tstruct __525 noattr) ::
-    Member_plain _texture (Tstruct __529 noattr) ::
-    Member_plain _perspnorm (Tstruct __533 noattr) ::
-    Member_plain _setimg (Tstruct __535 noattr) ::
-    Member_plain _setcombine (Tstruct __537 noattr) ::
-    Member_plain _setcolor (Tstruct __539 noattr) ::
-    Member_plain _fillrect (Tstruct __541 noattr) ::
-    Member_plain _settile (Tstruct __543 noattr) ::
-    Member_plain _loadtile (Tstruct __545 noattr) ::
-    Member_plain _settilesize (Tstruct __545 noattr) ::
-    Member_plain _loadtlut (Tstruct __545 noattr) ::
+ Composite __561 Union
+   (Member_plain _words (Tstruct __559 noattr) ::
+    Member_plain _dma (Tstruct __522 noattr) ::
+    Member_plain _tri (Tstruct __524 noattr) ::
+    Member_plain _line (Tstruct __536 noattr) ::
+    Member_plain _popmtx (Tstruct __526 noattr) ::
+    Member_plain _segment (Tstruct __528 noattr) ::
+    Member_plain _setothermodeH (Tstruct __532 noattr) ::
+    Member_plain _setothermodeL (Tstruct __530 noattr) ::
+    Member_plain _texture (Tstruct __534 noattr) ::
+    Member_plain _perspnorm (Tstruct __538 noattr) ::
+    Member_plain _setimg (Tstruct __540 noattr) ::
+    Member_plain _setcombine (Tstruct __542 noattr) ::
+    Member_plain _setcolor (Tstruct __544 noattr) ::
+    Member_plain _fillrect (Tstruct __546 noattr) ::
+    Member_plain _settile (Tstruct __548 noattr) ::
+    Member_plain _loadtile (Tstruct __550 noattr) ::
+    Member_plain _settilesize (Tstruct __550 noattr) ::
+    Member_plain _loadtlut (Tstruct __550 noattr) ::
     Member_plain _force_structure_alignment tlong :: nil)
    noattr ::
  Composite _AllocOnlyPool Struct
@@ -3607,6 +3632,7 @@ Definition global_definitions : list (ident * globdef fundef type) :=
      {|cc_vararg:=(Some 1); cc_unproto:=false; cc_structret:=false|})) ::
  (_segmented_to_virtual, Gfun(Internal f_segmented_to_virtual)) ::
  (_virtual_to_segmented, Gfun(Internal f_virtual_to_segmented)) ::
+ (_set_segment_base_addr, Gfun(Internal f_set_segment_base_addr)) ::
  (_osRecvMesg,
    Gfun(External (EF_external "osRecvMesg"
                    (mksignature (AST.Xptr :: AST.Xptr :: AST.Xint :: nil)
@@ -3633,7 +3659,7 @@ Definition global_definitions : list (ident * globdef fundef type) :=
                      (AST.Xptr :: AST.Xint :: AST.Xint :: AST.Xint ::
                       AST.Xptr :: AST.Xint :: AST.Xptr :: nil) AST.Xint
                      cc_default))
-     ((tptr (Tstruct __430 noattr)) :: tint :: tint :: tuint ::
+     ((tptr (Tstruct __435 noattr)) :: tint :: tint :: tuint ::
       (tptr tvoid) :: tuint :: (tptr (Tstruct _OSMesgQueue_s noattr)) :: nil)
      tint cc_default)) ::
  (_bzero,
@@ -3659,7 +3685,7 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_sPoolListHeadL, Gvar v_sPoolListHeadL) ::
  (_sPoolListHeadR, Gvar v_sPoolListHeadR) ::
  (_gMainPoolState, Gvar v_gMainPoolState) ::
- (_set_segment_base_addr, Gfun(Internal f_set_segment_base_addr)) ::
+ (_rom_set_segment_base_addr, Gfun(Internal f_rom_set_segment_base_addr)) ::
  (_get_segment_base_addr, Gfun(Internal f_get_segment_base_addr)) ::
  (_rom_segmented_to_virtual, Gfun(Internal f_rom_segmented_to_virtual)) ::
  (_rom_virtual_to_segmented, Gfun(Internal f_rom_virtual_to_segmented)) ::
@@ -3700,12 +3726,13 @@ Definition public_idents : list ident :=
  _main_pool_free :: _main_pool_alloc :: _main_pool_init ::
  _move_segment_table_to_dmem :: _rom_virtual_to_segmented ::
  _rom_segmented_to_virtual :: _get_segment_base_addr ::
- _set_segment_base_addr :: _sPoolListHeadR :: _sPoolListHeadL :: _sPoolEnd ::
- _sPoolStart :: _sPoolFreeSpace :: _sSegmentTable :: _gEffectsMemoryPool ::
- __engineSegmentRomEnd :: __engineSegmentRomStart :: _gDmaMesgQueue ::
- _gMainReceivedMesg :: _gDmaIoMesg :: _decompress :: _gDecompressionHeap ::
- _gGfxPoolEnd :: _gDisplayListHead :: _bzero :: _osPiStartDma ::
- _osWritebackDCacheAll :: _osInvalICache :: _osInvalDCache :: _osRecvMesg ::
+ _rom_set_segment_base_addr :: _sPoolListHeadR :: _sPoolListHeadL ::
+ _sPoolEnd :: _sPoolStart :: _sPoolFreeSpace :: _sSegmentTable ::
+ _gEffectsMemoryPool :: __engineSegmentRomEnd :: __engineSegmentRomStart ::
+ _gDmaMesgQueue :: _gMainReceivedMesg :: _gDmaIoMesg :: _decompress ::
+ _gDecompressionHeap :: _gGfxPoolEnd :: _gDisplayListHead :: _bzero ::
+ _osPiStartDma :: _osWritebackDCacheAll :: _osInvalICache ::
+ _osInvalDCache :: _osRecvMesg :: _set_segment_base_addr ::
  _virtual_to_segmented :: _segmented_to_virtual :: ___builtin_debug ::
  ___builtin_sync_fetch_and_add :: ___builtin_atomic_compare_exchange ::
  ___builtin_atomic_load :: ___builtin_atomic_exchange :: ___builtin_nop ::

@@ -53,7 +53,8 @@ From SM64.Proofs.WMotRRequiresA Require ObjWorld.
 From SM64.Proofs.WMotRRequiresA Require FfComplete.
 From SM64.Proofs.NoAImpliesNoFly Require BootRun.
 From SM64.Proofs.WMotRRequiresA Require CourseRun AnimData.
-From SM64.Generated Require game_init area.
+From SM64.Generated Require game_init area level_script sound_init platform_displacement.
+From SM64.Proofs.WMotRRequiresA Require LevelFlank.
 From SM64.Proofs Require AGates MWFReal.
 Import ListNotations.
 Module CM := SM64.Proofs.Interp.CMem.
@@ -82,7 +83,12 @@ Definition f_ids : list ident :=
     (* 2026-10-26: the area's Camera (cam_chain: create_camera,
        gAreas[1].camera, reset_camera) *)
     id "gAreaData"; id "gCameraMovementFlags"; id "gCamera"; id "sFOVState";
-    id "unused8032CFC8"; id "unused8032CFCC" ].
+    id "unused8032CFC8"; id "unused8032CFCC";
+    (* 2026-11-02 (Step B): select_gfx_pool (the identity
+       set_segment_base_addr, TRUST 2.2) and the level script's pool,
+       AREA(1), act and OBJECT commands (lvl_objs) *)
+    id "gGfxPool"; id "gGfxSPTask"; id "gDisplayListHead"; id "gGfxPoolEnd"; id "sSegmentTable";
+    id "sLevelPool"; id "sCurrAreaIndex"; id "sCurrentCmd"; id "gCurrActNum"; id "gNumCalls" ].
 
 Definition inFb (ge : genv) (b : block) : bool :=
   existsb (fun i => match Genv.find_symbol ge i with Some b' => Pos.eqb b b' | None => false end) f_ids.
@@ -367,7 +373,7 @@ Definition e_chain (bw bL : block) (m0 : mem) : option mem :=
    StartSat read Mario's cells at MARIO_OFF + field, and ow_chk checks
    gMarioObject / gMarioStates[0].marioObj against the same slot, so no
    fact about the start state assumes slot 0. *)
-Definition MARIO_OFF : Z := 0.
+Definition MARIO_OFF : Z := 20672.
 
 Lemma mario_off_range : 0 <= MARIO_OFF /\ MARIO_OFF + 608 <= 145920 /\ MARIO_OFF mod 8 = 0.
 Proof. unfold MARIO_OFF. split; [ lia | split; [ lia | reflexivity ] ]. Qed.
@@ -925,6 +931,347 @@ Definition cam_frame_g (run : runT) (cutp : val -> mem -> bool) (bgad : block) (
 
 Notation cam_frame_ok ge := (cam_frame_g (ex_call ge BootRun.world FUEL) (cut_chk ge)).
 
+(* ---------------------------------------------------------------------- *)
+(* Step B (2026-11-02): the level script's own order between LEVEL_INIT    *)
+(* and Mario's spawn.  level_cmd_alloc_level_pool's pool is sized for the  *)
+(* eight SpawnInfos the OBJECT commands place (the real one takes all free *)
+(* main-pool memory: TRUST 3.6); AREA(1) sets sCurrAreaIndex = 1 and the   *)
+(* act is 1 (level_cmd_begin_area's geo-layout stores and the dispatcher's  *)
+(* other cells are not run: TRUST 3.6); each OBJECT command runs the REAL  *)
+(* level_cmd_place_object with sCurrentCmd at the command, in script order *)
+(* (entry, then the two JUMP_LINKed scripts).                               *)
+(* ---------------------------------------------------------------------- *)
+
+(* the level script's command walk: word index of each OBJECT (0x24) command *)
+Fixpoint cmd_walk (fuel : nat) (l : list init_data) (i : nat) : list nat :=
+  match fuel with
+  | O => []
+  | S f =>
+    match nth_error l i with
+    | Some (Init_int32 h) =>
+        let w := Int.unsigned h in
+        let ty := Z.shiftr w 24 in
+        let sz := Z.land (Z.shiftr w 16) 255 in
+        if sz =? 0 then [] else
+        (if ty =? 36 then [i] else []) ++ cmd_walk f l (i + Z.to_nat (sz / 4))%nat
+    | _ => []
+    end
+  end.
+
+Definition obj_cmds : list (ident * nat) :=
+  map (fun i => (wmotr_script._level_wmotr_entry, i)) (cmd_walk 200 (gvar_init wmotr_script.v_level_wmotr_entry) 0)
+  ++ map (fun i => (wmotr_script._script_func_local_1, i)) (cmd_walk 200 (gvar_init wmotr_script.v_script_func_local_1) 0)
+  ++ map (fun i => (wmotr_script._script_func_local_2, i)) (cmd_walk 200 (gvar_init wmotr_script.v_script_func_local_2) 0).
+
+(* non-vacuity: WMotR's eight OBJECT commands *)
+Lemma obj_cmds_count : List.length obj_cmds = 8%nat.
+Proof. vm_compute. reflexivity. Qed.
+
+Fixpoint place_all_g (run : runT) (ge : genv) (bcur : block) (cs : list (ident * nat)) (m : mem) : option mem :=
+  match cs with
+  | [] => Some m
+  | (s, i) :: r =>
+    match Genv.find_symbol ge s with
+    | Some bs =>
+      match CM.store Mint32 m bcur 0 (Vptr bs (Ptrofs.repr (4 * Z.of_nat i))) with
+      | Some m1 =>
+        match run m1 (Internal level_script.f_level_cmd_place_object) [] with
+        | Done (_, m2, _) => place_all_g run ge bcur r m2
+        | Stuck _ _ _ => None
+        end
+      | None => None
+      end
+    | None => None
+    end
+  end.
+
+Inductive placed_run (ge : genv) (bcur : block) : list (ident * nat) -> mem -> mem -> Prop :=
+| pr_nil : forall m, placed_run ge bcur [] m m
+| pr_cons : forall s i r m bs m1 t m2 v m3,
+    Genv.find_symbol ge s = Some bs ->
+    Mem.store Mint32 m bcur 0 (Vptr bs (Ptrofs.repr (4 * Z.of_nat i))) = Some m1 ->
+    eval_funcall function_entry2 ge m1 (Internal level_script.f_level_cmd_place_object) [] t m2 v ->
+    placed_run ge bcur r m2 m3 ->
+    placed_run ge bcur ((s, i) :: r) m m3.
+
+Lemma place_all_g_keep : forall (run : runT) ge bcur cs m m',
+    (forall m f a t m' v, run m f a = Done (t, m', v) -> acc_keep m m') ->
+    place_all_g run ge bcur cs m = Some m' -> acc_keep m m'.
+Proof.
+  intros run ge bcur cs. induction cs as [| [s i] r IH]; intros m m' Rk H; cbn [place_all_g] in H.
+  - injection H as <-. apply acc_keep_refl.
+  - destruct (Genv.find_symbol ge s) as [bs|]; [ | discriminate H ].
+    destruct (CM.store Mint32 m bcur 0 _) as [m1|] eqn:S; [ | discriminate H ].
+    destruct (run m1 _ _) as [[[t m2] v]| ? ? ?] eqn:R; [ | discriminate H ].
+    exact (acc_keep_trans _ _ _ (cm_store_keep _ _ _ _ _ _ S)
+             (acc_keep_trans _ _ _ (Rk _ _ _ _ _ _ R) (IH m2 m' Rk H))).
+Qed.
+
+Lemma place_all_g_sound : forall (run : runT) ge bcur cs m m',
+    (forall m f a t m' v, run m f a = Done (t, m', v) -> eval_funcall function_entry2 ge m f a t m' v) ->
+    place_all_g run ge bcur cs m = Some m' -> placed_run ge bcur cs m m'.
+Proof.
+  intros run ge bcur cs. induction cs as [| [s i] r IH]; intros m m' Rs H; cbn [place_all_g] in H.
+  - injection H as <-. constructor.
+  - destruct (Genv.find_symbol ge s) as [bs|] eqn:Hs; [ | discriminate H ].
+    destruct (CM.store Mint32 m bcur 0 _) as [m1|] eqn:S; [ | discriminate H ].
+    destruct (run m1 _ _) as [[[t m2] v]| ? ? ?] eqn:R; [ | discriminate H ].
+    rewrite CM.store_eq in S.
+    exact (pr_cons ge bcur s i r m bs m1 t m2 v m' Hs S (Rs _ _ _ _ _ _ R) (IH m2 m' Rs H)).
+Qed.
+
+Definition lvl_objs_g (run : runT) (ge : genv) (spsz : Z) (P : mem) : option mem :=
+  match sym ge "sLevelPool", sym ge "sCurrAreaIndex", sym ge "sCurrentCmd", sym ge "gCurrActNum" with
+  | Some blp, Some bai, Some bcur, Some bact =>
+    match run P (Internal memory.f_alloc_only_pool_init) [Vint (Int.repr spsz); Vint Int.zero] with
+    | Done (_, Q, lpool) =>
+      match CM.store Mint32 Q blp 0 lpool with
+      | Some Q1 =>
+        match CM.store Mint16signed Q1 bai 0 (Vint Int.one) with
+        | Some Q2 =>
+          match CM.store Mint16signed Q2 bact 0 (Vint Int.one) with
+          | Some Q3 => place_all_g run ge bcur obj_cmds Q3
+          | None => None
+          end
+        | None => None
+        end
+      | None => None
+      end
+    | Stuck _ _ _ => None
+    end
+  | _, _, _, _ => None
+  end.
+
+Notation lvl_objs ge := (lvl_objs_g (ex_call ge world FUEL) ge (8 * ssize ge "SpawnInfo")).
+
+Definition lvl_made (ge : genv) (spsz : Z) (P P' : mem) : Prop :=
+  exists blp bai bcur bact t Q lpool Q1 Q2 Q3,
+    sym ge "sLevelPool" = Some blp /\ sym ge "sCurrAreaIndex" = Some bai
+    /\ sym ge "sCurrentCmd" = Some bcur /\ sym ge "gCurrActNum" = Some bact
+    /\ eval_funcall function_entry2 ge P (Internal memory.f_alloc_only_pool_init)
+         [Vint (Int.repr spsz); Vint Int.zero] t Q lpool
+    /\ Mem.store Mint32 Q blp 0 lpool = Some Q1
+    /\ Mem.store Mint16signed Q1 bai 0 (Vint Int.one) = Some Q2
+    /\ Mem.store Mint16signed Q2 bact 0 (Vint Int.one) = Some Q3
+    /\ placed_run ge bcur obj_cmds Q3 P'.
+
+Lemma lvl_objs_g_keep : forall (run : runT) ge spsz P P',
+    (forall m f a t m' v, run m f a = Done (t, m', v) -> acc_keep m m') ->
+    lvl_objs_g run ge spsz P = Some P' -> acc_keep P P'.
+Proof.
+  intros run ge spsz P P' Rk H. unfold lvl_objs_g in H.
+  destruct (sym ge "sLevelPool"); [ | discriminate H ].
+  destruct (sym ge "sCurrAreaIndex"); [ | discriminate H ].
+  destruct (sym ge "sCurrentCmd"); [ | discriminate H ].
+  destruct (sym ge "gCurrActNum"); [ | discriminate H ].
+  destruct (run P _ _) as [[[t Q] lpool]| ? ? ?] eqn:R; [ | discriminate H ].
+  destruct (CM.store Mint32 Q _ 0 lpool) as [Q1|] eqn:S1; [ | discriminate H ].
+  destruct (CM.store Mint16signed Q1 _ 0 _) as [Q2|] eqn:S2; [ | discriminate H ].
+  destruct (CM.store Mint16signed Q2 _ 0 _) as [Q3|] eqn:S3; [ | discriminate H ].
+  refine (acc_keep_trans _ _ _ (Rk _ _ _ _ _ _ R) _).
+  refine (acc_keep_trans _ _ _ (cm_store_keep _ _ _ _ _ _ S1) _).
+  refine (acc_keep_trans _ _ _ (cm_store_keep _ _ _ _ _ _ S2) _).
+  refine (acc_keep_trans _ _ _ (cm_store_keep _ _ _ _ _ _ S3) _).
+  exact (place_all_g_keep run ge _ _ _ _ Rk H).
+Qed.
+
+Lemma lvl_objs_g_sound : forall (run : runT) ge spsz P P',
+    (forall m f a t m' v, run m f a = Done (t, m', v) -> eval_funcall function_entry2 ge m f a t m' v) ->
+    lvl_objs_g run ge spsz P = Some P' -> lvl_made ge spsz P P'.
+Proof.
+  intros run ge spsz P P' Rs H. unfold lvl_objs_g in H.
+  destruct (sym ge "sLevelPool") as [blp|] eqn:H1; [ | discriminate H ].
+  destruct (sym ge "sCurrAreaIndex") as [bai|] eqn:H2; [ | discriminate H ].
+  destruct (sym ge "sCurrentCmd") as [bcur|] eqn:H3; [ | discriminate H ].
+  destruct (sym ge "gCurrActNum") as [bact|] eqn:H4; [ | discriminate H ].
+  destruct (run P _ _) as [[[t Q] lpool]| ? ? ?] eqn:R; [ | discriminate H ].
+  destruct (CM.store Mint32 Q _ 0 lpool) as [Q1|] eqn:S1; [ | discriminate H ].
+  destruct (CM.store Mint16signed Q1 _ 0 _) as [Q2|] eqn:S2; [ | discriminate H ].
+  destruct (CM.store Mint16signed Q2 _ 0 _) as [Q3|] eqn:S3; [ | discriminate H ].
+  rewrite CM.store_eq in S1, S2, S3.
+  exists blp, bai, bcur, bact, t, Q, lpool, Q1, Q2, Q3.
+  do 4 (split; [ assumption | ]).
+  split; [ exact (Rs _ _ _ _ _ _ R) | ].
+  do 3 (split; [ assumption | ]).
+  exact (place_all_g_sound run ge bcur _ _ _ Rs H).
+Qed.
+
+(* LOAD_AREA's load_area: spawn_objects_from_info(0, gAreas[1].objectSpawnInfos) *)
+Definition area_spawn_g (run : runT) (ge : genv) (bgad : block) (L : mem) : option mem :=
+  match off ge "Area" "objectSpawnInfos" with
+  | Some osi =>
+    match CM.load Mint32 L bgad (ssize ge "Area" + osi) with
+    | Some hd =>
+      match run L (Internal object_list_processor.f_spawn_objects_from_info) [Vint Int.zero; hd] with
+      | Done (_, L', _) => Some L'
+      | Stuck _ _ _ => None
+      end
+    | None => None
+    end
+  | None => None
+  end.
+
+Notation area_spawn ge := (area_spawn_g (ex_call ge world FUEL) ge).
+
+Definition area_spawned (ge : genv) (bgad : block) (L L' : mem) : Prop :=
+  exists osi hd t v, off ge "Area" "objectSpawnInfos" = Some osi
+    /\ Mem.load Mint32 L bgad (ssize ge "Area" + osi) = Some hd
+    /\ eval_funcall function_entry2 ge L (Internal object_list_processor.f_spawn_objects_from_info)
+         [Vint Int.zero; hd] t L' v.
+
+Lemma area_spawn_g_keep : forall (run : runT) ge bgad L L',
+    (forall m f a t m' v, run m f a = Done (t, m', v) -> acc_keep m m') ->
+    area_spawn_g run ge bgad L = Some L' -> acc_keep L L'.
+Proof.
+  intros run ge bgad L L' Rk H. unfold area_spawn_g in H.
+  destruct (off ge "Area" "objectSpawnInfos") as [osi|]; [ | discriminate H ].
+  destruct (CM.load Mint32 L bgad _) as [hd|]; [ | discriminate H ].
+  destruct (run L _ _) as [[[t L2] v]| ? ? ?] eqn:R; [ | discriminate H ].
+  injection H as <-. exact (Rk _ _ _ _ _ _ R).
+Qed.
+
+Lemma area_spawn_g_sound : forall (run : runT) ge bgad L L',
+    (forall m f a t m' v, run m f a = Done (t, m', v) -> eval_funcall function_entry2 ge m f a t m' v) ->
+    area_spawn_g run ge bgad L = Some L' -> area_spawned ge bgad L L'.
+Proof.
+  intros run ge bgad L L' Rs H. unfold area_spawn_g in H.
+  destruct (off ge "Area" "objectSpawnInfos") as [osi|] eqn:Ho; [ | discriminate H ].
+  destruct (CM.load Mint32 L bgad _) as [hd|] eqn:Lh; [ | discriminate H ].
+  destruct (run L _ _) as [[[t L2] v]| ? ? ?] eqn:R; [ | discriminate H ].
+  injection H as <-. rewrite CM.load_eq in Lh.
+  exists osi, hd, t, v. exact (conj Ho (conj Lh (Rs _ _ _ _ _ _ R))).
+Qed.
+
+(* load_area_terrain's arguments: area 1, the collision, no rooms, the
+   macro list (Step B: the macro objects are spawned by the real
+   spawn_macro_objects) *)
+Definition terr_args2 (bcol bmac : block) : list val :=
+  [Vint (Int.repr 1); Vptr bcol Ptrofs.zero; Vint Int.zero; Vptr bmac Ptrofs.zero].
+
+(* ---------------------------------------------------------------------- *)
+(* THE WHOLE FRAME (2026-11-02): HeightFrame.play_frame_step's segments,   *)
+(* run from the witness: audio_game_loop_tick and select_gfx_pool          *)
+(* (MidKeep.mid_call), read_controller_inputs, play_mode_normal's PRE      *)
+(* slice (in PLAY_MODE_NORMAL), area_update_objects, the POST slice        *)
+(* (update_camera among it); the render tail is the identity there         *)
+(* (seg_rest / seg_render allow it once gMarioPlatform is still).  The     *)
+(* object world and the frame-boundary counters are re-checked after the   *)
+(* objects phase and after the POST slice.                                 *)
+(* ---------------------------------------------------------------------- *)
+Definition srunT : Type := env -> temp_env -> mem -> statement -> res (trace * temp_env * mem * outcome).
+
+Definition pm_b (ge : genv) (m : mem) : bool :=
+  match Genv.find_symbol ge level_update._sCurrPlayMode with
+  | Some b => match CM.load Mint16signed m b 0 with Some (Vint i) => Int.eq i Int.zero | _ => false end
+  | None => false
+  end.
+
+Definition in_wmotr_b (ge : genv) (m : mem) : bool :=
+  match Genv.find_symbol ge level_update._gCurrLevelNum with
+  | Some b => match CM.load Mint16signed m b 0 with
+              | Some (Vint i) => Int.eq i (Int.repr LEVEL_WMOTR) | _ => false end
+  | None => false
+  end.
+
+Definition plat_still_b (ge : genv) (m : mem) : bool :=
+  match Genv.find_symbol ge platform_displacement._gMarioPlatform with
+  | Some bp =>
+      match CM.load Mint32 m bp 0 with
+      | Some (Vint i) => Int.eq i Int.zero
+      | Some (Vptr pb po) =>
+          match Genv.find_symbol ge object_list_processor._gObjectPool with
+          | Some pb' =>
+              Pos.eqb pb pb'
+              && forallb (fun k => match CM.loadv Mint32 m (Vptr pb (Ptrofs.add po (Ptrofs.repr (136 + 4 * k)))) with
+                                   | Some (Vint j) => Int.eq j Int.zero | _ => false end) [35; 36; 37]
+          | None => false
+          end
+      | _ => false
+      end
+  | None => false
+  end.
+
+Definition frame_g (run : runT) (srun : srunT) (ge : genv) (bm : block) (m : mem) : bool :=
+  match run m (Internal sound_init.f_audio_game_loop_tick) [] with
+  | Done (_, i1, _) =>
+  match run i1 (Internal game_init.f_select_gfx_pool) [] with
+  | Done (_, i, _) =>
+  match run i (Internal game_init.f_read_controller_inputs) [] with
+  | Done (_, m0, _) =>
+    pm_b ge m0 &&
+    match srun empty_env (create_undef_temps (fn_temps level_update.f_play_mode_normal)) m0 LevelFlank.lv_pre with
+    | Done (_, le, ma, _) =>
+      match run ma (Internal area.f_area_update_objects) [] with
+      | Done (_, m3, _) =>
+        ObjWorld.ow_chk ge bm m3 && ObjWorld.ctr_b ge m3 &&
+        match srun empty_env le m3 LevelFlank.lv_post with
+        | Done (_, _, m4, _) =>
+            plat_still_b ge m4 && in_wmotr_b ge m4 && ObjWorld.ow_chk ge bm m4 && ObjWorld.ctr_b ge m4
+        | Stuck _ _ _ => false
+        end
+      | Stuck _ _ _ => false
+      end
+    | Stuck _ _ _ => false
+    end
+  | Stuck _ _ _ => false
+  end
+  | Stuck _ _ _ => false
+  end
+  | Stuck _ _ _ => false
+  end.
+
+Notation frame_w ge := (frame_g (ex_call ge BootRun.world FUEL) (ex_stmt ge BootRun.world FUEL) ge).
+
+Definition frame_ran (ge : genv) (bm : block) (m : mem) : Prop :=
+  exists i1 i m0 le ma m3 m4,
+    (exists t v, eval_funcall function_entry2 ge m (Internal sound_init.f_audio_game_loop_tick) [] t i1 v)
+    /\ (exists t v, eval_funcall function_entry2 ge i1 (Internal game_init.f_select_gfx_pool) [] t i v)
+    /\ (exists t v, eval_funcall function_entry2 ge i (Internal game_init.f_read_controller_inputs) [] t m0 v)
+    /\ pm_b ge m0 = true
+    /\ (exists t out, exec_stmt function_entry2 ge empty_env
+                        (create_undef_temps (fn_temps level_update.f_play_mode_normal)) m0 LevelFlank.lv_pre
+                        t le ma out)
+    /\ (exists t v, eval_funcall function_entry2 ge ma (Internal area.f_area_update_objects) [] t m3 v)
+    /\ ObjWorld.ow_chk ge bm m3 = true /\ ObjWorld.ctr_b ge m3 = true
+    /\ (exists t le' out, exec_stmt function_entry2 ge empty_env le m3 LevelFlank.lv_post t le' m4 out)
+    /\ plat_still_b ge m4 = true /\ in_wmotr_b ge m4 = true
+    /\ ObjWorld.ow_chk ge bm m4 = true /\ ObjWorld.ctr_b ge m4 = true.
+
+Lemma frame_g_sound : forall (ge : genv) (run : runT) (srun : srunT) bm m,
+    (forall m f a t m' v, run m f a = Done (t, m', v) -> eval_funcall function_entry2 ge m f a t m' v) ->
+    (forall e le m s t le' m' out, srun e le m s = Done (t, le', m', out) ->
+       exec_stmt function_entry2 ge e le m s t le' m' out) ->
+    frame_g run srun ge bm m = true -> frame_ran ge bm m.
+Proof.
+  intros ge run srun bm m Rs Ss H. unfold frame_g in H.
+  destruct (run m _ _) as [[[t1 i1] v1]| ? ? ?] eqn:R1; [ | discriminate H ].
+  destruct (run i1 _ _) as [[[t2 i] v2]| ? ? ?] eqn:R2; [ | discriminate H ].
+  destruct (run i _ _) as [[[t3 m0] v3]| ? ? ?] eqn:R3; [ | discriminate H ].
+  apply andb_prop in H as [Hpm H].
+  destruct (srun _ _ m0 _) as [[[[t4 le] ma] o4]| ? ? ?] eqn:R4; [ | discriminate H ].
+  destruct (run ma _ _) as [[[t5 m3] v5]| ? ? ?] eqn:R5; [ | discriminate H ].
+  apply andb_prop in H as [H H6]. apply andb_prop in H as [Ho3 Hc3].
+  destruct (srun _ le m3 _) as [[[[t6 le6] m4] o6]| ? ? ?] eqn:R6; [ | discriminate H6 ].
+  apply andb_prop in H6 as [H6 Hc4]. apply andb_prop in H6 as [H6 Ho4]. apply andb_prop in H6 as [Hps Hw].
+  exists i1, i, m0, le, ma, m3, m4.
+  split; [ exists t1, v1; exact (Rs _ _ _ _ _ _ R1) | ].
+  split; [ exists t2, v2; exact (Rs _ _ _ _ _ _ R2) | ].
+  split; [ exists t3, v3; exact (Rs _ _ _ _ _ _ R3) | ].
+  split; [ exact Hpm | ].
+  split; [ exists t4, o4; exact (Ss _ _ _ _ _ _ _ _ R4) | ].
+  split; [ exists t5, v5; exact (Rs _ _ _ _ _ _ R5) | ].
+  split; [ exact Ho3 | split; [ exact Hc3 | ] ].
+  split; [ exists t6, le6, o6; exact (Ss _ _ _ _ _ _ _ _ R6) | ].
+  exact (conj Hps (conj Hw (conj Ho4 Hc4))).
+Qed.
+
+Lemma frame_w_sound : forall ge bm m, BootRun.world_ok ge -> frame_w ge bm m = true -> frame_ran ge bm m.
+Proof.
+  intros ge bm m Wk H.
+  exact (frame_g_sound ge _ _ bm m (fun m f a t m' v R => ex_call_sound ge BootRun.world Wk _ _ _ _ _ _ _ R)
+           (fun e le m s t le' m' out R => proj1 (ex_sound ge BootRun.world Wk FUEL) e le m s t le' m' out R) H).
+Qed.
+
 Definition wchk (ge : genv) (m0 : mem) : bool :=
   match Genv.find_symbol ge level_update._gMarioStates, Genv.find_symbol ge mario._gControllers,
         Genv.find_symbol ge mario._gMarioAnimsBuf, Genv.find_symbol ge object_list_processor._gObjectPool,
@@ -941,16 +1288,22 @@ Definition wchk (ge : genv) (m0 : mem) : bool :=
         sym ge "wmotr_seg7_collision", sym ge "gSurfacesAllocated" with
   | Some s1, Some s2, Some s3, Some s4, Some s5, Some bcol, Some bn =>
   match sym ge "gObjParentGraphNode", sym ge "bhvMario",
-        off ge "SpawnInfo" "behaviorArg", off ge "SpawnInfo" "behaviorScript" with
-  | Some bpg, Some bmb, Some oba, Some obs =>
+        off ge "SpawnInfo" "behaviorArg", off ge "SpawnInfo" "behaviorScript",
+        sym ge "wmotr_seg7_macro_objs" with
+  | Some bpg, Some bmb, Some oba, Some obs, Some bmac =>
   match e_chain bw bL m0 with
   | Some e6 =>
     let (P0, bp) := Mem.alloc e6 0 POOL in
     match apply_writes P0 (pool_writes s1 s2 s3 s4 s5 bp) 0 with
     | inl P =>
+      (* the game loop's select_gfx_pool before the level script runs
+         (Step B, 2026-11-02: with the identity set_segment_base_addr,
+         TRUST 2.2) *)
+      match ex_call ge world FUEL P (Internal game_init.f_select_gfx_pool) [] with
+      | Done (_, Pgfx, _) =>
       (* level_cmd_init_level: init_graph_node_start(NULL,
          &gObjParentGraphNode); clear_objects() *)
-      match ex_call ge world FUEL P (Internal graph_node.f_init_graph_node_start)
+      match ex_call ge world FUEL Pgfx (Internal graph_node.f_init_graph_node_start)
               [Vint Int.zero; Vptr bpg Ptrofs.zero] with
       | Done (_, PG, _) =>
       match ex_call ge world FUEL PG (Internal object_list_processor.f_clear_objects) [] with
@@ -958,10 +1311,16 @@ Definition wchk (ge : genv) (m0 : mem) : bool :=
       (* LOAD_AREA's geo: the area's Camera (cam_chain) *)
       match cam_chain ge bgad PO with
       | Some (Pc, cam) =>
-      match ex_call ge world FUEL Pc (Internal surface_load.f_alloc_surface_pools) [] with
+      (* ALLOC_LEVEL_POOL, AREA(1), the act, the OBJECT commands (lvl_objs) *)
+      match lvl_objs ge Pc with
+      | Some Pq =>
+      match ex_call ge world FUEL Pq (Internal surface_load.f_alloc_surface_pools) [] with
       | Done (_, L1, _) =>
-        match ex_call ge world FUEL L1 (Internal surface_load.f_load_area_terrain) (terr_args bcol) with
-        | Done (_, L0, _) =>
+        match ex_call ge world FUEL L1 (Internal surface_load.f_load_area_terrain) (terr_args2 bcol bmac) with
+        | Done (_, L00, _) =>
+        (* load_area: the area's spawn infos (the placed objects) *)
+        match area_spawn ge bgad L00 with
+        | Some L0 =>
         (* load_mario_area: spawn_objects_from_info(0, gMarioSpawnInfo);
            the two SpawnInfo cells level_cmd_init_mario sets (behaviorArg 1,
            behaviorScript bhvMario) are stores (level_script.c is not
@@ -989,6 +1348,7 @@ Definition wchk (ge : genv) (m0 : mem) : bool :=
               && done_b (ex_call ge BootRun.world FUEL m11 (Internal area.f_area_update_objects) [])
               && cam_frame_ok ge bgad cam m11
               && dp_chk WFUEL ge m11
+              && frame_w ge bm m11
             | None => false
             end
           | None => false
@@ -997,18 +1357,21 @@ Definition wchk (ge : genv) (m0 : mem) : bool :=
         end
         | None => false end
         | None => false end
+        | None => false end
         | Stuck _ _ _ => false
         end
       | Stuck _ _ _ => false
       end
       | None => false end
+      | None => false end
+      | Stuck _ _ _ => false end
       | Stuck _ _ _ => false end
       | Stuck _ _ _ => false end
     | inr _ => false
     end
   | None => false
   end
-  | _, _, _, _ => false
+  | _, _, _, _, _ => false
   end
   | _, _, _, _, _, _, _ => false
   end
@@ -1043,8 +1406,8 @@ Qed.
 (* The chain, unpacked into memory equations.                              *)
 (* ---------------------------------------------------------------------- *)
 Inductive wout (ge : genv) (m0 : mem) (bm bc ab bo bw bL : block) : Prop :=
-| WOut : forall s1 s2 s3 s4 s5 bcol bn bpg bmb oba obs e1 e2 e3 e4 e5 e6 P0 bp P tg PG vg tc PO vc Pc cam
-                t1 L1 v1 t2 L0 v2 La Lb t3 L v3
+| WOut : forall s1 s2 s3 s4 s5 bcol bn bpg bmb oba obs e1 e2 e3 e4 e5 e6 P0 bp P tgx Pgfx vgx tg PG vg tc PO vc Pc cam
+                Pq bmac t1 L1 v1 t2 L00 v2 L0 La Lb t3 L v3
                 m1 bt m2 bs m2b bar m3 bd m3a m3b m4 m5 m6 m7 m8 m9 m10 ms
                 bsi bpcs bbs bhud bC bga bpads bca bgad z1 z2 z3 z4 z5 z6 z7 z8 z9 z10a z10 z11 z12 z13 z14 z15 z16 z17 z18 z19 m11,
     Mem.store Mint8unsigned m0 bw 0 (Vint (Int.repr 1)) = Some e1 ->
@@ -1060,13 +1423,17 @@ Inductive wout (ge : genv) (m0 : mem) (bm bc ab bo bw bL : block) : Prop :=
     sym ge "sPoolListHeadL" = Some s4 -> sym ge "sPoolListHeadR" = Some s5 ->
     sym ge "gObjParentGraphNode" = Some bpg -> sym ge "bhvMario" = Some bmb ->
     off ge "SpawnInfo" "behaviorArg" = Some oba -> off ge "SpawnInfo" "behaviorScript" = Some obs ->
-    ex_call ge world FUEL P (Internal graph_node.f_init_graph_node_start)
+    sym ge "wmotr_seg7_macro_objs" = Some bmac ->
+    ex_call ge world FUEL P (Internal game_init.f_select_gfx_pool) [] = Done (tgx, Pgfx, vgx) ->
+    ex_call ge world FUEL Pgfx (Internal graph_node.f_init_graph_node_start)
       [Vint Int.zero; Vptr bpg Ptrofs.zero] = Done (tg, PG, vg) ->
     ex_call ge world FUEL PG (Internal object_list_processor.f_clear_objects) [] = Done (tc, PO, vc) ->
     cam_chain ge bgad PO = Some (Pc, cam) ->
-    ex_call ge world FUEL Pc (Internal surface_load.f_alloc_surface_pools) [] = Done (t1, L1, v1) ->
-    ex_call ge world FUEL L1 (Internal surface_load.f_load_area_terrain) (terr_args bcol)
-      = Done (t2, L0, v2) ->
+    lvl_objs ge Pc = Some Pq ->
+    ex_call ge world FUEL Pq (Internal surface_load.f_alloc_surface_pools) [] = Done (t1, L1, v1) ->
+    ex_call ge world FUEL L1 (Internal surface_load.f_load_area_terrain) (terr_args2 bcol bmac)
+      = Done (t2, L00, v2) ->
+    area_spawn ge bgad L00 = Some L0 ->
     Mem.store Mint32 L0 bsi oba (Vint (Int.repr 1)) = Some La ->
     Mem.store Mint32 La bsi obs (Vptr bmb Ptrofs.zero) = Some Lb ->
     ex_call ge world FUEL Lb (Internal object_list_processor.f_spawn_objects_from_info)
@@ -1120,6 +1487,7 @@ Inductive wout (ge : genv) (m0 : mem) (bm bc ab bo bw bL : block) : Prop :=
     done_b (ex_call ge BootRun.world FUEL m11 (Internal area.f_area_update_objects) []) = true ->
     cam_frame_ok ge bgad cam m11 = true ->
     dp_chk WFUEL ge m11 = true ->
+    frame_w ge bm m11 = true ->
     wout ge m0 bm bc ab bo bw bL.
 
 Ltac st_eq H := rewrite CM.store_eq in H.
@@ -1156,6 +1524,7 @@ Proof.
   destruct (sym ge "bhvMario") as [bmb|] eqn:Hmb; [ | discriminate ].
   destruct (off ge "SpawnInfo" "behaviorArg") as [oba|] eqn:Hoba; [ | discriminate ].
   destruct (off ge "SpawnInfo" "behaviorScript") as [obs|] eqn:Hobs; [ | discriminate ].
+  destruct (sym ge "wmotr_seg7_macro_objs") as [bmac|] eqn:Hmac; [ | discriminate ].
   destruct (e_chain bw bL m0) as [e6|] eqn:Ec; [ | discriminate ].
   unfold e_chain in Ec.
   destruct (CM.store Mint8unsigned m0 bw 0 _) as [e1|] eqn:E1; [ | discriminate ].
@@ -1166,13 +1535,17 @@ Proof.
   rename Ec into E6.
   destruct (Mem.alloc e6 0 POOL) as [P0 bp] eqn:AP.
   destruct (apply_writes P0 _ 0) as [P|] eqn:PW; [ | discriminate ].
-  destruct (ex_call ge world FUEL P (Internal graph_node.f_init_graph_node_start) _)
+  destruct (ex_call ge world FUEL P (Internal game_init.f_select_gfx_pool) [])
+    as [[[tgx Pgfx] vgx]| ? ? ?] eqn:RX; [ | discriminate ].
+  destruct (ex_call ge world FUEL Pgfx (Internal graph_node.f_init_graph_node_start) _)
     as [[[tg PG] vg]| ? ? ?] eqn:RG; [ | discriminate ].
   destruct (ex_call ge world FUEL PG (Internal object_list_processor.f_clear_objects) [])
     as [[[tc PO] vc]| ? ? ?] eqn:RC; [ | discriminate ].
   destruct (cam_chain ge bgad PO) as [[Pc cam]|] eqn:CC; [ | discriminate ].
-  destruct (ex_call ge world FUEL Pc _ []) as [[[t1 L1] v1]| ? ? ?] eqn:R1; [ | discriminate ].
-  destruct (ex_call ge world FUEL L1 _ _) as [[[t2 L0] v2]| ? ? ?] eqn:R2; [ | discriminate ].
+  destruct (lvl_objs ge Pc) as [Pq|] eqn:LO; [ | discriminate ].
+  destruct (ex_call ge world FUEL Pq _ []) as [[[t1 L1] v1]| ? ? ?] eqn:R1; [ | discriminate ].
+  destruct (ex_call ge world FUEL L1 _ _) as [[[t2 L00] v2]| ? ? ?] eqn:R2; [ | discriminate ].
+  destruct (area_spawn ge bgad L00) as [L0|] eqn:AS0; [ | discriminate ].
   destruct (CM.store Mint32 L0 bsi oba _) as [La|] eqn:SPa; [ | discriminate ].
   destruct (CM.store Mint32 La bsi obs _) as [Lb|] eqn:SPb; [ | discriminate ].
   destruct (ex_call ge world FUEL Lb _ _) as [[[t3 L] v3]| ? ? ?] eqn:R3; [ | discriminate ].
@@ -1216,6 +1589,7 @@ Proof.
   destruct (CM.store Mint32 z18 bca 0 _) as [z19|] eqn:ZA; [ | discriminate ].
   rename Xc into Z18.
   repeat match goal with H : CM.store _ _ _ _ _ = Some _ |- _ => rewrite CM.store_eq in H end.
+  apply andb_prop in W as [W N15].
   apply andb_prop in W as [W N14].
   apply andb_prop in W as [W N13].
   apply andb_prop in W as [W N12]. apply andb_prop in W as [W N11].
@@ -1227,7 +1601,8 @@ Proof.
   eapply WOut;
     [ exact E1 | exact E2 | exact E3 | exact E4 | exact E5 | exact E6 | exact Hcol | exact AP
     | exact PW | exact Hs1 | exact Hs2 | exact Hs3 | exact Hs4 | exact Hs5
-    | exact Hpg | exact Hmb | exact Hoba | exact Hobs | exact RG | exact RC | exact CC | exact R1 | exact R2
+    | exact Hpg | exact Hmb | exact Hoba | exact Hobs | exact Hmac | exact RX | exact RG | exact RC | exact CC
+    | exact LO | exact R1 | exact R2 | exact AS0
     | exact SPa | exact SPb | exact R3
     | exact A1 | exact A2 | exact A3 | exact A4 | exact S1a | exact S1b | exact S1 | exact S2 | exact S3
     | exact S4 | exact S5 | exact S6 | exact S7 | exact S8
@@ -1236,7 +1611,7 @@ Proof.
     | exact Z9 | exact Z10a | exact Z10 | exact Z11 | exact Z12 | exact Z13 | exact Z14 | exact Z15 | exact Z16 | exact Z17 | exact ZC | exact ZA | exact Z18
     | exact N1 | exact N2 | exact N3
     | exact N4 | exact N5 | exact Hbn | exact N6 | exact N7 | exact N8 | exact N9
-    | exact N10 | exact N11 | exact N12 | exact N13 | exact N14 ].
+    | exact N10 | exact N11 | exact N12 | exact N13 | exact N14 | exact N15 ].
 Qed.
 
 (* ifs_ok, in the semantics: the run of the function the link resolves
