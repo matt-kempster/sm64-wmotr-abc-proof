@@ -50,7 +50,7 @@ From SM64.Proofs.WMotRRequiresA Require PlatformKeep.
 From SM64.Proofs Require Import HeightInvariant WMotRWorld.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld AnimData AnimWorld RenderAnim RenderKeep
   LevelGvars LevelFlank LevelWalk.
-From SM64.Proofs.WMotRRequiresA Require LevelWarp.
+From SM64.Proofs.WMotRRequiresA Require LevelWarp AudioInv.
 From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
 Import ListNotations.
 
@@ -234,7 +234,7 @@ Section Link.
   (* ===================================================================== *)
   Theorem pre_eff : forall m m',
     level_pre_call lp m m' -> phiw lp bm m -> OF m ->
-    OF m' /\ fx lp bm lvl_safe_gvars m m' /\ cl_rel G m m'.
+    OF m' /\ fx lp bm lvl_safe_gvars m m' /\ cl_rel G m m' /\ aud_w G m'.
   Proof.
     intros m m' (Hmode & t & le' & out & Hx) Hphi Hf.
     pose proof Hphi as (_ & _ & _ & _ & _ & _ & _ & Hlvl).
@@ -265,7 +265,10 @@ Section Link.
     destruct chk_timer as (C1 & C2).
     destruct (lv_stmt lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hfloor lvl_safe_gvars sb_safe nil lv_timer C1
                 (fun g Hg => ltac:(discriminate Hg)) _ _ _ _ _ _ Hx Hf) as (Hf' & Hfx).
-    exact (conj Hf' (conj Hfx (cl_stmt G lv_timer C2 _ _ _ _ _ _ Hx))).
+    pose proof (lv_stmt_ai lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hfloor lvl_safe_gvars sb_safe nil lv_timer C1
+                  (fun g Hg => ltac:(discriminate Hg)) _ _ _ _ _ _ Hx Hf
+                  (proj1 (AudioInv.aud_w_eq G _) (lvl_w_aud G _ Hlvl))) as AI'.
+    exact (conj Hf' (conj Hfx (conj (cl_stmt G lv_timer C2 _ _ _ _ _ _ Hx) (proj2 (AudioInv.aud_w_eq G _) AI')))).
   Qed.
 
   Theorem fx_a_down : forall Xs m m',
@@ -359,7 +362,7 @@ Section Link.
     assert (Nbm : forall b, cam_sym G b \/ (exists co, cam_cb G m b co)
                     \/ Genv.find_symbol G mario._gMarioAnimsBuf = Some b -> b <> bm).
     { intros b Hb. apply (lvl_rd_not_sym G m b level_update._gMarioStates bm Hl); [ | exact Hbm_sym | vm_compute; reflexivity ].
-      destruct Hb as [Hb | [Hb | Hb]]; [ left; right; left; exact Hb | left; right; right; exact Hb | right; exact Hb ]. }
+      destruct Hb as [Hb | [Hb | Hb]]; [ left; right; left; exact Hb | left; right; right; left; exact Hb | right; exact Hb ]. }
     apply (cam_w_unch G m m' UG); [ | | exact (lvl_w_area G m Hl) | exact (lvl_w_cam G m Hl) ].
     - intros b ch z Hb.
       assert (Hb' : cam_sym G b \/ (exists co, cam_cb G m b co)
@@ -377,6 +380,23 @@ Section Link.
   Qed.
 
   (* a footprint without the globals lvl_w reads (lvl_rd_ids) keeps it *)
+  (* a footprint without the audio globals keeps aud_w *)
+  Lemma aud_w_fx : forall Xs m m',
+    (forall id, In id Xs -> existsb (Pos.eqb id) aud_ls_ids = false) ->
+    fx lp bm Xs m m' -> aud_w G m -> aud_w G m'.
+  Proof.
+    intros Xs m m' HX Hfx A. apply (aud_w_unch G m m'); [ | exact A ].
+    intros b ch z (g & Hg & Hs). apply (fx_load lp bm Xs m m' ch b z Hfx).
+    intros i _ [(id & Hin & Hs') | (E & _)].
+    - assert (Ei : id = g) by (eapply Genv.genv_vars_inj; [ exact Hs' | exact Hs ]). subst id.
+      pose proof (HX g Hin) as N.
+      assert (Y : existsb (Pos.eqb g) aud_ls_ids = true)
+        by (apply existsb_exists; exists g; split; [ exact Hg | apply Pos.eqb_refl ]).
+      congruence.
+    - subst b. apply (not_aud_sym G _ bm Hbm_sym ltac:(vm_compute; reflexivity)).
+      exists g. split; [ exact Hg | exact Hs ].
+  Qed.
+
   Lemma lvl_w_fx : forall Xs m m',
     (forall id, In id Xs -> existsb (Pos.eqb id) lvl_rd_ids = false) ->
     fx lp bm Xs m m' -> lvl_w G m -> lvl_w G m'.
@@ -392,18 +412,49 @@ Section Link.
                                | intros ab Sa; exact (K ab Mint32 8 (or_intror Sa)) | exact Hl ].
   Qed.
 
-  Lemma lvl_w_safe : forall m m', lvl_w G m -> fx lp bm lvl_safe_gvars m m' -> lvl_w G m'.
+  (* a footprint that may write the audio globals, with aud_w at its end
+     (the level walks: LevelWalk.lv_stmt_ai) *)
+  Lemma avoid_na : forall Xs,
+    forallb (fun id => negb (existsb (Pos.eqb id) lvl_rd_ids) || existsb (Pos.eqb id) aud_ls_ids) Xs = true ->
+    forall id, In id Xs -> existsb (Pos.eqb id) lvl_rd_ids = false \/ existsb (Pos.eqb id) aud_ls_ids = true.
   Proof.
-    intros m m' Hl Hfx.
-    exact (lvl_w_fx lvl_safe_gvars m m' (avoid_of lvl_safe_gvars lvl_rd_ids ltac:(vm_compute; reflexivity)) Hfx Hl).
+    intros Xs H id Hin. pose proof (proj1 (forallb_forall _ _) H id Hin) as E. cbn beta in E.
+    apply orb_true_iff in E as [E | E]; [ left; apply negb_true_iff in E; exact E | right; exact E ].
+  Qed.
+
+  Lemma lvl_w_fx_na : forall Xs m m',
+    (forall id, In id Xs -> existsb (Pos.eqb id) lvl_rd_ids = false \/ existsb (Pos.eqb id) aud_ls_ids = true) ->
+    fx lp bm Xs m m' -> lvl_w G m -> aud_w G m' -> lvl_w G m'.
+  Proof.
+    intros Xs m m' HX Hfx Hl AU.
+    assert (K : forall b ch z, lw_blk G m b \/ Genv.find_symbol G mario._gMarioAnimsBuf = Some b ->
+                  ~ ablk G aud_ls_ids b -> Mem.load ch m' b z = Mem.load ch m b z).
+    { intros b ch z Hb Na. apply (fx_load lp bm Xs m m' ch b z Hfx).
+      intros i _ [(id & Hin & Hs) | (E & _)].
+      - destruct (HX id Hin) as [N | A].
+        + exact (lvl_rd_not_sym G m b id b Hl Hb Hs N eq_refl).
+        + apply Na. exists id. split; [ | exact Hs ].
+          apply existsb_exists in A as (x & Hx & Ex). apply Pos.eqb_eq in Ex. subst x. exact Hx.
+      - exact (lvl_rd_not_sym G m b _ bm Hl Hb Hbm_sym ltac:(vm_compute; reflexivity) E). }
+    apply (lvl_w_unch_na G m m');
+      [ intros b ch z Hb Na; exact (K b ch z (or_introl Hb) Na)
+      | intros ab Sa; exact (K ab Mint32 8 (or_intror Sa) (not_aud_sym G _ ab Sa ltac:(vm_compute; reflexivity)))
+      | exact AU | exact Hl ].
+  Qed.
+
+  Lemma lvl_w_safe : forall m m', lvl_w G m -> fx lp bm lvl_safe_gvars m m' -> aud_w G m' -> lvl_w G m'.
+  Proof.
+    intros m m' Hl Hfx AU.
+    exact (lvl_w_fx_na lvl_safe_gvars m m' (avoid_na lvl_safe_gvars ltac:(vm_compute; reflexivity)) Hfx Hl AU).
   Qed.
 
   (* the POST tail writes three warp cells; with warp_w at its end
      (LevelWarp.tail_warp_w), lvl_w holds there (the other lvl_ids globals
      are not written) *)
-  Lemma lvl_w_tail : forall m m', lvl_w G m -> fx lp bm level_gvars m m' -> warp_w G m' -> lvl_w G m'.
+  Lemma lvl_w_tail : forall m m', lvl_w G m -> fx lp bm level_gvars m m' -> warp_w G m' ->
+    aud_w G m' -> lvl_w G m'.
   Proof.
-    intros m m' HLW Hfx Hw. pose proof HLW as (L1 & L2 & _ & CW & AW & EW & _).
+    intros m m' HLW Hfx Hw AU. pose proof HLW as (L1 & L2 & _ & CW & AW & EW & _).
     assert (U' : forall id b, Genv.find_symbol G id = Some b ->
                existsb (Pos.eqb id) level_gvars = false -> id <> level_update._gMarioStates ->
                forall ch z, Mem.load ch m' b z = Mem.load ch m b z).
@@ -428,8 +479,10 @@ Section Link.
       + intros ga Sa. rewrite (U' _ ga Sa ltac:(nb) ltac:(ne)). exact (AW ga Sa).
       + intros be Se. rewrite (U' _ be Se ltac:(nb) ltac:(ne)). exact (proj1 EW be Se).
       + intros be Se. rewrite (U' _ be Se ltac:(nb) ltac:(ne)). exact (proj2 EW be Se).
-      + exact (cam_w_fx level_gvars m m' (avoid_of level_gvars cam_rd_ids ltac:(vm_compute; reflexivity)) HLW Hfx
-                 (fun ga Sa => U' _ ga Sa ltac:(nb) ltac:(ne) Mint32 0)).
+      + split.
+        * exact (cam_w_fx level_gvars m m' (avoid_of level_gvars cam_rd_ids ltac:(vm_compute; reflexivity)) HLW Hfx
+                   (fun ga Sa => U' _ ga Sa ltac:(nb) ltac:(ne) Mint32 0)).
+        * exact AU.
   Qed.
 
   Lemma safe_flank : incl lvl_safe_gvars flank_gvars.
@@ -440,11 +493,11 @@ Section Link.
 
   Theorem safe_keeps_phiw : forall m m',
     phiw lp bm m -> fx lp bm lvl_safe_gvars m m' -> cl_rel G m m' ->
-    surf_apart lp bm lvl_safe_gvars m -> phiw lp bm m'.
+    surf_apart lp bm lvl_safe_gvars m -> aud_w G m' -> phiw lp bm m'.
   Proof.
-    intros m m' Hphi Hfx Hcl RSA.
+    intros m m' Hphi Hfx Hcl RSA AU.
     apply (lvl_keeps_gen lvl_safe_gvars safe_flank ltac:(nb) m m' Hphi Hfx Hcl RSA).
-    exact (lvl_w_safe m m' (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 Hphi))))))) Hfx).
+    exact (lvl_w_safe m m' (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 Hphi))))))) Hfx AU).
   Qed.
 
   (* surf_apart: smaller lists, and along unchanged surface cells *)
@@ -508,9 +561,9 @@ Section Link.
     /\ (PlatformKeep.plat_still lp m -> PlatformKeep.plat_still lp m').
   Proof.
     intros m m' Hc RSA Hok Hphi.
-    destruct (pre_eff m m' Hc Hphi Hok) as (Hok' & Hfx & Hcl).
+    destruct (pre_eff m m' Hc Hphi Hok) as (Hok' & Hfx & Hcl & AU).
     split; [ exact Hok' | split; [ | split ] ].
-    - exact (safe_keeps_phiw m m' Hphi Hfx Hcl (surf_apart_incl _ _ m safe_incl RSA)).
+    - exact (safe_keeps_phiw m m' Hphi Hfx Hcl (surf_apart_incl _ _ m safe_incl RSA) AU).
     - exact (fx_a_down lvl_safe_gvars m m' ltac:(nb) ltac:(nb) Hok Hfx).
     - exact (fx_plat_still lvl_safe_gvars m m' ltac:(nb) ltac:(nb) Hfx).
   Qed.
@@ -588,8 +641,11 @@ Section Link.
     destruct (lv_stmt lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hfloor lvl_safe_gvars sb_safe hud_ids lv_hud Ch1
                 (hud_ids_lfun lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hfloor)
                 _ _ _ _ _ _ Hh Hok) as (Hok1 & Hfx1).
+    pose proof (lv_stmt_ai lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hfloor lvl_safe_gvars sb_safe hud_ids lv_hud Ch1
+                  (hud_ids_lfun lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hfloor)
+                  _ _ _ _ _ _ Hh Hok (proj1 (AudioInv.aud_w_eq G _) (lvl_w_aud G _ LW0))) as AI1.
     pose proof (safe_keeps_phiw m m1 Hphi Hfx1 (cl_stmt G lv_hud Ch2 _ _ _ _ _ _ Hh)
-                  (surf_apart_incl _ _ m safe_incl RSA)) as Hphi1.
+                  (surf_apart_incl _ _ m safe_incl RSA) (proj2 (AudioInv.aud_w_eq G _) AI1)) as Hphi1.
     (* the camera: the labeled row *)
     apply seq_inv in Hx as [(t3 & le2 & m2 & t4 & Hc & Hx) | (Hc & Hout)];
       [ | exfalso; apply Hout; exact (plain_normal _ _ _ _ _ _ _ _ _ Hc ltac:(assumption)) ].
@@ -626,13 +682,21 @@ Section Link.
     destruct (lv_stmt lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hfloor level_gvars sb_all lvl_calls lv_tail T1
                 (lvl_calls_lfun lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hfloor)
                 _ _ _ _ _ _ Hx Hok3) as (Hok' & Hfx').
+    pose proof (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 Hphi2))))))) as LW2.
+    (* the audio state: the painting call frees its local only; the tail
+       keeps AudioInv (LevelWalk.lv_stmt_ai) *)
+    assert (AU3 : aud_w G m3)
+      by exact (aud_w_fx nil m2 m3 (fun id H => match H with end)
+                  (fx_alloc_free lp bm nil _ _ _ _ _ _ Hal Hfr) (lvl_w_aud G m2 LW2)).
+    pose proof (lv_stmt_ai lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hfloor level_gvars sb_all lvl_calls lv_tail T1
+                  (lvl_calls_lfun lp H12 bm bc oc0 SafeB HSafeB_syms Hspawn Hfloor)
+                  _ _ _ _ _ _ Hx Hok3 (proj1 (AudioInv.aud_w_eq G _) AU3)) as AI'.
     pose proof (cl_stmt G lv_tail T2 _ _ _ _ _ _ Hx) as Hcl'.
     pose proof (fx_trans lp bm level_gvars _ _ _ Hfx3 Hfx') as Hfx4.
     (* warp_w at the tail's start (the painting call only allocates and
        frees its local), and at its end from the walked tail *)
-    pose proof (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 Hphi2))))))) as LW2.
     pose proof (proj1 (proj2 (proj2 (lvl_w_safe m2 m3 LW2
-                  (fx_alloc_free lp bm lvl_safe_gvars _ _ _ _ _ _ Hal Hfr))))) as Hw3.
+                  (fx_alloc_free lp bm lvl_safe_gvars _ _ _ _ _ _ Hal Hfr) AU3)))) as Hw3.
     destruct (lu_sym LU._sCurrPlayMode ltac:(let E := fresh in intro E; vm_compute in E; discriminate E)) as (bp & Hbp).
     destruct (lu_sym LU._sWarpDest ltac:(let E := fresh in intro E; vm_compute in E; discriminate E)) as (bw & Hbw).
     destruct (lu_sym LU._sTransitionTimer ltac:(let E := fresh in intro E; vm_compute in E; discriminate E)) as (bt & Hbt).
@@ -644,7 +708,7 @@ Section Link.
     split; [ exact Hok' | split ].
     - refine (lvl_keeps_gen level_gvars level_gvars_flank ltac:(nb) m2 m' Hphi2 Hfx4
                 (cl_trans G _ _ _ Hcl3 Hcl') RSA2 _).
-      exact (lvl_w_tail m2 m' LW2 Hfx4 Hwend).
+      exact (lvl_w_tail m2 m' LW2 Hfx4 Hwend (proj2 (AudioInv.aud_w_eq G _) AI')).
     - exists m1, m2. exact (conj Hfx1 (conj Hcs (conj Hok1 (conj Hphi1 Hfx4)))).
   Qed.
 
@@ -734,9 +798,10 @@ Section Link.
     (forall id, In id lvl_ids -> existsb (Pos.eqb id) Xs = true ->
        id = mario._gControllers \/ id = game_init._gControllerPads) ->
     (forall id, In id Xs -> existsb (Pos.eqb id) cam_rd_ids = false) ->
+    (forall id, In id Xs -> existsb (Pos.eqb id) aud_ls_ids = false) ->
     lvl_w G m -> fx lp bm Xs m m' -> ctl_w G m' -> lvl_w G m'.
   Proof.
-    intros Xs m m' HX HXc HLW Hfx Hcw. pose proof HLW as (L1 & L2 & (W1 & W2 & W3 & W4 & W5) & _ & AW & EW & _).
+    intros Xs m m' HX HXc HXa HLW Hfx Hcw. pose proof HLW as (L1 & L2 & (W1 & W2 & W3 & W4 & W5) & _ & AW & EW & _).
     assert (U' : forall id b, Genv.find_symbol G id = Some b -> In id lvl_ids ->
                id <> mario._gControllers -> id <> game_init._gControllerPads ->
                id <> level_update._gMarioStates ->
@@ -773,7 +838,9 @@ Section Link.
         exact (proj1 EW be Se).
       + intros be Se. rewrite (U' _ be Se ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne)).
         exact (proj2 EW be Se).
-      + exact (cam_w_fx Xs m m' HXc HLW Hfx
-                 (fun ga Sa => U' _ ga Sa ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne) Mint32 0)).
+      + split.
+        * exact (cam_w_fx Xs m m' HXc HLW Hfx
+                   (fun ga Sa => U' _ ga Sa ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne) Mint32 0)).
+        * exact (aud_w_fx Xs m m' HXa Hfx (lvl_w_aud G m HLW)).
   Qed.
 End Link.

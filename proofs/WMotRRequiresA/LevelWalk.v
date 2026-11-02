@@ -39,6 +39,7 @@ From SM64.Proofs Require Import SymbolicLinking ActionValueFrame Taint
 From SM64.Proofs Require ActWriterSurface SaveDoSaveBody.
 From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
 From SM64.Proofs.WMotRRequiresA Require Import RenderAnim LevelGvars LevelFlank.
+From SM64.Proofs.WMotRRequiresA Require LsContract AudioInv AudioWire.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -182,7 +183,7 @@ Definition gms_store_ok (gms : list ident) (lv rhs : expr) : bool :=
 
 Definition lv_store_ok (Xs : list ident) (gt : list (ident * ident)) (gms : list ident) (lv rhs : expr) : bool :=
   match au_root gt lv with
-  | Some g => au_store_ok gt lv rhs && mem_id g Xs
+  | Some g => au_store_ok gt lv rhs && mem_id g Xs && AudioWire.ai_store_ok gt lv rhs
   | None => gms_store_ok gms lv rhs
   end.
 
@@ -286,6 +287,7 @@ Section LW.
   Notation G := (lp_ge lp).
   Notation MWF := (MWF_real lp bm bc oc0 SafeB).
   Notation OF := (ow_facts bm MWF).
+  Notation AI := (AudioInv.AudioInv G).
 
   Lemma lu_cenv : forall id co, (prog_comp_env LU.prog) ! id = Some co -> (genv_cenv G) ! id = Some co.
   Proof.
@@ -379,7 +381,7 @@ Section LW.
     intros gt gms lv rhs le m t le' m' out m0 Hok (HP & HG) Hx (Hf & Hfx).
     unfold lv_store_ok in Hok.
     destruct (au_root gt lv) as [g|] eqn:Hr.
-    - apply andb_prop in Hok as [Hau Hlg].
+    - apply andb_prop in Hok as [Hok _]. apply andb_prop in Hok as [Hau Hlg].
       split; [ exact (au_store lp bm bc oc0 SafeB HSafeB_syms Hspawn gt lv rhs le m t le' m' out Hau HP Hx Hf) | ].
       apply (fx_trans lp bm Xs m0 m m' Hfx).
       pose proof Hau as Hau'. unfold au_store_ok in Hau'. rewrite Hr in Hau'.
@@ -420,10 +422,20 @@ Section LW.
   Qed.
 
   (* every function the symbol g resolves to keeps the facts within the footprint *)
-  Definition lfun (g : ident) : Prop :=
+  Definition lfun_of (g : ident) : Prop :=
     forall b fd, Genv.find_symbol G g = Some b -> Genv.find_funct_ptr G b = Some fd ->
       forall m vargs t m' vres, eval_funcall function_entry2 G m fd vargs t m' vres ->
         OF m -> OF m' /\ fx m m'.
+
+  (* ... and keeps the audio state's AudioInv (FfWorld.aud_w, lvl_w's
+     audio clause; 2026-11-02: the level phase's fades store only
+     non-pointers into gSequencePlayers, AudioWire.ai_store_ok) *)
+  Definition lfun_ai (g : ident) : Prop :=
+    forall b fd, Genv.find_symbol G g = Some b -> Genv.find_funct_ptr G b = Some fd ->
+      forall m vargs t m' vres, eval_funcall function_entry2 G m fd vargs t m' vres ->
+        OF m -> AI m -> AI m'.
+
+  Definition lfun (g : ident) : Prop := lfun_of g /\ lfun_ai g.
 
   Lemma gsb_sg : mem_id SFL._gSaveBuffer stored_globals = true.
   Proof. vm_compute. reflexivity. Qed.
@@ -515,7 +527,7 @@ Section LW.
       cbn [gcall_ok] in Hc.
       destruct (evar_fun_val _ _ _ _ _ _ _ _ _ Hev (PTree.gempty _ _)) as (lf & Hsy & ->).
       rewrite Genv.find_funct_find_funct_ptr in Hff.
-      destruct (Hids fid Hc lf fd Hsy Hff _ _ _ _ _ Hfc Hf) as (Hf' & Hfx').
+      destruct (proj1 (Hids fid Hc) lf fd Hsy Hff _ _ _ _ _ Hfc Hf) as (Hf' & Hfx').
       exact (conj Hf' (fx_trans lp bm Xs _ _ _ Hfx Hfx')).
     - (* bcopy into gSaveBuffer *)
       unfold bcopy_ok in Hc.
@@ -619,16 +631,164 @@ Section LW.
       exact (lv_call nil nil ids Hids optid a al le0 mm t0 le1 mm' out0 m Hok HP Hx0 Hq).
   Qed.
 
+  (* ---- the audio half (2026-11-02): the same walks keep AudioInv ---- *)
+  Lemma lv_store_ai : forall gt gms lv rhs le m t le' m' out,
+      lv_store_ok Xs gt gms lv rhs = true -> lv_P gt gms le ->
+      exec_stmt function_entry2 G empty_env le m (Sassign lv rhs) t le' m' out ->
+      AI m -> AI m'.
+  Proof.
+    intros gt gms lv rhs le m t le' m' out Hok (HP & _) Hx A.
+    unfold lv_store_ok in Hok.
+    destruct (au_root gt lv) as [g|] eqn:Hr.
+    - apply andb_prop in Hok as [_ Hai].
+      exact (AudioWire.ai_store lp gt lv rhs le m t le' m' out Hai HP Hx A).
+    - destruct lv as [ | | | | | | | | | | | lv0 f ty | | ]; try discriminate Hok.
+      destruct lv0 as [ | | | | | | e1 ts | | | | | | | ]; try discriminate Hok.
+      destruct e1 as [ | | | | | t1 tp | | | | | | | | ]; try discriminate Hok.
+      destruct rhs as [ i rty | | | | | | | | | | | | | ]; try discriminate Hok.
+      cbn [gms_store_ok] in Hok.
+      apply andb_prop in Hok as [_ Hfb].
+      assert (Hsc : nonptr_scalar ty = true).
+      { apply orb_true_iff in Hfb as [Hfb | Hfb]; apply andb_prop in Hfb as [_ Hty];
+          apply type_eqb_eq in Hty; subst ty; reflexivity. }
+      apply assign_inv in Hx. destruct Hx as (loc & ofs & bf & v2 & v & _ & _ & Hca & Ha & _ & _).
+      exact (AudioWire.ai_assign G _ _ _ _ _ _ _ _ Ha
+               (or_intror (sem_cast_to_nonptr_scalar _ _ _ _ _ Hsc Hca)) A).
+  Qed.
+
+  Lemma lv_call_ai : forall gt gms ids, (forall g, mem_id g ids = true -> lfun g) ->
+      forall optid a al le m t le' m' out,
+      lv_call_ok gt gms ids optid a al = true ->
+      exec_stmt function_entry2 G empty_env le m (Scall optid a al) t le' m' out ->
+      OF m -> AI m -> AI m'.
+  Proof.
+    intros gt gms ids Hids optid a al le m t le' m' out Hok Hx Hf A.
+    unfold lv_call_ok in Hok. apply andb_prop in Hok as [_ Hc].
+    apply call_inv in Hx.
+    destruct Hx as (tyargs & tyres & cc & vf & vargs & fd & vres & Hcf & Hev & Hel & Hff & _ & Hfc & _ & _).
+    apply orb_true_iff in Hc as [Hc | Hc]; [ apply orb_true_iff in Hc as [Hc | Hc] | ].
+    - (* a listed callee *)
+      destruct a as [ | | | | fid fty | | | | | | | | | ]; try discriminate Hc.
+      destruct fty as [ | | | | | | targs tres tcc | | ]; try discriminate Hc.
+      cbn [gcall_ok] in Hc.
+      destruct (evar_fun_val _ _ _ _ _ _ _ _ _ Hev (PTree.gempty _ _)) as (lf & Hsy & ->).
+      rewrite Genv.find_funct_find_funct_ptr in Hff.
+      exact (proj2 (Hids fid Hc) lf fd Hsy Hff _ _ _ _ _ Hfc Hf A).
+    - (* bcopy into gSaveBuffer: no audio block *)
+      unfold bcopy_ok in Hc.
+      destruct a as [ | | | | fid fty | | | | | | | | | ]; try discriminate Hc.
+      destruct fty as [ | | | | | | targs tres tcc | | ]; try discriminate Hc.
+      destruct al as [ | asrc [ | ad [ | an [ | ] ] ] ]; try discriminate Hc.
+      apply andb_prop in Hc as [Hb Hd]. apply Pos.eqb_eq in Hb. subst fid.
+      destruct (groot_e ad) as [g|] eqn:Hgd; [ | discriminate Hd ].
+      apply Pos.eqb_eq in Hd. subst g.
+      destruct (evar_fun_val _ _ _ _ _ _ _ _ _ Hev (PTree.gempty _ _)) as (lf & Hsy & ->).
+      destruct (MtxfBody.xresolve lp SFL.prog SFL._bcopy [SFL._bcopy] "bcopy" lf fd H12
+                  (linked12_LO_save lp H12) ltac:(vm_compute; reflexivity)
+                  ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity) Hsy Hff)
+        as (sg & targs' & tres' & cc' & ->).
+      inv Hfc.
+      match goal with Hx : external_call _ _ _ _ _ _ _ |- _ => rename Hx into Hext end.
+      pose proof Hfloor as (_ & _ & _ & _ & _ & _ & Hbc).
+      destruct (Hbc _ _ _ _ _ _ _ Hext) as (bs & os & bd & od & n & Hva & UO & (NB & SP) & _).
+      subst vargs.
+      destruct (exprlist_2nd _ _ _ _ _ _ _ _ _ _ _ Hel) as (ty2 & w & Hw & Hcw).
+      apply ActWriterSurface.sem_cast_vptr_inv in Hcw. subst w.
+      destruct (groot_e_val _ _ _ _ _ _ Hgd Hw) as (b0 & o0 & E & Hsb0).
+      injection E as <- <-.
+      assert (NL : ~ LsContract.gblk G LsContract.ls_ids bd)
+        by exact (AudioWire.not_ls_of G _ _ Hsb0 ltac:(vm_compute; reflexivity)).
+      intros b1 ch z b' o Hb1 Hl.
+      assert (V' : Mem.valid_block m' b1).
+      { pose proof (Mem.load_valid_access _ _ _ _ _ Hl) as (VA & _).
+        apply (Mem.perm_valid_block m' b1 z Cur Readable). apply VA.
+        pose proof (size_chunk_pos ch). lia. }
+      assert (V : Mem.valid_block m b1)
+        by (unfold Mem.valid_block in *; first [ rewrite NB; exact V' | rewrite <- NB; exact V' ]).
+      rewrite (Mem.load_unchanged_on_1 _ _ _ _ _ _ UO V) in Hl; [ exact (A _ _ _ _ _ Hb1 Hl) | ].
+      intros i _. left. intros ->. exact (NL Hb1).
+    - (* trigger_cutscene_dialog(n), n <> 1: no memory change *)
+      unfold tcd_skip_ok in Hc.
+      destruct a as [ | | | | fid fty | | | | | | | | | ]; try discriminate Hc.
+      destruct al as [ | a1 [ | a2 al2 ] ]; [ discriminate Hc | | destruct a1; discriminate Hc ].
+      destruct a1 as [ n ty | | | | | | | | | | | | | ]; try discriminate Hc.
+      apply andb_prop in Hc as [Hc Hn]. apply andb_prop in Hc as [Hc Hty].
+      apply andb_prop in Hc as [Hfe Hfty]. apply Pos.eqb_eq in Hfe. subst fid.
+      destruct (type_eq fty (Tfunction (tint :: nil) tint cc_default)) as [-> | _]; [ | discriminate Hfty ].
+      destruct (type_eq ty tint) as [-> | _]; [ | discriminate Hty ].
+      apply negb_true_iff in Hn.
+      destruct (evar_fun_val _ _ _ _ _ _ _ _ _ Hev (PTree.gempty _ _)) as (lf & Hsy & ->).
+      rewrite Genv.find_funct_find_funct_ptr in Hff.
+      match goal with H : classify_fun _ = _ |- _ => cbn in H; injection H as <- <- <- end.
+      inv Hel. match goal with H : eval_exprlist _ _ _ _ [] _ _ |- _ => inv H end.
+      match goal with H : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ => inv H end;
+        [ | match goal with H : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv H end ].
+      match goal with H : sem_cast _ _ _ _ = Some _ |- _ => cbn in H; injection H as <- end.
+      rewrite (tcd_noop _ _ _ _ _ _ _ Hsy Hff Hfc Hn). exact A.
+  Qed.
+
+  Lemma lv_body_ai : forall gt gms ids f,
+      lv_chk Xs gt gms ids f = true -> (forall g, mem_id g ids = true -> lfun g) ->
+      forall m vargs t m' vres,
+        eval_funcall function_entry2 G m (Internal f) vargs t m' vres ->
+        OF m -> AI m -> AI m'.
+  Proof.
+    intros gt gms ids f Hchk Hids m vargs t m' vres Hevf Hf A.
+    unfold lv_chk in Hchk.
+    apply andb_prop in Hchk as [Hchk Hw]. apply andb_prop in Hchk as [Hv Hpar].
+    assert (Hvars : fn_vars f = nil) by (destruct (fn_vars f); [ reflexivity | discriminate Hv ]).
+    refine (proj2 (lw_body_frame G (fun mm => (OF mm /\ fx m mm) /\ AI mm) f (lv_P gt gms) (lv_set_ok gt gms)
+              (lv_store_ok Xs gt gms) (lv_call_ok gt gms ids) Hvars Hw _ _ _ m vargs t m' vres Hevf _
+              (conj (conj Hf (fx_refl lp bm Xs m)) A))).
+    - intros id a le mm v Hok HP ((Hq & _) & _) Hev. exact (lv_set gt gms id a le mm v Hok HP Hq Hev).
+    - intros lv rhs le mm t0 le' mm' out Hok HP Hx (Hq & A1).
+      exact (conj (lv_store gt gms lv rhs le mm t0 le' mm' out m Hok HP Hx Hq)
+                  (lv_store_ai gt gms lv rhs le mm t0 le' mm' out Hok HP Hx A1)).
+    - intros optid a al le mm t0 le' mm' out Hok HP Hx (Hq & A1).
+      destruct (lv_call gt gms ids Hids optid a al le mm t0 le' mm' out m Hok HP Hx Hq) as (Hq' & HP').
+      exact (conj (conj Hq' (lv_call_ai gt gms ids Hids optid a al le mm t0 le' mm' out Hok Hx (proj1 Hq) A1)) HP').
+    - intros le1 Hb. split.
+      + intros t0 g b o Ht Hle.
+        assert (Ht' : gt_of gt t0 <> None) by (rewrite Ht; discriminate).
+        rewrite (bind_notin _ _ _ _ _ Hb (lv_params_notin gt gms f t0 Hpar (or_introl Ht'))) in Hle.
+        apply MtxfBody.create_undef_temps_get in Hle. discriminate Hle.
+      + intros t0 b o Ht Hle.
+        rewrite (bind_notin _ _ _ _ _ Hb (lv_params_notin gt gms f t0 Hpar (or_intror Ht))) in Hle.
+        apply MtxfBody.create_undef_temps_get in Hle. discriminate Hle.
+  Qed.
+
+  Lemma lv_stmt_ai : forall ids s, lv_stmt_chk Xs ids s = true ->
+      (forall g, mem_id g ids = true -> lfun g) ->
+      forall le m t le' m' out,
+        exec_stmt function_entry2 G empty_env le m s t le' m' out ->
+        OF m -> AI m -> AI m'.
+  Proof.
+    intros ids s Hchk Hids le m t le' m' out Hx Hf A.
+    refine (proj2 (proj1 (lw_walk G empty_env (fun mm => (OF mm /\ fx m mm) /\ AI mm) (lv_P nil nil)
+              (lv_set_ok nil nil) (lv_store_ok Xs nil nil) (lv_call_ok nil nil ids) _ _ _
+              empty_env le m s t le' m' out Hx eq_refl Hchk (lv_P_nil le)
+              (conj (conj Hf (fx_refl lp bm Xs m)) A)))).
+    - intros id a le0 mm v Hok HP ((Hq & _) & _) Hev. exact (lv_set nil nil id a le0 mm v Hok HP Hq Hev).
+    - intros lv rhs le0 mm t0 le1 mm' out0 Hok HP Hx0 (Hq & A1).
+      exact (conj (lv_store nil nil lv rhs le0 mm t0 le1 mm' out0 m Hok HP Hx0 Hq)
+                  (lv_store_ai nil nil lv rhs le0 mm t0 le1 mm' out0 Hok HP Hx0 A1)).
+    - intros optid a al le0 mm t0 le1 mm' out0 Hok HP Hx0 (Hq & A1).
+      destruct (lv_call nil nil ids Hids optid a al le0 mm t0 le1 mm' out0 m Hok HP Hx0 Hq) as (Hq' & HP').
+      exact (conj (conj Hq' (lv_call_ai nil nil ids Hids optid a al le0 mm t0 le1 mm' out0 Hok Hx0 (proj1 Hq) A1)) HP').
+  Qed.
+
   Lemma lfun_of_body : forall (q : Clight.program) g f, linkorder q lp ->
       (prog_defmap q) ! g = Some (Gfun (Internal f)) ->
       (forall m vargs t m' vres, eval_funcall function_entry2 G m (Internal f) vargs t m' vres ->
-         OF m -> OF m' /\ fx m m') -> lfun g.
+         OF m -> OF m' /\ fx m m') ->
+      (forall m vargs t m' vres, eval_funcall function_entry2 G m (Internal f) vargs t m' vres ->
+         OF m -> AI m -> AI m') -> lfun g.
   Proof.
-    intros q g f LO Hdm Hb b fd Hs Hfp.
-    destruct (linkorder_resolves_funct lp _ g f LO Hdm) as (b' & Hs' & Hf').
-    unfold lp_ge in Hs, Hfp. rewrite Hs in Hs'. injection Hs' as <-.
-    rewrite Genv.find_funct_find_funct_ptr in Hf'. rewrite Hfp in Hf'.
-    injection Hf' as ->. exact Hb.
+    intros q g f LO Hdm Hb Ha. split; intros b fd Hs Hfp;
+    destruct (linkorder_resolves_funct lp _ g f LO Hdm) as (b' & Hs' & Hf');
+    unfold lp_ge in Hs, Hfp; rewrite Hs in Hs'; injection Hs' as <-;
+    rewrite Genv.find_funct_find_funct_ptr in Hf'; rewrite Hfp in Hf';
+    injection Hf' as ->; [ exact Hb | exact Ha ].
   Qed.
 
   End XS.
@@ -647,9 +807,10 @@ Section LW.
     discriminate Hg.
 
   Ltac lv_symX Xs HX q LO f gt gms ids :=
-    refine (lfun_of_body Xs q _ f LO _ _);
+    refine (lfun_of_body Xs q _ f LO _ _ _);
     [ vm_compute; reflexivity
-    | apply (lv_body Xs HX gt gms ids f); [ vm_compute; reflexivity | ids_lfun ] ].
+    | apply (lv_body Xs HX gt gms ids f); [ vm_compute; reflexivity | ids_lfun ]
+    | apply (lv_body_ai Xs HX gt gms ids f); [ vm_compute; reflexivity | ids_lfun ] ].
   Ltac lv_sym q LO f gt gms ids := lv_symX level_gvars sb_all q LO f gt gms ids.
 
   Let LOx := linked12_LO_audio_external lp H12.

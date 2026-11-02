@@ -79,7 +79,7 @@ From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld
   NoAActions FrameCalls FrameSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld AirSplit AutoSplit ProRows BodyFrame.
-From SM64.Proofs.WMotRRequiresA Require AnimWorld AnimKeep LsContract CapAudio HitboxFrame HoleX.
+From SM64.Proofs.WMotRRequiresA Require AnimWorld AnimKeep LsContract CapAudio HitboxFrame HoleX AudioInv.
 From SM64.Proofs Require Import MarioModel.AudioBodies MarioModel.LinkedTwelve.
 From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
 Import ListNotations.
@@ -534,9 +534,11 @@ Section NA.
   Variable bm : block.
   Variable MWF : mem -> Prop.
   Hypothesis Hgms : forall m, MWF m -> gms_cond_lp lp m bm.
-  (* load_sequence's footprint (LsContract.ls_frame, part of the labeled
-     audio premise, TRUST 4.1): the hitbox row's cap music path *)
-  Hypothesis Hlsf : LsContract.ls_frame lp.
+  (* load_sequence's footprint, SCOPED (AudioInv.ls_frame_ai, part of the
+     labeled audio premise, TRUST 4.1; 2026-11-02, replacing the unscoped
+     LsContract.ls_frame): the hitbox row's cap music path, from the
+     AudioInv lvl_w carries (FfWorld.aud_w) *)
+  Hypothesis Hlsf : AudioInv.ls_frame_ai lp.
 
   Notation ge := (lp_ge lp).
 
@@ -1627,7 +1629,7 @@ Section NA.
   (* mario_update_hitbox_and_cap_model (2026-10-25): HitboxFrame's frame  *)
   (* (the cap music globals CapAudio.cap_ids, gBodyStates, Mario's hole,  *)
   (* gfx.node.flags and hitboxHeight of his object; load_sequence through *)
-  (* its labeled footprint LsContract.ls_frame, TRUST 4.1), and HoleX keeps *)
+  (* its SCOPED footprint AudioInv.ls_frame_ai, TRUST 4.1), and HoleX keeps *)
   (* the frame world and the cells around it.                             *)
   (* ==================================================================== *)
   Lemma not_in_ids : forall id ids, existsb (Pos.eqb id) ids = false -> ~ In id ids.
@@ -1665,9 +1667,23 @@ Section NA.
     assert (Ngo : bg <> bo) by exact (AnimKeep.symne_ids ge _ _ _ _ Hbg Spool eq_refl).
     assert (Hoo : Ptrofs.unsigned oo + 512 <= Ptrofs.modulus) by (unfold SZ_OBJECT in Soo; lia).
     assert (Nbo : bbs <> bo) by exact (proj1 (D4 bbs ltac:(left; cbn; auto 20))).
-    assert (HQH : Q2 (HitboxFrame.K2 lp bm bbs bo oo) m m' /\ HitboxFrame.HH bo oo m')
-      by (eapply HitboxFrame.hitbox_hh; eassumption).
-    destruct HQH as (HQ & HH0).
+    (* the scoped audio contract (AudioInv.ls_frame_ai): AudioInv before
+       the call is lvl_w's aud_w; the body gives it after *)
+    assert (NLo : ~ LsContract.gblk ge LsContract.ls_ids bo).
+    { intros (g & Hin & Hg).
+      assert (g = object_list_processor._gObjectPool) by (eapply Genv.genv_vars_inj; [exact Hg | exact Spool]).
+      subst g. refine (not_in_ids _ LsContract.ls_ids _ Hin). vm_compute. reflexivity. }
+    assert (NLb : ~ LsContract.gblk ge LsContract.ls_ids bbs).
+    { intros (g & Hin & Hg).
+      assert (g = mario._gBodyStates) by (eapply Genv.genv_vars_inj; [exact Hg | exact SBS]).
+      subst g. refine (not_in_ids _ LsContract.ls_ids _ Hin). vm_compute. reflexivity. }
+    assert (AI0 : AudioInv.AudioInv ge m).
+    { apply AudioInv.aud_w_eq. pose proof Hw as (_ & _ & _ & _ & _ & _ & _ & _ & HLW).
+      exact (lvl_w_aud ge m HLW). }
+    assert (HQH : (Q2 (HitboxFrame.K2 lp bm bbs bo oo) m m' /\ HitboxFrame.HH bo oo m') /\ AudioInv.AudioInv ge m')
+      by (eapply HitboxFrame.hitbox_hh_ai; eassumption).
+    destruct HQH as ((HQ & HH0) & AI1).
+    assert (HAU : aud_w ge m') by (apply AudioInv.aud_w_eq; exact AI1).
     (* the body leaves Mario's hitboxHeight 100.0f or 160.0f: ffw's ff_HH *)
     assert (HHX : ffw_hh m' bo oo) by exact HH0.
     assert (XB : xsym lp bbs)

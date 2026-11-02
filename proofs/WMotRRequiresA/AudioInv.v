@@ -32,8 +32,9 @@ From compcert Require Import Coqlib Maps AST Integers Values Memory Memdata Glob
   Ctypes Clight ClightBigstep Events.
 From SM64.Generated Require audio_external.
 From SM64.Proofs Require Import SymbolicLinking RealFrameLinked.
-From SM64.Proofs Require EngineV2Consumer.
+From SM64.Proofs Require EngineV2Consumer FloorsSurface.
 From SM64.Proofs.WMotRRequiresA Require Import BodyFrame LsContract.
+From SM64.Proofs.WMotRRequiresA Require FfWorld.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -55,6 +56,23 @@ Definition ls_frame_ai (lp : Clight.program) : Prop :=
     EngineV2Consumer.resolves_lp lp AX._load_sequence fd ->
     AudioInv (lp_ge lp) m ->
     Q2 (fun b _ => ~ gblk (lp_ge lp) ls_ids b) m m' /\ AudioInv (lp_ge lp) m'.
+
+(* FfWorld.aud_w, lvl_w's audio clause, is AudioInv (stated there over the
+   same lists, as FfWorld is below this file) *)
+Lemma aud_ids_eq : FfWorld.aud_ls_ids = ls_ids /\ FfWorld.aud_all_ids = aud_ids.
+Proof. split; reflexivity. Qed.
+
+Lemma aud_w_eq : forall G m, FfWorld.aud_w G m <-> AudioInv G m.
+Proof.
+  intros G m. unfold FfWorld.aud_w, AudioInv, FfWorld.ablk, gblk.
+  destruct aud_ids_eq as (E1 & E2). rewrite E1, E2. tauto.
+Qed.
+
+(* THE LABELED AUDIO PREMISE, SCOPED (TRUST 4.1; replaces
+   LsContract.ls_contract on the spine, 2026-11-02): GOAL 1's row and the
+   scoped footprint ls_frame_ai *)
+Definition ls_contract_ai (lp : Clight.program) (bm : block) (NoA MWF : mem -> Prop) : Prop :=
+  FloorsSurface.call_pres_ext lp bm NoA MWF AX._load_sequence /\ ls_frame_ai lp.
 
 (* AudioInv reads only the ls_ids blocks *)
 Lemma AudioInv_unch : forall G m m',

@@ -271,7 +271,7 @@ Proof. intros a b H E. subst. exact (H eq_refl). Qed.
 
 Local Open Scope R_scope.
 
-Lemma entry_budget : forall fh, F32 fh = true -> -11000 <= R2 fh ->
+Lemma entry_budget : forall fh, F32 fh = true -> FLB (R2 fh) ->
   budget_ok (entry_cells fh).
 Proof.
   intros fh Ff Hf. destruct entry_y_val as (Ey & Fy).

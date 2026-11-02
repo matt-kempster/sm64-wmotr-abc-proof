@@ -22,6 +22,7 @@ From compcert Require Import ClightBigstep.
 From SM64.Generated Require mario_step.
 From SM64.Proofs Require Import Interp.LinkGenv MarioModel.LinkedTwelve.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight FloorBound AirMatch AirXc AirRun.
+From SM64.Proofs.WMotRRequiresA Require FloorLow.
 Import ListNotations.
 Local Open Scope R_scope.
 
@@ -118,7 +119,7 @@ Qed.
 Lemma entry_ranges :
   F32 (c_posy c) = true /\ F32 (c_vely c) = true /\ Rabs (R2 (c_posy c)) <= 16000
   /\ Rabs (R2 (c_vely c)) <= 128 /\ R2 (c_vely c) <= 43
-  /\ F32 (c_floorh c) = true /\ -11000 <= R2 (c_floorh c).
+  /\ F32 (c_floorh c) = true /\ FLB (R2 (c_floorh c)).
 Proof.
   pose proof (budget_ok_y c Hc) as Hy. unfold PHI_YMAX, PHI_K, PHI_A in Hy.
   destruct Hc as ((Fy & Fv & _ & Ly & _ & (Ff & Lf) & Lv & Hv) & _).
@@ -129,7 +130,7 @@ Qed.
 Lemma floorh_new : cells_ok LD IC (g_pc g) rM rO kH = true ->
   Mem.load Mint32 m bm oMO = Some (Vptr (e_blk E rO) (e_base E rO))
   /\ exists fh, Mem.load Mfloat32 m bm oF = Some (Vsingle fh)
-     /\ F32 fh = true /\ -11000 <= R2 fh.
+     /\ F32 fh = true /\ FLB (R2 fh).
 Proof.
   intros H.
   destruct (cells_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM IC H)
@@ -137,7 +138,7 @@ Proof.
   - rewrite LF, HF. exists (c_floorh c). pose proof entry_ranges as (_ & _ & _ & _ & _ & Ff & Lf).
     auto.
   - destruct (FD x Hx) as (Fx & _ & Wx). exists x. split; [exact LF |].
-    split; [exact Fx | exact (wmotr_floor_low _ Wx)].
+    split; [exact Fx | right; exact (FloorLow.wmotr_floor_dp _ Wx)].
 Qed.
 
 (* the final pos[1] is above -11000 *)
@@ -151,7 +152,7 @@ Proof.
   apply (above_low ge m0 p x FD Fp C).
   destruct Hx as [LF | Hx]; [left | right; exact Hx].
   rewrite HF in LF. injection LF as <-.
-  pose proof entry_ranges as (_ & _ & _ & _ & _ & Ff & Lf). auto.
+  pose proof entry_ranges as (_ & _ & _ & _ & _ & Ff & Lf). exact (conj Ff (FLB_low _ Lf)).
 Qed.
 
 Definition RM' := RangedMove wmotr_floor wmotr_pole wmotr_cannon.
@@ -255,7 +256,7 @@ Proof.
   assert (HP : exists p, Mem.load Mfloat32 m bm oY = Some (Vsingle p) /\ F32 p = true
                  /\ -11000 <= R2 p /\ AttachOK wmotr_floor wmotr_pole wmotr_cannon c (R2 p)).
   { destruct LP as [LP | (h & kq & jz & LP & Hk & HPi' & Hh)].
-    - rewrite LP, HF. exists (c_floorh c). split; [reflexivity | split; [exact Ff | split; [exact Lf |]]].
+    - rewrite LP, HF. exists (c_floorh c). split; [reflexivity | split; [exact Ff | split; [exact (FLB_low _ Lf) |]]].
       destruct FRO as [Es | FW].
       + right; right; right; right; right; left. exact Es.
       + right; left. exact FW.
@@ -470,7 +471,7 @@ Proof. destruct Hpre as (_ & A & S & T & Y & V & F & _). repeat split; assumptio
 Lemma sk_ranges :
   F32 (c_posy c) = true /\ F32 (c_vely c) = true /\ Rabs (R2 (c_posy c)) <= 16000
   /\ Rabs (R2 (c_vely c)) <= 128 /\ R2 (c_vely c) <= 43
-  /\ F32 (c_floorh c) = true /\ -11000 <= R2 (c_floorh c) /\ -11000 <= R2 (c_posy c)
+  /\ F32 (c_floorh c) = true /\ FLB (R2 (c_floorh c)) /\ -11000 <= R2 (c_posy c)
   /\ R2 (c_posy c) <= 15000.
 Proof.
   destruct sk_eqs as (Ey & Ev & Ef & _). rewrite Ey, Ev, Ef.
@@ -482,7 +483,7 @@ Qed.
 Lemma sk_floorh_new : cells_ok LD IC (g_pc g) rM rO kH = true ->
   Mem.load Mint32 m bm oMO = Some (Vptr (e_blk E rO) (e_base E rO))
   /\ exists fh, Mem.load Mfloat32 m bm oF = Some (Vsingle fh)
-     /\ F32 fh = true /\ -11000 <= R2 fh.
+     /\ F32 fh = true /\ FLB (R2 fh).
 Proof.
   intros H.
   destruct (cells_sound ge nbase R0 gtab kv m0 uf gp gp_old E m g rM rO kH MM HUH HbM IC H)
@@ -490,7 +491,7 @@ Proof.
   - rewrite LF, HF. exists (c_floorh c). pose proof sk_ranges as (_ & _ & _ & _ & _ & Ff & Lf & _).
     auto.
   - destruct (FD x Hx) as (Fx & _ & Wx). exists x. split; [exact LF |].
-    split; [exact Fx | exact (wmotr_floor_low _ Wx)].
+    split; [exact Fx | right; exact (FloorLow.wmotr_floor_dp _ Wx)].
 Qed.
 
 Lemma sk_pos_low : forall cl p, aclass_of LD IC (g_pc g) rM rO kH = Some cl -> cl <> Ccut 0 ->
@@ -503,7 +504,7 @@ Proof.
   apply (above_low ge m0 p x FD Fp C).
   destruct Hx as [LF | Hx]; [left | right; exact Hx].
   rewrite HF in LF. injection LF as <-.
-  pose proof sk_ranges as (_ & _ & _ & _ & _ & Ff & Lf & _). auto.
+  pose proof sk_ranges as (_ & _ & _ & _ & _ & Ff & Lf & _). exact (conj Ff (FLB_low _ Lf)).
 Qed.
 
 (* the four-quarter class: S_air from cp with gravity 2.0f at state 0;
@@ -618,7 +619,7 @@ Proof using All.
   assert (HP : exists p, Mem.load Mfloat32 m bm oY = Some (Vsingle p) /\ F32 p = true
                  /\ -11000 <= R2 p /\ AttachOK wmotr_floor wmotr_pole wmotr_cannon cp (R2 p)).
   { destruct LP as [LP | (h & kq & jz & LP & Hk & HPi' & Hh)].
-    - rewrite LP, HF. exists (c_floorh c). split; [reflexivity | split; [exact Ff | split; [exact Lf |]]].
+    - rewrite LP, HF. exists (c_floorh c). split; [reflexivity | split; [exact Ff | split; [exact (FLB_low _ Lf) |]]].
       rewrite Ef. destruct FRO as [Es0 | FW].
       + right; right; right; right; right; left. exact Es0.
       + right; left. exact FW.

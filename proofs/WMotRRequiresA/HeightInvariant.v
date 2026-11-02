@@ -306,7 +306,11 @@ Definition credit_of (c : cells) : R := credit (c_action c) (state_of c) (timer_
    The bound was -8192 (the death plane) until 2026-10-18, but a frame whose
    two find_floor calls both miss leaves floorHeight = -11000, and an air
    step then compares against that, so -8192 was not provable from the
-   code. -11000 is.   The upper
+   code. -11000 is.  Since 2026-11-02 the floor height carries the
+   CONDITIONAL bound FLB: it is the no-floor value -11000 itself, or at or
+   above the death plane's -8192 (a hit is a WMotR floor,
+   FloorLow.wmotr_floor_dp).  pos / gfx keep -11000: over a missed floor
+   an air step's pos is bounded only by that sentinel.   The upper
    velocity bound is 43, the freefall launch cap, in EVERY mode: with the old
    bound (128) Phi admitted a grounded Mario rising at up to 128, whose
    walk-off (stationary landings keep vel[1]) is in no Move, so
@@ -314,10 +318,17 @@ Definition credit_of (c : cells) : R := credit (c_action c) (state_of c) (timer_
    <= 37.5 (slide-kick bounce; rollout 30, dive 20, slide kick 12;
    docs/goal2-vel-y-bounds.md and the 2026-09-28 label audit), and the write
    watch saw at most 26 at frame end in 86k frames. *)
+(* a floor height: find_floor's no-floor value, or a WMotR floor (at or
+   above the death plane less floor_in's slack) *)
+Definition FLB (h : R) : Prop := h = -11000 \/ -8192 <= h.
+
+Lemma FLB_low : forall h, FLB h -> -11000 <= h.
+Proof. intros h [-> | H]; lra. Qed.
+
 Definition InRange (c : cells) : Prop :=
   F32 (c_posy c) = true /\ F32 (c_vely c) = true /\ F32 (c_gfxy c) = true
   /\ -11000 <= R2 (c_posy c) /\ -11000 <= R2 (c_gfxy c)
-  /\ (F32 (c_floorh c) = true /\ -11000 <= R2 (c_floorh c))
+  /\ (F32 (c_floorh c) = true /\ FLB (R2 (c_floorh c)))
   /\ -75 <= R2 (c_vely c) <= 43.
 
 Definition budget_ok (c : cells) : Prop :=

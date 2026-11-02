@@ -84,15 +84,19 @@
 (*    object-pointer cells unchanged; the obj_w carry is proved from it):*)
 (*    needed only because the object rows are stated over a Pobj that    *)
 (*    contains obj_w.                                                     *)
-(*    Both camera rows are FALSE AS STATED (unpinned, 2026-11-02): PhiW  *)
-(*    does not pin sMarioCamState / sLuigiCamState / gSecondCameraFocus. *)
-(*    Fix: the cam_w pins + CamFootInst.update_camera_foot (TRUST 0.7).  *)
+(*    Both camera rows are TRUE AS STATED since 2026-11-02 (pinned):     *)
+(*    PhiW's lvl_w now carries FfWorld.cam_w's pins (gCamera,            *)
+(*    sMarioCamState / sLuigiCamState, gSecondCameraFocus), R3 (the      *)
+(*    Camera apart from the surface pools) and aud_w.  Still labeled     *)
+(*    (TRUST 0.7): CamFootInst.update_camera_foot is evidence, not yet   *)
+(*    a derivation (its load_sequence leaf needs the walk to carry       *)
+(*    AudioInv).                                                          *)
 (*  - Hls, Hdma_floor, Hdma_anim, Hsqrtf, Hsqrtf_float: GOAL 1's own     *)
 (*    model-boundary rows (audio load_sequence, the OS DMA floor, sqrtf).*)
-(*    Hls's footprint half (LsContract.ls_frame) is FALSE AS STATED      *)
-(*    (unscoped, 2026-11-02): it holds for every memory, but load.c      *)
-(*    stores through audio-heap pointers read from memory.  Fix: an      *)
-(*    AudioInv precondition (TRUST 4.1).                                  *)
+(*    Hls's footprint half is SCOPED since 2026-11-02:                   *)
+(*    AudioInv.ls_frame_ai (from an AudioInv memory; lvl_w carries       *)
+(*    AudioInv as aud_w), no longer the unscoped LsContract.ls_frame     *)
+(*    (FALSE as stated) (TRUST 4.1).                                      *)
 (* ====================================================================== *)
 
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory Globalenvs
@@ -102,7 +106,7 @@ From SM64.Generated Require mario level_update object_list_processor.
 From SM64.Proofs Require Import ReachableRun RealFrameLinked LinkedTwelve SpawnInit MWFReal.
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 From SM64.Proofs Require FpuFloor OsDmaFloor.
-From SM64.Proofs.WMotRRequiresA Require NaSplit ExtInert LsContract LevelKeep LevelFlank
+From SM64.Proofs.WMotRRequiresA Require NaSplit ExtInert LsContract AudioInv LevelKeep LevelFlank
   ObjPhase ObjLoop ObjStepSplit ObjWorld FrameCalls PlatformKeep PollFlank PollKeep HeightFrame.
 
 Section NoAImpliesNoFlyFrame.
@@ -122,7 +126,7 @@ Section NoAImpliesNoFlyFrame.
   Hypothesis Hoc0 : oc0 = Ptrofs.zero.
 
   (* the model-boundary rows *)
-  Hypothesis Hls : LsContract.ls_contract lp bm (NoA_real bm) MWF.
+  Hypothesis Hls : AudioInv.ls_contract_ai lp bm (NoA_real bm) MWF.
   Hypothesis Hdma_floor : OsDmaFloor.os_dma_floor.
   Hypothesis Hseg_na_open : NaSplit.na_open_rows lp bm MWF.
   Hypothesis Hdma_anim : OsDmaFloor.pi_dma_anim_spec.

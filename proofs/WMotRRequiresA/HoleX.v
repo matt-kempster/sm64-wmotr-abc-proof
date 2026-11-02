@@ -47,7 +47,9 @@ Section HX.
      mario._gMarioAnimsBuf; game_init._gMarioAnims; area._gAreaData; mario._gControllers;
      (* cam_w's sObjectCutscene (FfWorld.cam_ids, 2026-11-01) *)
      camera._sObjectCutscene]
-    ++ lvl_ids ++ part_ids.
+    ++ lvl_ids ++ part_ids
+    (* cam_w's pin cells and surface-pool pointers (2026-11-02) *)
+    ++ cam_ids.
 
   (* the changed globals besides the regions *)
   Variable XG : list ident.
@@ -88,19 +90,25 @@ Section HX.
       unfold safe_ids. apply in_or_app. right. apply in_or_app. left. exact Hin.
   Qed.
 
-  (* a block lvl_w reads (its globals, or the Camera) is unchanged here *)
+  (* a block lvl_w reads (its globals, or the Camera), other than the audio
+     blocks (which XG may name: the cap music's load_sequence), is
+     unchanged here *)
   Lemma nchg_rd : forall m b, lvl_w ge m ->
-    lw_blk ge m b \/ Genv.find_symbol ge mario._gMarioAnimsBuf = Some b -> ~ chg b.
+    lw_blk ge m b \/ Genv.find_symbol ge mario._gMarioAnimsBuf = Some b ->
+    ~ ablk ge aud_ls_ids b -> ~ chg b.
   Proof.
-    intros m b Hl Hb [(id & Hin & Hs) | (id & Hin & Hs)].
+    intros m b Hl Hb Na [(id & Hin & Hs) | (id & Hin & Hs)].
     - exact (lvl_rd_not_sym ge m b id b Hl Hb Hs (xids_rd id Hin) eq_refl).
-    - apply (lvl_rd_not_sym ge m b id b Hl Hb Hs); [ | reflexivity ].
-      pose proof (proj1 (forallb_forall _ _) XGok id Hin) as N. cbn beta in N.
-      destruct (existsb (Pos.eqb id) lvl_rd_ids) eqn:E; [ exfalso | reflexivity ].
-      apply existsb_exists in E. destruct E as (x & Hx & Ex). apply Pos.eqb_eq in Ex. subst x.
-      assert (I : forallb (fun x => existsb (Pos.eqb x) safe_ids) lvl_rd_ids = true)
-        by (vm_compute; reflexivity).
-      rewrite forallb_forall in I. rewrite (I id Hx) in N. discriminate N.
+    - destruct (lvl_rd_cases ge m b Hl Hb) as [(id' & Hin' & Hs') | NG]; [ | exact (NG id Hs) ].
+      assert (E : id' = id) by (eapply Genv.genv_vars_inj; [ exact Hs' | exact Hs ]). subst id'.
+      destruct (existsb (Pos.eqb id) aud_ls_ids) eqn:Ea.
+      + apply Na. apply existsb_exists in Ea. destruct Ea as (x & Hx & Ex). apply Pos.eqb_eq in Ex. subst x.
+        exists id. split; [ exact Hx | exact Hs ].
+      + pose proof (proj1 (forallb_forall _ _) XGok id Hin) as N. cbn beta in N.
+        assert (I : forallb (fun x => existsb (Pos.eqb x) aud_ls_ids || existsb (Pos.eqb x) safe_ids) lvl_rd_ids = true)
+          by (vm_compute; reflexivity).
+        rewrite forallb_forall in I. pose proof (I id Hin') as Ii. rewrite Ea in Ii. cbn [orb] in Ii.
+        rewrite Ii in N. discriminate N.
   Qed.
 
   (* the changed globals as a region list *)
@@ -167,7 +175,7 @@ Section HX.
         intros Hp.
         assert (T : existsb (Pos.eqb id) safe_ids = true).
         { apply existsb_exists. exists id. split; [| apply Pos.eqb_refl].
-          unfold safe_ids. apply in_or_app. right. apply in_or_app. right. exact Hp. }
+          unfold safe_ids. apply in_or_app. right. apply in_or_app. right. apply in_or_app. left. exact Hp. }
         pose proof (proj1 (forallb_forall _ _) XGok id (Hi id (or_introl eq_refl))) as N. cbn beta in N.
         rewrite T in N. discriminate N.
       + apply IH; [intros x Hx; apply Hi; right; exact Hx | exact W].
@@ -550,6 +558,10 @@ Section HX.
       - intros k rel ch v0 _ _. apply LXz; [exact D2 | exact Cbt | apply ozx_ne; exact D3].
     Qed.
 
+    (* the audio state after the hole (the cap music's load_sequence keeps
+       AudioInv: AudioInv.ls_frame_ai, HitboxFrame.hitbox_hh_ai) *)
+    Hypothesis HAU : aud_w ge m'.
+
     Lemma hx_lvl : ffw ge bm m -> AnimWorld.anim_w ge bm m -> lvl_w ge m -> lvl_w ge m'.
     Proof.
       intros Hf AW Hl.
@@ -558,12 +570,15 @@ Section HX.
       ffw_unpack EX.
       assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
       rewrite OBJ in Lo'. injection Lo' as E1 E2. subst bo oo.
-      apply (AnimKeep.lvl_w_keep_ne ge m m' (fun b => b <> bm /\ ~ chg b /\ b <> ob)); [| | exact Hl].
-      - (* the blocks lvl_w reads: its globals and the Camera (cam_w) *)
-        intros b Hb. split; [exact (AnimKeep.lvl_rd_ne_bm ge bm m b AW Hl Hb) |].
-        split; [exact (nchg_rd m b Hl Hb) |].
-        exact (lvl_rd_not_sym ge m b _ _ Hl Hb (ff_Spool _ _ _ _ FWF) ltac:(vm_compute; reflexivity)).
-      - intros ch b z (A & Bc & C). exact (LXz ch b z A Bc (ozx_ne _ _ _ C)).
+      assert (K : forall b ch z, lw_blk ge m b \/ Genv.find_symbol ge mario._gMarioAnimsBuf = Some b ->
+                    ~ ablk ge aud_ls_ids b -> Mem.load ch m' b z = Mem.load ch m b z).
+      { (* the blocks lvl_w reads: its globals and the Camera (cam_w) *)
+        intros b ch z Hb Na. apply (LXz ch b z (AnimKeep.lvl_rd_ne_bm ge bm m b AW Hl Hb) (nchg_rd m b Hl Hb Na)).
+        apply ozx_ne.
+        exact (lvl_rd_not_sym ge m b _ _ Hl Hb (ff_Spool _ _ _ _ FWF) ltac:(vm_compute; reflexivity)). }
+      apply (lvl_w_unch_na ge m m'); [ intros b ch z Hb Na; exact (K b ch z (or_introl Hb) Na) | | exact HAU | exact Hl ].
+      intros ab9 Sa. apply (K ab9 Mint32 8 (or_intror Sa)).
+      exact (not_aud_sym ge _ ab9 Sa ltac:(vm_compute; reflexivity)).
     Qed.
 
     Theorem hx_fworld : fworld lp bm m -> fworld lp bm m'.

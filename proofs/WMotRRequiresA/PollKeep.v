@@ -655,7 +655,8 @@ Section LINK.
                (avoid_of PollFlank.rci_gvars core_ids ltac:(vmr)) ltac:(vmr) i m0 Hphi Hfx Hcl
                (phiw_surf_apart lp bm PollFlank.rci_gvars i Hphi)).
       exact (LevelKeep.lvl_w_ctl lp bm Hbm_sym PollFlank.rci_gvars i m0 HX
-        (avoid_of PollFlank.rci_gvars cam_rd_ids ltac:(vm_compute; reflexivity)) Hl Hfx Hcw').
+        (avoid_of PollFlank.rci_gvars cam_rd_ids ltac:(vm_compute; reflexivity))
+        (avoid_of PollFlank.rci_gvars aud_ls_ids ltac:(vm_compute; reflexivity)) Hl Hfx Hcw').
     - exact (LevelKeep.fx_plat_still lp bm Hbm_sym PollFlank.rci_gvars i m0 ltac:(vmr) ltac:(vmr) Hfx).
     - exact (fx_obj_w PollFlank.rci_gvars i m0 (avoid_of ow_ids PollFlank.rci_gvars ltac:(vmr)) ltac:(vmr) Hfx).
   Qed.

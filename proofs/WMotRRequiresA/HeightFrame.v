@@ -74,7 +74,7 @@ From SM64.Proofs Require Import NoAImpliesNoFlyLinked NoAImpliesNoFlyTwelve.
 From SM64.Proofs Require Import FrameCalls FrameSplit AirSplit AutoSplit.
 From SM64.Proofs.WMotRRequiresA Require Import ProRows NaSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
-From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT LsContract.
+From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT LsContract AudioInv.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
 From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep PollKeep MidKeep.
 From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop ObjStepSplit.
@@ -681,8 +681,15 @@ Section HeightLinked12.
      audio link, 2026-10-23): load_sequence (audio/load.c, not linked) keeps
      the carried facts.  GOAL 1's audio rows (Hpres_sta_ext, Hsss, the audio
      entries of the obj / cut / warp / floors lists) are PROVED from the real
-     audio/external.c and sound_init.c bodies (AudioBodies). *)
-  Hypothesis Hls : LsContract.ls_contract lp bm (NoA_real bm) MWF.
+     audio/external.c and sound_init.c bodies (AudioBodies).
+     SCOPED (2026-11-02): its footprint half is AudioInv.ls_frame_ai (from an
+     AudioInv memory the call changes only the ls_ids blocks and keeps
+     AudioInv), no longer the unscoped LsContract.ls_frame (FALSE as
+     stated).  PhiW's lvl_w carries AudioInv (FfWorld.aud_w), so the one
+     frame call that reaches load_sequence on the spine
+     (mario_update_hitbox_and_cap_model's cap music, NaSplit.hitbox_row)
+     starts from it. *)
+  Hypothesis Hls : AudioInv.ls_contract_ai lp bm (NoA_real bm) MWF.
   (* load_patchable_table: PROVED from its real memory.c body and dma_read's
      (LptBody), down to the libultra DMA calls, whose effect is the
      hardware/OS floor spec (OsDmaFloor, TRUST 3.5). *)
@@ -1259,20 +1266,46 @@ Section HeightLinked12.
        live object store), and no live code stores 144 / 168
        (cut_census_wmotr), so cam_w holds after: the row is TRUE in the
        game, and unproved (the footprint walk, TRUST 0.7).
-     FALSE AS STATED (unpinned; found 2026-11-02 by the R1 footprint walk,
-       WMotRRequiresA/CamFootInst.v).  The camera writes through
+     WAS FALSE AS STATED (unpinned; found 2026-11-02 by the R1 footprint
+       walk, WMotRRequiresA/CamFootInst.v): the camera writes through
        sMarioCamState / sLuigiCamState (and would through a non-NULL
-       gSecondCameraFocus), and neither mem_ok nor PhiW pins those
-       pointers.  So the row ranges over states where sMarioCamState aims
-       at Mario's wall / floor cells or a PhiW global, and there the
-       camera breaks PhiW.  In the game they are &gPlayerCameraState[0/1]
-       and NULL: the initializer is the only writer, link-wide
-       (CamPinCensus).  FIX PLAN (the deferred cam_w rebuild, with R3
-       and B'' (b)/(c)): cam_w gains the pins (proved at boot, kept by
-       every phase); this row is then restated on
-       CamFootInst.update_camera_foot, the proved all-states footprint.
-       What remains is a residual row naming the camera's out-of-class
-       stores: Mario's state (set_mario_npc_dialog, dead under cam_w),
+       gSecondCameraFocus), and PhiW did not pin those pointers.
+     TRUE AS STATED NOW (pinned, the cam_w rebuild 2026-11-02), STILL
+       LABELED.  PHANTOM CHECK against the new FfWorld.cam_w (PhiW's
+       lvl_w, assumed before the step):
+       - the pins (cam_pins): gCamera aims at the Camera
+         (gCurrentArea->camera); sMarioCamState / sLuigiCamState aim into
+         gPlayerCameraState; gSecondCameraFocus is no pointer.  So the
+         camera's stores through them land in gPlayerCameraState or the
+         Camera, never in Mario's wall / ceiling / floor cells or a PhiW
+         global.  In the game: the initializers are the only writers,
+         link-wide (CamPinCensus).
+       - R3: the Camera's 108 bytes are apart from the surface pool and
+         the surface-node pool (both main-pool blocks), so the camera's
+         stores into the Camera keep the surfaces PhiW reads.  In the
+         game: alloc_surface_pools and the Camera's allocation are
+         disjoint main-pool allocations.
+       - aud_w (lvl_w's eighth clause, AudioInv): every pointer in the
+         audio state aims at an audio block.  The camera's sound calls
+         (play_sound, the cutscene music) keep it in the game (they store
+         non-pointers, or go through load_sequence's scoped contract).
+       Over those states nothing the row ranges over is unreachable: each
+       pin, R3 and aud_w holds at boot and is kept by every phase.
+     EVIDENCE (not proof) that it is true:
+       CamFootInst.update_camera_foot, the proved footprint of the real
+       update_camera from every state, bounds its writes to the
+       CamFootTable.cf_FP globals and the Camera.  None of Mario's three
+       cells is written there except through set_mario_npc_dialog (dead
+       under cam_w); the cf_FP globals PhiW reads (sObjectCutscene, the
+       audio blocks) are written within cam_w's / aud_w's classes in the
+       game (cut_census_wmotr; AudioWire).  update_camera_foot stays OFF
+       the spine for now: it assumes the unscoped LsContract.ls_frame
+       (false as stated).
+     NAMED NEXT STEP (a): extend the CamFoot walker to carry AudioInv
+       (an invariant plus a per-store check), move it onto
+       AudioInv.ls_frame_ai, and DERIVE this row from it.  What remains
+       after (a) is a residual naming the camera's out-of-class stores:
+       Mario's state (set_mario_npc_dialog, dead under cam_w),
        gTimeStopState and gSecondCameraFocus. *)
   Hypothesis Hcam_phi : LevelKeep.cam_phi_row lp bm MWF.
 
@@ -1449,12 +1482,24 @@ Section HeightLinked12.
      lvl_w (the Bowser-arena shots are outside CamCutCensus.uc_wmotr under
      cam_w), and the closure writes no MarioState field (no
      set_mario_npc_dialog); open.
-     FALSE AS STATED (unpinned, 2026-11-02, same finding as Hcam_phi
-     above): Phi does not pin sMarioCamState / sLuigiCamState /
-     gSecondCameraFocus, so the row ranges over states where the
-     camera's stores through them hit an ow_ids block or Mario's object
-     cells.  FIX PLAN: the cam_w pins plus CamFootInst.update_camera_foot,
-     whose FP has no ow_ids global, in the deferred rebuild. *)
+     WAS FALSE AS STATED (unpinned, 2026-11-02, same finding as Hcam_phi
+     above): Phi did not pin sMarioCamState / sLuigiCamState /
+     gSecondCameraFocus.
+     TRUE AS STATED NOW (pinned, the cam_w rebuild 2026-11-02), STILL
+     LABELED.  PHANTOM CHECK against the new cam_w (Phi m is PhiW): the
+     pins aim sMarioCamState / sLuigiCamState into gPlayerCameraState
+     (no ow_ids global, not Mario's block) and leave gSecondCameraFocus
+     no pointer, so no object store goes through it; R3 keeps the
+     Camera's bytes apart from the surface pools; aud_w keeps the audio
+     state's pointers on audio blocks (no ow_ids block among them).
+     These hold at boot and are kept by every phase, so the row ranges
+     over no unreachable state.
+     EVIDENCE (not proof): CamFootInst.update_camera_foot bounds the
+     camera's writes to the CamFootTable.cf_FP globals and the Camera;
+     cf_FP has no ow_ids global, and its one Mario-state writer
+     (set_mario_npc_dialog) is dead under cam_w.
+     It stays off the spine until the named next step (a), the CamFoot
+     walker carrying AudioInv on ls_frame_ai, which would DERIVE this row. *)
   Hypothesis Hcam_ow_fp : forall m m', LevelFlank.cam_step lp m m' ->
     mem_ok_lp bm MWF m -> Phi m ->
     (forall id b, In id PollKeep.ow_ids -> Genv.find_symbol (lp_ge lp) id = Some b ->
