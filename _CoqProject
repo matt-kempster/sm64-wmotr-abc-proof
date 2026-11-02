@@ -339,6 +339,7 @@ proofs/WMotRRequiresA/YWriterCensus.v
 proofs/WMotRRequiresA/HeldObjCensus.v
 proofs/WMotRRequiresA/BehaviorScripts.v
 proofs/WMotRRequiresA/AngleVelCensus.v
+proofs/WMotRRequiresA/CollisionCensus.v
 proofs/WMotRRequiresA/ObjStoreCensus.v
 proofs/WMotRRequiresA/ObjTable.v
 proofs/WMotRRequiresA/ObjKit.v

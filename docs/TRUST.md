@@ -1086,6 +1086,32 @@ without pressing A".*
   they still quantify over states with an unbounded counter. The planned fix is a
   walk-indexed bound in `ObjLoop`'s ring predicate: counter <= NS + the dynamic surfaces of
   the collision objects already stepped this frame (and likewise for nodes).
+  **FOUND 2026-11-02 (wording wrong for time-stop frames):** the justification given for
+  `ctr_ok` (here, in the coordinator's plan and in `ObjWorld`'s comment) was "between frames
+  `clear_dynamic_surfaces` has reset the counters and each collision object has loaded once".
+  The clear resets only when `TIME_STOP_ACTIVE` is clear (`surface_load.c:643`); in a
+  time-stop frame the counters carry over. The fact still holds, for a different reason:
+  `load_object_collision_model` loads only under the same test, and no terrain-list script
+  (the box, the lid, `bhvCoinFormation`) writes `gTimeStopState`, so a time-stop frame loads
+  nothing and the counters keep the last frame's values (`CollisionCensus.gates_value`,
+  `terrain_value`, `ts_writers_value`: the only writers are `bhvMario` and two star
+  spawners, lists 0 and 6, stepped after the terrain walk).
+- **The collision census (2026-11-02, `CollisionCensus.v`, vm over the generated code).**
+  The counters' writers are `clear_dynamic_surfaces`, `alloc_surface(_node)`,
+  `load_area_terrain` and a debug printer. Of the behaviors WMotR can spawn only
+  `bhvExclamationBox` and `bhvCannonClosed` reach them, each with one
+  `load_object_collision_model` call per step (the box through `exclamation_box_act_2`, the
+  lid through its loop's `CALL_NATIVE`). Loading and the reset are gated on
+  `TIME_STOP_ACTIVE`. The terrain lists hold only the box, the lid and `bhvCoinFormation`
+  scripts; none of them jumps or writes `gTimeStopState`. Object-list surgery is only
+  `try_allocate_object` (tail insertion, in the generated store order) and
+  `deallocate_object`, called only by `allocate_object`'s pool-full path on the first node
+  of list 12. A step writes another object's script only in `create_object` (the new
+  object) and `obj_set_held_state` (a held object; reachable from no terrain script), its
+  behavior field only in `cur_obj_set_behavior` (self; coin code only) and `create_object`,
+  its mesh only in `allocate_object` (new) and `bhv_cmd_load_collision_data` (self). No
+  reached code or script spawns a box or a lid. This backs the terrain step rows' counter
+  and ring claims (next item; not a trust row itself).
 - **B2, the list walks (2026-10-26, `ObjLoop.v`).** `Hobj_terrain` and `Hobj_nonterrain`
   are no longer rows: `ObjLoop.terrain_keeps` / `nonterrain_keeps` PROVE them on the real
   `update_terrain_objects` (lists 11 and 9) and `update_non_terrain_objects` (the lists in
