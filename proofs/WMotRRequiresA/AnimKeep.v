@@ -116,18 +116,42 @@ Theorem lvl_w_keep : forall m m' d,
   Ple (Genv.genv_next ge) (Mem.nextblock m) ->
   (forall ch b z, Plt b (Mem.nextblock m) -> ~ rblk (ff_rl_of bm d) b ->
      Mem.load ch m' b z = Mem.load ch m b z) ->
+  (forall ab, Genv.find_symbol ge mario._gMarioAnimsBuf = Some ab ->
+     Mem.load Mint32 m' ab 8 = Mem.load Mint32 m ab 8) ->
   lvl_w ge m -> lvl_w ge m'.
 Proof.
-  intros m m' d F AW Hgn OFF. exact (lvl_w_keep_rl ge bm m m' d F (lvl_ne_bm m AW) Hgn OFF).
+  intros m m' d F AW Hgn OFF K8.
+  pose proof AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb & mo & B & _).
+  pose proof B as (Sab & _ & _ & _ & L8 & _ & Sy & _ & _ & _ & _ & _
+                   & _ & _ & _ & _ & _ & _ & _ & _ & Hbm).
+  pose proof (ff_S5 _ _ _ _ F) as S5. pose proof (ff_Lb _ _ _ _ F) as Lb.
+  assert (ab' = fw_ab d) by congruence. subst ab'.
+  rewrite Lb in L8. injection L8 as <- <-.
+  exact (lvl_w_keep_rl ge bm m m' d F (lvl_ne_bm m AW) Hbm (fun id b H => proj2 (Sy id b H)) Hgn OFF (K8 _ S5)).
 Qed.
 
-(* ... and any change that leaves the two globals' blocks alone *)
+(* the blocks lvl_w reads are not Mario's state block *)
+Lemma lvl_rd_ne_bm : forall m b, anim_w ge bm m -> lvl_w ge m ->
+  lw_blk ge m b \/ Genv.find_symbol ge mario._gMarioAnimsBuf = Some b -> b <> bm.
+Proof.
+  intros m b AW LW Hb.
+  destruct AW as (ab' & bga & bauc & btab & otab & bt' & ot' & mb & mo & B & _).
+  pose proof B as (_ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _
+                   & _ & _ & _ & _ & _ & _ & _ & _ & Hbm).
+  exact (lvl_rd_not_sym ge m b _ bm LW Hb Hbm ltac:(vm_compute; reflexivity)).
+Qed.
+
+(* ... and any change that leaves the blocks lvl_w reads alone *)
 Lemma lvl_w_keep_ne : forall m m' (P : block -> Prop),
-  (forall b, lvl_sym ge b -> P b) ->
+  (forall b, lw_blk ge m b \/ Genv.find_symbol ge mario._gMarioAnimsBuf = Some b -> P b) ->
   (forall ch b z, P b -> Mem.load ch m' b z = Mem.load ch m b z) ->
   lvl_w ge m -> lvl_w ge m'.
 Proof.
-  intros m m' P HP HL. apply lvl_w_unch. intros b ch z Hs. exact (HL ch b z (HP b Hs)).
+  intros m m' P HP HL. apply lvl_w_unch.
+  - intros b ch z Hs. exact (HL ch b z (HP b (or_introl Hs))).
+  - intros ab Sa. exact (HL Mint32 ab 8 (HP ab (or_intror Sa))).
 Qed.
+
+
 
 End AK.

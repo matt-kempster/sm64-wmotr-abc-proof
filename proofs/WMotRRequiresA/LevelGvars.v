@@ -24,7 +24,10 @@ From SM64.Generated Require level_update camera audio_external sound_init ingame
   save_file.
 Import ListNotations.
 
-(* the written globals minus the three warp cells FfWorld.lvl_w pins *)
+(* the written globals minus the three warp cells FfWorld.lvl_w pins.
+   2026-11-01: not camera.c's sObjectCutscene (FfWorld.cam_w pins it): the
+   phase's only path to it, reset_dialog_render_state's
+   trigger_cutscene_dialog(2), stores nothing (LevelWalk.tcd_noop) *)
 Definition lvl_safe_gvars : list ident :=
   [ level_update._gHudDisplay; audio_external._sSoundRequests;
     audio_external._sSoundRequestCount; level_update._sDelayedWarpTimer;
@@ -34,7 +37,7 @@ Definition lvl_safe_gvars : list ident :=
     ingame_menu._gDialogBoxScale; ingame_menu._gDialogBoxAngle; ingame_menu._gMenuState;
     ingame_menu._gDialogID; ingame_menu._gDialogPageStartStrIndex;
     ingame_menu._gDialogWithChoice; ingame_menu._gNextDialogPageStartStrIndex;
-    ingame_menu._gDialogResponse; camera._sObjectCutscene; camera._sCutsceneDialogResponse;
+    ingame_menu._gDialogResponse; camera._sCutsceneDialogResponse;
     save_file._gSaveBuffer; save_file._gMainMenuDataModified; save_file._gSaveFileModified;
     save_file._gWarpCheckpoint; level_update._gCurrActNum;
     audio_external._sSoundBankDisabled; sound_init._sMusicVolume;

@@ -1240,7 +1240,18 @@ Section HeightLinked12.
        PhiW and Mario's wall / ceiling / floor cells (LevelKeep.cam_phi_row;
        TRUST 0.7).  A camera-private clobber spec would not give it (the
        main-pool Camera shares its block with the surface pool); the writes
-       it must cover are UpdateCameraBody.uc_census's out-of-class ones. *)
+       it must cover are UpdateCameraBody.uc_census's out-of-class ones.
+     PHANTOM CHECK (2026-11-01): the row assumes PhiW before the camera
+       and claims it after, and PhiW's lvl_w now has FfWorld.cam_w (the
+       Camera's cutscene byte and sObjectCutscene are not 144 / 168, the
+       Camera is gCurrentArea->camera, a pool block apart from the globals
+       and the animation buffer).  Before cam_w the row ranged over states
+       where update_camera runs the Bowser-arena / pyramid cutscenes, so it
+       was FALSE there.  Over cam_w states update_camera's live closure is
+       CamCutCensus.uc_wmotr's 428 functions (no set_mario_npc_dialog, no
+       live object store), and no live code stores 144 / 168
+       (cut_census_wmotr), so cam_w holds after: the row is TRUE in the
+       game, and unproved (the footprint walk, TRUST 0.7). *)
   Hypothesis Hcam_phi : LevelKeep.cam_phi_row lp bm MWF.
 
   Lemma lvl_pre_linked12 :
@@ -1398,7 +1409,13 @@ Section HeightLinked12.
      statement (LevelFlank.cam_step, the camera row's step), between mem_ok
      states in Phi, keeps the object world.  The real update_camera is
      walked only for mem_ok (UcKit, over SafeB, which includes the object
-     pool), so no footprint excludes the pool here *)
+     pool), so no footprint excludes the pool here.
+     PHANTOM CHECK (2026-11-01): Phi m is PhiW, whose lvl_w has
+     FfWorld.cam_w, so the camera never starts the Bowser-arena / pyramid
+     cutscenes here (Hcam_phi claims cam_w after the step).  Over those
+     states the live closure (CamCutCensus.uc_wmotr) stores to no object
+     (its one gSecondCameraFocus store is init_camera's LEVEL_BOWSER_1 arm,
+     dead under lvl_w) and calls no set_mario_npc_dialog: TRUE, unproved *)
   Hypothesis Hcam_ow : forall m m', LevelFlank.cam_step lp m m' ->
     mem_ok_lp bm MWF m -> Phi m -> OWl m -> OWl m'.
 

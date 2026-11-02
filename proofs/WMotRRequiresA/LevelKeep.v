@@ -346,15 +346,56 @@ Section Link.
 
   Ltac ne := let E := fresh in intro E; vm_compute in E; discriminate E.
 
-  (* a footprint without the lvl_ids globals keeps lvl_w *)
+  (* a footprint without the camera globals (cam_rd_ids) keeps cam_w,
+     given gCurrentArea's cell: the Camera is no global's block *)
+  Lemma cam_w_fx : forall Xs m m',
+    (forall id, In id Xs -> existsb (Pos.eqb id) cam_rd_ids = false) ->
+    lvl_w G m -> fx lp bm Xs m m' ->
+    (forall ga, Genv.find_symbol G level_update._gCurrentArea = Some ga ->
+       Mem.load Mint32 m' ga 0 = Mem.load Mint32 m ga 0) ->
+    cam_w G m'.
+  Proof.
+    intros Xs m m' HX Hl Hfx UG.
+    assert (Nbm : forall b, cam_sym G b \/ (exists co, cam_cb G m b co)
+                    \/ Genv.find_symbol G mario._gMarioAnimsBuf = Some b -> b <> bm).
+    { intros b Hb. apply (lvl_rd_not_sym G m b level_update._gMarioStates bm Hl); [ | exact Hbm_sym | vm_compute; reflexivity ].
+      destruct Hb as [Hb | [Hb | Hb]]; [ left; right; left; exact Hb | left; right; right; exact Hb | right; exact Hb ]. }
+    apply (cam_w_unch G m m' UG); [ | | exact (lvl_w_area G m Hl) | exact (lvl_w_cam G m Hl) ].
+    - intros b ch z Hb.
+      assert (Hb' : cam_sym G b \/ (exists co, cam_cb G m b co)
+                    \/ Genv.find_symbol G mario._gMarioAnimsBuf = Some b)
+        by (destruct Hb as [Hb | Hb]; [ left | right; left ]; exact Hb).
+      apply (fx_load lp bm Xs m m' ch b z Hfx). intros i _ [Hw | (E & _)].
+      + exact (cam_not_in G m b Xs Hl HX Hb' Hw).
+      + exact (Nbm b Hb' E).
+    - intros ab Sa.
+      assert (Hb' : cam_sym G ab \/ (exists co, cam_cb G m ab co)
+                    \/ Genv.find_symbol G mario._gMarioAnimsBuf = Some ab) by (right; right; exact Sa).
+      apply (fx_load lp bm Xs m m' Mint32 ab 8 Hfx). intros i _ [Hw | (E & _)].
+      + exact (cam_not_in G m ab Xs Hl HX Hb' Hw).
+      + exact (Nbm ab Hb' E).
+  Qed.
+
+  (* a footprint without the globals lvl_w reads (lvl_rd_ids) keeps it *)
+  Lemma lvl_w_fx : forall Xs m m',
+    (forall id, In id Xs -> existsb (Pos.eqb id) lvl_rd_ids = false) ->
+    fx lp bm Xs m m' -> lvl_w G m -> lvl_w G m'.
+  Proof.
+    intros Xs m m' HX Hfx Hl.
+    assert (K : forall b ch z, lw_blk G m b \/ Genv.find_symbol G mario._gMarioAnimsBuf = Some b ->
+                  Mem.load ch m' b z = Mem.load ch m b z).
+    { intros b ch z Hb. apply (fx_load lp bm Xs m m' ch b z Hfx).
+      intros i _ [Hw | (E & _)].
+      - exact (lvl_rd_not_in G m b Xs Hl HX Hb Hw).
+      - exact (lvl_rd_not_sym G m b _ bm Hl Hb Hbm_sym ltac:(vm_compute; reflexivity) E). }
+    apply (lvl_w_unch G m m'); [ intros b ch z Hb; exact (K b ch z (or_introl Hb))
+                               | intros ab Sa; exact (K ab Mint32 8 (or_intror Sa)) | exact Hl ].
+  Qed.
+
   Lemma lvl_w_safe : forall m m', lvl_w G m -> fx lp bm lvl_safe_gvars m m' -> lvl_w G m'.
   Proof.
-    intros m m' Hl Hfx. apply (lvl_w_unch G m m'); [ | exact Hl ].
-    intros b ch z Hs. apply (fx_load lp bm lvl_safe_gvars m m' ch b z Hfx).
-    intros i _ Hw.
-    lvl_cases Hs; (destruct Hw as [Hb | (-> & _)];
-      [ exact (not_lvl lvl_safe_gvars _ _ Hs ltac:(nb) Hb)
-      | refine (Genv.global_addresses_distinct G _ Hs Hbm_sym eq_refl); ne ]).
+    intros m m' Hl Hfx.
+    exact (lvl_w_fx lvl_safe_gvars m m' (avoid_of lvl_safe_gvars lvl_rd_ids ltac:(vm_compute; reflexivity)) Hfx Hl).
   Qed.
 
   (* the POST tail writes three warp cells; with warp_w at its end
@@ -362,7 +403,7 @@ Section Link.
      are not written) *)
   Lemma lvl_w_tail : forall m m', lvl_w G m -> fx lp bm level_gvars m m' -> warp_w G m' -> lvl_w G m'.
   Proof.
-    intros m m' (L1 & L2 & _ & CW & AW) Hfx Hw.
+    intros m m' HLW Hfx Hw. pose proof HLW as (L1 & L2 & _ & CW & AW & EW & _).
     assert (U' : forall id b, Genv.find_symbol G id = Some b ->
                existsb (Pos.eqb id) level_gvars = false -> id <> level_update._gMarioStates ->
                forall ch z, Mem.load ch m' b z = Mem.load ch m b z).
@@ -383,10 +424,12 @@ Section Link.
       split; [intros b3 S3; rewrite (U' _ b3 S3 ltac:(nb) ltac:(ne)); exact (P3 b3 S3) |].
       split; [intros bd Sd; rewrite (U' _ bd Sd ltac:(nb) ltac:(ne)); exact (DM bd Sd) |].
       intros bx Sx; rewrite (U' _ bx Sx ltac:(nb) ltac:(ne)); exact (MX bx Sx).
-    - split; [ | split ].
-      + intros ga Sa. rewrite (U' _ ga Sa ltac:(nb) ltac:(ne)). exact (proj1 AW ga Sa).
-      + intros be Se. rewrite (U' _ be Se ltac:(nb) ltac:(ne)). exact (proj1 (proj2 AW) be Se).
-      + intros be Se. rewrite (U' _ be Se ltac:(nb) ltac:(ne)). exact (proj2 (proj2 AW) be Se).
+    - split; [ | split; [ split | ] ].
+      + intros ga Sa. rewrite (U' _ ga Sa ltac:(nb) ltac:(ne)). exact (AW ga Sa).
+      + intros be Se. rewrite (U' _ be Se ltac:(nb) ltac:(ne)). exact (proj1 EW be Se).
+      + intros be Se. rewrite (U' _ be Se ltac:(nb) ltac:(ne)). exact (proj2 EW be Se).
+      + exact (cam_w_fx level_gvars m m' (avoid_of level_gvars cam_rd_ids ltac:(vm_compute; reflexivity)) HLW Hfx
+                 (fun ga Sa => U' _ ga Sa ltac:(nb) ltac:(ne) Mint32 0)).
   Qed.
 
   Lemma safe_flank : incl lvl_safe_gvars flank_gvars.
@@ -690,9 +733,10 @@ Section Link.
   Lemma lvl_w_ctl : forall Xs m m',
     (forall id, In id lvl_ids -> existsb (Pos.eqb id) Xs = true ->
        id = mario._gControllers \/ id = game_init._gControllerPads) ->
+    (forall id, In id Xs -> existsb (Pos.eqb id) cam_rd_ids = false) ->
     lvl_w G m -> fx lp bm Xs m m' -> ctl_w G m' -> lvl_w G m'.
   Proof.
-    intros Xs m m' HX (L1 & L2 & (W1 & W2 & W3 & W4 & W5) & _ & AW) Hfx Hcw.
+    intros Xs m m' HX HXc HLW Hfx Hcw. pose proof HLW as (L1 & L2 & (W1 & W2 & W3 & W4 & W5) & _ & AW & EW & _).
     assert (U' : forall id b, Genv.find_symbol G id = Some b -> In id lvl_ids ->
                id <> mario._gControllers -> id <> game_init._gControllerPads ->
                id <> level_update._gMarioStates ->
@@ -722,12 +766,14 @@ Section Link.
         exact (W4 bo bs Ho Hs).
       + intros bo Ho. rewrite (U' _ bo Ho ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne)).
         exact (W5 bo Ho).
-    - split; [ | split ].
+    - split; [ | split; [ split | ] ].
       + intros ga Sa. rewrite (U' _ ga Sa ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne)).
-        exact (proj1 AW ga Sa).
+        exact (AW ga Sa).
       + intros be Se. rewrite (U' _ be Se ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne)).
-        exact (proj1 (proj2 AW) be Se).
+        exact (proj1 EW be Se).
       + intros be Se. rewrite (U' _ be Se ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne)).
-        exact (proj2 (proj2 AW) be Se).
+        exact (proj2 EW be Se).
+      + exact (cam_w_fx Xs m m' HXc HLW Hfx
+                 (fun ga Sa => U' _ ga Sa ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(ne) ltac:(ne) ltac:(ne) Mint32 0)).
   Qed.
 End Link.
