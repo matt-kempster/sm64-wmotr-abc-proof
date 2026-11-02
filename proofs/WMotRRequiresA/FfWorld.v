@@ -1170,6 +1170,37 @@ Definition env_w (G : genv) (m : mem) : Prop :=
   /\ (forall b, Genv.find_symbol G mario._gShowDebugText = Some b ->
     Mem.load Mint8signed m b 0 = Some (Vint Int.zero)).
 
+(* the cutscene cells (cam_w, 2026-11-01).  Neither the area's Camera's
+   cutscene byte (struct Camera +0x30) nor camera.c's sObjectCutscene is
+   CUTSCENE_ENTER_BOWSER_ARENA (144) or CUTSCENE_SSL_PYRAMID_EXPLODE (168).
+   In the game: create_camera stores c->cutscene = 0 and sObjectCutscene
+   boots 0; no live store anywhere writes 144 or 168 to either
+   (CamCutCensus.cut_census_wmotr).  FOUND (phantom forall): without it
+   the camera row (LevelKeep.cam_phi_row) ranged over memories where
+   update_camera runs those two cutscenes, whose shots the census does not
+   clear.  The Camera is gCurrentArea->camera (Area +0x24), a main-pool
+   block: past every global, and not the animation buffer's block.
+   StartSat proves it on the witness (StartTerrain.cam_frame_g's byte
+   checks). *)
+Definition cut_ok (n : int) : Prop := Int.unsigned n <> 144 /\ Int.unsigned n <> 168.
+
+Definition cam_cb (G : genv) (m : mem) (cb : block) (co : ptrofs) : Prop :=
+  exists ga bad o, Genv.find_symbol G level_update._gCurrentArea = Some ga
+    /\ Mem.load Mint32 m ga 0 = Some (Vptr bad o)
+    /\ Mem.load Mint32 m bad (Ptrofs.unsigned o + 36) = Some (Vptr cb co).
+
+Definition cam_w (G : genv) (m : mem) : Prop :=
+  (forall b, Genv.find_symbol G camera._sObjectCutscene = Some b ->
+     exists n, Mem.load Mint8unsigned m b 0 = Some (Vint n) /\ cut_ok n)
+  /\ (forall ga bad o, Genv.find_symbol G level_update._gCurrentArea = Some ga ->
+       Mem.load Mint32 m ga 0 = Some (Vptr bad o) ->
+       exists cb co, Mem.load Mint32 m bad (Ptrofs.unsigned o + 36) = Some (Vptr cb co)
+         /\ Ple (Genv.genv_next G) cb
+         /\ (forall ab bt ot, Genv.find_symbol G mario._gMarioAnimsBuf = Some ab ->
+               Mem.load Mint32 m ab 8 = Some (Vptr bt ot) -> bt <> cb)
+         /\ exists n, Mem.load Mint8unsigned m cb (Ptrofs.unsigned co + 48) = Some (Vint n)
+              /\ cut_ok n).
+
 Definition lvl_w (G : genv) (m : mem) : Prop :=
   (forall b, Genv.find_symbol G mario._gCurrLevelNum = Some b ->
      Mem.load Mint16signed m b 0 = Some (Vint (Int.repr LEVEL_WMOTR)))
@@ -1177,17 +1208,174 @@ Definition lvl_w (G : genv) (m : mem) : Prop :=
      Mem.load Mint8unsigned m b 0 = Some (Vint Int.zero))
   /\ warp_w G m
   /\ ctl_w G m
-  /\ area_w G m /\ env_w G m.
+  /\ area_w G m /\ env_w G m /\ cam_w G m.
 
-(* lvl_w reads only the lvl_ids globals' blocks *)
+(* accessors (positional destructs of lvl_w stall parallel branches) *)
+Lemma lvl_w_area : forall G m, lvl_w G m -> area_w G m.
+Proof. intros G m H. exact (proj1 (proj2 (proj2 (proj2 (proj2 H))))). Qed.
+Lemma lvl_w_env : forall G m, lvl_w G m -> env_w G m.
+Proof. intros G m H. exact (proj1 (proj2 (proj2 (proj2 (proj2 (proj2 H)))))). Qed.
+Lemma lvl_w_cam : forall G m, lvl_w G m -> cam_w G m.
+Proof. intros G m H. exact (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 H)))))). Qed.
+
+(* the blocks lvl_w reads: the lvl_ids globals, sObjectCutscene and
+   gAreaData (cam_ids), and the area's Camera *)
+Definition cam_ids : list ident := [camera._sObjectCutscene; area._gAreaData].
+
+Definition cam_sym (G : genv) (b : block) : Prop :=
+  exists id, In id cam_ids /\ Genv.find_symbol G id = Some b.
+
+Definition lw_blk (G : genv) (m : mem) (b : block) : Prop :=
+  lvl_sym G b \/ cam_sym G b \/ exists co, cam_cb G m b co.
+
+(* what a keeper must know of a lw_blk block: a level / camera global, or
+   the Camera (past the globals, valid, not the animation buffer) *)
+Lemma lw_blk_cases : forall (G : genv) m b, lvl_w G m -> lw_blk G m b ->
+  lvl_sym G b \/ cam_sym G b
+  \/ (Ple (Genv.genv_next G) b /\ Plt b (Mem.nextblock m)
+      /\ forall ab bt ot, Genv.find_symbol G mario._gMarioAnimsBuf = Some ab ->
+           Mem.load Mint32 m ab 8 = Some (Vptr bt ot) -> bt <> b).
+Proof.
+  intros G m b LW [Hs | [Hs | (co & ga & bad & o & Sg & Lg & Lc)]];
+    [ left; exact Hs | right; left; exact Hs | right; right ].
+  destruct (proj2 (lvl_w_cam G m LW) ga bad o Sg Lg) as (cb & co' & Lc' & Pg & Ab & n & Ln & _).
+  rewrite Lc in Lc'. injection Lc' as <- <-.
+  split; [ exact Pg | split; [ | exact Ab ] ].
+  apply Mem.load_valid_access in Ln.
+  exact (Mem.valid_access_valid_block _ _ _ _ (Mem.valid_access_implies _ _ _ _ _ _ Ln (perm_any_N _))).
+Qed.
+
+(* the global block ids of the lw_blk blocks *)
+Lemma cam_sym_ids : forall (G : genv) b, cam_sym G b ->
+  Genv.find_symbol G camera._sObjectCutscene = Some b \/ Genv.find_symbol G area._gAreaData = Some b.
+Proof.
+  intros G b (id & Hin & Hs). unfold cam_ids in Hin. cbn [In] in Hin.
+  destruct Hin as [<- | [<- | []]]; [ left | right ]; exact Hs.
+Qed.
+
+(* the globals lvl_w reads: lvl_ids, cam_ids and gMarioAnimsBuf (whose
+   buffer pointer cam_w's Camera is apart from).  A footprint that names
+   none of them keeps lvl_w *)
+Definition cam_rd_ids : list ident := cam_ids ++ [mario._gMarioAnimsBuf].
+Definition lvl_rd_ids : list ident := lvl_ids ++ cam_rd_ids.
+
+(* a block lvl_w reads is one of those globals', or no global's (the Camera) *)
+Lemma lvl_rd_cases : forall (G : genv) m b, lvl_w G m ->
+  lw_blk G m b \/ Genv.find_symbol G mario._gMarioAnimsBuf = Some b ->
+  (exists id, In id lvl_rd_ids /\ Genv.find_symbol G id = Some b)
+  \/ (forall id, Genv.find_symbol G id <> Some b).
+Proof.
+  intros G m b LW [Hb | Hb].
+  - destruct (lw_blk_cases G m b LW Hb) as [(id & Hin & Hs) | [(id & Hin & Hs) | (Pg & _ & _)]].
+    + left. exists id. split; [ unfold lvl_rd_ids; apply in_or_app; left; exact Hin | exact Hs ].
+    + left. exists id. split; [ unfold lvl_rd_ids, cam_rd_ids; apply in_or_app; right; apply in_or_app; left; exact Hin | exact Hs ].
+    + right. intros id Hs. pose proof (Genv.genv_symb_range _ _ Hs) as R. unfold Ple, Plt in *. lia.
+  - left. exists mario._gMarioAnimsBuf. split; [ | exact Hb ].
+    unfold lvl_rd_ids, cam_rd_ids; apply in_or_app; right; apply in_or_app; right; left; reflexivity.
+Qed.
+
+(* ... so it is no other global's block *)
+Lemma lvl_rd_not_sym : forall (G : genv) m b id x, lvl_w G m ->
+  lw_blk G m b \/ Genv.find_symbol G mario._gMarioAnimsBuf = Some b ->
+  Genv.find_symbol G id = Some x -> existsb (Pos.eqb id) lvl_rd_ids = false -> b <> x.
+Proof.
+  intros G m b id x LW Hb Hs Hn ->.
+  destruct (lvl_rd_cases G m x LW Hb) as [(id' & Hin & Hs') | NG]; [ | exact (NG id Hs) ].
+  assert (E : id' = id) by (eapply Genv.genv_vars_inj; [ exact Hs' | exact Hs ]). subst id'.
+  assert (Y : existsb (Pos.eqb id) lvl_rd_ids = true)
+    by (apply existsb_exists; exists id; split; [ exact Hin | apply Pos.eqb_refl ]).
+  congruence.
+Qed.
+
+(* ... nor a global of a list that avoids them *)
+Lemma lvl_rd_not_in : forall (G : genv) m b (Xs : list ident), lvl_w G m ->
+  (forall id, In id Xs -> existsb (Pos.eqb id) lvl_rd_ids = false) ->
+  lw_blk G m b \/ Genv.find_symbol G mario._gMarioAnimsBuf = Some b ->
+  ~ exists id, In id Xs /\ Genv.find_symbol G id = Some b.
+Proof.
+  intros G m b Xs LW HX Hb (id & Hin & Hs).
+  exact (lvl_rd_not_sym G m b id b LW Hb Hs (HX id Hin) eq_refl).
+Qed.
+
+(* the camera blocks (cam_ids' and the Camera) are no global's of a list
+   that avoids cam_rd_ids *)
+Lemma cam_not_in : forall (G : genv) m b (Xs : list ident), lvl_w G m ->
+  (forall id, In id Xs -> existsb (Pos.eqb id) cam_rd_ids = false) ->
+  cam_sym G b \/ (exists co, cam_cb G m b co) \/ Genv.find_symbol G mario._gMarioAnimsBuf = Some b ->
+  ~ exists id, In id Xs /\ Genv.find_symbol G id = Some b.
+Proof.
+  intros G m b Xs LW HX Hb (id & Hin & Hs).
+  assert (C : (exists id', In id' cam_rd_ids /\ Genv.find_symbol G id' = Some b)
+              \/ forall id', Genv.find_symbol G id' <> Some b).
+  { destruct Hb as [(id' & Hi & Hs') | [(co & Hc) | Hs']].
+    - left. exists id'. split; [ unfold cam_rd_ids; apply in_or_app; left; exact Hi | exact Hs' ].
+    - destruct (lw_blk_cases G m b LW (or_intror (or_intror (ex_intro _ co Hc))))
+        as [_ | [_ | (Pg & _ & _)]].
+      + destruct Hc as (ga & bad & o & Sg & Lg & Lc).
+        destruct (proj2 (lvl_w_cam G m LW) ga bad o Sg Lg) as (cb & co' & Lc' & Pg & _).
+        rewrite Lc in Lc'. injection Lc' as <- <-.
+        right. intros id' Hs'. pose proof (Genv.genv_symb_range _ _ Hs') as R. unfold Ple, Plt in *. lia.
+      + destruct Hc as (ga & bad & o & Sg & Lg & Lc).
+        destruct (proj2 (lvl_w_cam G m LW) ga bad o Sg Lg) as (cb & co' & Lc' & Pg & _).
+        rewrite Lc in Lc'. injection Lc' as <- <-.
+        right. intros id' Hs'. pose proof (Genv.genv_symb_range _ _ Hs') as R. unfold Ple, Plt in *. lia.
+      + right. intros id' Hs'. pose proof (Genv.genv_symb_range _ _ Hs') as R. unfold Ple, Plt in *. lia.
+    - left. exists mario._gMarioAnimsBuf. split; [ unfold cam_rd_ids; apply in_or_app; right; left; reflexivity | exact Hs' ]. }
+  destruct C as [(id' & Hin' & Hs') | NG]; [ | exact (NG id Hs) ].
+  assert (E : id' = id) by (eapply Genv.genv_vars_inj; [ exact Hs' | exact Hs ]). subst id'.
+  pose proof (HX id Hin) as N.
+  assert (Y : existsb (Pos.eqb id) cam_rd_ids = true)
+    by (apply existsb_exists; exists id; split; [ exact Hin' | apply Pos.eqb_refl ]).
+  congruence.
+Qed.
+
+(* cam_w reads gCurrentArea's cell, the camera blocks and gMarioAnimsBuf's
+   buffer pointer *)
+Lemma cam_w_unch : forall (G : genv) m m',
+  (forall ga, Genv.find_symbol G level_update._gCurrentArea = Some ga ->
+     Mem.load Mint32 m' ga 0 = Mem.load Mint32 m ga 0) ->
+  (forall b ch z, cam_sym G b \/ (exists co, cam_cb G m b co) -> Mem.load ch m' b z = Mem.load ch m b z) ->
+  (forall ab, Genv.find_symbol G mario._gMarioAnimsBuf = Some ab ->
+     Mem.load Mint32 m' ab 8 = Mem.load Mint32 m ab 8) ->
+  area_w G m -> cam_w G m -> cam_w G m'.
+Proof.
+  intros G m m' UG U UA AW (C1 & C2). split.
+  - intros b Hs. rewrite (U b Mint8unsigned 0 (or_introl (ex_intro _ camera._sObjectCutscene (conj (or_introl eq_refl) Hs)))).
+    exact (C1 b Hs).
+  - intros ga bad o Sg Lg.
+    rewrite (UG ga Sg) in Lg.
+    destruct (AW ga Sg) as (bad' & o' & Sad & Lg').
+    rewrite Lg in Lg'. injection Lg' as <- <-.
+    destruct (C2 ga bad o Sg Lg) as (cb & co & Lc & Pg & Ab & n & Ln & Cn).
+    exists cb, co.
+    split; [ rewrite (U bad Mint32 _ (or_introl (ex_intro _ area._gAreaData
+               (conj (or_intror (or_introl eq_refl)) Sad)))); exact Lc | ].
+    split; [ exact Pg | ].
+    split; [ intros ab bt ot Sa La; rewrite (UA ab Sa) in La; exact (Ab ab bt ot Sa La) | ].
+    exists n. split; [ | exact Cn ].
+    rewrite (U cb Mint8unsigned _ (or_intror (ex_intro _ co (ex_intro _ ga (ex_intro _ bad
+               (ex_intro _ o (conj Sg (conj Lg Lc)))))))).
+    exact Ln.
+Qed.
+
+(* lvl_w reads only the lw_blk blocks (the lvl_ids globals, cam_ids and
+   the area's Camera) and gMarioAnimsBuf's buffer pointer *)
 Lemma lvl_w_unch : forall (G : genv) m m',
-  (forall b ch z, lvl_sym G b -> Mem.load ch m' b z = Mem.load ch m b z) ->
+  (forall b ch z, lw_blk G m b -> Mem.load ch m' b z = Mem.load ch m b z) ->
+  (forall ab, Genv.find_symbol G mario._gMarioAnimsBuf = Some ab ->
+     Mem.load Mint32 m' ab 8 = Mem.load Mint32 m ab 8) ->
   lvl_w G m -> lvl_w G m'.
 Proof.
-  intros G m m' U (L1 & L2 & (W1 & W2 & W3 & W4 & W5) & CW & AW).
+  intros G m m' U UA (L1 & L2 & (W1 & W2 & W3 & W4 & W5) & CW & AW & EW & CMW).
+  assert (CM' : cam_w G m').
+  { apply (cam_w_unch G m m'); [ | | exact UA | exact AW | exact CMW ].
+    - intros ga Sg. apply U. left. apply (lvl_sym_of G level_update._gCurrentArea ga); [ | exact Sg ].
+      unfold lvl_ids; cbn [In]; auto 20.
+    - intros b ch z [Hb | Hb]; apply U; right; [ left | right ]; exact Hb. }
   assert (U' : forall id b, Genv.find_symbol G id = Some b -> In id lvl_ids -> forall ch z,
              Mem.load ch m' b z = Mem.load ch m b z)
-    by (intros id b Hs Hin ch z; exact (U b ch z (lvl_sym_of G id b Hin Hs))).
+    by (intros id b Hs Hin ch z; exact (U b ch z (or_introl (lvl_sym_of G id b Hin Hs)))).
+  clear CMW.
   split; [| split; [| split; [| split]]].
   - intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (L1 b Hs).
   - intros b Hs. rewrite (U' _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (L2 b Hs).
@@ -1210,10 +1398,10 @@ Proof.
     split; [intros b3 S3; rewrite (U' _ b3 S3 ltac:(unfold lvl_ids; cbn [In]; auto 20)); exact (P3 b3 S3) |].
     split; [intros bd Sd; rewrite (U' _ bd Sd ltac:(unfold lvl_ids; cbn [In]; auto 20)); exact (DM bd Sd) |].
     intros bx Sx; rewrite (U' _ bx Sx ltac:(unfold lvl_ids; cbn [In]; auto 20)); exact (MX bx Sx).
-  - split; [ | split ].
-    + intros ga Sa. rewrite (U' _ ga Sa ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (proj1 AW ga Sa).
-    + intros be Se. rewrite (U' _ be Se ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (proj1 (proj2 AW) be Se).
-    + intros be Se. rewrite (U' _ be Se ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (proj2 (proj2 AW) be Se).
+  - split; [ | split; [ split | exact CM' ] ].
+    + intros ga Sa. rewrite (U' _ ga Sa ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (AW ga Sa).
+    + intros be Se. rewrite (U' _ be Se ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (proj1 EW be Se).
+    + intros be Se. rewrite (U' _ be Se ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (proj2 EW be Se).
 Qed.
 
 (* ---- the level cells and the frame world's regions ---- *)
@@ -1230,16 +1418,45 @@ Proof.
   repeat (destruct Hin as [<- | Hin]; [reflexivity |]). destruct Hin.
 Qed.
 
-(* a frame that keeps every block off ffw's regions keeps lvl_w *)
+(* a frame that keeps every block off ffw's regions, and the animation
+   buffer's pointer, keeps lvl_w.  The camera globals are no region (not
+   ffw_reg_ids, not Mario's state / object / buffer); the Camera is past
+   the globals and not the buffer (cam_w) *)
 Theorem lvl_w_keep_rl : forall (G : genv) bm m m' d, ffw_facts G bm m d ->
   (forall b, lvl_sym G b -> b <> bm) ->
+  Genv.find_symbol G level_update._gMarioStates = Some bm ->
+  (forall id b, Genv.find_symbol G id = Some b -> b <> fw_bt d) ->
   Ple (Genv.genv_next G) (Mem.nextblock m) ->
   (forall ch b z, Plt b (Mem.nextblock m) -> ~ rblk (ff_rl_of bm d) b ->
      Mem.load ch m' b z = Mem.load ch m b z) ->
+  Mem.load Mint32 m' (fw_ab d) 8 = Mem.load Mint32 m (fw_ab d) 8 ->
   lvl_w G m -> lvl_w G m'.
 Proof.
-  intros G bm m m' d F Hne Hgn OFF. apply lvl_w_unch. intros b ch z Hs. apply OFF.
-  - pose proof (lvl_sym_ids _ _ Hs) as (id & _ & Hs').
-    exact (Plt_Ple_trans _ _ _ (Genv.genv_symb_range _ _ Hs') Hgn).
-  - exact (ffw_lvl_not_rl G bm m d b F Hne Hs).
+  intros G bm m m' d F Hne Hbm Hbt Hgn OFF K8 LW.
+  pose proof (ff_S5 _ _ _ _ F) as S5. pose proof (ff_Lb _ _ _ _ F) as Lb.
+  pose proof (ff_Spool _ _ _ _ F) as Sp.
+  apply (lvl_w_unch G m m'); [ | intros ab Sa; rewrite S5 in Sa; injection Sa as <-; exact K8 | exact LW ].
+  intros b ch z Hb. destruct (lw_blk_cases G m b LW Hb) as [Hs | [Hs | (Pg & Pn & Ab)]].
+  - apply OFF.
+    + pose proof (lvl_sym_ids _ _ Hs) as (id & _ & Hs').
+      exact (Plt_Ple_trans _ _ _ (Genv.genv_symb_range _ _ Hs') Hgn).
+    + exact (ffw_lvl_not_rl G bm m d b F Hne Hs).
+  - assert (GD : forall id1 id2 b1 b2, Genv.find_symbol G id1 = Some b1 -> Genv.find_symbol G id2 = Some b2 ->
+                   Pos.eqb id1 id2 = false -> b1 <> b2).
+    { intros id1 id2 b1 b2 H1 H2 E. apply (Genv.global_addresses_distinct G (id1 := id1) (id2 := id2)); [ | exact H1 | exact H2 ].
+      intros ->. rewrite Pos.eqb_refl in E. discriminate E. }
+    destruct (cam_sym_ids G b Hs) as [Hs' | Hs']; apply OFF;
+      (try exact (Plt_Ple_trans _ _ _ (Genv.genv_symb_range _ _ Hs') Hgn));
+      (apply (ffw_rl_not_sym G bm m d _ b F Hs'); [ reflexivity
+        | exact (GD _ _ _ _ Hs' Hbm eq_refl)
+        | exact (GD _ _ _ _ Hs' Sp eq_refl)
+        | exact (Hbt _ _ Hs') ]).
+  - apply OFF; [ exact Pn | ].
+    assert (NG : forall id, Genv.find_symbol G id <> Some b).
+    { intros id Hs. pose proof (Genv.genv_symb_range _ _ Hs) as R. unfold Ple, Plt in *. lia. }
+    apply (ffw_rl_not G bm m d b F).
+    + intros ->. exact (NG _ Hbm).
+    + intros ->. exact (NG _ Sp).
+    + intros E. exact (Ab _ _ _ S5 Lb (eq_sym E)).
+    + intros id _. exact (NG id).
 Qed.

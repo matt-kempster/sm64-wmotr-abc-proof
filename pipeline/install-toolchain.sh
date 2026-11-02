@@ -28,7 +28,9 @@ opam repo add coq-released https://coq.inria.fr/opam/released --switch "$SWITCH"
 # little-endian). We then REBUILD it for ppc-eabi below, because SM64 targets the
 # N64 (32-bit, big-endian): pointer size and endianness change struct field
 # offsets, and the proofs depend on the faithful (ppc32) layout.
-opam install coq-compcert.3.15 --switch "$SWITCH"
+# Pin coq itself too: unpinned, a fresh opam (CI) resolved coq 8.16.1, which
+# rejects CensusV2 with a universe inconsistency that 8.19.2 accepts.
+opam install coq.8.19.2 coq-compcert.3.15 --switch "$SWITCH"
 
 # --- Rebuild CompCert (Coq libs + clightgen) for ppc-eabi (N64-faithful) -------
 # ppc-eabi is 32-bit (ptr64=false) and big-endian -- the closest CompCert backend

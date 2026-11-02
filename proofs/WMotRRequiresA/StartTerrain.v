@@ -840,7 +840,58 @@ Notation cam_chain ge := (cam_chain_g (ex_call ge world FUEL) (cam_pool_size ge)
    created Camera, and from the witness the objects phase
    (area_update_objects) and then update_camera on that Camera (the
    render's geo_camera_main(GEO_CONTEXT_RENDER) call) both run *)
-Definition cam_frame_g (run : runT) (bgad : block) (cam : val) (m : mem) : bool :=
+(* the cutscene cells (FfWorld.cam_w, 2026-11-01): sObjectCutscene and the
+   Camera's cutscene byte (+0x30) are neither 144 nor 168, the Camera is
+   past the globals and not the animation buffer's block *)
+Definition cut_okb (n : int) : bool :=
+  negb (Z.eqb (Int.unsigned n) 144) && negb (Z.eqb (Int.unsigned n) 168).
+
+Definition cut_chk (ge : genv) (cam : val) (m : mem) : bool :=
+  match Genv.find_symbol ge camera._sObjectCutscene, Genv.find_symbol ge mario._gMarioAnimsBuf, cam with
+  | Some bs, Some ab, Vptr cb co =>
+      match CM.load Mint8unsigned m bs 0, CM.load Mint32 m ab 8,
+            CM.load Mint8unsigned m cb (Ptrofs.unsigned co + 48) with
+      | Some (Vint n1), Some (Vptr bt _), Some (Vint n2) =>
+          cut_okb n1 && cut_okb n2 && Pos.leb (Genv.genv_next ge) cb && negb (Pos.eqb bt cb)
+      | _, _, _ => false
+      end
+  | _, _, _ => false
+  end.
+
+Lemma cut_okb_ok : forall n, cut_okb n = true -> cut_ok n.
+Proof.
+  intros n H. unfold cut_okb in H. apply andb_prop in H as [H1 H2].
+  apply negb_true_iff, Z.eqb_neq in H1. apply negb_true_iff, Z.eqb_neq in H2. exact (conj H1 H2).
+Qed.
+
+Lemma cut_chk_sound : forall ge cam m, cut_chk ge cam m = true ->
+  exists cb co, cam = Vptr cb co
+    /\ (forall bs, Genv.find_symbol ge camera._sObjectCutscene = Some bs ->
+          exists n, Mem.load Mint8unsigned m bs 0 = Some (Vint n) /\ cut_ok n)
+    /\ Ple (Genv.genv_next ge) cb
+    /\ (forall ab bt ot, Genv.find_symbol ge mario._gMarioAnimsBuf = Some ab ->
+          Mem.load Mint32 m ab 8 = Some (Vptr bt ot) -> bt <> cb)
+    /\ exists n, Mem.load Mint8unsigned m cb (Ptrofs.unsigned co + 48) = Some (Vint n) /\ cut_ok n.
+Proof.
+  intros ge cam m H. unfold cut_chk in H.
+  destruct (Genv.find_symbol ge camera._sObjectCutscene) as [bs|] eqn:Hs; [ | discriminate ].
+  destruct (Genv.find_symbol ge mario._gMarioAnimsBuf) as [ab|] eqn:Ha; [ | discriminate ].
+  destruct cam as [| | | | | cb co]; try discriminate.
+  rewrite !CM.load_eq in H.
+  destruct (Mem.load Mint8unsigned m bs 0) as [[| n1 | | | |]|] eqn:L1; try discriminate.
+  destruct (Mem.load Mint32 m ab 8) as [[| | | | | bt ot]|] eqn:L2; try discriminate.
+  destruct (Mem.load Mint8unsigned m cb (Ptrofs.unsigned co + 48)) as [[| n2 | | | |]|] eqn:L3; try discriminate.
+  apply andb_prop in H as [H H4]. apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
+  exists cb, co. split; [ reflexivity | ].
+  split; [ intros bs' Hs'; injection Hs' as <-; exists n1; exact (conj L1 (cut_okb_ok _ H1)) | ].
+  split; [ apply Pos.leb_le in H3; exact H3 | ].
+  split; [ | exists n2; exact (conj L3 (cut_okb_ok _ H2)) ].
+  intros ab' bt' ot' Ha' L'. injection Ha' as <-. rewrite L2 in L'. injection L' as <- _.
+  apply negb_true_iff, Pos.eqb_neq in H4. exact H4.
+Qed.
+
+Definition cam_frame_g (run : runT) (cutp : val -> mem -> bool) (bgad : block) (cam : val) (m : mem) : bool :=
+  cutp cam m &&
   match CM.load Mint32 m bgad 96 with
   | Some v =>
       (if Val.eq v cam then true else false)
@@ -855,7 +906,7 @@ Definition cam_frame_g (run : runT) (bgad : block) (cam : val) (m : mem) : bool 
   | None => false
   end.
 
-Notation cam_frame_ok ge := (cam_frame_g (ex_call ge BootRun.world FUEL)).
+Notation cam_frame_ok ge := (cam_frame_g (ex_call ge BootRun.world FUEL) (cut_chk ge)).
 
 Definition wchk (ge : genv) (m0 : mem) : bool :=
   match Genv.find_symbol ge level_update._gMarioStates, Genv.find_symbol ge mario._gControllers,
@@ -1318,14 +1369,15 @@ Proof.
   exact (cam_chain_g_sound ge (ex_call ge world FUEL) bgad P Pc cam (fun m f a t m' v R => ex_call_sound ge world Wk _ _ _ _ _ _ _ R) H).
 Qed.
 
-Lemma cam_frame_g_sound : forall (ge : genv) (run : runT) bgad cam m,
+Lemma cam_frame_g_sound : forall (ge : genv) (run : runT) cutp bgad cam m,
     (forall m f a t m' v, run m f a = Done (t, m', v) -> eval_funcall function_entry2 ge m f a t m' v) ->
-    cam_frame_g run bgad cam m = true ->
+    cam_frame_g run cutp bgad cam m = true ->
     Mem.load Mint32 m bgad 96 = Some cam
     /\ exists t m' v, eval_funcall function_entry2 ge m (Internal area.f_area_update_objects) [] t m' v
        /\ exists t2 m2 v2, eval_funcall function_entry2 ge m' (Internal camera.f_update_camera) [cam] t2 m2 v2.
 Proof.
-  intros ge run bgad cam m Rs H. unfold cam_frame_g in H. rewrite CM.load_eq in H.
+  intros ge run cutp bgad cam m Rs H. unfold cam_frame_g in H. apply andb_prop in H as [_ H].
+  rewrite CM.load_eq in H.
   destruct (Mem.load Mint32 m bgad 96) as [v0|]; [ | discriminate ].
   apply andb_prop in H as [He H].
   destruct (Val.eq v0 cam) as [<- | _]; [ | discriminate ].
@@ -1344,7 +1396,22 @@ Lemma cam_frame_ok_sound : forall ge bgad cam m, BootRun.world_ok ge ->
        /\ exists t2 m2 v2, eval_funcall function_entry2 ge m' (Internal camera.f_update_camera) [cam] t2 m2 v2.
 Proof.
   intros ge bgad cam m Wk H.
-  exact (cam_frame_g_sound ge (ex_call ge BootRun.world FUEL) bgad cam m (fun m f a t m' v R => ex_call_sound ge BootRun.world Wk _ _ _ _ _ _ _ R) H).
+  exact (cam_frame_g_sound ge (ex_call ge BootRun.world FUEL) _ bgad cam m (fun m f a t m' v R => ex_call_sound ge BootRun.world Wk _ _ _ _ _ _ _ R) H).
+Qed.
+
+(* ... and its cutscene cells *)
+Lemma cam_frame_ok_cut : forall ge bgad cam m, cam_frame_ok ge bgad cam m = true -> cut_chk ge cam m = true.
+Proof. intros ge bgad cam m H. unfold cam_frame_g in H. apply andb_prop in H as [H _]. exact H. Qed.
+
+(* ... and the Camera cell it checked (no run needed) *)
+Lemma cam_frame_ok_load : forall ge bgad cam m, cam_frame_ok ge bgad cam m = true ->
+  Mem.load Mint32 m bgad 96 = Some cam.
+Proof.
+  intros ge bgad cam m H. unfold cam_frame_g in H. apply andb_prop in H as [_ H].
+  rewrite CM.load_eq in H.
+  destruct (Mem.load Mint32 m bgad 96) as [v0|]; [ | discriminate ].
+  apply andb_prop in H as [He _].
+  destruct (Val.eq v0 cam) as [<- | _]; [ reflexivity | discriminate ].
 Qed.
 
 Lemma nsurf_ok_sound : forall m bn, nsurf_ok m bn = true ->

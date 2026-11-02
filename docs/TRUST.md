@@ -1190,9 +1190,22 @@ without pressing A".*
     - `tables_read_only`: the cutscene arrays, the trigger, dance and mode tables are only read.
     So no WMotR object, Mario-status or area trigger starts either cutscene, and the tables keep
     their boot contents. **What stays open, narrowed:**
-    - (a) CARRY `Camera.cutscene, sObjectCutscene ∉ {144, 168}` across the frame. The census
-      says no live store breaks it, but no segment row states it, so `Hcam_phi` is still a
-      phantom ∀ over camera states.
+    - (a) CARRY `Camera.cutscene, sObjectCutscene ∉ {144, 168}` across the frame: DONE
+      2026-11-01. `FfWorld.lvl_w` has a seventh clause `cam_w`: sObjectCutscene's byte and the
+      byte at gCurrentArea->camera + 0x30 are neither 144 nor 168. The Camera is past every
+      global and is not the animation buffer's block. It is proved at boot from the witness's
+      real Camera (`StartTerrain.cut_chk` inside `cam_frame_ok`, read back by `StartSat.cam11`).
+      Every proved keeper carries it. `lvl_w_unch` now asks for the `lw_blk` blocks
+      (`lvl_ids`, `cam_ids` = sObjectCutscene / gAreaData, and the Camera) and gMarioAnimsBuf's
+      cell 8. The footprint keepers check `lvl_rd_ids` by vm; the Mario rows pass their `CL 8`
+      cell. The level phase no longer lists sObjectCutscene among its written globals: its
+      only path there, reset_dialog_render_state's `trigger_cutscene_dialog(2)`, stores
+      nothing. `LevelWalk.tcd_noop` proves this from the generated body, and the walker
+      accepts the constant-argument call (`tcd_skip_ok`). `Hcam_phi` assumes cam_w in PhiW and
+      claims it after, and `Hcam_ow` assumes it.
+      Both rows are now TRUE in the game and only unproved (no longer a phantom ∀). The
+      objects-phase rows (`Hobj_*`, over Pobjl ⊇ PhiW) also claim cam_w after: true by
+      `cut_census_wmotr`, which is link-wide.
     - (b) a FOOTPRINT walk of update_camera's 428-function WMotR closure. UcKit walks all 507
       bodies for mem_ok, through type certificates, so it cannot prune (a)'s cutscenes. The
       footprint for `Hcam_ow` is the camera, audio, dialog and hud globals of `uc_census`, plus
