@@ -44,7 +44,9 @@ Section HX.
   (* the globals a world fact reads or pins *)
   Definition safe_ids : list ident :=
     [level_update._gMarioStates; mario._gMarioState; object_list_processor._gObjectPool;
-     mario._gMarioAnimsBuf; game_init._gMarioAnims; area._gAreaData; mario._gControllers]
+     mario._gMarioAnimsBuf; game_init._gMarioAnims; area._gAreaData; mario._gControllers;
+     (* cam_w's sObjectCutscene (FfWorld.cam_ids, 2026-11-01) *)
+     camera._sObjectCutscene]
     ++ lvl_ids ++ part_ids.
 
   (* the changed globals besides the regions *)
@@ -84,6 +86,21 @@ Section HX.
       repeat (destruct Hin as [<- | Hin]; [vm_compute; reflexivity |]). destruct Hin.
     - apply existsb_exists. exists id. split; [| apply Pos.eqb_refl].
       unfold safe_ids. apply in_or_app. right. apply in_or_app. left. exact Hin.
+  Qed.
+
+  (* a block lvl_w reads (its globals, or the Camera) is unchanged here *)
+  Lemma nchg_rd : forall m b, lvl_w ge m ->
+    lw_blk ge m b \/ Genv.find_symbol ge mario._gMarioAnimsBuf = Some b -> ~ chg b.
+  Proof.
+    intros m b Hl Hb [(id & Hin & Hs) | (id & Hin & Hs)].
+    - exact (lvl_rd_not_sym ge m b id b Hl Hb Hs (xids_rd id Hin) eq_refl).
+    - apply (lvl_rd_not_sym ge m b id b Hl Hb Hs); [ | reflexivity ].
+      pose proof (proj1 (forallb_forall _ _) XGok id Hin) as N. cbn beta in N.
+      destruct (existsb (Pos.eqb id) lvl_rd_ids) eqn:E; [ exfalso | reflexivity ].
+      apply existsb_exists in E. destruct E as (x & Hx & Ex). apply Pos.eqb_eq in Ex. subst x.
+      assert (I : forallb (fun x => existsb (Pos.eqb x) safe_ids) lvl_rd_ids = true)
+        by (vm_compute; reflexivity).
+      rewrite forallb_forall in I. rewrite (I id Hx) in N. discriminate N.
   Qed.
 
   (* the changed globals as a region list *)
@@ -541,9 +558,10 @@ Section HX.
       assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
       rewrite OBJ in Lo'. injection Lo' as E1 E2. subst bo oo.
       apply (AnimKeep.lvl_w_keep_ne ge m m' (fun b => b <> bm /\ ~ chg b /\ b <> ob)); [| | exact Hl].
-      - intros b Hs. split; [exact (AnimKeep.lvl_ne_bm ge bm m AW b Hs) |].
-        split; [exact (nchg_lvl b Hs) |].
-        exact (proj1 (D4 b (or_intror (or_intror Hs)))).
+      - (* the blocks lvl_w reads: its globals and the Camera (cam_w) *)
+        intros b Hb. split; [exact (AnimKeep.lvl_rd_ne_bm ge bm m b AW Hl Hb) |].
+        split; [exact (nchg_rd m b Hl Hb) |].
+        exact (lvl_rd_not_sym ge m b _ _ Hl Hb (ff_Spool _ _ _ _ FWF) ltac:(vm_compute; reflexivity)).
       - intros ch b z (A & Bc & C). exact (LXz ch b z A Bc (ozx_ne _ _ _ C)).
     Qed.
 

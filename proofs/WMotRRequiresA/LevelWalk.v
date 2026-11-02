@@ -201,9 +201,23 @@ Definition bcopy_ok (a : expr) (al : list expr) : bool :=
   | _, _ => false
   end.
 
+(* trigger_cutscene_dialog(n) with a constant n other than 1: its body
+   only stores (start_object_cutscene_without_focus(CUTSCENE_READ_MESSAGE))
+   when n is 1, so the call changes no memory (tcd_noop, 2026-11-01: the
+   level phase's one caller, reset_dialog_render_state, passes 2) *)
+Definition tcd_skip_ok (a : expr) (al : list expr) : bool :=
+  match a, al with
+  | Evar f fty, [Econst_int n ty] =>
+      Pos.eqb f camera._trigger_cutscene_dialog
+      && (if type_eq fty (Tfunction (tint :: nil) tint cc_default) then true else false)
+      && (if type_eq ty tint then true else false)
+      && negb (Int.eq n Int.one)
+  | _, _ => false
+  end.
+
 Definition lv_call_ok (gt : list (ident * ident)) (gms ids : list ident)
     (o : option ident) (a : expr) (al : list expr) : bool :=
-  untracked gt gms o && (gcall_ok ids a al || bcopy_ok a al).
+  untracked gt gms o && ((gcall_ok ids a al || bcopy_ok a al) || tcd_skip_ok a al).
 
 Definition lv_params_ok (gt : list (ident * ident)) (gms : list ident) (f : Clight.function) : bool :=
   forallb (fun p => match gt_of gt (fst p) with Some _ => false | None => negb (mem_id (fst p) gms) end)
@@ -414,6 +428,66 @@ Section LW.
   Lemma gsb_sg : mem_id SFL._gSaveBuffer stored_globals = true.
   Proof. vm_compute. reflexivity. Qed.
 
+  Lemma oeq_one : forall n m v,
+    sem_binary_operation G Oeq (Vint n) tint (Vint (Int.repr 1)) tint m = Some v ->
+    v = Val.of_bool (Int.eq n Int.one).
+  Proof.
+    intros n m v H. unfold sem_binary_operation, sem_cmp, sem_binarith in H. simpl in H.
+    injection H as <-. reflexivity.
+  Qed.
+
+  (* trigger_cutscene_dialog(n), n <> 1, changes no memory *)
+  Lemma tcd_noop : forall b fd m n t m' v,
+    Genv.find_symbol G CAL._trigger_cutscene_dialog = Some b -> Genv.find_funct_ptr G b = Some fd ->
+    eval_funcall function_entry2 G m fd [Vint n] t m' v -> Int.eq n Int.one = false -> m' = m.
+  Proof.
+    intros b fd m n t m' v Hs Hfp Hev Hn.
+    destruct (linkorder_resolves_funct lp CAL.prog CAL._trigger_cutscene_dialog CAL.f_trigger_cutscene_dialog
+                (linked12_LO_camera lp H12) ltac:(vm_compute; reflexivity)) as (b' & Hs' & Hf').
+    unfold lp_ge in Hs, Hfp. rewrite Hs in Hs'. injection Hs' as <-.
+    rewrite Genv.find_funct_find_funct_ptr in Hf'. rewrite Hfp in Hf'. injection Hf' as ->.
+    inv Hev.
+    match goal with H : function_entry2 _ _ _ _ _ _ _ |- _ => inv H end.
+    match goal with H : alloc_variables _ _ _ _ _ _ |- _ => cbn in H; inv H end.
+    match goal with H : bind_parameter_temps _ _ _ = Some _ |- _ => cbn in H; injection H as <- end.
+    match goal with H : Mem.free_list _ _ = Some _ |- _ => cbn in H; injection H as <- end.
+    match goal with H : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename H into X end.
+    cbn [fn_body CAL.f_trigger_cutscene_dialog] in X.
+    inv X; [ | match goal with H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H end; congruence ].
+    match goal with H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H end.
+    match goal with H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ => rename H into X end.
+    inv X; [ | match goal with H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H end; congruence ].
+    match goal with H : exec_stmt _ _ _ _ _ (Sset _ _) _ _ _ _ |- _ => inv H end.
+    match goal with H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ => rename H into X end.
+    inv X.
+    all: match goal with H : exec_stmt _ _ _ _ _ (Sifthenelse _ _ _) _ _ _ _ |- _ => inv H end.
+    all: match goal with H : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ => inv H end.
+    all: repeat match goal with
+         | H : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ => inv H
+         | H : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ => inv H
+         | H : eval_lvalue _ _ _ _ (Etempvar _ _) _ _ _ |- _ => inv H
+         | H : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv H
+         end.
+    all: repeat match goal with H : (PTree.set _ _ _) ! _ = Some _ |- _ => cbn in H; injection H as <- end.
+    all: try match goal with H : sem_binary_operation _ _ _ _ _ _ _ = Some _ |- _ =>
+           cbn [typeof] in H; apply oeq_one in H; rewrite Hn in H; subst end.
+    all: try match goal with H : bool_val _ _ _ = Some _ |- _ => cbn in H; injection H as <- end.
+    all: try match goal with H : eval_lvalue _ _ _ _ (Ebinop _ _ _ _) _ _ _ |- _ => inv H end.
+    all: try match goal with H : exec_stmt _ _ _ _ _ (if negb (Int.eq Int.zero Int.zero) then _ else _) _ _ _ _ |- _ =>
+           rewrite Int.eq_true in H; cbn [negb] in H; inv H end.
+    all: try reflexivity.
+    all: cbn [negb] in *.
+    all: try match goal with H : exec_stmt _ _ _ _ _ (if ?c then _ else _) _ _ _ _ |- _ => cbn in H end.
+    all: try match goal with H : exec_stmt _ _ _ _ _ Sskip _ _ _ _ |- _ => inv H end.
+    all: try congruence.
+    all: try (match goal with H : exec_stmt _ _ _ _ _ (Ssequence _ _) _ _ _ _ |- _ => inv H end).
+    all: repeat match goal with
+         | H : exec_stmt _ _ _ _ _ Sskip _ _ _ _ |- _ => inv H
+         | H : exec_stmt _ _ _ _ _ (Sreturn _) _ _ _ _ |- _ => inv H
+         end.
+    all: try congruence; try reflexivity.
+  Qed.
+
   Lemma lv_call : forall gt gms ids, (forall g, mem_id g ids = true -> lfun g) ->
       forall optid a al le m t le' m' out m0,
       lv_call_ok gt gms ids optid a al = true -> lv_P gt gms le ->
@@ -423,7 +497,7 @@ Section LW.
     intros gt gms ids Hids optid a al le m t le' m' out m0 Hok (HP & HG) Hx (Hf & Hfx).
     unfold lv_call_ok in Hok. apply andb_prop in Hok as [Hu Hc].
     apply call_inv in Hx.
-    destruct Hx as (tyargs & tyres & cc & vf & vargs & fd & vres & _ & Hev & Hel & Hff & _ & Hfc & -> & ->).
+    destruct Hx as (tyargs & tyres & cc & vf & vargs & fd & vres & Hcf & Hev & Hel & Hff & _ & Hfc & -> & ->).
     assert (HPo : lv_P gt gms (set_opttemp optid vres le)).
     { destruct optid as [ti|]; cbn [set_opttemp]; [ | exact (conj HP HG) ].
       cbn [untracked] in Hu.
@@ -434,7 +508,7 @@ Section LW.
       - intros t0 b o Ht Hle. destruct (peq t0 ti) as [-> | Hne]; [ congruence | ].
         rewrite PTree.gso in Hle by exact Hne. exact (HG _ _ _ Ht Hle). }
     split; [ | exact HPo ].
-    apply orb_true_iff in Hc as [Hc | Hc].
+    apply orb_true_iff in Hc as [Hc | Hc]; [ apply orb_true_iff in Hc as [Hc | Hc] | ].
     - (* a listed callee *)
       destruct a as [ | | | | fid fty | | | | | | | | | ]; try discriminate Hc.
       destruct fty as [ | | | | | | targs tres tcc | | ]; try discriminate Hc.
@@ -478,6 +552,24 @@ Section LW.
         * intros b o k p _. rewrite (SP b o k p). tauto.
         * intros b o k p Hv Hp. apply Hv. unfold Mem.valid_block. rewrite <- NB.
           exact (Mem.perm_valid_block _ _ _ _ _ Hp).
+    - (* trigger_cutscene_dialog(n), n <> 1: no memory change *)
+      unfold tcd_skip_ok in Hc.
+      destruct a as [ | | | | fid fty | | | | | | | | | ]; try discriminate Hc.
+      destruct al as [ | a1 [ | a2 al2 ] ]; [ discriminate Hc | | destruct a1; discriminate Hc ].
+      destruct a1 as [ n ty | | | | | | | | | | | | | ]; try discriminate Hc.
+      apply andb_prop in Hc as [Hc Hn]. apply andb_prop in Hc as [Hc Hty].
+      apply andb_prop in Hc as [Hfe Hfty]. apply Pos.eqb_eq in Hfe. subst fid.
+      destruct (type_eq fty (Tfunction (tint :: nil) tint cc_default)) as [-> | _]; [ | discriminate Hfty ].
+      destruct (type_eq ty tint) as [-> | _]; [ | discriminate Hty ].
+      apply negb_true_iff in Hn.
+      destruct (evar_fun_val _ _ _ _ _ _ _ _ _ Hev (PTree.gempty _ _)) as (lf & Hsy & ->).
+      rewrite Genv.find_funct_find_funct_ptr in Hff.
+      match goal with H : classify_fun _ = _ |- _ => cbn in H; injection H as <- <- <- end.
+      inv Hel. match goal with H : eval_exprlist _ _ _ _ [] _ _ |- _ => inv H end.
+      match goal with H : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ => inv H end;
+        [ | match goal with H : eval_lvalue _ _ _ _ (Econst_int _ _) _ _ _ |- _ => inv H end ].
+      match goal with H : sem_cast _ _ _ _ = Some _ |- _ => cbn in H; injection H as <- end.
+      rewrite (tcd_noop _ _ _ _ _ _ _ Hsy Hff Hfc Hn). exact (conj Hf Hfx).
   Qed.
 
   (* THE BODY BRICK *)
@@ -605,15 +697,9 @@ Section LW.
       [AX._seq_player_lower_volume; AX._set_audio_muted].
   Qed.
 
-  (* ---- camera / dialog ---- *)
-  Lemma lf_socwf : lfun level_gvars CAL._start_object_cutscene_without_focus.
-  Proof. lv_sym CAL.prog LOc CAL.f_start_object_cutscene_without_focus NOGT NOID NOID. Qed.
-  Lemma lf_tcd : lfun level_gvars CAL._trigger_cutscene_dialog.
-  Proof.
-    pose proof lf_socwf.
-    lv_sym CAL.prog LOc CAL.f_trigger_cutscene_dialog NOGT NOID
-      [CAL._start_object_cutscene_without_focus].
-  Qed.
+  (* ---- dialog (reset_dialog_render_state's trigger_cutscene_dialog(2)
+     stores nothing: tcd_skip_ok / tcd_noop, so sObjectCutscene is no
+     level-phase global, 2026-11-01) ---- *)
   Lemma lf_get_dialog_id : lfun level_gvars IML._get_dialog_id.
   Proof. lv_sym IML.prog LOi IML.f_get_dialog_id NOGT NOID NOID. Qed.
 
@@ -634,9 +720,9 @@ Section LW.
 
   Lemma lf_rdrs : lfun level_gvars IML._reset_dialog_render_state.
   Proof.
-    pose proof lf_lst. pose proof lf_tcd.
+    pose proof lf_lst.
     lv_sym IML.prog LOi IML.f_reset_dialog_render_state NOGT NOID
-      [LU._level_set_transition; CAL._trigger_cutscene_dialog].
+      [LU._level_set_transition].
   Qed.
 
   (* ---- save file / area ---- *)
@@ -727,14 +813,6 @@ Section LW.
     lv_safe SI.prog LOs SI.f_lower_background_noise NOGT NOID
       [AX._seq_player_lower_volume; AX._set_audio_muted].
   Qed.
-  Lemma lfs_socwf : lfun lvl_safe_gvars CAL._start_object_cutscene_without_focus.
-  Proof. lv_safe CAL.prog LOc CAL.f_start_object_cutscene_without_focus NOGT NOID NOID. Qed.
-  Lemma lfs_tcd : lfun lvl_safe_gvars CAL._trigger_cutscene_dialog.
-  Proof.
-    pose proof lfs_socwf.
-    lv_safe CAL.prog LOc CAL.f_trigger_cutscene_dialog NOGT NOID
-      [CAL._start_object_cutscene_without_focus].
-  Qed.
   Lemma lfs_get_dialog_id : lfun lvl_safe_gvars IML._get_dialog_id.
   Proof. lv_safe IML.prog LOi IML.f_get_dialog_id NOGT NOID NOID. Qed.
   Lemma lfs_lst : lfun lvl_safe_gvars LU._level_set_transition.
@@ -746,9 +824,9 @@ Section LW.
   Qed.
   Lemma lfs_rdrs : lfun lvl_safe_gvars IML._reset_dialog_render_state.
   Proof.
-    pose proof lfs_lst. pose proof lfs_tcd.
+    pose proof lfs_lst.
     lv_safe IML.prog LOi IML.f_reset_dialog_render_state NOGT NOID
-      [LU._level_set_transition; CAL._trigger_cutscene_dialog].
+      [LU._level_set_transition].
   Qed.
   Lemma lfs_cisswc : lfun lvl_safe_gvars SFL._check_if_should_set_warp_checkpoint.
   Proof. lv_safe SFL.prog LOf SFL.f_check_if_should_set_warp_checkpoint NOGT NOID NOID. Qed.

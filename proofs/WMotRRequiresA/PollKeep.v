@@ -587,23 +587,9 @@ Section LINK.
 
   (* ---- the generic carries through a footprint ---- *)
   Lemma lvl_w_fx0 : forall Xs m m',
-    (forall id, In id Xs -> existsb (Pos.eqb id) lvl_ids = false) ->
+    (forall id, In id Xs -> existsb (Pos.eqb id) lvl_rd_ids = false) ->
     fx lp bm Xs m m' -> lvl_w G m -> lvl_w G m'.
-  Proof.
-    intros Xs m m' HX Hfx. apply lvl_w_unch.
-    intros b ch z (id & Hin & Hs). apply (fx_load lp bm Xs m m' ch b z Hfx).
-    intros i _ [(id' & Hin' & Hs') | (-> & _)].
-    - assert (E : id' = id) by (eapply Genv.genv_vars_inj; [ exact Hs' | exact Hs ]). subst id'.
-      pose proof (HX id Hin') as N.
-      assert (Y : existsb (Pos.eqb id) lvl_ids = true)
-        by (apply existsb_exists; exists id; split; [ exact Hin | apply Pos.eqb_refl ]).
-      congruence.
-    - assert (E : id = level_update._gMarioStates) by (eapply Genv.genv_vars_inj; [ exact Hs | exact Hbm_sym ]).
-      subst id.
-      assert (Y : existsb (Pos.eqb level_update._gMarioStates) lvl_ids = true)
-        by (apply existsb_exists; exists level_update._gMarioStates; split; [ exact Hin | apply Pos.eqb_refl ]).
-      vm_compute in Y. discriminate Y.
-  Qed.
+  Proof. exact (LevelKeep.lvl_w_fx lp bm Hbm_sym). Qed.
 
   Lemma fx_obj_w : forall Xs m m',
     (forall id, In id ow_ids -> existsb (Pos.eqb id) Xs = false) ->
@@ -641,7 +627,7 @@ Section LINK.
     - apply (LevelKeep.lvl_keeps_core lp bm Hbm_sym srd_gvars
                (avoid_of srd_gvars core_ids ltac:(vmr)) ltac:(vmr) m i Hphi Hfx Hcl
                (phiw_surf_apart lp bm srd_gvars m Hphi)).
-      exact (lvl_w_fx0 srd_gvars m i (avoid_of srd_gvars lvl_ids ltac:(vmr)) Hfx Hl).
+      exact (lvl_w_fx0 srd_gvars m i (avoid_of srd_gvars lvl_rd_ids ltac:(vmr)) Hfx Hl).
     - exact (LevelKeep.fx_plat_still lp bm Hbm_sym srd_gvars m i ltac:(vmr) ltac:(vmr) Hfx).
     - exact (fx_obj_w srd_gvars m i (avoid_of ow_ids srd_gvars ltac:(vmr)) ltac:(vmr) Hfx).
   Qed.
@@ -674,7 +660,8 @@ Section LINK.
     - apply (LevelKeep.lvl_keeps_core lp bm Hbm_sym PollFlank.rci_gvars
                (avoid_of PollFlank.rci_gvars core_ids ltac:(vmr)) ltac:(vmr) i m0 Hphi Hfx Hcl
                (phiw_surf_apart lp bm PollFlank.rci_gvars i Hphi)).
-      exact (LevelKeep.lvl_w_ctl lp bm Hbm_sym PollFlank.rci_gvars i m0 HX Hl Hfx Hcw').
+      exact (LevelKeep.lvl_w_ctl lp bm Hbm_sym PollFlank.rci_gvars i m0 HX
+        (avoid_of PollFlank.rci_gvars cam_rd_ids ltac:(vm_compute; reflexivity)) Hl Hfx Hcw').
     - exact (LevelKeep.fx_plat_still lp bm Hbm_sym PollFlank.rci_gvars i m0 ltac:(vmr) ltac:(vmr) Hfx).
     - exact (fx_obj_w PollFlank.rci_gvars i m0 (avoid_of ow_ids PollFlank.rci_gvars ltac:(vmr)) ltac:(vmr) Hfx).
   Qed.
