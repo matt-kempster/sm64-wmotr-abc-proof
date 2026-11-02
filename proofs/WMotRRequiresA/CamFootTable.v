@@ -23,7 +23,8 @@ Definition cf_SZ : Z := 108.
    cutscene / sound / music queues, the vec helpers' global destinations),
    gPlayerCameraState (sMarioCamState's target), gMarioStates (Mario's
    state: set_mario_npc_dialog's), the audio globals load_sequence may
-   change (LsContract.ls_ids) and the save buffer (save_file_do_save) *)
+   change (LsContract.ls_ids) and save_file_do_save's globals (the save
+   buffer and the EEPROM / SI driver state, CamFootSave) *)
 Definition cf_FP : list ident := [
   $"sCurrentBackgroundMusicSeqId";
   $"sBackgroundMusicForDynamics";
@@ -129,7 +130,20 @@ Definition cf_FP : list ident := [
   $"gBankLoadedPool";
   $"gAudioHeap";
   $"gSaveBuffer";
-  $"gSaveFileModified"
+  $"gSaveFileModified";
+  (* save_file_do_save's whole tree (CamFootSave.sds_gvars): the menu dirty
+     flag, the EEPROM PIF image and last-command byte, the SI access queue
+     and its buffer, the SI event queue, the EEPROM timer, queue, message *)
+  $"gMainMenuDataModified";
+  $"__osEepPifRam";
+  $"__osContLastCmd";
+  $"gOsSiAccessQueueCreated";
+  $"gOsSiMessageQueue";
+  $"osSiMesgBuff";
+  $"gSIEventMesgQueue";
+  $"__osEepromTimerQ";
+  $"__osEepromTimerMsg";
+  $"__osEepromTimer"
 ].
 
 (* THE PINS: the pointer globals whose cell the walk trusts (premise at the
@@ -138,7 +152,9 @@ Definition cf_pins : list (ident * fcls) :=
   [($"gCamera", fC cf_SZ); ($"sMarioCamState", fF); ($"sLuigiCamState", fF);
    ($"gSecondCameraFocus", fN); ($"gMarioState", fF)].
 
-(* THE LEAVES: proved outside the walk (CamFootInst) or premises *)
+(* THE LEAVES: proved outside the walk (CamFootInst: sqrtf from the FPU floor,
+   load_sequence from the labeled audio premise, the vec helpers;
+   CamFootSave: save_file_do_save; CamFootNpc: set_mario_npc_dialog) *)
 Definition cf_leaf : ftab :=
   [($"sqrtf", ([fA], fA)); ($"load_sequence", ([fA; fA; fA], fA));
    ($"save_file_do_save", ([fA], fA));

@@ -9,7 +9,7 @@
 (* sLuigiCamState point into an FP global (in the game: gPlayerCameraState*)
 (* [0] / [1], CamPinCensus); gSecondCameraFocus = no pointer (NULL);      *)
 (* gMarioState points into an FP global (gMarioStates)),                  *)
-(*   - changes memory only in the blocks of cf_FP's 105 globals, the      *)
+(*   - changes memory only in the blocks of cf_FP's 115 globals, the      *)
 (*     Camera's sizeof(struct Camera) = 108 bytes, and the pins' cells;   *)
 (*   - keeps every old permission, and leaves new blocks permissionless;  *)
 (*   - keeps the pins.                                                    *)
@@ -18,15 +18,18 @@
 (* function of the call's type (UpdateCameraBody.all_evt_ok,               *)
 (* CameraModeBody.trans_fd_ids).                                           *)
 (*                                                                        *)
-(* THE LEAVES.  The five AVOID_UB vec helpers are PROVED                  *)
-(* (CamFootSound.shadow_leaf); sqrtf from the FPU floor (TRUST 3.5);      *)
-(* load_sequence from LsContract.ls_frame (the labeled audio premise,     *)
-(* TRUST 4.1 -- FALSE as stated (unscoped), restated with AudioInv next); *)
-(* OPEN (premises, TRUE in every state given the pins):                   *)
-(*   set_mario_npc_dialog writes only Mario's state (gMarioStates, through*)
-(*     the gMarioState pin; its set_mario_action is the cutscene group);  *)
-(*   save_file_do_save writes only gSaveBuffer / gSaveFileModified (and   *)
-(*     the EEPROM through the OS floor).                                   *)
+(* THE LEAVES, all proved or floors (no open premise beyond the pins):    *)
+(*   the five AVOID_UB vec helpers (CamFootSound.shadow_leaf);            *)
+(*   sqrtf from the FPU floor (TRUST 3.5);                                *)
+(*   load_sequence from LsContract.ls_frame (the labeled audio premise,   *)
+(*     TRUST 4.1 -- FALSE as stated (unscoped), restated with AudioInv    *)
+(*     as ls_frame_ai; switched over in the root rebuild);                *)
+(*   save_file_do_save, for any argument, from the real bodies of its     *)
+(*     whole tree down to the OS floor (TRUST 3.5): CamFootSave.sds_foot; *)
+(*   set_mario_npc_dialog, for any argument, from the real bodies:        *)
+(*     CamFootNpc.npc_spec (its set_mario_action call passes the literal  *)
+(*     ACT_READING_NPC_DIALOG, so only the cutscene arm of the switch     *)
+(*     runs -- the one argument-constant specialization, sma_prune).      *)
 (* ====================================================================== *)
 
 From Coq Require Import String List ZArith Lia Bool.
@@ -37,7 +40,8 @@ From SM64.Proofs Require Import SymbolicLinking RealFrameLinked LinkedTwelve Cen
 From SM64.Proofs.WMotRRequiresA Require Import CamFootKit CamFootSound CamFootTable ObjTable.
 From SM64.Proofs Require UcTable UpdateCameraBody CameraModeBody MtxfBody FpuFloor
   EngineV2Consumer.
-From SM64.Proofs.WMotRRequiresA Require LsContract BodyFrame.
+From SM64.Proofs.WMotRRequiresA Require LsContract BodyFrame CamFootSave CamFootNpc FootWalk.
+From SM64.Proofs Require OsDmaFloor.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -93,7 +97,11 @@ Proof.
   - right. exact (IH H).
 Qed.
 
-Lemma cf_pins_fp_chk : forallb (fun x => negb (mem_idf x cf_FP)) (map fst cf_pins) = true.
+(* save_file_do_save's globals are footprint globals *)
+Lemma cf_sds_fp : forallb (fun g => mem_idf g cf_FP) CamFootSave.sds_gvars = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma cf_pins_fp_chk :forallb (fun x => negb (mem_idf x cf_FP)) (map fst cf_pins) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Lemma cf_pins_not_fp : forall x c, pin_of x cf_pins = Some c -> mem_idf x cf_FP = false.
@@ -145,13 +153,9 @@ Section CF.
   Hypothesis HSZ : 0 <= co /\ co + cf_SZ <= Ptrofs.max_unsigned.
   Hypothesis HPcb : forall x c b, pin_of x cf_pins = Some c -> Genv.find_symbol ge x = Some b -> b <> cb.
 
-  Definition cf_open : ftab := [($"set_mario_npc_dialog", ([fA], fA)); ($"save_file_do_save", ([fA], fA))].
-
-  (* OPEN (TRUE in every state given the pins): set_mario_npc_dialog
-     writes Mario's state only; save_file_do_save the save buffer only *)
-  Hypothesis Hopen : forall nl fid s b fd, ft_find fid cf_open = Some s ->
-      Genv.find_symbol ge fid = Some b -> Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
-      fspec ge cf_FP cf_pins cb co cf_SZ nl fd s.
+  (* the libultra OS / hardware floor (TRUST 3.5): save_file_do_save's
+     EEPROM write (CamFootSave) *)
+  Hypothesis Hfloor : OsDmaFloor.os_dma_floor.
 
   Definition cfLeaf (fd : Clight.fundef) (s : fsig) : Prop :=
     exists fid b, ft_find fid cf_leaf = Some s /\ Genv.find_symbol ge fid = Some b /\
@@ -214,10 +218,20 @@ Section CF.
         - exact (Ple_trans _ _ _ Hnl N). }
       destruct (Pos.eqb $"save_file_do_save" fid) eqn:E3.
       { apply Pos.eqb_eq in E3. subst fid. cbv beta iota in Hf; injection Hf as <-.
-        exact (Hopen nl $"save_file_do_save" ([fA], fA) b fd eq_refl Hs Hff). }
+        intros m vargs t m' vres Hevf _ (HP & Hnl).
+        destruct (CamFootSave.sds_foot lp H12 Hfloor b fd m vargs t m' vres Hs Hff Hevf) as (PKm & U).
+        assert (U' : Mem.unchanged_on (fun b0 z => ~ A0 ge cf_FP cb co cf_SZ nl b0 z) m m').
+        { eapply Mem.unchanged_on_implies; [ exact U | ].
+          intros b0 z N0 _ (g & Hg & Hsg). apply N0. left. exists g. split; [ | exact Hsg ].
+          exact (proj1 (forallb_forall _ _) cf_sds_fp g Hg). }
+        split; [ split | split; [ split | intros bb oo _; exact I ] ].
+        - exact PKm.
+        - eapply Mem.unchanged_on_implies; [ exact U' | ]. intros b0 z (H0 & _) _. exact H0.
+        - exact (pins_unch ge cf_FP cf_pins cb co cf_SZ nl HG cf_pins_not_fp HPcb m m' HP Hnl U').
+        - exact (Ple_trans _ _ _ Hnl (proj1 PKm)). }
       destruct (Pos.eqb $"set_mario_npc_dialog" fid) eqn:E4.
       { apply Pos.eqb_eq in E4. subst fid. cbv beta iota in Hf; injection Hf as <-.
-        exact (Hopen nl $"set_mario_npc_dialog" ([fA], fA) b fd eq_refl Hs Hff). }
+        exact (CamFootNpc.npc_spec lp H12 cb co nl HSZ HG cf_pins_not_fp HPcb b fd Hs Hff). }
       destruct (Pos.eqb $"vec3f_copy" fid) eqn:E5.
       { apply Pos.eqb_eq in E5. subst fid. cbv beta iota in Hf; injection Hf as <-.
         rewrite (math_resolve $"vec3f_copy" math_util.f_vec3f_copy b fd ltac:(vm_compute; reflexivity) Hs Hff).

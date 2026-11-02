@@ -25,7 +25,8 @@ From Coq Require Import ZArith List Lia Bool Classical_Prop.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking.
 From SM64.Generated Require memory libultra_osEepromWrite libultra_osSiCreateAccessQueue
-  libultra_osCreateMesgQueue libultra_osContStartReadData save_file.
+  libultra_osCreateMesgQueue libultra_osContStartReadData save_file
+  libultra_osEepromLongWrite libultra_osContInit.
 From SM64.Proofs Require Import SymbolicLinking RealFrameLinked LinkedTwelve OsDmaFloor CensusV2.
 From SM64.Proofs Require MtxfBody ActWriterSurface LocalVarsSurface RetSurface LptBody
   SaveDoSaveBody.
@@ -105,7 +106,9 @@ Section REC.
     | _, _ => false
     end.
 
-  (* the floor calls of the SI trees: osRecvMesg, osSendMesg, __osSiRawStartDma *)
+  (* the floor calls of the SI / EEPROM trees: osRecvMesg, osSendMesg,
+     __osSiRawStartDma, osSetTimer(&__osEepromTimer, ...) and bcopy (the
+     last two: save_file_do_save's tree, CamFootSave) *)
   Definition floor_ok (lv fl qa : list ident) (fid : ident) (al : list expr) : bool :=
     if Pos.eqb fid memory._osRecvMesg then
       match al with [aq; ac; _] => hq lv qa aq && hx lv fl ac | _ => false end
@@ -113,6 +116,14 @@ Section REC.
       match al with [aq; _; _] => hq lv qa aq | _ => false end
     else if Pos.eqb fid libultra_osEepromWrite.___osSiRawStartDma then
       match al with [_; ap] => hx lv fl ap | _ => false end
+    else if Pos.eqb fid libultra_osEepromLongWrite._osSetTimer then
+      match al with
+      | Eaddrof (Evar t _) _ :: _ =>
+          Pos.eqb t libultra_osContInit.___osEepromTimer && negb (mem_id t lv) && mem_id t FP
+      | _ => false
+      end
+    else if Pos.eqb fid save_file._bcopy then
+      match al with [_; ad; _] => hx lv fl ad | _ => false end
     else false.
 
   Definition call_ok (lv fl qa : list ident) (c : SDB.ctab) (o : option ident) (a : expr)
@@ -425,7 +436,7 @@ Section FW.
       as (b & fd & tyargs & tyres & cc & vargs & vres & Hs & Hf & _ & Hel & Hev & -> & _).
     split; [ | exact (opt_Pt fl qa optid vres le Hopt HP) ].
     pose proof (exprlist_cls lv fl qa e le m HE HP _ _ _ Hel) as Hc.
-    destruct Hfloor as (_ & _ & Hrv & Hsd & _ & Hsi & _).
+    destruct Hfloor as (_ & _ & Hrv & Hsd & Hst & Hsi & Hbc).
     unfold floor_ok in Hok.
     destruct (Pos.eqb fid memory._osRecvMesg) eqn:E1.
     { apply Pos.eqb_eq in E1. subst fid.
@@ -470,6 +481,41 @@ Section FW.
       inversion Hc1 as [ | ? ? ? ? (Cp0 & _) _ ]; subst.
       eapply Mem.unchanged_on_implies; [ exact UOp | ].
       intros b0 z HQ _. left. intro E; subst b0. exact (HB_notQ bp z (Cp0 Hok bp op eq_refl) HQ). }
+    destruct (Pos.eqb fid libultra_osEepromLongWrite._osSetTimer) eqn:E3.
+    { (* osSetTimer(&__osEepromTimer, ...) *)
+      apply Pos.eqb_eq in E3. subst fid.
+      destruct (floor_ext libultra_osEepromLongWrite.prog libultra_osEepromLongWrite._osSetTimer "osSetTimer" _ _ _ _ _ _ _
+                  (linked12_LO_ultra_elw lp H12)
+                  eq_refl ltac:(vm_compute; reflexivity) Hs Hf Hev) as (sg & Hx').
+      destruct (Hst _ _ _ _ _ _ _ Hx') as (bt & ot & rest & -> & _ & UOt).
+      destruct al as [ | a0 al ]; try discriminate Hok.
+      destruct a0 as [ | | | | | | | a1 aty | | | | | | ]; try discriminate Hok.
+      destruct a1 as [ | | | | tid tty | | | | | | | | | ]; try discriminate Hok.
+      apply andb_prop in Hok as [Hok Hfp]. apply andb_prop in Hok as [Ht Htl].
+      apply Pos.eqb_eq in Ht. subst tid. apply negb_true_iff in Htl.
+      inversion Hel; subst.
+      match goal with Hv : eval_expr _ _ _ _ (Eaddrof _ _) ?v1,
+                      Hca : sem_cast ?v1 _ _ _ = Some (Vptr bt ot) |- _ =>
+        apply (sem_cast_vptr_inv _ _ _ _ _ _) in Hca; subst v1;
+        inversion Hv; subst end;
+        [ | match goal with H : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ => inv H end ].
+      match goal with Hl : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hl end.
+      + match goal with H : e ! _ = Some _ |- _ => rewrite (En _ Htl) in H; discriminate H end.
+      + match goal with H : Genv.find_symbol _ _ = Some bt |- _ =>
+          pose proof H as Hfs; eapply Mem.unchanged_on_implies; [ exact (UOt H) | ] end.
+        intros b0 z HQ _. left. intro E; subst b0.
+        exact (HB_notQ bt z (fb_glob _ bt Hfp Hfs) HQ). }
+    destruct (Pos.eqb fid save_file._bcopy) eqn:E5.
+    { (* bcopy(src, dst, n) *)
+      apply Pos.eqb_eq in E5. subst fid.
+      destruct (floor_ext save_file.prog save_file._bcopy "bcopy" _ _ _ _ _ _ _ (linked12_LO_save lp H12)
+                  eq_refl ltac:(vm_compute; reflexivity) Hs Hf Hev) as (sg & Hx').
+      destruct (Hbc _ _ _ _ _ _ _ Hx') as (bs & os & bd & od & n & -> & UOd & _ & _).
+      destruct al as [ | asrc [ | ad [ | an [ | ] ] ] ]; try discriminate Hok.
+      inversion Hc as [ | ? ? ? ? _ Hc1 ]; subst.
+      inversion Hc1 as [ | ? ? ? ? (Cd & _) _ ]; subst.
+      eapply Mem.unchanged_on_implies; [ exact UOd | ].
+      intros b0 z HQ _. left. intro E; subst b0. exact (HB_notQ bd z (Cd Hok bd od eq_refl) HQ). }
     discriminate Hok.
   Qed.
 

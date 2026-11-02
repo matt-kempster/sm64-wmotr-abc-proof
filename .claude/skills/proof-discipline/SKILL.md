@@ -552,13 +552,16 @@ all in `Unwired/`, and the theorem moved nowhere. See
     - In the game they are &gPlayerCameraState[0/1] and NULL. The initializer is the only
       writer, link-wide (`CamPinCensus`).
     - (b) is DONE as R1 (`CamFootInst.update_camera_foot`, off-spine for now): for ALL states
-      with the 5 pins, the real update_camera changes only cf_FP's 105 globals' blocks, the
+      with the 5 pins, the real update_camera changes only cf_FP's 115 globals' blocks, the
       Camera's 108 bytes and the pin cells, and keeps the pins.
       - The walk is all 503 bodies, with byte-level store classes (`CamFootKit` /
         `CamFootSound`).
       - The vec helpers are proved by shadow_leaf.
-      - Its leaves: load_sequence via ls_frame (FALSE unscoped, below); npc / save_file_do_save
-        as `Hopen` (TRUE given pins).
+      - Its leaves: load_sequence via ls_frame (FALSE unscoped, below). npc and
+        save_file_do_save are PROVED (2026-11-02; `Hopen` gone): `CamFootSave.sds_foot`
+        (FootWalk + PermWalk to the 3.5 floor; cf_FP 105 -> 115 globals) and
+        `CamFootNpc.npc_spec` (the literal-action set_mario_action call: `sma_prune` empties
+        the dead switch arms). New premise of update_camera_foot: `Hfloor` (3.5, existing).
     - NEXT, the deferred rebuild (with R3 + B'' (b)/(c)):
       - cam_w gains the pins (proved at boot, kept by every phase);
       - both rows are restated on update_camera_foot;
