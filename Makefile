@@ -57,7 +57,7 @@ GENERATED := generated/toy.v generated/shadow.v \
   generated/spawn_object.v generated/object_list_processor.v generated/audio_data.v generated/graph_node.v generated/buffers.v generated/save_file.v generated/object_collision.v \
   generated/area.v generated/surface_load.v generated/mario_anim_data.v generated/camera.v generated/rendering_graph_node.v generated/ingame_menu.v generated/debug_course.v \
   generated/audio_external.v generated/sound_init.v generated/print.v generated/behavior_script.v generated/platform_displacement.v \
-  generated/spawn_sound.v generated/debug.v generated/hud.v \
+  generated/spawn_sound.v generated/debug.v generated/hud.v generated/level_script.v \
   $(ULTRA_GENERATED)
 
 .PHONY: all generated proofs regen clean oracle-extract
@@ -157,6 +157,12 @@ generated/wmotr_level_data.v: pipeline/tu/wmotr_level_data.c pipeline/clightgen.
 
 generated/wmotr_script.v: $(SM64)/levels/wmotr/script.c pipeline/clightgen.sh
 	$(CLIGHTGEN) $< $@ $(SM64_CG)
+
+# engine/level_script.c (2026-11-01, GOAL 2 real-order witness): the real
+# level_cmd_place_object, run per OBJECT command of WMotR's level script
+# (wmotr_script.v) to build the area's SpawnInfo list as the game does.
+generated/level_script.v: $(SM64)/src/engine/level_script.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP)
 
 generated/macro_special_objects.v: $(SM64)/src/game/macro_special_objects.c pipeline/clightgen.sh pipeline/proof_n64.h
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)

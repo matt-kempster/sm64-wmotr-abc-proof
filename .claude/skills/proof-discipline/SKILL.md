@@ -609,6 +609,33 @@ all in `Unwired/`, and the theorem moved nowhere. See
     extended); systematic guard BhvVM.closure_data_linked (every closure gvar defined
     non-empty in the link) + vm_data_args_linked. OPEN: witness holds only Mario -- run
     WMotR's macro/special spawns in it.
+    Objects agent queue (resumed 2026-11-01).
+    1. DONE 2026-11-01: x/z accessors WMotRLevel.wmotr_pole_xz_list / wmotr_cannon_xzy
+       (+ _proj, _box lemmas), WMotRWorld.O_POSX/O_POSZ, pole_xz_ok / cannon_xz_ok, carried
+       in ObjWorld.kind_ok; ObjWorld.kind_ok_eq (PollKeep.kind_eq uses it). B-xz threads
+       them into used_ok.
+    2. Real-order macro witness: in StartTerrain.wchk, pass wmotr_seg7_macro_objs as
+       load_area_terrain's 4th arg (probe: Done, 26 macro objects, Mario lands in slot 26 =
+       offset 15808, and outside f_ids only gNumCalls is written -- add it). Put Mario's
+       slot behind an offset accessor (s_chain bo 36, the bm 136 store, bo_chk, frame_ok,
+       StartSat's ~15 slot-0 uses, frame_runs' Vptr bo 0). Add the obj_w clauses COLL (at
+       most 7 boxes and 2 lids; wall positions) and SURF_OBJ (dynamic surfaces' object is
+       NULL or has angle velocity 0x23..0x25 = 0; AngleVelCensus). Check them at boot AND
+       on the memory after the first area_update_objects. Probe file:
+       scratchpad WitProbe.v (a parameterized copy of wchk).
+    3. LINKED 2026-11-01: wmotr_script.c + level_script.c are TUs 52/53 (2.4: gAreaData
+       table entry, readonly-false level-data declarations; size0 render-path class;
+       FOUND+REPAIRED: LevelScriptJumpTable made the void(void) level_cmd_* handlers
+       address-taken and blew ActWriterCensus.clos up to 2423 with spurious action events;
+       ActWriterCensus.dispatch_confined excludes a reader-confined dispatch table, clos is
+       2217 again; FnPtrCensus admits level-script CALL words at LevelScriptFunc type).
+       OPEN: run the real level_cmd_place_object
+       per OBJECT command (sCurrentCmd / sCurrAreaIndex / sLevelPool set; command offsets
+       vm-decoded). Mario then lands in slot 34. TRUST line: "the dispatcher is not run; the
+       OBJECT handler is".
+    4. Collision census: BhvVM.vm_collision_loaders + mesh_walls.
+    5. B3 (iii) stepper; the Hobj_step_act route (census_value + per-step footprint +
+       set_mario_action walk); the ow_act carry.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
     PROVED at the boot witness, which now runs the real init_graph_node_start + clear_objects
     and Mario's spawn_objects_from_info; one real area_update_objects runs from it

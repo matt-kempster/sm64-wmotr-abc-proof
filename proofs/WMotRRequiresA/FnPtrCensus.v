@@ -24,7 +24,11 @@
 (*     cur_obj_call_action_function, sModeTransitions, the cutscene and   *)
 (*     camera-trigger structs, ... -- or (751 sites) in an INTEGER slot   *)
 (*     of a behavior_data script (CALL_NATIVE's uintptr_t word), and then *)
-(*     the function is void(void) (init_census).                          *)
+(*     the function is void(void) -- or (2 sites, since TU 52) in an     *)
+(*     INTEGER slot of WMotR's level script (level_wmotr_entry's CALL /  *)
+(*     CALL_LOOP words), and then it is LevelScriptFunc int(short,int):  *)
+(*     lvl_init_or_update (init_census).  The level script's 61-entry    *)
+(*     LevelScriptJumpTable is among the exact sites.                     *)
 (* (B) BODIES: every function designator in a body (assignment rhs,       *)
 (*     argument, temp, return, cast) enters at exactly its type: 187      *)
 (*     sites, no exception (body_census) -- so every function-pointer    *)
@@ -33,14 +37,20 @@
 (*     non-constant of another type, anywhere in the link, is             *)
 (*     bhv_cmd_call_native's (void * -> void ( * )(void)) of its script   *)
 (*     word (reentry_census); by (A)+(B)+(X) every function address held  *)
-(*     at a non-function-pointer type is a void(void) function.           *)
+(*     at a non-function-pointer type is a void(void) function, except    *)
+(*     lvl_init_or_update in the level script's words, which is read back *)
+(*     only by level_cmd_call / level_cmd_call_loop's pun (D), outside    *)
+(*     clos, at its own type.                                             *)
 (* (X) EXITS: no conversion of a function pointer to any other type       *)
 (*     (exit_census).                                                      *)
 (* (D) PUNNING: the only pointer casts to or from memory holding function *)
 (*     pointers are the graph-node downcasts of the render code and       *)
-(*     geo_process_held_object's (void * ) node, outside clos; the        *)
-(*     function pointers they reach are all GraphNodeFunc, a type no call *)
-(*     site of clos has; no union holds a function pointer (pun_census).  *)
+(*     geo_process_held_object's (void * ) node, and (since TU 53) the    *)
+(*     level command reads level_cmd_call / _call_loop (a script word as  *)
+(*     a LevelScriptFunc) and level_cmd_begin_area (a geo node), all      *)
+(*     outside clos; the function pointers they reach are GraphNodeFunc   *)
+(*     or LevelScriptFunc, types no call site of clos has; no union holds *)
+(*     a function pointer (pun_census).                                   *)
 (* (V) every temp is read at its declared type, and every global at its   *)
 (*     defining TU's type, except setup_game_memory's gMarioAnims (no     *)
 (*     function pointer, outside clos) (read_census).                     *)
@@ -51,11 +61,14 @@
 (* through a table entry read OUT OF BOUNDS (tbl[o->oAction],             *)
 (* BehaviorCmdTable[cmd >> 24], sModeTransitions[mode], the cutscene and  *)
 (* camera-trigger arrays), which on the N64 would read a neighbour of     *)
-(* another type.                                                           *)
+(* another type -- and so, likewise, a behavior command pointer that has  *)
+(* left the behavior scripts and reads a level script's int(short,int)    *)
+(* word.                                                                   *)
 (* ====================================================================== *)
 
 From Coq Require Import ZArith List Bool String.
 From compcert Require Import Coqlib Maps AST Integers Ctypes Cop Clight Ctypesdefs Clightdefs.
+From SM64.Generated Require wmotr_script.
 From SM64.Proofs.WMotRRequiresA Require Import ObjTable RoCensus ActWriterCensus.
 Import ListNotations.
 Open Scope string_scope.
@@ -203,9 +216,18 @@ Definition init_rows (p : Clight.program) : list (ident * ident * cls) :=
 
 Definition A_all : list (ident * ident * cls) := flat_map init_rows lprogs.
 
+(* LevelScriptFunc (level_script.h): s32 ( * )(s16, s32) *)
+Definition t_lsf : type := Tfunction (tshort :: tint :: nil) tint cc_default.
+
+(* WMotR's level scripts (TU 52): their CALL / CALL_LOOP words *)
+Definition level_scripts : list ident :=
+  [wmotr_script._level_wmotr_entry; wmotr_script._script_func_local_1;
+   wmotr_script._script_func_local_2].
+
 Definition init_ok (r : ident * ident * cls) : bool :=
   let '(g, x, c) := r in
-  is_exact c || (is_erased c && memi g bhv_scripts && fty_is x t_vv).
+  is_exact c || (is_erased c && memi g bhv_scripts && fty_is x t_vv)
+  || (is_erased c && memi g level_scripts && fty_is x t_lsf).
 
 (* ---------------------------------------------------------------------- *)
 (* (B) Function designators in bodies, with the type they enter at.        *)
@@ -474,8 +496,8 @@ Proof. vm_compute. reflexivity. Qed.
 (* (A) *)
 Lemma init_census :
   forallb init_ok A_all = true
-  /\ List.length (filter (fun '(_, _, c) => is_exact c) A_all) = 507%nat
-  /\ List.length (filter (fun '(_, _, c) => is_erased c) A_all) = 751%nat.
+  /\ List.length (filter (fun '(_, _, c) => is_exact c) A_all) = 568%nat
+  /\ List.length (filter (fun '(_, _, c) => is_erased c) A_all) = 753%nat.
 Proof. vm_compute. auto. Qed.
 
 (* (B) *)
@@ -500,8 +522,9 @@ Lemma pun_census :
      ("geo_call_global_function_nodes_helper", false); ("geo_update_layer_transparency", false);
      ("geo_switch_anim_state", false); ("geo_switch_area", false); ("geo_camera_main", false);
      ("geo_camera_fov", false); ("geo_process_held_object", false);
-     ("geo_process_node_and_siblings", false)]
-  /\ List.length pun_fp_tys = 1%nat
+     ("geo_process_node_and_siblings", false); ("level_cmd_call", false);
+     ("level_cmd_call_loop", false); ("level_cmd_begin_area", false)]
+  /\ List.length pun_fp_tys = 2%nat
   /\ forallb (fun t => negb (existsb (fun u => tyb (Tpointer t noattr) u) clos_icall_tys)) pun_fp_tys = true
   /\ fp_unions = nil.
 Proof. vm_compute. auto. Qed.

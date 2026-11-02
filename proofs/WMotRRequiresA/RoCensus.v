@@ -411,11 +411,13 @@ Definition ro_readonly : list ident :=
 Lemma ro_none_readonly : ro_readonly = nil.
 Proof. vm_compute. reflexivity. Qed.
 
-(* the initializers holding a candidate's address: 51 globals (the 41
+(* the initializers holding a candidate's address: 54 globals (the 41
    behavior scripts that name another script, the macro / special / warp
    spawn tables, the particle and droplet parameter tables, the
-   exclamation-box contents, the butterfly activation data), none const *)
-Lemma init_refs_count : List.length init_refs = 51%nat.
+   exclamation-box contents, the butterfly activation data, and, since TU
+   52 (2026-11-01), WMotR's three level scripts whose OBJECT / MARIO
+   commands name a behavior), none const *)
+Lemma init_refs_count : List.length init_refs = 54%nat.
 Proof. vm_compute. reflexivity. Qed.
 
 Lemma init_refs_writable : forallb (fun '(_, _, r) => negb r) init_refs = true.

@@ -26,7 +26,8 @@
 (*    type is bhv_cmd_call_native's script word (all void(void)), and no *)
 (*    function pointer leaves its type -- so the call sites of clos see   *)
 (*    only functions of their own type (out-of-bounds table reads stay a  *)
-(*    3.2 point).  2217 functions;                                        *)
+(*    3.2 point).  2217 functions (a dispatch table confined to its      *)
+(*    reader, LevelScriptJumpTable, is not counted: dispatch_confined);  *)
 (*    the externals reached (osSetTimer, __osSiRawStartDma, osRecvMesg,   *)
 (*    osSendMesg, bcopy, load_sequence, sqrtf) are GOAL 1's model-        *)
 (*    boundary rows.                                                       *)
@@ -63,7 +64,8 @@
 
 From Coq Require Import ZArith List Bool String.
 From compcert Require Import Coqlib Maps AST Integers Ctypes Cop Clight Ctypesdefs Clightdefs.
-From SM64.Generated Require mario area camera object_helpers mario_actions_cutscene mario_actions_automatic.
+From SM64.Generated Require mario area camera object_helpers mario_actions_cutscene mario_actions_automatic
+  level_script.
 From SM64.Proofs Require Import LinkedTwelve Taint.
 From SM64.Proofs.WMotRRequiresA Require Import ObjTable RoCensus.
 Import ListNotations.
@@ -123,10 +125,34 @@ with cg_ls (sl : labeled_statements) : list ident * list type * list ident :=
 
 (* functions whose address an initializer holds (behavior scripts' natives,
    action tables, geo layouts) *)
-Definition init_addrs (p : Clight.program) : list ident :=
+Definition init_addrs_raw (p : Clight.program) : list ident :=
   flat_map (fun '(id, g) =>
     match g with
     | Gvar v => flat_map (fun d => match d with Init_addrof x _ => [x] | _ => nil end) (gvar_init v)
+    | _ => nil
+    end) (prog_defs p).
+
+(* DISPATCH TABLES (2026-11-01, linking engine/level_script.c, TU 53): a
+   function table whose entries are confined to its reader.  The level
+   script's LevelScriptJumpTable holds the 61 void(void) level_cmd_*
+   handlers; counted as address-taken, every void(void) call site of clos
+   (a behavior native, an oAction entry) would reach them, and through them
+   the whole level loader (2217 -> 2423 functions, with spurious
+   set_mario_action events).  It is not counted, by four vm-checked facts
+   (dispatch_confined below): (1) the only body naming the table is
+   level_script_execute; (2) no initializer holds the table's address;
+   (3) level_script_execute lets no function-pointer value out (no store,
+   argument or return of function-pointer type; FnPtrCensus.exit_census:
+   none is converted to another type); (4) level_script_execute is not in
+   clos.  So an entry's value lives only in level_script_execute's temps and
+   is called only from its frames, which no execution of clos enters. *)
+Definition dispatch_tables : list ident := [level_script._LevelScriptJumpTable].
+
+Definition init_addrs (p : Clight.program) : list ident :=
+  flat_map (fun '(id, g) =>
+    match g with
+    | Gvar v => if memi id dispatch_tables then nil
+                else flat_map (fun d => match d with Init_addrof x _ => [x] | _ => nil end) (gvar_init v)
     | _ => nil
     end) (prog_defs p).
 
@@ -281,6 +307,51 @@ Definition ms_stores : list (ident * ident) :=
 (* ---------------------------------------------------------------------- *)
 
 Definition ACT_READING_NPC_DIALOG_Z : Z := 536875782.   (* 0x20001306 *)
+
+(* the expressions of a body, and whether a function-pointer value leaves it *)
+Fixpoint sexprs (s : statement) : list expr :=
+  match s with
+  | Sassign l r => [l; r]
+  | Sset _ a => [a]
+  | Scall _ f al => f :: al
+  | Sbuiltin _ _ _ al => al
+  | Ssequence s1 s2 | Sloop s1 s2 => sexprs s1 ++ sexprs s2
+  | Sifthenelse c s1 s2 => c :: sexprs s1 ++ sexprs s2
+  | Slabel _ s1 => sexprs s1
+  | Sswitch a sl => a :: sexprs_ls sl
+  | Sreturn (Some a) => [a]
+  | _ => nil
+  end
+with sexprs_ls (sl : labeled_statements) : list expr :=
+  match sl with LSnil => nil | LScons _ s sl' => sexprs s ++ sexprs_ls sl' end.
+
+Definition is_fp (t : type) : bool :=
+  match t with Tpointer (Tfunction _ _ _) _ | Tfunction _ _ _ => true | _ => false end.
+
+Fixpoint fp_out (s : statement) : bool :=
+  match s with
+  | Sassign _ r => is_fp (typeof r)
+  | Scall _ _ al | Sbuiltin _ _ _ al => existsb (fun a => is_fp (typeof a)) al
+  | Sreturn (Some a) => is_fp (typeof a)
+  | Ssequence s1 s2 | Sloop s1 s2 | Sifthenelse _ s1 s2 => fp_out s1 || fp_out s2
+  | Slabel _ s1 => fp_out s1
+  | Sswitch _ sl => fp_out_ls sl
+  | _ => false
+  end
+with fp_out_ls (sl : labeled_statements) : bool :=
+  match sl with LSnil => false | LScons _ s sl' => fp_out s || fp_out_ls sl' end.
+
+Definition readers (t : ident) : list ident :=
+  map (fun '(_, x, _) => x)
+    (filter (fun '(_, _, f) => existsb (fun a => memi t (evars a)) (sexprs (fn_body f))) all_fns).
+
+Lemma dispatch_confined :
+  map readers dispatch_tables = [[level_script._level_script_execute]]
+  /\ existsb (fun t => memi t (flat_map init_addrs_raw lprogs)) dispatch_tables = false
+  /\ match fn_tab ! level_script._level_script_execute with
+     | Some (_, f) => fp_out (fn_body f) | None => true end = false
+  /\ memi level_script._level_script_execute clos = false.
+Proof. vm_compute. repeat split; reflexivity. Qed.
 
 Lemma clos_size : List.length clos = 2217%nat.
 Proof. vm_compute. reflexivity. Qed.

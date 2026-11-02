@@ -169,6 +169,64 @@ Definition cannon_obj_ok (m : mem) (b : block) (o : Z) : Prop :=
   exists y, In y wmotr_cannon_list
     /\ Mem.load Mfloat32 m b (o + O_POSY) = Some (f32z (y - CANNON_SEAT)).
 
+(* x / z pins (2026-10-26, for the Phi x/z box).  oPosX / oPosZ are
+   OBJECT_FIELD_F32(0x06) / (0x08) (object_fields.h).  Each accessor pins
+   x, y and z of the SAME level-data entry (WMotRLevel.wmotr_pole_xz_list /
+   wmotr_cannon_xzy, vm-decoded from the generated script / macro words), so
+   the pairing with the y-only predicates above is explicit
+   (pole_xz_base / cannon_xz_seat). *)
+Definition O_POSX : Z := RAW_OFF + 4 * 6.            (* 0xA0 *)
+Definition O_POSZ : Z := RAW_OFF + 4 * 8.            (* 0xA8 *)
+
+Definition pole_xz_ok (m : mem) (b : block) (o : Z) : Prop :=
+  exists x z base top, In (x, z, base, top) wmotr_pole_xz_list
+    /\ Mem.load Mfloat32 m b (o + O_POSX) = Some (f32z x)
+    /\ Mem.load Mfloat32 m b (o + O_POSY) = Some (f32z base)
+    /\ Mem.load Mfloat32 m b (o + O_POSZ) = Some (f32z z).
+
+Definition cannon_xz_ok (m : mem) (b : block) (o : Z) : Prop :=
+  exists x z y, In (x, z, y) wmotr_cannon_xzy
+    /\ Mem.load Mfloat32 m b (o + O_POSX) = Some (f32z x)
+    /\ Mem.load Mfloat32 m b (o + O_POSY) = Some (f32z (y - CANNON_SEAT))
+    /\ Mem.load Mfloat32 m b (o + O_POSZ) = Some (f32z z).
+
+Lemma pole_xz_base : forall m b o, pole_xz_ok m b o ->
+  exists x z base top, In (base, top) wmotr_pole_list /\ (-8192 < x < 8192 /\ -8192 < z < 8192)
+    /\ Mem.load Mfloat32 m b (o + O_POSX) = Some (f32z x)
+    /\ Mem.load Mfloat32 m b (o + O_POSY) = Some (f32z base)
+    /\ Mem.load Mfloat32 m b (o + O_POSZ) = Some (f32z z).
+Proof.
+  intros m b o (x & z & base & top & Hin & Lx & Ly & Lz).
+  exists x, z, base, top. split; [ exact (pole_xz_in_list _ _ _ _ Hin) | ].
+  split; [ exact (pole_xz_box _ _ _ _ Hin) | exact (conj Lx (conj Ly Lz)) ].
+Qed.
+
+Lemma cannon_xz_seat : forall m b o, cannon_xz_ok m b o ->
+  exists x z y, In y wmotr_cannon_list /\ (-8192 < x < 8192 /\ -8192 < z < 8192)
+    /\ Mem.load Mfloat32 m b (o + O_POSX) = Some (f32z x)
+    /\ Mem.load Mfloat32 m b (o + O_POSY) = Some (f32z (y - CANNON_SEAT))
+    /\ Mem.load Mfloat32 m b (o + O_POSZ) = Some (f32z z).
+Proof.
+  intros m b o (x & z & y & Hin & Lx & Ly & Lz).
+  exists x, z, y. split; [ exact (cannon_xzy_in_list _ _ _ Hin) | ].
+  split; [ exact (cannon_xz_box _ _ _ Hin) | exact (conj Lx (conj Ly Lz)) ].
+Qed.
+
+(* both accessors survive any change that keeps the object's block's loads *)
+Lemma pole_xz_ok_eq : forall m m' b o, (forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+  pole_xz_ok m b o -> pole_xz_ok m' b o.
+Proof.
+  intros m m' b o K (x & z & base & top & Hin & Lx & Ly & Lz).
+  exists x, z, base, top. rewrite !K. exact (conj Hin (conj Lx (conj Ly Lz))).
+Qed.
+
+Lemma cannon_xz_ok_eq : forall m m' b o, (forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+  cannon_xz_ok m b o -> cannon_xz_ok m' b o.
+Proof.
+  intros m m' b o K (x & z & y & Hin & Lx & Ly & Lz).
+  exists x, z, y. rewrite !K. exact (conj Hin (conj Lx (conj Ly Lz))).
+Qed.
+
 Definition coll_obj_ok (m : mem) (v : val) : Prop :=
   exists b o t, v = Vptr b o
     /\ Mem.load Mint32 m b (Ptrofs.unsigned o + O_INTERACT_TYPE) = Some (Vint t)
