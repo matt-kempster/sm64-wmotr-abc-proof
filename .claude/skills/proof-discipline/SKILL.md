@@ -777,6 +777,13 @@ all in `Unwired/`, and the theorem moved nowhere. See
        gObjParentGraphNode; SCRIPT narrowed to wmotr_closure_b (live_bhvs). PERF TRAP:
        `proj1 (forallb_forall _ _) <vm lemma>` over a computed list hung 15 min -- state
        the inclusion generically (forallb_existsb_incl) and instantiate.
+       DONE 2026-11-03 (ObjWorld 3f / 3g): ow_msurf (Mario's wall / ceil / floor NULL, off
+       the main pool P, or an in_sp slot of it; FOUND Hobj_unload false over the respawn OR
+       into P, REPAIRED; NOT in_sp-only: the boot witness's floor is s_chain's stand-in
+       block bs) and ow_par (parentObj NULL or a slot; the 12 pbc scripts' slots have a slot
+       parent, pbc_ids_ok). Kbm lists gained 96 / 100 / 104 (PollKeep, Hcam_ow_res).
+       PROBE PATTERN: copy StartTerrain up to wchk_gen_true, turn wchk's tail into a tuple
+       of the loads / sub-checks, `Eval vm_compute` (~9 min); `++` there is string append.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
     PROVED at the boot witness, which now runs the real init_graph_node_start + clear_objects
     and Mario's spawn_objects_from_info; one real area_update_objects runs from it
