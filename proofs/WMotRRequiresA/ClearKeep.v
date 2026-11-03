@@ -402,6 +402,15 @@ Proof.
   destruct (Hflat _ _ _ E) as (-> & ->). reflexivity.
 Qed.
 
+(* a value whose pointer (if any) is mapped injects into itself (flat) *)
+Lemma inj_symv : forall gp m v, closed_by gp m -> (forall b o, v = Vptr b o -> gp b <> None) ->
+  Val.inject gp v v.
+Proof.
+  intros gp m v HC H. destruct v; try constructor.
+  econstructor; [ exact (flat_bg gp m b HC (H b i eq_refl)) | ].
+  change (Ptrofs.repr 0) with Ptrofs.zero. rewrite Ptrofs.add_zero. reflexivity.
+Qed.
+
 Section GS.
   Variable lp : Clight.program.
   Hypothesis H12 : linked12 lp.
@@ -421,10 +430,63 @@ Section GS.
     id1 <> id2 -> b1 <> b2.
   Proof. intros id1 id2 b1 b2 H1 H2 Ne E. subst b2. exact (Genv.global_addresses_distinct G Ne H1 H2 eq_refl). Qed.
 
+  (* mem_ok across a store into a global MWF does not read, whose value is
+     no pointer or (when the global's block is SafeB) a SafeB pointer:
+     ObjExtBodies.safe_store_pres with R7's premise asked only of a SafeB
+     target (2026-11-03) *)
+  Lemma safe_store_g : forall g bg ch z v m1 m2,
+      mem_id g ObjExtBodies.mwf_syms = false -> Genv.find_symbol G g = Some bg ->
+      (SafeB bg -> forall bb oo, v = Vptr bb oo -> SafeB bb) ->
+      Mem.store ch m1 bg z v = Some m2 ->
+      mem_ok_lp bm MWF m1 -> mem_ok_lp bm MWF m2.
+  Proof.
+    intros g bg ch z v m1 m2 Hg Hfs Hsv Hst (Hvb & Hsat & HM).
+    pose proof Hsp as Hsp0. pose proof Hsp as (init & _ & Hbm & Hbc & _).
+    assert (Hne : forall id b, mem_id id ObjExtBodies.mwf_syms = true ->
+                 Genv.find_symbol G id = Some b -> bg <> b)
+      by (intros id b; exact (ObjExtBodies.np_ne lp g bg id b Hg Hfs)).
+    assert (Hnbm : bg <> bm) by exact (Hne level_update._gMarioStates bm eq_refl Hbm).
+    split; [ eauto using Mem.store_valid_block_1 | split ].
+    - eapply action_sat_unchanged_on with (m := m1); [ | exact Hvb | exact Hsat ].
+      eapply Mem.store_unchanged_on; [ exact Hst | ].
+      intros i _ [Hb _]. exact (Hnbm Hb).
+    - apply (MWF_real_transfer lp bm bc oc0 SafeB (ObjExtBodies.ox_Hbc_bm lp bm bc oc0 Hsp0) m1 m2); [ .. | exact HM ].
+      + intros b Hv. eapply Mem.store_valid_block_1; eauto.
+      + intros v0 Hld. pose proof HM as (_ & R1 & _). apply R1.
+        rewrite <- Hld. symmetry.
+        eapply Mem.load_store_other; [ exact Hst | left; congruence ].
+      + intros ch1 b ofs v0 Hrow Hld.
+        rewrite <- Hld. symmetry.
+        eapply Mem.load_store_other; [ exact Hst | left ].
+        intro E. subst b.
+        destruct Hrow as [ [Eb _] | [ Eb | [ Hfs2 | [ Hfs2 | [ Hfs2 | [ Hkt | Hab ] ] ] ] ] ].
+        * exact (Hnbm Eb).
+        * exact (Hne mario._gControllers bc eq_refl Hbc Eb).
+        * exact (Hne mario._gMarioState bg eq_refl Hfs2 eq_refl).
+        * exact (Hne interaction._gGlobalTimer bg eq_refl Hfs2 eq_refl).
+        * exact (Hne interaction._sInteractionHandlers bg eq_refl Hfs2 eq_refl).
+        * destruct Hkt as (gid2 & Hg2 & Hfs2).
+          refine (Hne gid2 bg _ Hfs2 eq_refl).
+          unfold ObjExtBodies.mwf_syms. rewrite ObjExtBodies.mem_id_app, Hg2. apply orb_true_r.
+        * exact (Hne mario._gMarioAnimsBuf bg eq_refl Hab eq_refl).
+      + intros b ofs b' o' Hs Hld.
+        pose proof HM as (_ & _ & _ & _ & _ & _ & _ & R7 & _).
+        cbn in Hld.
+        destruct (Mem.load_pointer_store _ _ _ _ _ _ _ _ _ _ _ Hst Hld)
+          as [ (Evv & _ & Eb & _) | Hdis ].
+        * subst b. exact (Hsv Hs _ _ Evv).
+        * apply (R7 b ofs b' o' Hs). cbn.
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | exact Hdis ].
+  Qed.
+
   (* THE GLOBAL STORE: everything of Pobjl but obj_w, and the store's
-     footprint (only bg changed) *)
-  Theorem gstore_core : forall id bg ch z v m m2,
-    Genv.find_symbol G id = Some bg -> gs_ok id = true -> (forall b o, v <> Vptr b o) ->
+     footprint (only bg changed).  2026-11-03: the value may be a pointer
+     to a global's block that is SafeB whenever bg is (the update_objects
+     store gObjectLists = gObjectListArray, ObjStores) *)
+  Theorem gstore_core_p : forall id bg ch z v m m2,
+    Genv.find_symbol G id = Some bg -> gs_ok id = true ->
+    (forall b o, v = Vptr b o -> (exists idv, Genv.find_symbol G idv = Some b) /\ (SafeB bg -> SafeB b)) ->
     Mem.store ch m bg z v = Some m2 ->
     mem_ok_lp bm MWF m -> phiw lp bm m -> a_down_real bm m = false -> PlatformKeep.plat_still lp m ->
     mem_ok_lp bm MWF m2 /\ phiw lp bm m2 /\ a_down_real bm m2 = false /\ PlatformKeep.plat_still lp m2
@@ -442,8 +504,7 @@ Section GS.
     assert (Ngp : bgp <> bg)
       by (refine (symne _ _ _ _ Hgp Hs (not_eq_sym (ne_of_ex _ _ _ Hx _))); apply In_of_ex; vm_compute; reflexivity).
     split.
-    { exact (ObjExtBodies.safe_store_pres lp bm bc oc0 SafeB Hsp id bg ch z v m m2 Hmw Hs
-               (fun bb oo E => False_ind _ (Hv bb oo E)) St Ok). }
+    { exact (safe_store_g id bg ch z v m m2 Hmw Hs (fun Hsb bb oo E => proj2 (Hv bb oo E) Hsb) St Ok). }
     split.
     { pose proof Hphi as (_ & _ & _ & _ & Hf & _).
       pose proof Hf as (Hgn & (d & FWF) & FD).
@@ -473,7 +534,9 @@ Section GS.
                 (forall id0 b, Genv.find_symbol G id0 = Some b -> gp0 b <> None) ->
                 exists gp', (forall b, gp0 b <> None -> gp' b <> None) /\ closed_by gp' m2).
       { intros gp0 HC0 _ HS0. exists gp0. split; [ intros b H; exact H | ].
-        exact (store_mapped_closed gp0 m ch bg z v m2 HC0 (flat_bg gp0 m bg HC0 (HS0 _ _ Hs)) (inj_nonptr gp0 v Hv) St). }
+        refine (store_mapped_closed gp0 m ch bg z v m2 HC0 (flat_bg gp0 m bg HC0 (HS0 _ _ Hs)) _ St).
+        apply (inj_symv gp0 m v HC0). intros b o E. destruct (proj1 (Hv b o E)) as (idv & Hsv).
+        exact (HS0 _ _ Hsv). }
       assert (FR : forall bt0 ot0 k0, In k0 hs_ids ->
                 Mem.load Mint32 m (fw_bo d) (Ptrofs.unsigned (fw_oo d) + 60) = Some (Vptr bt0 ot0) ->
                 Mem.load Mint32 m (fw_bo d) (Ptrofs.unsigned (fw_oo d) + 72) = Some (Vint Int.zero) ->
@@ -502,6 +565,17 @@ Section GS.
       exists pb, po. split; [ reflexivity | split; [ exact Hpb | ] ].
       intros k Hk0. cbn [Mem.loadv] in *. rewrite (LO _ _ _ Npb). exact (Hk k Hk0). }
     exact LO.
+  Qed.
+
+  Theorem gstore_core : forall id bg ch z v m m2,
+    Genv.find_symbol G id = Some bg -> gs_ok id = true -> (forall b o, v <> Vptr b o) ->
+    Mem.store ch m bg z v = Some m2 ->
+    mem_ok_lp bm MWF m -> phiw lp bm m -> a_down_real bm m = false -> PlatformKeep.plat_still lp m ->
+    mem_ok_lp bm MWF m2 /\ phiw lp bm m2 /\ a_down_real bm m2 = false /\ PlatformKeep.plat_still lp m2
+    /\ (forall ch' b z', b <> bg -> Mem.load ch' m2 b z' = Mem.load ch' m b z').
+  Proof.
+    intros id bg ch z v m m2 Hs Hok Hv.
+    exact (gstore_core_p id bg ch z v m m2 Hs Hok (fun b o E => False_ind _ (Hv b o E))).
   Qed.
 End GS.
 
