@@ -202,7 +202,7 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
       <li><span><b>So Mario never gets above 2796,</b> and there is no floor between 2424 and 3046 to climb onto next.</span></li>
       <li><span><b>Coin #2 needs 2980.</b> It floats at 3140, and Mario’s body is 160 tall. That leaves 184 units to spare.</span></li>
     </ol>
-    <div class="meta"><span>Updated 2026-10-26</span><span>master 61c6cf88</span><span>Rocq 8.19 · CompCert 3.15</span><span>51 real C files linked</span></div>
+    <div class="meta"><span>Updated 2026-11-02</span><span>master 36d14dc3</span><span>Rocq 8.19 · CompCert 3.15</span><span>53 real C files linked</span></div>
   </div>
 
   <figure class="gauge-card" aria-labelledby="gauge-cap" style="margin:0">
@@ -258,6 +258,26 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
 
     <div class="stage">
       <span class="dot-node" aria-hidden="true"></span>
+      <span class="stage-tag">Before frame 1 · the real start</span>
+      <details class="part">
+        <summary><span class="part-title"><span class="name">WMotR loaded the game’s way</span><span class="coq">StartTerrain · StartSat</span></span><span class="lamp l-proved">real code</span></summary>
+        <div class="part-body"><dl>
+          <dt>Says</dt><dd>From the real boot memory, the game’s own level script places WMotR’s objects in script order (<code>level_cmd_place_object</code>), the macro objects and area spawns follow, and Mario lands in his real slot. A whole frame (audio, graphics pool, controller, level, objects, camera) is proved to run from that memory, so the theorems are not about an empty set of states.</dd>
+          <dt>Limit</dt><dd>It is one start. Every real way into WMotR (other entries, warps) is still a gap on the finish line.</dd>
+        </dl></div>
+      </details>
+      <details class="part">
+        <summary><span class="part-title"><span class="name">The world invariant</span><span class="coq">lvl_w · obj_w</span></span><span class="lamp l-open">proved · one hole open</span></summary>
+        <div class="part-body"><dl>
+          <dt>Says</dt><dd>Next to the height budget, every phase keeps a “the world is sane” invariant: area and warp facts, the camera’s pointers pinned to their real targets, the Camera’s bytes clear of the surface pools, an audio invariant, the object pool and its surface counters. It is checked by computation on the start memory and proved kept by each phase.</dd>
+          <dt>Why it matters</dt><dd>A row quantified over states the game never produces makes a theorem vacuous. Every such hole found so far was a clause missing from this invariant, and each was fixed by adding it, never by a new assumption.</dd>
+          <dt>Open</dt><dd>Surface-list nodes are not yet confined to their pools, so a made-up state could put them inside the Camera (found 2026-11-02, fix in progress).</dd>
+        </dl></div>
+      </details>
+    </div>
+
+    <div class="stage">
+      <span class="dot-node" aria-hidden="true"></span>
       <span class="stage-tag">Phase 1 · read the controller</span>
       <details class="part">
         <summary><span class="part-title"><span class="name">Controller poll</span><span class="coq">PollFlank.poll_ok</span></span><span class="lamp l-proved">real code</span></summary>
@@ -276,7 +296,7 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
         <summary><span class="part-title"><span class="name">Level phase (pre)</span><span class="coq">LevelKeep.pre_keeps</span></span><span class="lamp l-proved">real code</span></summary>
         <div class="part-body"><dl>
           <dt>Says</dt><dd>The real <code>play_mode_normal</code> up to the object update (demo check, warp checks, timer) keeps the budget and the world facts.</dd>
-          <dt>Still stated per run</dt><dd>Three conditions the level steps assume (platform object apart, <code>gCurrentArea</code> is Mario’s area, the warp facts). Being turned into proved, carried facts now.</dd>
+          <dt>Carried, not assumed</dt><dd>The conditions it once assumed each frame (platform object apart, <code>gCurrentArea</code> is Mario’s area, the warp facts) are now clauses of the world invariant, proved at the start and kept. The game’s own out-of-bounds guard is proved: Mario never steps onto a spot with no floor.</dd>
         </dl></div>
       </details>
     </div>
@@ -317,11 +337,11 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
             </dl></div>
           </details>
           <details class="part">
-            <summary><span class="part-title"><span class="name">Every other object</span><span class="coq">ObjPhase.objects_call</span></span><span class="lamp l-open">real call · stages open</span></summary>
+            <summary><span class="part-title"><span class="name">Every other object</span><span class="coq">ObjPhase.objects_call</span></span><span class="lamp l-open">real call · stages opening</span></summary>
             <div class="part-body"><dl>
               <dt>Says</dt><dd>The frame makes one real <code>area_update_objects</code> call (Mario’s own update runs inside it). Each stage inside it (list loops, behaviours, collisions, surface reset, unloading) is a named, labeled premise (<code>Hobj_*</code>) saying it keeps the budget and the object-world facts.</dd>
-              <dt>Progress</dt><dd>390 object functions have proved write footprints; 200 are proved to touch only their own slot; nothing in the game writes the action tables; no stale-pointer (“spiny adoption”) write found in WMotR. The boot witness runs the real <code>clear_objects</code> and <code>spawn_objects_from_info</code>, and one real object update is proved to run from it. Next: discharge the stage rows, starting with the list loops.</dd>
-              <dt>Caught</dt><dd>The boot state had an empty object pool, so the real update would get stuck (vacuous); fixed by spawning the real objects. Also, “objects only touch themselves” is false: pushes move Mario’s x/z, 1-ups change lives, NPC dialog sets his action, the cannon flags him. Each gets its own contract.</dd>
+              <dt>Progress</dt><dd>390 object functions have proved write footprints; 200 are proved to touch only their own slot; nothing in the game writes the action tables; no stale-pointer (“spiny adoption”) write found in WMotR. The boot witness runs the real <code>clear_objects</code> and <code>spawn_objects_from_info</code>, and one real object update is proved to run from it. The list loops are proved, and so is the surface-object step: each box or lid adds at most its own surface budget (12 or 2), so the surface pool cannot overflow. The object-script interpreter is being proved command by command against its generated handlers (control commands, delays and the per-object dispatch loop done; not yet wired in). Next: the remaining commands, then object actions and moving platforms.</dd>
+              <dt>Caught</dt><dd>The boot state had an empty object pool, so the real update would get stuck (vacuous); fixed by spawning the real objects. Also, “objects only touch themselves” is false: pushes move Mario’s x/z, 1-ups change lives, NPC dialog sets his action, the cannon flags him. Each gets its own contract. A surface-object row over the plain phase fact was false at a full counter; fixed by carrying the post-reset fact into it.</dd>
             </dl></div>
           </details>
           <details class="part">
@@ -339,10 +359,10 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
       <span class="dot-node" aria-hidden="true"></span>
       <span class="stage-tag">Phase 4 · level script, after objects</span>
       <details class="part">
-        <summary><span class="part-title"><span class="name">Level phase (post) and camera</span><span class="coq">LevelKeep.post_keeps · Hcam_phi</span></span><span class="lamp l-proved">real code · camera row open</span></summary>
+        <summary><span class="part-title"><span class="name">Level phase (post) and camera</span><span class="coq">LevelKeep.post_keeps · CamRows</span></span><span class="lamp l-proved">real code · one camera row open</span></summary>
         <div class="part-body"><dl>
-          <dt>Says</dt><dd>HUD, delayed warps and the play-mode switch are walked from real code. <code>update_camera</code> is proved memory-safe over its 507 real functions.</dd>
-          <dt>Open</dt><dd>The camera’s effect on the height budget is one labeled row (<code>Hcam_phi</code>), allowed as a camera premise; its store census is done.</dd>
+          <dt>Says</dt><dd>HUD, delayed warps and the play-mode switch are walked from real code. The real <code>update_camera</code> has a proved write footprint, walked over about 500 real functions: it changes only 110 listed globals, the Camera’s 108 bytes and its pinned pointer cells. From that, “the camera leaves the object world alone” is proved.</dd>
+          <dt>Open</dt><dd>The camera’s effect on the height budget (<code>Hcam_phi</code>) stays a labeled camera premise, true over real states: the footprint alone can’t give it, because the budget reads cells the camera writes.</dd>
         </dl></div>
       </details>
     </div>
@@ -386,6 +406,11 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
     <p>A proof that only ever confirms is suspicious. These are claims that looked right until the proof, or tethering it to the real game, said otherwise.</p>
   </div>
   <div class="catches">
+    <div class="catch"><span class="date">2026-11-02</span><p><b>Surface lists could sit inside the Camera.</b> The invariant let surface-list nodes lie anywhere in a memory block, so a made-up state could have the camera’s own writes scramble them. That reopened vacuity a few hours after it was declared closed. Fix in progress: confine nodes to their real pools.</p></div>
+    <div class="catch"><span class="date">2026-11-02</span><p><b>The camera’s pointer to Mario’s camera state was never pinned.</b> The camera writes through it at 68 sites, so a phantom state could aim it at the objects. A census proves its initializer is its only writer; it is now pinned at the start and kept.</p></div>
+    <div class="catch"><span class="date">2026-11-02</span><p><b>The graphics-pool setup had no execution.</b> It masks a pointer, which CompCert can’t run, so every frame got stuck before the objects phase. Fixed with an approved identity shim for segment addresses (TRUST 2.2), and the whole frame now runs.</p></div>
+    <div class="catch"><span class="date">2026-11-02</span><p><b>Time-stop frames skip the surface reset.</b> The ledger said the counters reset every frame. They don’t during time stop, but loading is skipped too, so the bound still holds.</p></div>
+    <div class="catch"><span class="date">2026-11-01</span><p><b>The camera row quantified over impossible cutscenes.</b> Two cutscene values (Bowser arena, the pyramid explosion) have no case in the camera code. They are now excluded by the world invariant, proved at the start.</p></div>
     <div class="catch"><span class="date">2026-10-25</span><p><b>Objects write Mario’s state.</b> The plan assumed each object only touches itself. A census of the real code found
       pushes moving Mario’s x and z, 1-ups changing his lives, NPC dialog setting his action, and the cannon flagging him. Each now has its own contract proved from the real code.</p></div>
     <div class="catch"><span class="date">2026-10-25</span><p><b>Several world facts were false or quantified over impossible states.</b> Mario’s area pointer is
@@ -635,9 +660,13 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
     ['The frame stays in no-A actions', 'proved', '<code>Hframe_stays_noA</code>'],
     ['All 11 no-A air cases, poles, ledges, cannon', 'proved', 'Walked from the real handlers'],
     ['Mario’s remaining per-frame calls (7 rows)', 'open', 'Input update, special floors, interactions, four action-group dispatchers'],
-    ['Controller poll, platform, level phase, render', 'proved', 'Real code; three level conditions still stated per run'],
-    ['Camera’s effect on the budget', 'spec', 'One labeled camera row, <code>Hcam_phi</code>'],
-    ['Other objects', 'open', 'One real area_update_objects call; stage rows Hobj_* open'],
+    ['Controller poll, platform, level phase, render', 'proved', 'Real code; level conditions now carried in the world invariant'],
+    ['A real WMotR start, with a whole frame running from it', 'proved', 'Level script places the objects in real order; one start, not every entry'],
+    ['World invariant has no phantom states', 'open', 'Surface-list nodes still need confining to their pools (found 2026-11-02)'],
+    ['Camera leaves the object world alone', 'proved', 'From the proved write footprint of the real <code>update_camera</code>'],
+    ['Camera’s effect on the budget', 'spec', 'One labeled camera row, <code>Hcam_phi</code>, true over real states'],
+    ['Mario stays over a floor (height ≥ −8192)', 'open', 'Out-of-bounds guard proved; carrying “x/z inside the death plane” is next'],
+    ['Other objects', 'open', 'List loops and surface-object step proved; script interpreter in progress; action and platform rows open'],
     ['Audio load and DMA', 'trusted', 'Labeled hardware/audio floors (TRUST 3.5, 4.1)'],
     ['Below 2980 ⇒ the real collision check never registers coin #2', 'proved', '<code>mario_coin2_no_contact</code>'],
     ['Coin #2 never moves (no cloning)', 'trusted', 'Censuses machine-checked; level-phase copies remain (TRUST 0.3, 0.10)'],
