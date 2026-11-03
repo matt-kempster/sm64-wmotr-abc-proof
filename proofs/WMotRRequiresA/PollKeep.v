@@ -31,6 +31,7 @@ From SM64.Proofs Require Import Generic.PermWalk.
 From SM64.Proofs Require Interp.CMem.
 From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
 From SM64.Generated Require save_file mario level_update platform_displacement surface_load area.
+From SM64.Generated Require wmotr_level_data.
 From SM64.Proofs Require Import ActionValueFrame MWFReal SpawnInit MathBodies AGates.
 From SM64.Proofs Require NoAImpliesNoFlyTwelve.
 From SM64.Proofs.WMotRRequiresA Require Import FpuFloor WMotRWorld FfWorld RenderKeep LevelWalk.
@@ -241,13 +242,39 @@ Definition ow_ids : list ident :=
    (* 3c, 2026-11-02: the surface counter and the two collision meshes *)
    surface_load._gSurfacesAllocated; OW.BOXM; OW.LIDM;
    (* 3e, 2026-11-03: the object graph nodes' parent (ow_gfx) *)
-   area._gObjParentGraphNode].
+   area._gObjParentGraphNode;
+   (* 3h, 2026-11-03: the animation tables and structs (ow_anim, OW.anim_ids) *)
+   wmotr_level_data._bobomb_seg8_anims_0802396C; wmotr_level_data._bowser_key_seg3_anims_list;
+   wmotr_level_data._toad_seg6_anims_0600FB58; wmotr_level_data._peach_seg5_anims_0501C41C;
+   wmotr_level_data._bobomb_seg8_anim_080237FC; wmotr_level_data._bobomb_seg8_anim_08023954;
+   wmotr_level_data._bowser_key_seg3_anim_unlock_door; wmotr_level_data._bowser_key_seg3_anim_course_exit;
+   wmotr_level_data._toad_seg6_anim_0600B66C; wmotr_level_data._toad_seg6_anim_0600CE78;
+   wmotr_level_data._toad_seg6_anim_0600E414; wmotr_level_data._toad_seg6_anim_0600FB40;
+   wmotr_level_data._toad_seg6_anim_060099F0; wmotr_level_data._toad_seg6_anim_0600A0D0;
+   wmotr_level_data._toad_seg6_anim_06008F7C; wmotr_level_data._toad_seg6_anim_06009310;
+   wmotr_level_data._peach_seg5_anim_0500C638; wmotr_level_data._peach_seg5_anim_0500E6B4;
+   wmotr_level_data._peach_seg5_anim_0500ED94; wmotr_level_data._peach_seg5_anim_0500F474;
+   wmotr_level_data._peach_seg5_anim_0500FE84; wmotr_level_data._peach_seg5_anim_05011050;
+   wmotr_level_data._peach_seg5_anim_05012F40; wmotr_level_data._peach_seg5_anim_05015468;
+   wmotr_level_data._peach_seg5_anim_05016798; wmotr_level_data._peach_seg5_anim_05018664;
+   wmotr_level_data._peach_seg5_anim_0501B328; wmotr_level_data._peach_seg5_anim_0501C404].
 
 (* the globals a writer of obj_w's surface cells changes (2026-11-03,
    ClearKeep: the clear writes the counter and the dynamic partition) *)
 Definition ow_xc : list ident :=
   [object_list_processor._gObjectPool; surface_load._gSurfacesAllocated;
    surface_load._gDynamicSurfacePartition].
+
+(* the anim ids (ow_anim) are listed in ow_ids, and none is excluded *)
+Lemma anim_in_ow : forall t, In t OW.anim_ids -> In t ow_ids /\ existsb (Pos.eqb t) ow_xc = false.
+Proof.
+  intros t Ht.
+  assert (A : forallb (fun t => existsb (Pos.eqb t) ow_ids && negb (existsb (Pos.eqb t) ow_xc)) OW.anim_ids = true)
+    by (vm_compute; reflexivity).
+  pose proof (proj1 (forallb_forall _ _) A t Ht) as E. apply andb_prop in E as [E1 E2].
+  apply existsb_exists in E1 as (x & Hx & Ex). apply Pos.eqb_eq in Ex. subst x.
+  split; [ exact Hx | apply negb_true_iff; exact E2 ].
+Qed.
 
 (* the scripts (ow_scr, 2026-11-03): membership decided; gMarioStates is
    no script *)
@@ -387,6 +414,24 @@ Section OWK.
         rewrite Kp by sk_side. exact Fn.
     Qed.
 
+    (* 3h: a named VM state at a slot (the cells 460..500) *)
+    Lemma vm_at_eq : forall k st, In st BhvVM.vm_tab -> OW.vm_at ge pool m k st -> OW.vm_at ge pool m' k st.
+    Proof.
+      intros k st Hin ((b & Hs & L1) & L2 & F).
+      pose proof (vm_depth st Hin) as Dp.
+      split; [ exists b; rewrite Kp by sk_side; exact (conj Hs L1) | split ].
+      - rewrite Kp by sk_side. exact L2.
+      - intros n f Hn. pose proof (F n f Hn) as Fn.
+        assert (Hlt : (n < List.length (BhvVM.v_k st))%nat) by (apply nth_error_Some; congruence).
+        unfold OW.stk_cell in *. rewrite <- Z.add_assoc in *.
+        rewrite Kp by sk_side. exact Fn.
+    Qed.
+
+    Lemma sp_vm_eq : forall k, OW.sp_vm ge pool m k -> OW.sp_vm ge pool m' k.
+    Proof.
+      intros k (st & Hin & Hsp & V). exists st. exact (conj Hin (conj Hsp (vm_at_eq k st Hin V))).
+    Qed.
+
     Lemma act_eq : forall k, OW.act_ok ge pool m k -> OW.act_ok ge pool m' k.
     Proof.
       intros k H bh t Hin Hb. destruct (H bh t Hin (is_bhv_eq' k bh Hb)) as (a & La & R).
@@ -448,9 +493,12 @@ Section OWK.
      Mario's five object-pointer cells *)
   (* the surface clause (ObjWorld.surf_obj_ok) is kept: from "no non-symbol
      block changes" (surf_keep_of_KN), or stated by a row *)
+  (* 2026-11-03 (3h): with the walk half of the class tie (OW.cls_surf_at),
+     which reads what surf_obj_ok reads (OW.cls_surf_ext: the same keep) *)
   Definition surf_keep (ge : genv) : Prop :=
     forall pool, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool ->
-      OW.surf_obj_ok ge pool m -> OW.surf_obj_ok ge pool m'.
+      (OW.surf_obj_ok ge pool m -> OW.surf_obj_ok ge pool m')
+      /\ (forall mv, OW.cls_surf_at ge pool m mv -> OW.cls_surf_at ge pool m' mv).
 
   Lemma surf_keep_of_KN : forall (ge : genv),
     (forall id b, In id ow_ids -> id <> object_list_processor._gObjectPool -> Genv.find_symbol ge id = Some b ->
@@ -459,14 +507,19 @@ Section OWK.
     (forall b, Ple (Genv.genv_next ge) b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
     surf_keep ge.
   Proof.
-    intros ge KG KP KN pool S1 Cso. assert (Kp := KP pool S1).
-    apply (OW.surf_obj_ok_ext ge pool m m'); [ | | exact (angv_sk pool Kp) | exact Cso ].
-    - intros id b Hin Hs. apply (KG id b); [ | | exact Hs ];
+    intros ge KG KP KN pool S1. assert (Kp := KP pool S1).
+    assert (KG' : forall id b, In id OW.surf_gids -> Genv.find_symbol ge id = Some b ->
+                    forall ch z, Mem.load ch m' b z = Mem.load ch m b z).
+    { intros id b Hin Hs. apply (KG id b); [ | | exact Hs ];
         unfold OW.surf_gids, FloorList.part_ids in Hin; cbn [In] in Hin;
         destruct Hin as [<- | [<- | [<- | [<- | []]]]];
         first [ solve [ unfold ow_ids; cbn [In]; repeat (first [ left; reflexivity | right ]) ]
-              | vm_compute; discriminate ].
-    - intros P HP _ _ ch z _. exact (KN P HP ch z).
+              | vm_compute; discriminate ]. }
+    split.
+    - intros Cso. apply (OW.surf_obj_ok_ext ge pool m m'); [ exact KG' | | exact (angv_sk pool Kp) | exact Cso ].
+      intros P HP _ _ ch z _. exact (KN P HP ch z).
+    - intros mv. apply (OW.cls_surf_ext ge pool m m' mv KG').
+      intros P HP _ _ ch z _. exact (KN P HP ch z).
   Qed.
 
   Theorem obj_w_slots_g : forall (ge : genv) bm,
@@ -493,7 +546,8 @@ Section OWK.
     assert (Kd := K debug._gDebugInfo gdi ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; reflexivity) S7).
     exists pool, la, fl, gol, gmo, sdp, gdi, rs, fs.
     refine (conj S1 (conj S2 (conj S3 (conj S4 (conj S5 (conj S6 (conj S7 _))))))).
-    destruct C as [Cg Cr Cf Cp Cfo Cm Cs Ca Crd Cdb Cst Co Cd12 Cct Cvm Csp Cso Cco Cctr Cter Cscr Cmact Cresp Cgfx Cmsurf Cpar].
+    destruct C as [Cg Cr Cf Cp Cfo Cm Cs Ca Crd Cdb Cst Co Cd12 Cct Cvm Csp Cso Cco Cctr Cter Cscr Cmact Cresp Cgfx Cmsurf Cpar
+                   Cmvm Canim Ccls].
     assert (KG : forall id, In id ow_ids -> existsb (Pos.eqb id) ow_xc = false ->
                forall b, Genv.find_symbol ge id = Some b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
       by (intros id Hin Hn b Hs; exact (K id b Hin Hn Hs)).
@@ -527,7 +581,7 @@ Section OWK.
         by (intros id Hin Hn ch v; apply gcell_K; exact (KG id Hin Hn)).
       split; [ | split; [ | split; [ | split ] ] ];
         (apply Kc; [ unfold ow_ids; cbn [In]; auto 20 | vm_compute; reflexivity | assumption ]).
-    - exact (KS pool S1 Cso).
+    - exact (proj1 (KS pool S1) Cso).
     - destruct Cco as (C1 & C2 & C3).
       assert (Ef : forall id, filter (OW.is_bhv_b ge pool m' id) (concat rs) = filter (OW.is_bhv_b ge pool m id) (concat rs))
         by (intros id; apply filter_ext; intros k; exact (is_bhv_b_eq ge pool id k Kp)).
@@ -587,6 +641,19 @@ Section OWK.
       + intros k Hk. unfold OW.O_PARENT in *. rewrite Kp by sk_side. exact (P1 k Hk).
       + intros k id Hk Hid Hr. rewrite (runs_eq ge pool Kp) in Hr. unfold OW.O_PARENT in *. rewrite Kp by sk_side.
         exact (P2 k id Hk Hid Hr).
+    - (* 3h: Mario's VM cells, slot fields 460.. *)
+      intros k Hk Lg. rewrite Km in Lg. destruct (Cmvm k Hk Lg) as (st & Hin & Hs & V).
+      exists st. exact (conj Hin (conj Hs (vm_at_eq ge pool Kp k st Hin V))).
+    - (* 3h: the animation blocks, listed in ow_ids *)
+      apply (OW.anim_ok_ext ge m m'); [ | exact Canim ].
+      intros t b Ht Hs. destruct (anim_in_ow t Ht) as (H1 & H2). exact (KG t H1 H2 b Hs).
+    - (* 3h: the class tie: interactType and VM cells are slot fields; the
+         walk half as the surface clause (KS) *)
+      destruct Ccls as (T1 & T2). split.
+      + intros k t Hk L Ht. rewrite Kp in L by sk_side. exact (sp_vm_eq ge pool Kp k (T1 k t Hk L Ht)).
+      + intros P id bp z hd l o k HP G1 G2 Hin Hs L Hw Ho N Hk Lo.
+        apply (sp_vm_eq ge pool Kp k).
+        exact (proj2 (KS pool S1) m T2 P id bp z hd l o k HP G1 G2 Hin Hs L Hw Ho N Hk Lo).
   Qed.
 
   (* THE LEMMA, slot-field form: obj_w survives any change off its globals'

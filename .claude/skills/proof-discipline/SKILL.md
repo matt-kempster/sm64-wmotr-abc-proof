@@ -862,6 +862,18 @@ all in `Unwired/`, and the theorem moved nowhere. See
        block bs; since 2026-11-03 it is find_floor's hit, an in_sp slot, so tightening
        ow_msurf to in_sp / NULL is open) and ow_par (parentObj NULL or a slot; the 12 pbc scripts' slots have a slot
        parent, pbc_ids_ok). Kbm lists gained 96 / 100 / 104 (PollKeep, Hcam_ow_res).
+       DONE 2026-11-03 (ObjWorld 3h, for BhvStep): ow_mvm (Mario's slot's VM cells are a
+       reachable bhvMario state; vm_at names vm_ok's body, vm_ok_at), ow_anim (the 4
+       LOAD_ANIMATIONS tables + 24 Animation structs hold their initializers chunk by chunk,
+       anim_tabs_ok / anim_structs_ok tie the lists to vm_tab and the linked level data),
+       ow_cls (a POLE / CANNON_BASE slot, and any slot a partition surface points at, runs
+       a state of sp_scripts -- the same computation as BhvStep.sp_scripts -- so a generic
+       slot is read by no kind / ANGV pin: sfr_keep's class tie). Checked by vm at m11 and
+       after the witness frame. Keeps: PollKeep.obj_w_slots_g (anim ids joined ow_ids;
+       VM cells are slot fields; the walk half `cls_surf_at` rides in `surf_keep`, now a
+       pair, proved by `cls_surf_ext` from surf_obj_ok_ext's own hypotheses; CamRows /
+       ClearKeep updated, ClearKeep.cls_keep_hd for the zeroed dynamic heads). PERF TRAP: `apply existsb_exists in H` with H over
+       `BhvVM.vm_tab` hangs (unification unfolds the table); unfold the wrapper first.
        PROBE PATTERN: copy StartTerrain up to wchk_gen_true, turn wchk's tail into a tuple
        of the loads / sub-checks, `Eval vm_compute` (~9 min); `++` there is string append.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
