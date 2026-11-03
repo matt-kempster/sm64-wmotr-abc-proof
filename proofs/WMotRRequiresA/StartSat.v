@@ -2629,9 +2629,9 @@ Section Witness.
       /\ (forall b, Genv.find_symbol (lp_ge lp) object_list_processor._gTimeStopState = Some b ->
             Mem.load Mint32 m11 b 0 = Some (Vint Int.zero)).
     Proof.
-      pose proof (cam_frame_ok_cut _ _ _ _ CF) as CC.
-      destruct (cut_chk_sound _ _ _ CC) as (cb & co & Ec & _).
-      pose proof (cut_chk_pin _ _ _ CC) as PC. rewrite Ec in PC.
+      pose proof (cam_frame_ok_cut _ _ _ _ CF) as CCut.
+      destruct (cut_chk_sound _ _ _ CCut) as (cb & co & Ec & _).
+      pose proof (cut_chk_pin _ _ _ CCut) as PC. rewrite Ec in PC.
       exists cb, co. exact (conj Ec (pin_chk_sound _ _ _ _ PC)).
     Qed.
 
