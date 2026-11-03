@@ -1369,6 +1369,35 @@ without pressing A".*
   reaches (koopa shell, its flame, the caps etc.; `live_in_closure_b` / `cut_not_closure_b`
   / `flame_not_live`, vm), so a live slot never runs bhvKoopaShellFlame (INTERACT_FLAME,
   outside `wmotr_interact_types`). No trust moves: stronger invariant, boot-checked.
+  **FOUND + REPAIRED (2026-11-03, `ObjWorld` 3f): `Hobj_unload` was still FALSE over
+  memories obj_w allowed** (phantom ∀): `set_object_respawn_info_bits` ORs 0xFF00 into a
+  SpawnInfo behaviorArg cell of the main-pool block P (offsets 2336..2560, `ow_resp`), and
+  nothing pinned where m->wall / m->ceil / m->floor point (PhiW's ffw asks only a dynamic
+  block off the frame's regions, and P is one). A memory with m->floor = P + 2338 (its s16
+  type reads the low half of a behaviorArg, 0, a WMotR type) met every premise, and the OR
+  breaks `wmotr_world`'s surface_ok. **MSURF** (`ow_msurf`): each of the three cells is
+  NULL, or points into a block other than P, or into P at a surface-pool slot (`in_sp`).
+  TRUTH in play: the cells take only find_floor / find_ceil / find_wall_collisions results
+  or NULL, and every surface, static ones included, comes from `alloc_surface`'s
+  sSurfacePool = P + SP_OFF (the in_sp arm). The other-block arm is the boot witness's:
+  `StartTerrain.s_chain` sets m->floor to the 48-byte stand-in block bs, not a find_floor
+  result (the boot probe read wall = ceil = NULL, floor = bs + 0), so an in_sp-only clause
+  failed the vm check at m11; the clause asks "not loose in P", true of both. Keepers:
+  Mario's cells 96 / 100 / 104 join the `Kbm` lists (`PollKeep`, the 5 slot-keep theorems)
+  and the camera's labeled residual `Hcam_ow_res` (set_mario_npc_dialog's cutscene arm
+  writes none of them). The writers of the cells in play are Mario's own step (the open
+  `Hobj_step_act_*` rows, which now also claim the clause after the step: TRUE, the
+  allocator above) and nothing else on the spine (the platform code writes Mario's
+  position; render, poll and level code do not touch them).
+  **PAR (2026-11-03, `ObjWorld` 3g, for the objects agent's PARENT_BIT_CLEAR row 51):**
+  `ow_par`: every slot's parentObj (offset 104) is NULL or a slot node, and a listed slot
+  running one of the twelve PARENT_BIT_CLEAR scripts (`pbc_ids`, tied by vm to BhvVM's
+  opcode-51 filter, `pbc_ids_ok`) has a slot parent. TRUTH: parentObj is written by
+  spawn_object (the spawner, a slot), spawn_objects_from_info (the object itself) and the
+  macro spawner; the boot probe read every one of the 240 parents NULL or a slot (no
+  &gMacroObjectDefaultParent survives to m11); the twelve particle spawners are spawned
+  only by Mario's code with parent gMarioObject. Kept by every slot keeper (`SKp` covers
+  slot words from 96). No trust moves: stronger invariant, boot-checked.
   **Indexed handler arguments (2026-10-26, B3 iii-a, `BhvVM`).** These are vm-checked at
   every reachable state:
   - The field commands index `o->rawData.asU32[0x50]` (`vm_fields_in_rawdata`): every field
