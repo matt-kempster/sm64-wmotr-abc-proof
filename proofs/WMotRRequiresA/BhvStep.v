@@ -58,6 +58,7 @@ From compcert Require Import Coqlib Integers Floats Values AST Ctypes Cop Clight
 From SM64.Generated Require behavior_script memory behavior_data.
 From SM64.Proofs Require Import SymbolicLinking LinkedTwelve RealFrameLinked.
 From SM64.Proofs.WMotRRequiresA Require Import BhvVM BehaviorScripts.
+From SM64.Proofs.MarioModel Require SpawnBodies.
 From SM64.Proofs.WMotRRequiresA Require RenderAnim ObjWorld ObjPhase ObjLoop ObjCensus PlatformWalk BoxCensus.
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -447,6 +448,74 @@ Proof.
     rewrite T in F. discriminate F.
 Qed.
 
+(* any cast to u16 that succeeds gives a 16-bit int *)
+Lemma cast_u16 : forall v t m r, sem_cast v t tushort m = Some r ->
+  exists n, r = Vint n /\ 0 <= Int.unsigned n < 65536.
+Proof.
+  intros v t m r H.
+  assert (Z : forall x, 0 <= Int.unsigned (Int.zero_ext 16 x) < 65536).
+  { intros x. pose proof (Int.zero_ext_range 16 x ltac:(cbn; lia)) as R. exact R. }
+  pose proof (cast_val_is_casted _ _ _ _ _ H) as C.
+  inversion C; subst.
+  exists n. split; [ reflexivity | ]. cbn in H2. rewrite <- H2. apply Z.
+Qed.
+
+
+Lemma succs_rand : forall st w, word_at (v_s st) (v_i st) = Some w ->
+  Z.shiftr w 24 = 19 \/ Z.shiftr w 24 = 20 \/ Z.shiftr w 24 = 21 ->
+  succs st = if Nat.ltb (List.length (words (v_s st))) (v_i st + 2) then None else
+    Some [at_ st (v_s st) (v_i st + 2) (v_k st)].
+Proof. intros st w Hw [Ho | [Ho | Ho]]; unfold succs; cbv zeta; rewrite Hw, Ho; reflexivity. Qed.
+
+(* the random setters' second word is an int at every reachable state.
+   PERF TRAP: inline (no named bool over vm_tab) *)
+Lemma rand_w1_ok :
+  forallb (fun st => if (opc st =? 19) || (opc st =? 20) || (opc st =? 21) then
+                       match word_at (v_s st) (v_i st + 1) with Some _ => true | None => false end
+                     else true) vm_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma rand_w1 : forall st w, In st vm_tab -> word_at (v_s st) (v_i st) = Some w ->
+  Z.shiftr w 24 = 19 \/ Z.shiftr w 24 = 20 \/ Z.shiftr w 24 = 21 ->
+  exists z, word_at (v_s st) (v_i st + 1) = Some z.
+Proof.
+  intros st w Hst Hw Ho. pose proof rand_w1_ok as A.
+  rewrite forallb_forall in A. specialize (A st Hst). unfold opc, w0 in A. rewrite Hw in A.
+  cbv beta iota in A.
+  assert (E : ((Z.shiftr w 24 =? 19) || (Z.shiftr w 24 =? 20) || (Z.shiftr w 24 =? 21))%bool = true)
+    by (destruct Ho as [-> | [-> | ->]]; reflexivity).
+  rewrite E in A. destruct (word_at (v_s st) (v_i st + 1)) as [z|]; [ exists z; reflexivity | discriminate A ].
+Qed.
+
+(* PARENT_BIT_CLEAR (0x33) moves the cursor by 2 *)
+Lemma succs_pbc : forall st w, word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 51 ->
+  succs st = if Nat.ltb (List.length (words (v_s st))) (v_i st + 2) then None else
+    Some [at_ st (v_s st) (v_i st + 2) (v_k st)].
+Proof. intros st w Hw Ho. unfold succs. cbv zeta. rewrite Hw, Ho. reflexivity. Qed.
+
+(* ANIMATE_TEXTURE (0x34) moves the cursor by 1 *)
+Lemma succs_atex : forall st w, word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 52 ->
+  succs st = if Nat.ltb (List.length (words (v_s st))) (v_i st + 1) then None else
+    Some [at_ st (v_s st) (v_i st + 1) (v_k st)].
+Proof. intros st w Hw Ho. unfold succs. cbv zeta. rewrite Hw, Ho. reflexivity. Qed.
+
+(* its mask word is there at every reachable state.  PERF TRAP: inline *)
+Lemma pbc_w1_ok :
+  forallb (fun st => if opc st =? 51 then
+                       match word_at (v_s st) (v_i st + 1) with Some _ => true | None => false end
+                     else true) vm_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma pbc_w1 : forall st w, In st vm_tab -> word_at (v_s st) (v_i st) = Some w ->
+  Z.shiftr w 24 = 51 -> exists z, word_at (v_s st) (v_i st + 1) = Some z.
+Proof.
+  intros st w Hst Hw Ho. pose proof pbc_w1_ok as A.
+  rewrite forallb_forall in A. specialize (A st Hst). unfold opc, w0 in A. rewrite Hw, Ho in A.
+  cbv beta iota in A. cbn in A.
+  destruct (word_at (v_s st) (v_i st + 1)) as [z|]; [ exists z; reflexivity | discriminate A ].
+Qed.
+
+
 
 
 (* the unsigned field bytes, as SUM_FLOAT computes them (tuint temps cast to tuchar) *)
@@ -715,6 +784,9 @@ Section Link.
   Lemma fo_flags : forall co, (genv_cenv G) ! BS._Object = Some co ->
     field_offset G BS._activeFlags (co_members co) = OK (OW.O_FLAGS, Full).
   Proof. apply (RA.fo_ok_lift (prog_comp_env BS.prog)); [ vm_compute; reflexivity | exact bs_cenv ]. Qed.
+  Lemma fo_par : forall co, (genv_cenv G) ! BS._Object = Some co ->
+    field_offset G BS._parentObj (co_members co) = OK (104, Full).
+  Proof. apply (RA.fo_ok_lift (prog_comp_env BS.prog)); [ vm_compute; reflexivity | exact bs_cenv ]. Qed.
   Local Ltac kill_r :=
     try (match goal with Ha : access_mode _ = _ |- _ => cbn in Ha; discriminate Ha end);
     try (match goal with Ht : typeof _ = _ |- _ => cbn in Ht; discriminate Ht end);
@@ -877,7 +949,7 @@ Section Link.
     all: eexists; split; [ eassumption | split; reflexivity ].
   Qed.
 
-  Lemma raw_addr : forall oc j, 0 <= oc <= 40960 -> 0 <= j < 256 ->
+  Lemma raw_addr : forall oc j, 0 <= oc <= 145312 -> 0 <= j < 256 ->
     Ptrofs.unsigned (Ptrofs.add (Ptrofs.add (Ptrofs.add (Ptrofs.repr oc) (Ptrofs.repr 136)) (Ptrofs.repr 0))
                        (Ptrofs.mul (Ptrofs.repr 4) (Ptrofs.repr j))) = oc + 136 + 4 * j.
   Proof.
@@ -937,7 +1009,7 @@ Section Link.
   Variables go pool : block.
   Variable oc : Z.
   Hypothesis Hgo : Genv.find_symbol G BS._gCurrentObject = Some go.
-  Hypothesis Hoc : 0 <= oc <= 40960.
+  Hypothesis Hoc : 0 <= oc <= 145312.
   Hypothesis Hpg : pool <> go.
 
   Definition cur (m : mem) : Prop := Mem.load Mint32 m go 0 = Some (Vptr pool (Ptrofs.repr oc)).
@@ -967,6 +1039,20 @@ Section Link.
     destruct (RA.ev_fld G empty_env m le _ _ _ tuint v Mint32 OW.O_SIDX fo_sidx eq_refl Ev) as (b & o & Hb & Hl').
     rewrite Hx in Hb. injection Hb as <- <-. cbn [Mem.loadv] in Hl'.
     rewrite uadd in Hl' by (unfold OW.O_SIDX; try rewrite maxu; lia). rewrite Hl in Hl'. injection Hl' as <-. reflexivity.
+  Qed.
+
+  (* o->parentObj *)
+  Lemma ld_par : forall le m x v,
+    le ! x = Some (Vptr pool (Ptrofs.repr oc)) ->
+    eval_expr G empty_env le m
+      (Efield (Ederef (Etempvar x (tptr (Tstruct BS._Object noattr))) (Tstruct BS._Object noattr))
+         BS._parentObj (tptr (Tstruct BS._Object noattr))) v ->
+    Mem.load Mint32 m pool (oc + 104) = Some v.
+  Proof.
+    intros le m x v Hx Ev.
+    destruct (RA.ev_fld G empty_env m le _ _ _ (tptr (Tstruct BS._Object noattr)) v Mint32 104 fo_par eq_refl Ev) as (b & o & Hb & Hl').
+    rewrite Hx in Hb. injection Hb as <- <-. cbn [Mem.loadv] in Hl'.
+    rewrite uadd in Hl' by (try rewrite maxu; lia). exact Hl'.
   Qed.
 
   Lemma cur_store : forall ch m z v m', Mem.store ch m pool z v = Some m' -> cur m -> cur m'.
@@ -1385,6 +1471,163 @@ Section Link.
     rewrite cast_pp in Hcast. injection Hcast as <-. auto.
   Qed.
 
+
+  (* ---- the object RNG (random_u16 / random_float, behavior_script.c):
+     a call changes only gRandomSeed16's block ---- *)
+  Variable sb : block.
+  Hypothesis HsbR : Genv.find_symbol G BS._gRandomSeed16 = Some sb.
+  Hypothesis Hsp : pool <> sb.
+  Lemma Hsbc : bc <> sb.
+  Proof.
+    exact (Genv.global_addresses_distinct G
+             (ltac:(vm_compute; discriminate) : BS._gCurBhvCommand <> BS._gRandomSeed16) Hbc HsbR).
+  Qed.
+  Lemma Hsbg : go <> sb.
+  Proof.
+    exact (Genv.global_addresses_distinct G
+             (ltac:(vm_compute; discriminate) : BS._gCurrentObject <> BS._gRandomSeed16) Hgo HsbR).
+  Qed.
+
+  (* the only stores random_u16 makes: to gRandomSeed16 (a u16) *)
+  Definition seed_st (lv rhs : expr) : bool :=
+    match lv with
+    | Evar x ty => Pos.eqb x BS._gRandomSeed16 && (if type_eq ty tushort then true else false)
+    | _ => false
+    end.
+  Definition Psd (b : block) (z : Z) : Prop := b <> sb.
+
+  Lemma seed_store : forall lv rhs le m t le' m' out, seed_st lv rhs = true ->
+    exec_stmt function_entry2 G empty_env le m (Sassign lv rhs) t le' m' out ->
+    Mem.unchanged_on Psd m m'.
+  Proof.
+    intros lv rhs le m t le' m' out Hc H.
+    destruct lv; try discriminate Hc. cbn [seed_st] in Hc.
+    apply andb_prop in Hc as [Hx Ht]. apply Pos.eqb_eq in Hx. subst i.
+    destruct (type_eq t0 tushort) as [->|]; [ | discriminate Ht ].
+    apply RA.assign_inv in H as (b2 & o2 & bf2 & v2 & v3 & Hlv & _ & _ & Has & _ & _).
+    inversion Hlv; subst.
+    - match goal with Hl : empty_env ! _ = Some _ |- _ => rewrite PTree.gempty in Hl; discriminate Hl end.
+    - match goal with Hf : Genv.find_symbol _ _ = Some _ |- _ => rewrite HsbR in Hf; injection Hf as <- end.
+      pose proof (RA.store_by_value _ tushort _ _ _ _ _ _ Mint16unsigned eq_refl eq_refl Has) as Hs.
+      apply (Mem.store_unchanged_on _ _ _ _ _ _ _ Hs). intros i _ Hp. apply Hp. reflexivity.
+  Qed.
+
+  Lemma no_call : forall optid a al le m t le' m' out,
+    (fun (_ : option ident) (_ : expr) (_ : list expr) => false) optid a al = true -> True ->
+    exec_stmt function_entry2 G empty_env le m (Scall optid a al) t le' m' out ->
+    forall m0, Mem.unchanged_on Psd m0 m -> Mem.unchanged_on Psd m0 m' /\ True.
+  Proof. intros optid a al le m t le' m' out Hok. discriminate Hok. Qed.
+
+  Lemma ru16 : forall m t m' vr,
+    eval_funcall function_entry2 G m (Internal BS.f_random_u16) [] t m' vr ->
+    Mem.unchanged_on Psd m m' /\ exists n, vr = Vint n /\ 0 <= Int.unsigned n < 65536.
+  Proof.
+    intros m t m' vr H.
+    apply fcall_inv in H as (le1 & le2 & out1 & Hb & X & Hor); [ | reflexivity ].
+    destruct (SpawnBodies.sw_walk G empty_env (Mem.unchanged_on Psd m) (fun _ => True) (fun _ => True)
+      (fun _ _ => true) seed_st (fun _ _ _ => false) (fun _ => true)
+      (fun _ _ _ _ _ _ _ _ _ => I)
+      (fun lv rhs le m0 t0 le' m0' out Hok _ Hx Hf =>
+         Mem.unchanged_on_trans _ _ _ _ Hf (seed_store _ _ _ _ _ _ _ _ Hok Hx))
+      (fun optid a al le m0 t0 le' m0' out Hok Hp Hx Hf => no_call optid a al le m0 t0 le' m0' out Hok Hp Hx m Hf)
+      (fun _ _ _ _ _ _ _ _ => I)
+      _ _ _ _ _ _ _ _ X eq_refl ltac:(vm_compute; reflexivity) I (Mem.unchanged_on_refl _ _)) as (U & _ & _).
+    split; [ exact U | ].
+    cbn [fn_return BS.f_random_u16] in Hor.
+    destruct out1 as [| | | [[v ty]|]]; cbn in Hor; try contradiction.
+    destruct Hor as [_ Hc]. exact (cast_u16 _ _ _ _ Hc).
+  Qed.
+
+  Lemma dm_ru16 : (prog_defmap BS.prog) ! BS._random_u16 = Some (Gfun (Internal BS.f_random_u16)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* tmp = random_u16() *)
+  Lemma ru16_call : forall le m tmp t le' m' out,
+    exec_stmt function_entry2 G empty_env le m
+      (Scall (Some tmp) (Evar BS._random_u16 (Tfunction [] tushort cc_default)) []) t le' m' out ->
+    out = Out_normal /\ Mem.unchanged_on Psd m m'
+    /\ exists n, le' = PTree.set tmp (Vint n) le /\ 0 <= Int.unsigned n < 65536.
+  Proof.
+    intros le m tmp t le' m' out H.
+    apply RA.call_inv in H as (tya & tyr & cc & vf & vargs & fd & vres & Hcf & Evf & Eal & Hff & _ & Hx & -> & ->).
+    cbn in Hcf. injection Hcf as <- <- <-.
+    destruct (RA.ev_fun G empty_env m le _ (Tfunction [] tushort cc_default) vf
+                (PTree.gempty _ _) eq_refl Evf) as (bf & Hs & ->).
+    rewrite (fun_bs _ _ dm_ru16 bf fd Hs Hff) in Hx.
+    inversion Eal; subst.
+    destruct (ru16 _ _ _ _ Hx) as (U & n & -> & Hn).
+    split; [ reflexivity | split; [ exact U | exists n; split; [ reflexivity | exact Hn ] ] ].
+  Qed.
+
+  (* random_float's value: (f32)((f64)(f32)u / 65536.0), u a random_u16 *)
+  Definition rf_of (n : int) : float32 :=
+    Float.to_single (Float.div (Float.of_single (Float32.of_intu n)) (Float.of_int (Int.repr 65536))).
+
+  Lemma rflt : forall m t m' vr,
+    eval_funcall function_entry2 G m (Internal BS.f_random_float) [] t m' vr ->
+    Mem.unchanged_on Psd m m' /\ exists n, 0 <= Int.unsigned n < 65536 /\ vr = Vsingle (rf_of n).
+  Proof.
+    intros m t m' vr H.
+    apply fcall_inv in H as (le1 & le2 & out1 & Hb & X & Hor); [ | reflexivity ].
+    cbn [fn_params BS.f_random_float bind_parameter_temps] in Hb. injection Hb as <-.
+    cbn [fn_body BS.f_random_float] in X.
+    apply RA.seq_inv in X as [(t1 & le3 & m1 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
+    apply RA.seq_inv in X1 as [(t3 & le4 & m3 & t4 & Y1 & Y2) | (Y1 & Xn)]; [ | kill_sq Y1 Xn ].
+    destruct (ru16_call _ _ _ _ _ _ _ Y1) as (_ & U & n & -> & Hn).
+    apply RA.set_inv in Y2 as (vr1 & Evr & -> & -> & _).
+    apply RA.ev_cast in Evr as (x & Ex & Cx). apply RA.ev_temp in Ex. rewrite PTree.gss in Ex. injection Ex as <-.
+    cbn in Cx.
+    apply RA.ret_inv in X2 as (-> & rv & Erv & ->).
+    apply RA.ev_binop in Erv as (a1 & a2 & Ea1 & Ea2 & Ediv).
+    apply RA.ev_temp in Ea1. rewrite PTree.gss in Ea1. injection Ea1 as <-.
+    apply RA.ev_cast in Ea2 as (c & Ec & Cc). apply RA.ev_const in Ec. subst c.
+    cbn [fn_return BS.f_random_float] in Hor. cbn in Hor.
+    injection Cx as <-. cbn -[Float.of_int] in Cc. injection Cc as <-.
+    cbn -[Float.div Float.of_single Float32.of_intu Float.of_int] in Ediv. injection Ediv as <-.
+    destruct Hor as [_ Hor]. injection Hor as <-.
+    split; [ exact U | exists n; split; [ exact Hn | reflexivity ] ].
+  Qed.
+
+  Lemma dm_rf : (prog_defmap BS.prog) ! BS._random_float = Some (Gfun (Internal BS.f_random_float)).
+  Proof. vm_compute. reflexivity. Qed.
+
+  (* tmp = random_float() *)
+  Lemma rf_call : forall le m tmp t le' m' out,
+    exec_stmt function_entry2 G empty_env le m
+      (Scall (Some tmp) (Evar BS._random_float (Tfunction [] tfloat cc_default)) []) t le' m' out ->
+    out = Out_normal /\ Mem.unchanged_on Psd m m'
+    /\ exists n, le' = PTree.set tmp (Vsingle (rf_of n)) le /\ 0 <= Int.unsigned n < 65536.
+  Proof.
+    intros le m tmp t le' m' out H.
+    apply RA.call_inv in H as (tya & tyr & cc & vf & vargs & fd & vres & Hcf & Evf & Eal & Hff & _ & Hx & -> & ->).
+    cbn in Hcf. injection Hcf as <- <- <-.
+    destruct (RA.ev_fun G empty_env m le _ (Tfunction [] tfloat cc_default) vf
+                (PTree.gempty _ _) eq_refl Evf) as (bf & Hs & ->).
+    rewrite (fun_bs _ _ dm_rf bf fd Hs Hff) in Hx.
+    inversion Eal; subst.
+    destruct (rflt _ _ _ _ Hx) as (U & n & Hn & ->).
+    split; [ reflexivity | split; [ exact U | exists n; split; [ reflexivity | exact Hn ] ] ].
+  Qed.
+
+  (* what a seed-only change keeps of the stepper's cells *)
+  Lemma seed_V : forall m m' st, Mem.unchanged_on Psd m m' -> V m st -> V m' st.
+  Proof.
+    intros m m' st U HV. apply V_iff in HV as ((b & Hsb' & Hcm) & Hsi & Hk). apply V_iff.
+    split; [ exists b; split; [ exact Hsb' | ] | split ].
+    - apply (Mem.load_unchanged_on _ _ _ _ _ _ _ U); [ intros i _; exact Hsbc | exact Hcm ].
+    - apply (Mem.load_unchanged_on _ _ _ _ _ _ _ U); [ intros i _; exact Hsp | exact Hsi ].
+    - intros j f Hj. specialize (Hk j f Hj). unfold OW.frame_ok in Hk |- *.
+      destruct f as [s0 i0 |].
+      + destruct Hk as (b0 & Hb0 & Hl). exists b0. split; [ exact Hb0 | ].
+        apply (Mem.load_unchanged_on _ _ _ _ _ _ _ U); [ intros i _; exact Hsp | exact Hl ].
+      + destruct Hk as (c & Hl). exists c.
+        apply (Mem.load_unchanged_on _ _ _ _ _ _ _ U); [ intros i _; exact Hsp | exact Hl ].
+  Qed.
+  Lemma seed_cur : forall m m', Mem.unchanged_on Psd m m' -> cur m -> cur m'.
+  Proof.
+    intros m m' U Hc. unfold cur.
+    apply (Mem.load_unchanged_on _ _ _ _ _ _ _ U); [ intros i _; exact Hsbg | exact Hc ].
+  Qed.
   (* ---- GOTO (0x04) ---- *)
   Lemma hd_goto : forall m st w t m' vr,
     In st vm_tab -> scr_ok G m -> V m st -> cur m ->
@@ -2768,6 +3011,721 @@ Section Link.
       exists a, m1. split; [ rewrite <- Eza; exact Hz | split; [ exact Hs1 | exact U2 ] ].
   Qed.
 
+  (* ---- SET_RANDOM_FLOAT (0x14):
+     o->rawData.asF32[byte2 w] = (f32)(s16)(w1 >> 16) * random_float() + (f32)(s16)(w & 0xFFFF);
+     cmd += 2.  The call changes only gRandomSeed16 ---- *)
+  Definition rng_of (z : Z) : float32 := Float32.of_int (Int.sign_ext 16 (Int.shru (Int.repr z) (Int.repr 16))).
+
+  Lemma hd_set_random_float : forall m st w t m' vr,
+    In st vm_tab -> scr_ok G m -> V m st -> cur m ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 20 ->
+    eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_set_random_float) [] t m' vr ->
+    exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
+      /\ exists z u m1 m2, word_at (v_s st) (v_i st + 1) = Some z /\ 0 <= Int.unsigned u < 65536
+         /\ Mem.unchanged_on Psd m m1
+         /\ Mem.store Mfloat32 m1 pool (oc + 136 + 4 * byte2 w)
+              (Vsingle (Float32.add (Float32.mul (rng_of z) (rf_of u)) (f32_of w))) = Some m2
+         /\ Mem.unchanged_on Pfr m2 m'.
+  Proof.
+    intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
+    destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
+    pose proof (succs_rand st w Hw (or_intror (or_introl Ho))) as Es. rewrite Hl in Es.
+    destruct (Nat.ltb _ _) eqn:Elt; [ discriminate Es | ]. apply Nat.ltb_ge in Elt.
+    injection Es as Es. subst l.
+    assert (Hf80 : 0 <= byte2 w < 80)
+      by (apply (fld_lt80 st w Hst Hw); rewrite Ho; do 7 right; left; reflexivity).
+    apply V_iff in HV as ((b & Hsbs & Hcm) & HS).
+    destruct (word_int _ _ _ Hw) as (n & Hn & Ewn).
+    destruct (rand_w1 st w Hst Hw (or_intror (or_introl Ho))) as (z & Hz).
+    destruct (word_int _ _ _ Hz) as (n1 & Hn1 & Ezn).
+    destruct (Hscr (v_s st) b (v_i st) _ Hsbs (in_map _ _ _ Hst) Hn) as (vn & Hlv & Hiv).
+    cbn in Hiv. subst vn.
+    destruct (Hscr (v_s st) b (v_i st + 1)%nat _ Hsbs (in_map _ _ _ Hst) Hn1) as (vn1 & Hlv1 & Hiv1).
+    cbn in Hiv1. subst vn1.
+    assert (Hilt : (v_i st + 1 < List.length (words (v_s st)))%nat)
+      by (apply nth_error_Some; rewrite Hn1; discriminate).
+    remember (4 * Z.of_nat (v_i st)) as I4 eqn:EI.
+    try rewrite <- EI in Hlv. try rewrite <- EI in Hcm.
+    replace (4 * Z.of_nat (v_i st + 1)) with (I4 + 4) in Hlv1 by lia.
+    apply fcall_inv in H as (le1 & le2 & out1 & Hb & X & Hor); [ | reflexivity ].
+    cbn [fn_params BS.f_bhv_cmd_set_random_float bind_parameter_temps] in Hb. injection Hb as <-.
+    cbn [fn_body BS.f_bhv_cmd_set_random_float] in X.
+    apply RA.seq_inv in X as [(t1 & le1 & m1 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
+    (* field *)
+    apply RA.seq_inv in X1 as [(t3 & le3 & m3 & t4 & X3 & X4) | (X3 & Xn)]; [ | kill_sq X3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ X3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in X4 as [(t5 & le5 & m5 & t6 & X5 & X6) | (X5 & Xn)]; [ | kill_sq X5 Xn ].
+    apply RA.set_inv in X5 as (vw & Evw & -> & -> & _).
+    apply (ev_w0 _ _ _ b I4 n _ (PTree.gss _ _ _) ltac:(lia) Hlv) in Evw. subst vw.
+    apply RA.set_inv in X6 as (vf & Evf & -> & -> & _).
+    apply RA.ev_cast in Evf as (x1 & Ex1 & C1). apply RA.ev_cast in Ex1 as (x2 & Ex2 & C2).
+    apply RA.ev_binop in Ex2 as (a1 & a2 & Ea1 & Ea2 & Eand).
+    apply RA.ev_binop in Ea1 as (s1 & s2 & Es1 & Es2 & Eshr).
+    apply RA.ev_temp in Es1. rewrite PTree.gss in Es1. injection Es1 as <-.
+    apply RA.ev_const in Es2. subst s2. apply RA.ev_const in Ea2. subst a2.
+    cbn in Eshr. injection Eshr as <-. cbn in Eand. injection Eand as <-.
+    cbn in C2. injection C2 as <-. cbn in C1. injection C1 as <-.
+    (* min *)
+    apply RA.seq_inv in X2 as [(u1 & ke1 & k1 & u2 & Y1 & Y2) | (Y1 & Xn)]; [ | kill_sq Y1 Xn ].
+    apply RA.seq_inv in Y1 as [(u3 & ke3 & k3 & u4 & Y3 & Y4) | (Y3 & Xn)]; [ | kill_sq Y3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Y3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in Y4 as [(u5 & ke5 & k5 & u6 & Y5 & Y6) | (Y5 & Xn)]; [ | kill_sq Y5 Xn ].
+    apply RA.set_inv in Y5 as (vw & Evw & -> & -> & _).
+    apply (ev_w0 _ _ _ b I4 n _ (PTree.gss _ _ _) ltac:(lia) Hlv) in Evw. subst vw.
+    apply RA.set_inv in Y6 as (vv & Evv & -> & -> & _).
+    apply RA.ev_cast in Evv as (y1 & Ey1 & D1). apply RA.ev_cast in Ey1 as (y2 & Ey2 & D2).
+    apply RA.ev_binop in Ey2 as (c1 & c2 & Ec1 & Ec2 & Eand2).
+    apply RA.ev_temp in Ec1. rewrite PTree.gss in Ec1. injection Ec1 as <-.
+    apply RA.ev_const in Ec2. subst c2.
+    cbn in Eand2. injection Eand2 as <-. cbn in D2. injection D2 as <-.
+    cbn -[Float32.of_int] in D1. injection D1 as <-.
+    (* range *)
+    apply RA.seq_inv in Y2 as [(p1 & pe1 & pm1 & p2 & Z1 & Z2) | (Z1 & Xn)]; [ | kill_sq Z1 Xn ].
+    apply RA.seq_inv in Z1 as [(p3 & pe3 & pm3 & p4 & Z3 & Z4) | (Z3 & Xn)]; [ | kill_sq Z3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Z3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in Z4 as [(p5 & pe5 & pm5 & p6 & Z5 & Z6) | (Z5 & Xn)]; [ | kill_sq Z5 Xn ].
+    apply RA.set_inv in Z5 as (vw & Evw & -> & -> & _).
+    apply (ev_w1 _ _ _ b I4 n1 _ (PTree.gss _ _ _) ltac:(lia) Hlv1) in Evw. subst vw.
+    apply RA.set_inv in Z6 as (vg & Evg & -> & -> & _).
+    apply RA.ev_cast in Evg as (g1 & Eg1 & G1). apply RA.ev_cast in Eg1 as (g2 & Eg2 & G2).
+    apply RA.ev_binop in Eg2 as (h1 & h2 & Eh1 & Eh2 & Eshr2).
+    apply RA.ev_temp in Eh1. rewrite PTree.gss in Eh1. injection Eh1 as <-.
+    apply RA.ev_const in Eh2. subst h2.
+    cbn in Eshr2. injection Eshr2 as <-. cbn in G2. injection G2 as <-.
+    cbn -[Float32.of_int] in G1. injection G1 as <-.
+    (* t1 = random_float(); o->asF32[field] = range * t1 + min *)
+    apply RA.seq_inv in Z2 as [(q1 & qe1 & qm1 & q2 & D3 & E1) | (D3 & Xn)]; [ | kill_sq D3 Xn ].
+    apply RA.seq_inv in D3 as [(r1 & re1 & rm1 & r2 & W1 & W2) | (W1 & Xn)]; [ | kill_sq W1 Xn ].
+    destruct (rf_call _ _ _ _ _ _ _ W1) as (_ & Ur & u & -> & Hu).
+    pose proof (seed_cur _ _ Ur Hc) as Hc1.
+    assert (HVr : V rm1 st)
+      by (apply (seed_V m); [ exact Ur | apply V_iff; split; [ exists b; split; [ exact Hsbs | subst I4; exact Hcm ] | exact HS ] ]).
+    apply V_iff in HVr as ((b' & Hsbs' & Hcm1) & HSr).
+    rewrite Hsbs in Hsbs'. injection Hsbs' as <-. rewrite <- EI in Hcm1.
+    apply RA.seq_inv in W2 as [(s3 & se3 & sm3 & s4 & W3 & W4) | (W3 & Xn)]; [ | kill_sq W3 Xn ].
+    apply ld_cur in W3 as (-> & -> & _); [ | exact Hc1 ].
+    apply RA.assign_inv in W4 as (b2 & o2 & bf2 & v2 & v3 & Hlv2 & Ev2 & Hcast2 & Has & -> & _).
+    match type of Hlv2 with eval_lvalue _ _ ?le _ _ _ _ _ =>
+      assert (Hfi : exists fi, le ! BS._field = Some (Vint fi) /\ Int.signed fi = byte2 w)
+        by (eexists; split;
+            [ do 8 rewrite PTree.gso by (vm_compute; discriminate); apply PTree.gss
+            | rewrite Ewn; apply fld_eq ]) end.
+    destruct Hfi as (fi & Hfi & Efi).
+    destruct (lv_rawf _ _ _ _ _ _ _ _ Hfi Hlv2) as (o0 & Ho0 & -> & ->).
+    rewrite PTree.gss in Ho0. injection Ho0 as <- <-.
+    apply RA.ev_cast in Ev2 as (y & Ey & Cy).
+    apply RA.ev_binop in Ey as (e1 & e2 & Ee1 & Ee2 & Eadd').
+    apply RA.ev_binop in Ee1 as (k1' & k2' & Ek1 & Ek2 & Emul).
+    apply RA.ev_temp in Ek1. do 2 rewrite PTree.gso in Ek1 by (vm_compute; discriminate). rewrite PTree.gss in Ek1. injection Ek1 as <-.
+    apply RA.ev_temp in Ek2. rewrite PTree.gso in Ek2 by (vm_compute; discriminate). rewrite PTree.gss in Ek2. injection Ek2 as <-.
+    apply RA.ev_temp in Ee2. do 5 rewrite PTree.gso in Ee2 by (vm_compute; discriminate). rewrite PTree.gss in Ee2. injection Ee2 as <-.
+    cbn -[Float32.mul Float32.add Float32.of_int rf_of] in Emul. injection Emul as <-.
+    cbn -[Float32.mul Float32.add Float32.of_int rf_of] in Eadd'. injection Eadd' as <-.
+    cbn -[Float32.mul Float32.add Float32.of_int rf_of] in Cy. injection Cy as <-.
+    cbn -[Float32.mul Float32.add Float32.of_int rf_of] in Hcast2. injection Hcast2 as <-.
+    pose proof (RA.store_by_value _ tfloat _ _ _ _ _ _ Mfloat32 eq_refl eq_refl Has) as Hs1.
+    unfold Ptrofs.of_ints in Hs1. rewrite Efi in Hs1. rewrite raw_addr in Hs1 by lia.
+    (* cmd = cmd + 2 *)
+    apply RA.seq_inv in E1 as [(u11 & ke11 & n11 & u12 & Y11 & Y12) | (Y11 & Xn)]; [ | kill_sq Y11 Xn ].
+    apply RA.seq_inv in Y11 as [(u13 & ke13 & n13 & u14 & Y13 & Y14) | (Y13 & Xn)]; [ | kill_sq Y13 Xn ].
+    assert (Lc : Mem.load Mint32 qm1 bc 0 = Some (Vptr b (Ptrofs.repr I4)))
+      by (rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1) by (left; exact Hbp); exact Hcm1).
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Y13 Lc) as (-> & -> & _).
+    apply st_cmd in Y14 as (v4 & v5 & Ev4 & Hcast4 & Hs2 & -> & _).
+    apply RA.ev_binop in Ev4 as (q1' & q2' & Eq1 & Eq2 & Eadd).
+    apply RA.ev_temp in Eq1. rewrite PTree.gss in Eq1. injection Eq1 as <-.
+    apply RA.ev_const in Eq2. subst q2'. cbn [typeof] in Eadd. rewrite add_pi in Eadd. injection Eadd as <-.
+    cbn [typeof] in Hcast4. rewrite cast_pp in Hcast4. injection Hcast4 as <-.
+    rewrite ptr_inc in Hs2 by lia. norm_off Hs2 (4 * Z.of_nat (v_i st + 2)).
+    destruct (bc_store _ _ _ Hs2) as (Hc2 & _ & U2).
+    apply RA.ret_inv in Y12 as (-> & rv & Erv & ->). apply RA.ev_const in Erv. subst rv.
+    cbn in Hor. destruct Hor as (_ & Hor). cbn in Hor. injection Hor as <-.
+    assert (HS1 : Vstk qm1 (v_k st)).
+    { destruct HSr as (Hsi & Hk). split.
+      - rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1); [ exact Hsi | ].
+        right. right. cbn [size_chunk]. unfold OW.O_SIDX. lia.
+      - intros j f Hj.
+        assert (Hjl : (j < List.length (v_k st))%nat) by (apply nth_error_Some; rewrite Hj; discriminate).
+        rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1); [ exact (Hk j f Hj) | ].
+        right. right. cbn [size_chunk]. unfold OW.O_STK. lia. }
+    assert (Ev : Float32.add (Float32.mul (rng_of z) (rf_of u)) (f32_of w)
+                 = Float32.add (Float32.mul (Float32.of_int (Int.sign_ext 16 (Int.shru n1 (Int.repr 16)))) (rf_of u))
+                     (Float32.of_int (Int.sign_ext 16 (Int.and n (Int.repr 65535)))))
+      by (unfold rng_of, f32_of, s16_of; rewrite Ezn, Ewn, !Int.repr_unsigned; reflexivity).
+    eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
+    - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsbs) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
+    - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc1)) | split; [ reflexivity | ] ].
+      exists z, u, rm1, qm1. split; [ exact Hz | split; [ exact Hu | split; [ exact Ur | split; [ | exact U2 ] ] ] ].
+      rewrite Ev. repeat (rewrite Int.sign_ext_idem in Hs1 by lia). exact Hs1.
+  Qed.
+
+  (* ---- SET_RANDOM_INT (0x15):
+     o->rawData.asS32[byte2 w] = (s32)((s16)(w1 >> 16) * random_float()) + (s16)(w & 0xFFFF);
+     cmd += 2 ---- *)
+  Definition rngi_of (z : Z) : int := Int.sign_ext 16 (Int.shru (Int.repr z) (Int.repr 16)).
+
+  Lemma hd_set_random_int : forall m st w t m' vr,
+    In st vm_tab -> scr_ok G m -> V m st -> cur m ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 21 ->
+    eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_set_random_int) [] t m' vr ->
+    exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
+      /\ exists z u ri m1 m2, word_at (v_s st) (v_i st + 1) = Some z /\ 0 <= Int.unsigned u < 65536
+         /\ Float32.to_int (Float32.mul (Float32.of_int (rngi_of z)) (rf_of u)) = Some ri
+         /\ Mem.unchanged_on Psd m m1
+         /\ Mem.store Mint32 m1 pool (oc + 136 + 4 * byte2 w) (Vint (Int.add ri (s16_of w))) = Some m2
+         /\ Mem.unchanged_on Pfr m2 m'.
+  Proof.
+    intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
+    destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
+    pose proof (succs_rand st w Hw (or_intror (or_intror Ho))) as Es. rewrite Hl in Es.
+    destruct (Nat.ltb _ _) eqn:Elt; [ discriminate Es | ]. apply Nat.ltb_ge in Elt.
+    injection Es as Es. subst l.
+    assert (Hf80 : 0 <= byte2 w < 80)
+      by (apply (fld_lt80 st w Hst Hw); rewrite Ho; do 8 right; left; reflexivity).
+    apply V_iff in HV as ((b & Hsbs & Hcm) & HS).
+    destruct (word_int _ _ _ Hw) as (n & Hn & Ewn).
+    destruct (rand_w1 st w Hst Hw (or_intror (or_intror Ho))) as (z & Hz).
+    destruct (word_int _ _ _ Hz) as (n1 & Hn1 & Ezn).
+    destruct (Hscr (v_s st) b (v_i st) _ Hsbs (in_map _ _ _ Hst) Hn) as (vn & Hlv & Hiv).
+    cbn in Hiv. subst vn.
+    destruct (Hscr (v_s st) b (v_i st + 1)%nat _ Hsbs (in_map _ _ _ Hst) Hn1) as (vn1 & Hlv1 & Hiv1).
+    cbn in Hiv1. subst vn1.
+    assert (Hilt : (v_i st + 1 < List.length (words (v_s st)))%nat)
+      by (apply nth_error_Some; rewrite Hn1; discriminate).
+    remember (4 * Z.of_nat (v_i st)) as I4 eqn:EI.
+    try rewrite <- EI in Hlv. try rewrite <- EI in Hcm.
+    replace (4 * Z.of_nat (v_i st + 1)) with (I4 + 4) in Hlv1 by lia.
+    apply fcall_inv in H as (le1 & le2 & out1 & Hb & X & Hor); [ | reflexivity ].
+    cbn [fn_params BS.f_bhv_cmd_set_random_int bind_parameter_temps] in Hb. injection Hb as <-.
+    cbn [fn_body BS.f_bhv_cmd_set_random_int] in X.
+    apply RA.seq_inv in X as [(t1 & le1 & m1 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
+    (* field *)
+    apply RA.seq_inv in X1 as [(t3 & le3 & m3 & t4 & X3 & X4) | (X3 & Xn)]; [ | kill_sq X3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ X3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in X4 as [(t5 & le5 & m5 & t6 & X5 & X6) | (X5 & Xn)]; [ | kill_sq X5 Xn ].
+    apply RA.set_inv in X5 as (vw & Evw & -> & -> & _).
+    apply (ev_w0 _ _ _ b I4 n _ (PTree.gss _ _ _) ltac:(lia) Hlv) in Evw. subst vw.
+    apply RA.set_inv in X6 as (vf & Evf & -> & -> & _).
+    apply RA.ev_cast in Evf as (x1 & Ex1 & C1). apply RA.ev_cast in Ex1 as (x2 & Ex2 & C2).
+    apply RA.ev_binop in Ex2 as (a1 & a2 & Ea1 & Ea2 & Eand).
+    apply RA.ev_binop in Ea1 as (s1 & s2 & Es1 & Es2 & Eshr).
+    apply RA.ev_temp in Es1. rewrite PTree.gss in Es1. injection Es1 as <-.
+    apply RA.ev_const in Es2. subst s2. apply RA.ev_const in Ea2. subst a2.
+    cbn in Eshr. injection Eshr as <-. cbn in Eand. injection Eand as <-.
+    cbn in C2. injection C2 as <-. cbn in C1. injection C1 as <-.
+    (* min *)
+    apply RA.seq_inv in X2 as [(u1 & ke1 & k1 & u2 & Y1 & Y2) | (Y1 & Xn)]; [ | kill_sq Y1 Xn ].
+    apply RA.seq_inv in Y1 as [(u3 & ke3 & k3 & u4 & Y3 & Y4) | (Y3 & Xn)]; [ | kill_sq Y3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Y3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in Y4 as [(u5 & ke5 & k5 & u6 & Y5 & Y6) | (Y5 & Xn)]; [ | kill_sq Y5 Xn ].
+    apply RA.set_inv in Y5 as (vw & Evw & -> & -> & _).
+    apply (ev_w0 _ _ _ b I4 n _ (PTree.gss _ _ _) ltac:(lia) Hlv) in Evw. subst vw.
+    apply RA.set_inv in Y6 as (vv & Evv & -> & -> & _).
+    apply RA.ev_cast in Evv as (y1 & Ey1 & D1).
+    apply RA.ev_binop in Ey1 as (c1 & c2 & Ec1 & Ec2 & Eand2).
+    apply RA.ev_temp in Ec1. rewrite PTree.gss in Ec1. injection Ec1 as <-.
+    apply RA.ev_const in Ec2. subst c2.
+    cbn in Eand2. injection Eand2 as <-. cbn in D1. injection D1 as <-.
+    (* range *)
+    apply RA.seq_inv in Y2 as [(p1 & pe1 & pm1 & p2 & Z1 & Z2) | (Z1 & Xn)]; [ | kill_sq Z1 Xn ].
+    apply RA.seq_inv in Z1 as [(p3 & pe3 & pm3 & p4 & Z3 & Z4) | (Z3 & Xn)]; [ | kill_sq Z3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Z3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in Z4 as [(p5 & pe5 & pm5 & p6 & Z5 & Z6) | (Z5 & Xn)]; [ | kill_sq Z5 Xn ].
+    apply RA.set_inv in Z5 as (vw & Evw & -> & -> & _).
+    apply (ev_w1 _ _ _ b I4 n1 _ (PTree.gss _ _ _) ltac:(lia) Hlv1) in Evw. subst vw.
+    apply RA.set_inv in Z6 as (vg & Evg & -> & -> & _).
+    apply RA.ev_cast in Evg as (g1 & Eg1 & G1).
+    apply RA.ev_binop in Eg1 as (h1 & h2 & Eh1 & Eh2 & Eshr2).
+    apply RA.ev_temp in Eh1. rewrite PTree.gss in Eh1. injection Eh1 as <-.
+    apply RA.ev_const in Eh2. subst h2.
+    cbn in Eshr2. try change (Int.ltu (Int.repr 16) Int.iwordsize) with true in Eshr2; cbn in Eshr2. injection Eshr2 as <-. cbn in G1. injection G1 as <-.
+    (* t1 = random_float(); o->asF32[field] = range * t1 + min *)
+    apply RA.seq_inv in Z2 as [(q1 & qe1 & qm1 & q2 & D3 & E1) | (D3 & Xn)]; [ | kill_sq D3 Xn ].
+    apply RA.seq_inv in D3 as [(r1 & re1 & rm1 & r2 & W1 & W2) | (W1 & Xn)]; [ | kill_sq W1 Xn ].
+    destruct (rf_call _ _ _ _ _ _ _ W1) as (_ & Ur & u & -> & Hu).
+    pose proof (seed_cur _ _ Ur Hc) as Hc1.
+    assert (HVr : V rm1 st)
+      by (apply (seed_V m); [ exact Ur | apply V_iff; split; [ exists b; split; [ exact Hsbs | subst I4; exact Hcm ] | exact HS ] ]).
+    apply V_iff in HVr as ((b' & Hsbs' & Hcm1) & HSr).
+    rewrite Hsbs in Hsbs'. injection Hsbs' as <-. rewrite <- EI in Hcm1.
+    apply RA.seq_inv in W2 as [(s3 & se3 & sm3 & s4 & W3 & W4) | (W3 & Xn)]; [ | kill_sq W3 Xn ].
+    apply ld_cur in W3 as (-> & -> & _); [ | exact Hc1 ].
+    apply RA.assign_inv in W4 as (b2 & o2 & bf2 & v2 & v3 & Hlv2 & Ev2 & Hcast2 & Has & -> & _).
+    match type of Hlv2 with eval_lvalue _ _ ?le _ _ _ _ _ =>
+      assert (Hfi : exists fi, le ! BS._field = Some (Vint fi) /\ Int.signed fi = byte2 w)
+        by (eexists; split;
+            [ do 8 rewrite PTree.gso by (vm_compute; discriminate); apply PTree.gss
+            | rewrite Ewn; apply fld_eq ]) end.
+    destruct Hfi as (fi & Hfi & Efi).
+    destruct (lv_raw _ _ _ _ _ _ _ _ Hfi Hlv2) as (o0 & Ho0 & -> & ->).
+    rewrite PTree.gss in Ho0. injection Ho0 as <- <-.
+    apply RA.ev_cast in Ev2 as (y & Ey & Cy).
+    apply RA.ev_binop in Ey as (e1 & e2 & Ee1 & Ee2 & Eadd').
+    apply RA.ev_cast in Ee1 as (k0 & Ek0 & Ck0).
+    apply RA.ev_binop in Ek0 as (k1' & k2' & Ek1 & Ek2 & Emul).
+    apply RA.ev_temp in Ek1. do 2 rewrite PTree.gso in Ek1 by (vm_compute; discriminate). rewrite PTree.gss in Ek1. injection Ek1 as <-.
+    apply RA.ev_temp in Ek2. rewrite PTree.gso in Ek2 by (vm_compute; discriminate). rewrite PTree.gss in Ek2. injection Ek2 as <-.
+    apply RA.ev_temp in Ee2. do 5 rewrite PTree.gso in Ee2 by (vm_compute; discriminate). rewrite PTree.gss in Ee2. injection Ee2 as <-.
+    cbn -[Float32.mul Float32.of_int rf_of] in Emul. injection Emul as <-.
+    assert (Ec : forall f mm, sem_cast (Vsingle f) tfloat tint mm = option_map Vint (Float32.to_int f))
+      by (intros f mm; unfold sem_cast; cbn; destruct (intsize_eq I32 IBool) as [Eb|_]; [ discriminate Eb | ]; cbn; destruct (Float32.to_int f); reflexivity).
+    rewrite Ec in Ck0.
+    match type of Ck0 with context [Float32.to_int ?x] =>
+      destruct (Float32.to_int x) as [ri|] eqn:Eri end; [ | discriminate Ck0 ].
+    cbn in Ck0. injection Ck0 as <-.
+    cbn in Eadd'. injection Eadd' as <-. cbn in Cy. injection Cy as <-.
+    cbn in Hcast2. injection Hcast2 as <-.
+    pose proof (RA.store_by_value _ tint _ _ _ _ _ _ Mint32 eq_refl eq_refl Has) as Hs1.
+    unfold Ptrofs.of_ints in Hs1. rewrite Efi in Hs1. rewrite raw_addr in Hs1 by lia.
+    (* cmd = cmd + 2 *)
+    apply RA.seq_inv in E1 as [(u11 & ke11 & n11 & u12 & Y11 & Y12) | (Y11 & Xn)]; [ | kill_sq Y11 Xn ].
+    apply RA.seq_inv in Y11 as [(u13 & ke13 & n13 & u14 & Y13 & Y14) | (Y13 & Xn)]; [ | kill_sq Y13 Xn ].
+    assert (Lc : Mem.load Mint32 qm1 bc 0 = Some (Vptr b (Ptrofs.repr I4)))
+      by (rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1) by (left; exact Hbp); exact Hcm1).
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Y13 Lc) as (-> & -> & _).
+    apply st_cmd in Y14 as (v4 & v5 & Ev4 & Hcast4 & Hs2 & -> & _).
+    apply RA.ev_binop in Ev4 as (q1' & q2' & Eq1 & Eq2 & Eadd).
+    apply RA.ev_temp in Eq1. rewrite PTree.gss in Eq1. injection Eq1 as <-.
+    apply RA.ev_const in Eq2. subst q2'. cbn [typeof] in Eadd. rewrite add_pi in Eadd. injection Eadd as <-.
+    cbn [typeof] in Hcast4. rewrite cast_pp in Hcast4. injection Hcast4 as <-.
+    rewrite ptr_inc in Hs2 by lia. norm_off Hs2 (4 * Z.of_nat (v_i st + 2)).
+    destruct (bc_store _ _ _ Hs2) as (Hc2 & _ & U2).
+    apply RA.ret_inv in Y12 as (-> & rv & Erv & ->). apply RA.ev_const in Erv. subst rv.
+    cbn in Hor. destruct Hor as (_ & Hor). cbn in Hor. injection Hor as <-.
+    assert (HS1 : Vstk qm1 (v_k st)).
+    { destruct HSr as (Hsi & Hk). split.
+      - rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1); [ exact Hsi | ].
+        right. right. cbn [size_chunk]. unfold OW.O_SIDX. lia.
+      - intros j f Hj.
+        assert (Hjl : (j < List.length (v_k st))%nat) by (apply nth_error_Some; rewrite Hj; discriminate).
+        rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1); [ exact (Hk j f Hj) | ].
+        right. right. cbn [size_chunk]. unfold OW.O_STK. lia. }
+    assert (Er : rngi_of z = Int.sign_ext 16 (Int.shru n1 (Int.repr 16)))
+      by (unfold rngi_of; rewrite Ezn, Int.repr_unsigned; reflexivity).
+    assert (Em : s16_of w = Int.sign_ext 16 (Int.and n (Int.repr 65535)))
+      by (unfold s16_of; rewrite Ewn, Int.repr_unsigned; reflexivity).
+    eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
+    - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsbs) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
+    - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc1)) | split; [ reflexivity | ] ].
+      exists z, u, ri, rm1, qm1.
+      split; [ exact Hz | split; [ exact Hu | split; [ rewrite Er; exact Eri | split; [ exact Ur | split; [ | exact U2 ] ] ] ] ].
+      rewrite Em. exact Hs1.
+  Qed.
+
+  (* ---- SET_INT_RAND_RSHIFT (0x13):
+     o->rawData.asS32[byte2 w] = (random_u16() >> (s16)(w1 >> 16)) + (s16)(w & 0xFFFF);
+     cmd += 2 ---- *)
+  Lemma hd_set_int_rand_rshift : forall m st w t m' vr,
+    In st vm_tab -> scr_ok G m -> V m st -> cur m ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 19 ->
+    eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_set_int_rand_rshift) [] t m' vr ->
+    exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
+      /\ exists z u ri m1 m2, word_at (v_s st) (v_i st + 1) = Some z /\ 0 <= Int.unsigned u < 65536
+         /\ Int.ltu (rngi_of z) Int.iwordsize = true /\ ri = Int.shr u (rngi_of z)
+         /\ Mem.unchanged_on Psd m m1
+         /\ Mem.store Mint32 m1 pool (oc + 136 + 4 * byte2 w) (Vint (Int.add ri (s16_of w))) = Some m2
+         /\ Mem.unchanged_on Pfr m2 m'.
+  Proof.
+    intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
+    destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
+    pose proof (succs_rand st w Hw (or_introl Ho)) as Es. rewrite Hl in Es.
+    destruct (Nat.ltb _ _) eqn:Elt; [ discriminate Es | ]. apply Nat.ltb_ge in Elt.
+    injection Es as Es. subst l.
+    assert (Hf80 : 0 <= byte2 w < 80)
+      by (apply (fld_lt80 st w Hst Hw); rewrite Ho; do 6 right; left; reflexivity).
+    apply V_iff in HV as ((b & Hsbs & Hcm) & HS).
+    destruct (word_int _ _ _ Hw) as (n & Hn & Ewn).
+    destruct (rand_w1 st w Hst Hw (or_introl Ho)) as (z & Hz).
+    destruct (word_int _ _ _ Hz) as (n1 & Hn1 & Ezn).
+    destruct (Hscr (v_s st) b (v_i st) _ Hsbs (in_map _ _ _ Hst) Hn) as (vn & Hlv & Hiv).
+    cbn in Hiv. subst vn.
+    destruct (Hscr (v_s st) b (v_i st + 1)%nat _ Hsbs (in_map _ _ _ Hst) Hn1) as (vn1 & Hlv1 & Hiv1).
+    cbn in Hiv1. subst vn1.
+    assert (Hilt : (v_i st + 1 < List.length (words (v_s st)))%nat)
+      by (apply nth_error_Some; rewrite Hn1; discriminate).
+    remember (4 * Z.of_nat (v_i st)) as I4 eqn:EI.
+    try rewrite <- EI in Hlv. try rewrite <- EI in Hcm.
+    replace (4 * Z.of_nat (v_i st + 1)) with (I4 + 4) in Hlv1 by lia.
+    apply fcall_inv in H as (le1 & le2 & out1 & Hb & X & Hor); [ | reflexivity ].
+    cbn [fn_params BS.f_bhv_cmd_set_int_rand_rshift bind_parameter_temps] in Hb. injection Hb as <-.
+    cbn [fn_body BS.f_bhv_cmd_set_int_rand_rshift] in X.
+    apply RA.seq_inv in X as [(t1 & le1 & m1 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
+    (* field *)
+    apply RA.seq_inv in X1 as [(t3 & le3 & m3 & t4 & X3 & X4) | (X3 & Xn)]; [ | kill_sq X3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ X3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in X4 as [(t5 & le5 & m5 & t6 & X5 & X6) | (X5 & Xn)]; [ | kill_sq X5 Xn ].
+    apply RA.set_inv in X5 as (vw & Evw & -> & -> & _).
+    apply (ev_w0 _ _ _ b I4 n _ (PTree.gss _ _ _) ltac:(lia) Hlv) in Evw. subst vw.
+    apply RA.set_inv in X6 as (vf & Evf & -> & -> & _).
+    apply RA.ev_cast in Evf as (x1 & Ex1 & C1). apply RA.ev_cast in Ex1 as (x2 & Ex2 & C2).
+    apply RA.ev_binop in Ex2 as (a1 & a2 & Ea1 & Ea2 & Eand).
+    apply RA.ev_binop in Ea1 as (s1 & s2 & Es1 & Es2 & Eshr).
+    apply RA.ev_temp in Es1. rewrite PTree.gss in Es1. injection Es1 as <-.
+    apply RA.ev_const in Es2. subst s2. apply RA.ev_const in Ea2. subst a2.
+    cbn in Eshr. injection Eshr as <-. cbn in Eand. injection Eand as <-.
+    cbn in C2. injection C2 as <-. cbn in C1. injection C1 as <-.
+    (* min *)
+    apply RA.seq_inv in X2 as [(u1 & ke1 & k1 & u2 & Y1 & Y2) | (Y1 & Xn)]; [ | kill_sq Y1 Xn ].
+    apply RA.seq_inv in Y1 as [(u3 & ke3 & k3 & u4 & Y3 & Y4) | (Y3 & Xn)]; [ | kill_sq Y3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Y3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in Y4 as [(u5 & ke5 & k5 & u6 & Y5 & Y6) | (Y5 & Xn)]; [ | kill_sq Y5 Xn ].
+    apply RA.set_inv in Y5 as (vw & Evw & -> & -> & _).
+    apply (ev_w0 _ _ _ b I4 n _ (PTree.gss _ _ _) ltac:(lia) Hlv) in Evw. subst vw.
+    apply RA.set_inv in Y6 as (vv & Evv & -> & -> & _).
+    apply RA.ev_cast in Evv as (y1 & Ey1 & D1).
+    apply RA.ev_binop in Ey1 as (c1 & c2 & Ec1 & Ec2 & Eand2).
+    apply RA.ev_temp in Ec1. rewrite PTree.gss in Ec1. injection Ec1 as <-.
+    apply RA.ev_const in Ec2. subst c2.
+    cbn in Eand2. injection Eand2 as <-. cbn in D1. injection D1 as <-.
+    (* range *)
+    apply RA.seq_inv in Y2 as [(p1 & pe1 & pm1 & p2 & Z1 & Z2) | (Z1 & Xn)]; [ | kill_sq Z1 Xn ].
+    apply RA.seq_inv in Z1 as [(p3 & pe3 & pm3 & p4 & Z3 & Z4) | (Z3 & Xn)]; [ | kill_sq Z3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Z3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in Z4 as [(p5 & pe5 & pm5 & p6 & Z5 & Z6) | (Z5 & Xn)]; [ | kill_sq Z5 Xn ].
+    apply RA.set_inv in Z5 as (vw & Evw & -> & -> & _).
+    apply (ev_w1 _ _ _ b I4 n1 _ (PTree.gss _ _ _) ltac:(lia) Hlv1) in Evw. subst vw.
+    apply RA.set_inv in Z6 as (vg & Evg & -> & -> & _).
+    apply RA.ev_cast in Evg as (g1 & Eg1 & G1).
+    apply RA.ev_binop in Eg1 as (h1 & h2 & Eh1 & Eh2 & Eshr2).
+    apply RA.ev_temp in Eh1. rewrite PTree.gss in Eh1. injection Eh1 as <-.
+    apply RA.ev_const in Eh2. subst h2.
+    cbn in Eshr2. try change (Int.ltu (Int.repr 16) Int.iwordsize) with true in Eshr2; cbn in Eshr2. injection Eshr2 as <-. cbn in G1. injection G1 as <-.
+    (* t1 = random_float(); o->asF32[field] = range * t1 + min *)
+    apply RA.seq_inv in Z2 as [(q1 & qe1 & qm1 & q2 & D3 & E1) | (D3 & Xn)]; [ | kill_sq D3 Xn ].
+    apply RA.seq_inv in D3 as [(r1 & re1 & rm1 & r2 & W1 & W2) | (W1 & Xn)]; [ | kill_sq W1 Xn ].
+    destruct (ru16_call _ _ _ _ _ _ _ W1) as (_ & Ur & u & -> & Hu).
+    pose proof (seed_cur _ _ Ur Hc) as Hc1.
+    assert (HVr : V rm1 st)
+      by (apply (seed_V m); [ exact Ur | apply V_iff; split; [ exists b; split; [ exact Hsbs | subst I4; exact Hcm ] | exact HS ] ]).
+    apply V_iff in HVr as ((b' & Hsbs' & Hcm1) & HSr).
+    rewrite Hsbs in Hsbs'. injection Hsbs' as <-. rewrite <- EI in Hcm1.
+    apply RA.seq_inv in W2 as [(s3 & se3 & sm3 & s4 & W3 & W4) | (W3 & Xn)]; [ | kill_sq W3 Xn ].
+    apply ld_cur in W3 as (-> & -> & _); [ | exact Hc1 ].
+    apply RA.assign_inv in W4 as (b2 & o2 & bf2 & v2 & v3 & Hlv2 & Ev2 & Hcast2 & Has & -> & _).
+    match type of Hlv2 with eval_lvalue _ _ ?le _ _ _ _ _ =>
+      assert (Hfi : exists fi, le ! BS._field = Some (Vint fi) /\ Int.signed fi = byte2 w)
+        by (eexists; split;
+            [ do 8 rewrite PTree.gso by (vm_compute; discriminate); apply PTree.gss
+            | rewrite Ewn; apply fld_eq ]) end.
+    destruct Hfi as (fi & Hfi & Efi).
+    destruct (lv_raw _ _ _ _ _ _ _ _ Hfi Hlv2) as (o0 & Ho0 & -> & ->).
+    rewrite PTree.gss in Ho0. injection Ho0 as <- <-.
+    apply RA.ev_cast in Ev2 as (y & Ey & Cy).
+    apply RA.ev_binop in Ey as (e1 & e2 & Ee1 & Ee2 & Eadd').
+    apply RA.ev_binop in Ee1 as (k1' & k2' & Ek1 & Ek2 & Eshr3).
+    apply RA.ev_temp in Ek1. rewrite PTree.gso in Ek1 by (vm_compute; discriminate). rewrite PTree.gss in Ek1. injection Ek1 as <-.
+    apply RA.ev_temp in Ek2. do 2 rewrite PTree.gso in Ek2 by (vm_compute; discriminate). rewrite PTree.gss in Ek2. injection Ek2 as <-.
+    apply RA.ev_temp in Ee2. do 5 rewrite PTree.gso in Ee2 by (vm_compute; discriminate). rewrite PTree.gss in Ee2. injection Ee2 as <-.
+    cbn in Eshr3.
+    match type of Eshr3 with context [Int.ltu ?x ?y] =>
+      destruct (Int.ltu x y) eqn:Elu end; [ | discriminate Eshr3 ].
+    injection Eshr3 as <-.
+    cbn in Eadd'. injection Eadd' as <-. cbn in Cy. injection Cy as <-.
+    cbn in Hcast2. injection Hcast2 as <-.
+    pose proof (RA.store_by_value _ tint _ _ _ _ _ _ Mint32 eq_refl eq_refl Has) as Hs1.
+    unfold Ptrofs.of_ints in Hs1. rewrite Efi in Hs1. rewrite raw_addr in Hs1 by lia.
+    (* cmd = cmd + 2 *)
+    apply RA.seq_inv in E1 as [(u11 & ke11 & n11 & u12 & Y11 & Y12) | (Y11 & Xn)]; [ | kill_sq Y11 Xn ].
+    apply RA.seq_inv in Y11 as [(u13 & ke13 & n13 & u14 & Y13 & Y14) | (Y13 & Xn)]; [ | kill_sq Y13 Xn ].
+    assert (Lc : Mem.load Mint32 qm1 bc 0 = Some (Vptr b (Ptrofs.repr I4)))
+      by (rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1) by (left; exact Hbp); exact Hcm1).
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Y13 Lc) as (-> & -> & _).
+    apply st_cmd in Y14 as (v4 & v5 & Ev4 & Hcast4 & Hs2 & -> & _).
+    apply RA.ev_binop in Ev4 as (q1' & q2' & Eq1 & Eq2 & Eadd).
+    apply RA.ev_temp in Eq1. rewrite PTree.gss in Eq1. injection Eq1 as <-.
+    apply RA.ev_const in Eq2. subst q2'. cbn [typeof] in Eadd. rewrite add_pi in Eadd. injection Eadd as <-.
+    cbn [typeof] in Hcast4. rewrite cast_pp in Hcast4. injection Hcast4 as <-.
+    rewrite ptr_inc in Hs2 by lia. norm_off Hs2 (4 * Z.of_nat (v_i st + 2)).
+    destruct (bc_store _ _ _ Hs2) as (Hc2 & _ & U2).
+    apply RA.ret_inv in Y12 as (-> & rv & Erv & ->). apply RA.ev_const in Erv. subst rv.
+    cbn in Hor. destruct Hor as (_ & Hor). cbn in Hor. injection Hor as <-.
+    assert (HS1 : Vstk qm1 (v_k st)).
+    { destruct HSr as (Hsi & Hk). split.
+      - rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1); [ exact Hsi | ].
+        right. right. cbn [size_chunk]. unfold OW.O_SIDX. lia.
+      - intros j f Hj.
+        assert (Hjl : (j < List.length (v_k st))%nat) by (apply nth_error_Some; rewrite Hj; discriminate).
+        rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1); [ exact (Hk j f Hj) | ].
+        right. right. cbn [size_chunk]. unfold OW.O_STK. lia. }
+    assert (Er : rngi_of z = Int.sign_ext 16 (Int.shru n1 (Int.repr 16)))
+      by (unfold rngi_of; rewrite Ezn, Int.repr_unsigned; reflexivity).
+    assert (Em : s16_of w = Int.sign_ext 16 (Int.and n (Int.repr 65535)))
+      by (unfold s16_of; rewrite Ewn, Int.repr_unsigned; reflexivity).
+    eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
+    - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsbs) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
+    - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc1)) | split; [ reflexivity | ] ].
+      exists z, u, (Int.shr u (rngi_of z)), rm1, qm1.
+      split; [ exact Hz | split; [ exact Hu | split; [ rewrite Er; exact Elu | split; [ reflexivity | split; [ exact Ur | split; [ | exact U2 ] ] ] ] ] ].
+      rewrite Em, Er. exact Hs1.
+  Qed.
+
+  (* ---- PARENT_BIT_CLEAR (0x33):
+     obj_and_int(o->parentObj, byte2 w, w1 ^ 0xFFFFFFFF); cmd += 2.
+     The parent is a pool slot (po) disjoint from o's script stack:
+     a premise here, par51_ok at the row ---- *)
+  Lemma hd_parent_bit_clear : forall m st w t m' vr po,
+    In st vm_tab -> scr_ok G m -> V m st -> cur m ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 51 ->
+    Mem.load Mint32 m pool (oc + 104) = Some (Vptr pool (Ptrofs.repr po)) ->
+    0 <= po <= 145312 -> (po = oc \/ po + 608 <= oc \/ oc + 608 <= po) ->
+    eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_parent_bit_clear) [] t m' vr ->
+    exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
+      /\ exists a old m1, word_at (v_s st) (v_i st + 1) = Some (Int.unsigned a)
+         /\ Mem.load Mint32 m pool (po + 136 + 4 * byte2 w) = Some (Vint old)
+         /\ Mem.store Mint32 m pool (po + 136 + 4 * byte2 w)
+              (Vint (Int.and old (Int.xor a (Int.repr (-1))))) = Some m1
+         /\ Mem.unchanged_on Pfr m1 m'.
+  Proof.
+    intros m st w t m' vr po Hst Hscr HV Hc Hw Ho Hpar Hpo Hdj H.
+    destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
+    pose proof (succs_pbc st w Hw Ho) as Es. rewrite Hl in Es.
+    destruct (Nat.ltb _ _) eqn:Elt; [ discriminate Es | ]. apply Nat.ltb_ge in Elt.
+    injection Es as Es. subst l.
+    assert (Hf80 : 0 <= byte2 w < 80)
+      by (apply (fld_lt80 st w Hst Hw); rewrite Ho; do 13 right; left; reflexivity).
+    apply V_iff in HV as ((b & Hsbs & Hcm) & HS).
+    destruct (word_int _ _ _ Hw) as (n & Hn & Ewn).
+    destruct (pbc_w1 st w Hst Hw Ho) as (z & Hz).
+    destruct (word_int _ _ _ Hz) as (n1 & Hn1 & Ezn).
+    destruct (Hscr (v_s st) b (v_i st) _ Hsbs (in_map _ _ _ Hst) Hn) as (vn & Hlv & Hiv).
+    cbn in Hiv. subst vn.
+    destruct (Hscr (v_s st) b (v_i st + 1)%nat _ Hsbs (in_map _ _ _ Hst) Hn1) as (vn1 & Hlv1 & Hiv1).
+    cbn in Hiv1. subst vn1.
+    assert (Hilt : (v_i st + 1 < List.length (words (v_s st)))%nat)
+      by (apply nth_error_Some; rewrite Hn1; discriminate).
+    remember (4 * Z.of_nat (v_i st)) as I4 eqn:EI.
+    try rewrite <- EI in Hlv. try rewrite <- EI in Hcm.
+    replace (4 * Z.of_nat (v_i st + 1)) with (I4 + 4) in Hlv1 by lia.
+    apply fcall_inv in H as (le1 & le2 & out1 & Hb & X & Hor); [ | reflexivity ].
+    cbn [fn_params BS.f_bhv_cmd_parent_bit_clear bind_parameter_temps] in Hb. injection Hb as <-.
+    cbn [fn_body BS.f_bhv_cmd_parent_bit_clear] in X.
+    apply RA.seq_inv in X as [(t1 & le1 & m1 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
+    (* field *)
+    apply RA.seq_inv in X1 as [(t3 & le3 & m3 & t4 & X3 & X4) | (X3 & Xn)]; [ | kill_sq X3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ X3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in X4 as [(t5 & le5 & m5 & t6 & X5 & X6) | (X5 & Xn)]; [ | kill_sq X5 Xn ].
+    apply RA.set_inv in X5 as (vw & Evw & -> & -> & _).
+    apply (ev_w0 _ _ _ b I4 n _ (PTree.gss _ _ _) ltac:(lia) Hlv) in Evw. subst vw.
+    apply RA.set_inv in X6 as (vf & Evf & -> & -> & _).
+    apply RA.ev_cast in Evf as (x1 & Ex1 & C1). apply RA.ev_cast in Ex1 as (x2 & Ex2 & C2).
+    apply RA.ev_binop in Ex2 as (a1 & a2 & Ea1 & Ea2 & Eand).
+    apply RA.ev_binop in Ea1 as (s1 & s2 & Es1 & Es2 & Eshr).
+    apply RA.ev_temp in Es1. rewrite PTree.gss in Es1. injection Es1 as <-.
+    apply RA.ev_const in Es2. subst s2. apply RA.ev_const in Ea2. subst a2.
+    cbn in Eshr. injection Eshr as <-. cbn in Eand. injection Eand as <-.
+    cbn in C2. injection C2 as <-. cbn in C1. injection C1 as <-.
+    (* value = (u32) cmd[1] *)
+    apply RA.seq_inv in X2 as [(u1 & ke1 & k1 & u2 & Y1 & Y2) | (Y1 & Xn)]; [ | kill_sq Y1 Xn ].
+    apply RA.seq_inv in Y1 as [(u3 & ke3 & k3 & u4 & Y3 & Y4) | (Y3 & Xn)]; [ | kill_sq Y3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Y3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in Y4 as [(u5 & ke5 & k5 & u6 & Y5 & Y6) | (Y5 & Xn)]; [ | kill_sq Y5 Xn ].
+    apply RA.set_inv in Y5 as (vw & Evw & -> & -> & _).
+    apply (ev_w1 _ _ _ b I4 n1 _ (PTree.gss _ _ _) ltac:(lia) Hlv1) in Evw. subst vw.
+    apply RA.set_inv in Y6 as (vv & Evv & -> & -> & _).
+    apply RA.ev_cast in Evv as (y1 & Ey1 & D1). apply RA.ev_temp in Ey1. rewrite PTree.gss in Ey1.
+    injection Ey1 as <-. cbn in D1. injection D1 as <-.
+    (* value ^= 0xFFFFFFFF *)
+    apply RA.seq_inv in Y2 as [(p1 & pe1 & pm1 & p2 & Z1 & Z2) | (Z1 & Xn)]; [ | kill_sq Z1 Xn ].
+    apply RA.set_inv in Z1 as (vx & Evx & -> & -> & _).
+    apply RA.ev_binop in Evx as (x1' & x2' & Ex1' & Ex2' & Exor).
+    apply RA.ev_temp in Ex1'. rewrite PTree.gss in Ex1'. injection Ex1' as <-.
+    apply RA.ev_const in Ex2'. subst x2'.
+    cbn in Exor. injection Exor as <-.
+    (* t6 = parent->asS32[field]; parent->asS32[field] = t6 & value *)
+    apply RA.seq_inv in Z2 as [(q1 & qe1 & qm1 & q2 & D3 & E1) | (D3 & Xn)]; [ | kill_sq D3 Xn ].
+    apply RA.seq_inv in D3 as [(r1 & re1 & rm1 & r2 & W1 & W2) | (W1 & Xn)]; [ | kill_sq W1 Xn ].
+    apply ld_cur in W1 as (-> & -> & _); [ | exact Hc ].
+    apply RA.seq_inv in W2 as [(s1' & se1 & sm1 & s2' & W3 & W4) | (W3 & Xn)]; [ | kill_sq W3 Xn ].
+    apply RA.set_inv in W3 as (v3 & Ev3 & -> & -> & _).
+    apply (ld_par _ _ _ _ (PTree.gss _ _ _)) in Ev3. rewrite Hpar in Ev3. injection Ev3 as <-.
+    apply RA.seq_inv in W4 as [(s3 & se3 & sm3 & s4 & W5 & W6) | (W5 & Xn)]; [ | kill_sq W5 Xn ].
+    apply ld_cur in W5 as (-> & -> & _); [ | exact Hc ].
+    apply RA.seq_inv in W6 as [(s5 & se5 & sm5 & s6 & W7 & W8) | (W7 & Xn)]; [ | kill_sq W7 Xn ].
+    apply RA.set_inv in W7 as (v5 & Ev5 & -> & -> & _).
+    apply (ld_par _ _ _ _ (PTree.gss _ _ _)) in Ev5. rewrite Hpar in Ev5. injection Ev5 as <-.
+    apply RA.seq_inv in W8 as [(s7 & se7 & sm7 & s8 & W9 & W10) | (W9 & Xn)]; [ | kill_sq W9 Xn ].
+    apply RA.set_inv in W9 as (vo & Evo & -> & -> & _).
+    match type of Evo with eval_expr _ _ ?le _ _ _ =>
+      assert (Hfi : exists fi, le ! BS._field = Some (Vint fi) /\ Int.signed fi = byte2 w)
+        by (eexists; split;
+            [ do 8 rewrite PTree.gso by (vm_compute; discriminate); apply PTree.gss
+            | rewrite Ewn; apply fld_eq ]) end.
+    destruct Hfi as (fi & Hfi & Efi).
+    destruct (ev_raw_rd _ _ _ _ _ _ Hfi Evo) as (bo & oo & Hpo' & Hld).
+    rewrite PTree.gss in Hpo'. injection Hpo' as <- <-.
+    cbn [Mem.loadv] in Hld. unfold Ptrofs.of_ints in Hld. rewrite Efi in Hld. rewrite raw_addr in Hld by lia.
+    apply RA.assign_inv in W10 as (b2 & o2 & bf2 & v2 & v6 & Hlv2 & Ev2 & Hcast2 & Has & -> & _).
+    match type of Hlv2 with eval_lvalue _ _ ?le _ _ _ _ _ =>
+      assert (Hfi2 : le ! BS._field = Some (Vint fi))
+        by (rewrite PTree.gso by (vm_compute; discriminate); exact Hfi) end.
+    destruct (lv_raw _ _ _ _ _ _ _ _ Hfi2 Hlv2) as (o0 & Ho0 & -> & ->).
+    do 3 rewrite PTree.gso in Ho0 by (vm_compute; discriminate). rewrite PTree.gss in Ho0.
+    injection Ho0 as <- <-.
+    apply RA.ev_binop in Ev2 as (e1 & e2 & Ee1 & Ee2 & Eand').
+    apply RA.ev_temp in Ee1. rewrite PTree.gss in Ee1. injection Ee1 as <-.
+    apply RA.ev_cast in Ee2 as (c0 & Ec0 & Cc0). apply RA.ev_temp in Ec0.
+    do 5 rewrite PTree.gso in Ec0 by (vm_compute; discriminate). rewrite PTree.gss in Ec0.
+    injection Ec0 as <-. cbn in Cc0. injection Cc0 as <-.
+    destruct vo as [| old | | | | ]; cbn in Eand'; try discriminate Eand'.
+    injection Eand' as <-. cbn in Hcast2. injection Hcast2 as <-.
+    pose proof (RA.store_by_value _ tint _ _ _ _ _ _ Mint32 eq_refl eq_refl Has) as Hs1.
+    unfold Ptrofs.of_ints in Hs1. rewrite Efi in Hs1. rewrite raw_addr in Hs1 by lia.
+    (* cmd = cmd + 2 *)
+    apply RA.seq_inv in E1 as [(u11 & ke11 & n11 & u12 & Y11 & Y12) | (Y11 & Xn)]; [ | kill_sq Y11 Xn ].
+    apply RA.seq_inv in Y11 as [(u13 & ke13 & n13 & u14 & Y13 & Y14) | (Y13 & Xn)]; [ | kill_sq Y13 Xn ].
+    assert (Lc : Mem.load Mint32 qm1 bc 0 = Some (Vptr b (Ptrofs.repr I4)))
+      by (rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1) by (left; exact Hbp); exact Hcm).
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Y13 Lc) as (-> & -> & _).
+    apply st_cmd in Y14 as (v4 & v5 & Ev4 & Hcast4 & Hs2 & -> & _).
+    apply RA.ev_binop in Ev4 as (q1' & q2' & Eq1 & Eq2 & Eadd).
+    apply RA.ev_temp in Eq1. rewrite PTree.gss in Eq1. injection Eq1 as <-.
+    apply RA.ev_const in Eq2. subst q2'. cbn [typeof] in Eadd. rewrite add_pi in Eadd. injection Eadd as <-.
+    cbn [typeof] in Hcast4. rewrite cast_pp in Hcast4. injection Hcast4 as <-.
+    rewrite ptr_inc in Hs2 by lia. norm_off Hs2 (4 * Z.of_nat (v_i st + 2)).
+    destruct (bc_store _ _ _ Hs2) as (Hc2 & _ & U2).
+    apply RA.ret_inv in Y12 as (-> & rv & Erv & ->). apply RA.ev_const in Erv. subst rv.
+    cbn in Hor. destruct Hor as (_ & Hor). cbn in Hor. injection Hor as <-.
+    assert (HS1 : Vstk qm1 (v_k st)).
+    { destruct HS as (Hsi & Hk). split.
+      - rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1); [ exact Hsi | ].
+        right. cbn [size_chunk]. unfold OW.O_SIDX. lia.
+      - intros j f Hj.
+        assert (Hjl : (j < List.length (v_k st))%nat) by (apply nth_error_Some; rewrite Hj; discriminate).
+        rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1); [ exact (Hk j f Hj) | ].
+        right. cbn [size_chunk]. unfold OW.O_STK. lia. }
+    eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
+    - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsbs) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
+    - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc)) | split; [ reflexivity | ] ].
+      exists n1, old, qm1.
+      split; [ rewrite <- Ezn; exact Hz | split; [ exact Hld | split; [ exact Hs1 | exact U2 ] ] ].
+  Qed.
+
+  (* ---- ANIMATE_TEXTURE (0x34):
+     if (gGlobalTimer % (s16)(w & 0xFFFF) == 0) o->rawData.asS32[byte2 w] += 1;
+     cmd += 1.  Either branch: the condition is not analysed ---- *)
+  Lemma hd_animate_texture : forall m st w t m' vr,
+    In st vm_tab -> scr_ok G m -> V m st -> cur m ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 52 ->
+    eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_animate_texture) [] t m' vr ->
+    exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
+      /\ exists m1, (m1 = m \/ exists old, Mem.load Mint32 m pool (oc + 136 + 4 * byte2 w) = Some (Vint old)
+                       /\ Mem.store Mint32 m pool (oc + 136 + 4 * byte2 w)
+                            (Vint (Int.add old (Int.repr 1))) = Some m1)
+         /\ Mem.unchanged_on Pfr m1 m'.
+  Proof.
+    intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
+    destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
+    pose proof (succs_atex st w Hw Ho) as Es. rewrite Hl in Es.
+    destruct (Nat.ltb _ _) eqn:Elt; [ discriminate Es | ]. apply Nat.ltb_ge in Elt.
+    injection Es as Es. subst l.
+    assert (Hf80 : 0 <= byte2 w < 80)
+      by (apply (fld_lt80 st w Hst Hw); rewrite Ho; do 14 right; left; reflexivity).
+    apply V_iff in HV as ((b & Hsb & Hcm) & HS).
+    destruct (word_int _ _ _ Hw) as (n & Hn & Ewn).
+    assert (Hilt : (v_i st < List.length (words (v_s st)))%nat)
+      by (apply nth_error_Some; rewrite Hn; discriminate).
+    destruct (Hscr (v_s st) b (v_i st) _ Hsb (in_map _ _ _ Hst) Hn) as (vn & Hlv & Hiv).
+    cbn in Hiv. subst vn.
+    remember (4 * Z.of_nat (v_i st)) as I4 eqn:EI.
+    try rewrite <- EI in Hlv. try rewrite <- EI in Hcm.
+    apply fcall_inv in H as (le1 & le2 & out1 & Hb & X & Hor); [ | reflexivity ].
+    cbn [fn_params BS.f_bhv_cmd_animate_texture bind_parameter_temps] in Hb. injection Hb as <-.
+    cbn [fn_body BS.f_bhv_cmd_animate_texture] in X.
+    apply RA.seq_inv in X as [(t1 & le1 & m1 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
+    (* field *)
+    apply RA.seq_inv in X1 as [(t3 & le3 & m3 & t4 & X3 & X4) | (X3 & Xn)]; [ | kill_sq X3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ X3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in X4 as [(t5 & le5 & m5 & t6 & X5 & X6) | (X5 & Xn)]; [ | kill_sq X5 Xn ].
+    apply RA.set_inv in X5 as (vw & Evw & -> & -> & _).
+    apply (ev_w0 _ _ _ b I4 n _ (PTree.gss _ _ _) ltac:(lia) Hlv) in Evw. subst vw.
+    apply RA.set_inv in X6 as (vf & Evf & -> & -> & _).
+    apply RA.ev_cast in Evf as (x1 & Ex1 & C1). apply RA.ev_cast in Ex1 as (x2 & Ex2 & C2).
+    apply RA.ev_binop in Ex2 as (a1 & a2 & Ea1 & Ea2 & Eand).
+    apply RA.ev_binop in Ea1 as (s1 & s2 & Es1 & Es2 & Eshr).
+    apply RA.ev_temp in Es1. rewrite PTree.gss in Es1. injection Es1 as <-.
+    apply RA.ev_const in Es2. subst s2. apply RA.ev_const in Ea2. subst a2.
+    cbn in Eshr. injection Eshr as <-. cbn in Eand. injection Eand as <-.
+    cbn in C2. injection C2 as <-. cbn in C1. injection C1 as <-.
+    (* rate: not analysed *)
+    apply RA.seq_inv in X2 as [(u1 & ke1 & n1 & u2 & Y1 & Y2) | (Y1 & Xn)]; [ | kill_sq Y1 Xn ].
+    apply RA.seq_inv in Y1 as [(u3 & ke3 & n3 & u4 & Y3 & Y4) | (Y3 & Xn)]; [ | kill_sq Y3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Y3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in Y4 as [(u5 & ke5 & n5 & u6 & Y5 & Y6) | (Y5 & Xn)]; [ | kill_sq Y5 Xn ].
+    apply RA.set_inv in Y5 as (vw & _ & -> & -> & _).
+    apply RA.set_inv in Y6 as (vr8 & _ & -> & -> & _).
+    (* t2 = gGlobalTimer; if (t2 % rate == 0) o->asS32[field] = o->asS32[field] + 1 *)
+    apply RA.seq_inv in Y2 as [(q1 & qe1 & qm1 & q2 & D3 & E1) | (D3 & Xn)]; [ | kill_sq D3 Xn ].
+    apply RA.seq_inv in D3 as [(r1 & re1 & rm1 & r2 & W1 & W2) | (W1 & Xn)]; [ | kill_sq W1 Xn ].
+    apply RA.set_inv in W1 as (vg & _ & -> & -> & _).
+    apply RA.if_inv in W2 as (vc & bb & _ & _ & W2).
+    assert (Hq : qm1 = m \/ exists old, Mem.load Mint32 m pool (oc + 136 + 4 * byte2 w) = Some (Vint old)
+                   /\ Mem.store Mint32 m pool (oc + 136 + 4 * byte2 w)
+                        (Vint (Int.add old (Int.repr 1))) = Some qm1).
+    { destruct bb.
+      - right.
+        apply RA.seq_inv in W2 as [(s1' & se1 & sm1 & s2' & W3 & W4) | (W3 & Xn)]; [ | kill_sq W3 Xn ].
+        apply ld_cur in W3 as (-> & -> & _); [ | exact Hc ].
+        apply RA.seq_inv in W4 as [(s3 & se3 & sm3 & s4 & W5 & W6) | (W5 & Xn)]; [ | kill_sq W5 Xn ].
+        apply ld_cur in W5 as (-> & -> & _); [ | exact Hc ].
+        apply RA.seq_inv in W6 as [(s5 & se5 & sm5 & s6 & W7 & W8) | (W7 & Xn)]; [ | kill_sq W7 Xn ].
+        apply RA.set_inv in W7 as (vo & Evo & -> & -> & _).
+        match type of Evo with eval_expr _ _ ?le _ _ _ =>
+          assert (Hfi : exists fi, le ! BS._field = Some (Vint fi) /\ Int.signed fi = byte2 w)
+            by (eexists; split;
+                [ do 6 rewrite PTree.gso by (vm_compute; discriminate); apply PTree.gss
+                | rewrite Ewn; apply fld_eq ]) end.
+        destruct Hfi as (fi & Hfi & Efi).
+        destruct (ev_raw_rd _ _ _ _ _ _ Hfi Evo) as (bo & oo & Hpo & Hld).
+        rewrite PTree.gss in Hpo. injection Hpo as <- <-.
+        cbn [Mem.loadv] in Hld. unfold Ptrofs.of_ints in Hld. rewrite Efi in Hld. rewrite raw_addr in Hld by lia.
+        apply RA.assign_inv in W8 as (b2 & o2 & bf2 & v2 & v3 & Hlv2 & Ev2 & Hcast2 & Has & -> & _).
+        match type of Hlv2 with eval_lvalue _ _ ?le _ _ _ _ _ =>
+          assert (Hfi2 : le ! BS._field = Some (Vint fi))
+            by (rewrite PTree.gso by (vm_compute; discriminate); exact Hfi) end.
+        destruct (lv_raw _ _ _ _ _ _ _ _ Hfi2 Hlv2) as (o0 & Ho0 & -> & ->).
+        do 2 rewrite PTree.gso in Ho0 by (vm_compute; discriminate). rewrite PTree.gss in Ho0.
+        injection Ho0 as <- <-.
+        apply RA.ev_binop in Ev2 as (e1 & e2 & Ee1 & Ee2 & Eadd').
+        apply RA.ev_temp in Ee1. rewrite PTree.gss in Ee1. injection Ee1 as <-.
+        apply RA.ev_cast in Ee2 as (c0 & Ec0 & Cc0). apply RA.ev_const in Ec0. subst c0.
+        cbn in Cc0. injection Cc0 as <-.
+        destruct vo as [| old | | | | ]; cbn in Eadd'; try discriminate Eadd'.
+        injection Eadd' as <-. cbn in Hcast2. injection Hcast2 as <-.
+        pose proof (RA.store_by_value _ tint _ _ _ _ _ _ Mint32 eq_refl eq_refl Has) as Hs1.
+        unfold Ptrofs.of_ints in Hs1. rewrite Efi in Hs1. rewrite raw_addr in Hs1 by lia.
+        exists old. split; [ exact Hld | exact Hs1 ].
+      - left. apply RA.skip_inv in W2 as (-> & _ & _). reflexivity. }
+    assert (HM : Mem.load Mint32 qm1 bc 0 = Some (Vptr b (Ptrofs.repr I4)) /\ Vstk qm1 (v_k st) /\ cur qm1).
+    { destruct Hq as [-> | (old & _ & Hs1)]; [ split; [ exact Hcm | split; [ exact HS | exact Hc ] ] | ].
+      split; [ rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1) by (left; exact Hbp); exact Hcm | split ].
+      - destruct HS as (Hsi & Hk). split.
+        + rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1); [ exact Hsi | ].
+          right. right. cbn [size_chunk]. unfold OW.O_SIDX. lia.
+        + intros j f Hj.
+          assert (Hjl : (j < List.length (v_k st))%nat) by (apply nth_error_Some; rewrite Hj; discriminate).
+          rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1); [ exact (Hk j f Hj) | ].
+          right. right. cbn [size_chunk]. unfold OW.O_STK. lia.
+      - exact (cur_store _ _ _ _ _ Hs1 Hc). }
+    destruct HM as (Lc & HS1 & Hc1).
+    (* cmd = cmd + 1 *)
+    apply RA.seq_inv in E1 as [(u11 & ke11 & n11 & u12 & Y11 & Y12) | (Y11 & Xn)]; [ | kill_sq Y11 Xn ].
+    apply RA.seq_inv in Y11 as [(u13 & ke13 & n13 & u14 & Y13 & Y14) | (Y13 & Xn)]; [ | kill_sq Y13 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Y13 Lc) as (-> & -> & _).
+    apply st_cmd in Y14 as (v4 & v5 & Ev4 & Hcast4 & Hs2 & -> & _).
+    apply RA.ev_binop in Ev4 as (q1' & q2' & Eq1 & Eq2 & Eadd).
+    apply RA.ev_temp in Eq1. rewrite PTree.gss in Eq1. injection Eq1 as <-.
+    apply RA.ev_const in Eq2. subst q2'. cbn [typeof] in Eadd. rewrite add_pi in Eadd. injection Eadd as <-.
+    cbn [typeof] in Hcast4. rewrite cast_pp in Hcast4. injection Hcast4 as <-.
+    rewrite ptr_inc in Hs2 by lia. norm_off Hs2 (4 * Z.of_nat (v_i st + 1)).
+    destruct (bc_store _ _ _ Hs2) as (Hc2 & _ & U2).
+    apply RA.ret_inv in Y12 as (-> & rv & Erv & ->). apply RA.ev_const in Erv. subst rv.
+    cbn in Hor. destruct Hor as (_ & Hor). cbn in Hor. injection Hor as <-.
+    eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
+    - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
+    - split; [ exact (Hc2 Hc1) | split; [ reflexivity | ] ].
+      exists qm1. split; [ exact Hq | exact U2 ].
+  Qed.
+
 
   (* ---- SUM_FLOAT (0x1F): o->rawData.asF32[byte2 w] =
           o->rawData.asF32[byte3 w] + o->rawData.asF32[byte4 w] ---- *)
@@ -3523,18 +4481,167 @@ Section Link.
     - left. reflexivity.
   Qed.
 
+  (* SET_RANDOM_FLOAT's row (opcode 20 = 0x14).  Its reachable fields are
+     10 and 27-29; 27 is the cell obj_w's RED clause reads for a
+     bhvHiddenRedCoinStar slot (oHiddenStarTriggerCounter).  Pinned: the RNG call changes only gRandomSeed16
+     (Psd), then ONE store of range * r + min, r = rf_of u the real
+     random_float value of a 16-bit u, range / min the script's *)
+  Definition srf_keep : Prop := forall m st w z u m1 m2, INV m -> In st vm_tab ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 20 ->
+    word_at (v_s st) (v_i st + 1) = Some z -> 0 <= Int.unsigned u < 65536 ->
+    Mem.unchanged_on Psd m m1 ->
+    Mem.store Mfloat32 m1 pool (oc + 136 + 4 * byte2 w)
+      (Vsingle (Float32.add (Float32.mul (rng_of z) (rf_of u)) (f32_of w))) = Some m2 -> INV m2.
+
+  Lemma row_set_random_float : srf_keep -> cmd_row_op 20.
+  Proof.
+    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 20) = Some BS._bhv_cmd_set_random_float)
+      by (vm_compute; reflexivity).
+    rewrite E in Hid. injection Hid as <-.
+    assert (Hdm : (prog_defmap BS.prog) ! BS._bhv_cmd_set_random_float
+                  = Some (Gfun (Internal BS.f_bhv_cmd_set_random_float))) by (vm_compute; reflexivity).
+    rewrite (fun_bs _ _ Hdm _ _ Hhb Hfd) in Hev.
+    destruct (hd_set_random_float _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
+      as (l & st' & Hl & Hin & HV' & _ & -> & z & u & m1 & m2 & Hz & Hu & Ur & Hs1 & U).
+    exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ HI Hst Hw Ho Hz Hu Ur Hs1) U).
+    - left. reflexivity.
+  Qed.
+
+  (* SET_RANDOM_INT's row (opcode 21).  Its one reachable field is 27, the cell obj_w's RED clause reads
+     for a bhvHiddenRedCoinStar slot.  Pinned: the RNG call changes only
+     gRandomSeed16 (Psd), then ONE store of the real computed value *)
+  Definition sri_keep : Prop := forall m st w z u ri m1 m2, INV m -> In st vm_tab ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 21 ->
+    word_at (v_s st) (v_i st + 1) = Some z -> 0 <= Int.unsigned u < 65536 ->
+    Float32.to_int (Float32.mul (Float32.of_int (rngi_of z)) (rf_of u)) = Some ri ->
+    Mem.unchanged_on Psd m m1 ->
+    Mem.store Mint32 m1 pool (oc + 136 + 4 * byte2 w) (Vint (Int.add ri (s16_of w))) = Some m2 -> INV m2.
+
+  Lemma row_set_random_int : sri_keep -> cmd_row_op 21.
+  Proof.
+    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 21) = Some BS._bhv_cmd_set_random_int)
+      by (vm_compute; reflexivity).
+    rewrite E in Hid. injection Hid as <-.
+    assert (Hdm : (prog_defmap BS.prog) ! BS._bhv_cmd_set_random_int
+                  = Some (Gfun (Internal BS.f_bhv_cmd_set_random_int))) by (vm_compute; reflexivity).
+    rewrite (fun_bs _ _ Hdm _ _ Hhb Hfd) in Hev.
+    destruct (hd_set_random_int _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
+      as (l & st' & Hl & Hin & HV' & _ & -> & z & u & ri & m1 & m2 & Hz & Hu & Hv & Ur & Hs1 & U).
+    exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ _ HI Hst Hw Ho Hz Hu Hv Ur Hs1) U).
+    - left. reflexivity.
+  Qed.
+
+  (* SET_INT_RAND_RSHIFT's row (opcode 19).  Its one reachable field is 16, which obj_w does not read.  Pinned: the RNG call changes only
+     gRandomSeed16 (Psd), then ONE store of the real computed value *)
+  Definition sir_keep : Prop := forall m st w z u ri m1 m2, INV m -> In st vm_tab ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 19 ->
+    word_at (v_s st) (v_i st + 1) = Some z -> 0 <= Int.unsigned u < 65536 ->
+    Int.ltu (rngi_of z) Int.iwordsize = true /\ ri = Int.shr u (rngi_of z) ->
+    Mem.unchanged_on Psd m m1 ->
+    Mem.store Mint32 m1 pool (oc + 136 + 4 * byte2 w) (Vint (Int.add ri (s16_of w))) = Some m2 -> INV m2.
+
+  Lemma row_set_int_rand_rshift : sir_keep -> cmd_row_op 19.
+  Proof.
+    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 19) = Some BS._bhv_cmd_set_int_rand_rshift)
+      by (vm_compute; reflexivity).
+    rewrite E in Hid. injection Hid as <-.
+    assert (Hdm : (prog_defmap BS.prog) ! BS._bhv_cmd_set_int_rand_rshift
+                  = Some (Gfun (Internal BS.f_bhv_cmd_set_int_rand_rshift))) by (vm_compute; reflexivity).
+    rewrite (fun_bs _ _ Hdm _ _ Hhb Hfd) in Hev.
+    destruct (hd_set_int_rand_rshift _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
+      as (l & st' & Hl & Hin & HV' & _ & -> & z & u & ri & m1 & m2 & Hz & Hu & Hv1 & Hv2 & Ur & Hs1 & U).
+    exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ _ HI Hst Hw Ho Hz Hu (conj Hv1 Hv2) Ur Hs1) U).
+    - left. reflexivity.
+  Qed.
+
+  (* PARENT_BIT_CLEAR's row (opcode 51).  It writes the PARENT's field 22
+     (oActiveParticleFlags), clearing mask bits.  Two pinned premises:
+     par51_ok -- at a reachable 0x33 word, o->parentObj is a pool slot
+     disjoint from o's script stack.  Phantom check: the 0x33 states are
+     twelve particle-spawner scripts (pbc_states), each spawned by Mario's
+     own code with parentObj = gMarioObject (a pool slot); a NULL parent
+     makes the handler stuck (Clight eval fails), so it is not a state the
+     row needs.  Discharge: an obj_w clause "a particle-spawner slot's
+     parentObj is gMarioObject's slot", proved at the spawn rows.
+     pbc_keep -- the one store, old & ~mask, into that slot's field 22,
+     which obj_w does not read *)
+  Definition par51_ok : Prop := forall m st w, INV m -> In st vm_tab ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 51 ->
+    exists po, Mem.load Mint32 m pool (oc + 104) = Some (Vptr pool (Ptrofs.repr po))
+      /\ 0 <= po <= 145312 /\ (po = oc \/ po + 608 <= oc \/ oc + 608 <= po).
+
+  Definition pbc_keep : Prop := forall m st w po a old m1, INV m -> In st vm_tab ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 51 ->
+    Mem.load Mint32 m pool (oc + 104) = Some (Vptr pool (Ptrofs.repr po)) ->
+    word_at (v_s st) (v_i st + 1) = Some (Int.unsigned a) ->
+    Mem.load Mint32 m pool (po + 136 + 4 * byte2 w) = Some (Vint old) ->
+    Mem.store Mint32 m pool (po + 136 + 4 * byte2 w)
+      (Vint (Int.and old (Int.xor a (Int.repr (-1))))) = Some m1 -> INV m1.
+
+  Lemma row_parent_bit_clear : par51_ok -> pbc_keep -> cmd_row_op 51.
+  Proof.
+    intros Hp Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 51) = Some BS._bhv_cmd_parent_bit_clear)
+      by (vm_compute; reflexivity).
+    rewrite E in Hid. injection Hid as <-.
+    assert (Hdm : (prog_defmap BS.prog) ! BS._bhv_cmd_parent_bit_clear
+                  = Some (Gfun (Internal BS.f_bhv_cmd_parent_bit_clear))) by (vm_compute; reflexivity).
+    rewrite (fun_bs _ _ Hdm _ _ Hhb Hfd) in Hev.
+    destruct (Hp _ _ _ HI Hst Hw Ho) as (po & Hpar & Hpo & Hdj).
+    destruct (hd_parent_bit_clear _ _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hpar Hpo Hdj Hev)
+      as (l & st' & Hl & Hin & HV' & _ & -> & a & old & m1 & Ha & Hld & Hs1 & U).
+    exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ HI Hst Hw Ho Hpar Ha Hld Hs1) U).
+    - left. reflexivity.
+  Qed.
+
+  (* ANIMATE_TEXTURE's row (opcode 52).  Computed (BhvVM.atex_states): the
+     only reachable 0x34 word is bhvKoopaShellFlame's
+     ANIMATE_TEXTURE(oAnimState, 2) -- field 26, rate 2 (nonzero, so the %
+     is defined) -- and the flame is outside WMotR's real spawn graph
+     (BoxCensus.flame_unreached): once obj_w's SCRIPT domain is narrowed to
+     BoxCensus.wmotr_closure_b this premise holds vacuously.  Pinned to the
+     one store, old + 1 (the timer branch not taken leaves m unchanged) *)
+  Definition atex_keep : Prop := forall m st w old m1, INV m -> In st vm_tab ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 52 ->
+    Mem.load Mint32 m pool (oc + 136 + 4 * byte2 w) = Some (Vint old) ->
+    Mem.store Mint32 m pool (oc + 136 + 4 * byte2 w) (Vint (Int.add old (Int.repr 1))) = Some m1 -> INV m1.
+
+  Lemma row_animate_texture : atex_keep -> cmd_row_op 52.
+  Proof.
+    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 52) = Some BS._bhv_cmd_animate_texture)
+      by (vm_compute; reflexivity).
+    rewrite E in Hid. injection Hid as <-.
+    assert (Hdm : (prog_defmap BS.prog) ! BS._bhv_cmd_animate_texture
+                  = Some (Gfun (Internal BS.f_bhv_cmd_animate_texture))) by (vm_compute; reflexivity).
+    rewrite (fun_bs _ _ Hdm _ _ Hhb Hfd) in Hev.
+    destruct (hd_animate_texture _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
+      as (l & st' & Hl & Hin & HV' & _ & -> & m1 & Hq & U).
+    exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
+    - refine (Hinv_frame _ _ _ U).
+      destruct Hq as [-> | (old & Hld & Hs1)]; [ exact HI | exact (Hk _ _ _ _ _ HI Hst Hw Ho Hld Hs1) ].
+    - left. reflexivity.
+  Qed.
+
   (* the pinned one-store premises of the field commands, together *)
-  Definition row_keeps : Prop := set_keep /\ setf_keep /\ addi_keep /\ ori_keep /\ addf_keep /\ sumf_keep /\ deact_keep /\ sit_keep.
+  Definition row_keeps : Prop := set_keep /\ setf_keep /\ addi_keep /\ ori_keep /\ addf_keep /\ sumf_keep /\ deact_keep /\ sit_keep /\ srf_keep /\ sri_keep /\ sir_keep /\ par51_ok /\ pbc_keep /\ atex_keep.
 
   (* the opcodes whose rows are proved: the control layer, DELAY_VAR, and
-     SET_INT / SET_FLOAT / ADD_INT / OR_INT / ADD_FLOAT / SUM_FLOAT / DEACTIVATE / SET_INTERACT_TYPE (from row_keeps) *)
-  Definition done_ops : list Z := 47 :: 29 :: 31 :: 13 :: 17 :: 15 :: 14 :: 16 :: 37 :: ctl_ops.
+     SET_INT / SET_FLOAT / ADD_INT / OR_INT / ADD_FLOAT / SUM_FLOAT / DEACTIVATE / SET_INTERACT_TYPE / SET_RANDOM_FLOAT / SET_RANDOM_INT / SET_INT_RAND_RSHIFT / PARENT_BIT_CLEAR / ANIMATE_TEXTURE (from row_keeps) *)
+  Definition done_ops : list Z := 52 :: 51 :: 21 :: 19 :: 20 :: 47 :: 29 :: 31 :: 13 :: 17 :: 15 :: 14 :: 16 :: 37 :: ctl_ops.
 
   Lemma done_rows : row_keeps -> forall op, In op done_ops -> cmd_row_op op.
   Proof.
-    intros (K16 & K14 & K15 & K17 & K13 & K31 & K29 & K47) op
-      [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | H]]]]]]]]];
-      [ exact (row_set_interact_type K47) | exact (row_deactivate K29) | exact (row_sum_float K31) | exact (row_add_float K13) | exact (row_or_int K17) | exact (row_add_int K15)
+    intros (K16 & K14 & K15 & K17 & K13 & K31 & K29 & K47 & K20 & K21 & K19 & K51p & K51 & K52) op
+      [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | H]]]]]]]]]]]]]];
+      [ exact (row_animate_texture K52) | exact (row_parent_bit_clear K51p K51) | exact (row_set_random_int K21) | exact (row_set_int_rand_rshift K19) | exact (row_set_random_float K20) | exact (row_set_interact_type K47) | exact (row_deactivate K29) | exact (row_sum_float K31) | exact (row_add_float K13) | exact (row_or_int K17) | exact (row_add_int K15)
       | exact (row_set_float K14) | exact (row_set_int K16) | exact row_delay_var | exact (ctl_rows op H) ].
   Qed.
 

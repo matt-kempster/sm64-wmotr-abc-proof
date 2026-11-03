@@ -753,9 +753,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
        shell / flame outside WMotR's real spawn graph (sit_kind). Obligation for obj_w: the
        SCRIPT domain narrowed to BoxCensus.wmotr_closure_b; Mario's slot stays in bhvMario.
        PERF TRAPS: `tauto` near `In st vm_tab` (544s); `repeat rewrite PTree.gso` hung --
-       use counted `do N`. Next: the 19 used rows left (the random ones 19-21 call
-       random_u16; 51 PARENT_BIT_CLEAR needs a parent-is-a-slot obj_w fact; 52 divides by the
-       script's rate);
+       use counted `do N`. Random rows 19/20/21 DONE (ru16_call / rf_call: the RNG only
+       touches gRandomSeed16); 51 DONE (par51_ok: parent is a pool slot -- obligation for
+       obj_w via the spawn rows); 52 DONE (only the flame reaches it). FOUND+fixed: Hoc
+       bounded oc at 40960 (68 of 240 slots). Trap: `cbn` will not unfold sem_cast
+       float->int when Float32.to_int is blocked -- state the cast as a local lemma.
+       Next: rows 0, 12, 28, 30, 33, 35, 39, 40, 42, 43, 45, 48, 50, 53, 55;
        the pre-/post-loop code of cur_obj_update; the loop INV = obj_w minus the current
        slot's ow_vm; then narrow Hobj_step_rest.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
