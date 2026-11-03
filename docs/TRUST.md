@@ -1241,6 +1241,8 @@ without pressing A".*
   reachable state (`Vo`, the shape of obj_w's `ow_vm`: `vm_ok_Vo` / `Vo_vm_ok`), the
   three end with the slot's cells holding a reachable state and INV kept, given the 28
   used rows. Pfr now includes `o->curBhvCommand`. Still no spine row depends on it.
+  DELAY_VAR's row is PROVED (`row_delay_var`; `done_ops` lists the proved rows, and `seg`
+  needs only the 27 used rows outside it).
   Wiring it in needs the loop's INV to be obj_w minus the current slot's `ow_vm`.
   **Indexed handler arguments (2026-10-26, B3 iii-a, `BhvVM`).** These are vm-checked at
   every reachable state:

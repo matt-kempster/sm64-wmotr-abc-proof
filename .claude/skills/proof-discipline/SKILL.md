@@ -732,7 +732,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
        dloop_used: only the 28 USED non-control opcodes' rows are open (vm_used);
        scr_b_sound is the decidable scr_ok check (obj_w/wchk part held for StartTerrain).
        VM segment DONE (BhvStep.seg: copy-in + DLOOP + copy-out, seg_is_real; Vo = ow_vm's
-       shape). Next: the 28 used rows; the pre-/post-loop code of cur_obj_update; the
+       shape). DELAY_VAR row DONE (done_ops grows per row). Next: the 27 used rows left; the pre-/post-loop code of cur_obj_update; the
        loop INV = obj_w minus the current slot's ow_vm; then narrow Hobj_step_rest.
        Next: the non-control rows, the copy-in / copy-out around DLOOP, the scr_ok obj_w
        clause (check at m11 outside StartTerrain/StartSat), then narrow Hobj_step_rest.
