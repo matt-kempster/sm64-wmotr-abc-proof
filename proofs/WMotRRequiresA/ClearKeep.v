@@ -620,6 +620,32 @@ Proof.
   - exists nil. split; [ vm_compute; reflexivity | constructor ].
 Qed.
 
+(* the class tie's walk half (ObjWorld 3h) across the same store: a
+   zeroed head walks to nothing, every other read is unchanged *)
+Lemma cls_keep_hd : forall (ge : genv) bx m m2 pool mv,
+  Genv.find_symbol ge SC._gDynamicSurfacePartition = Some bx ->
+  (forall ch b z, b <> bx -> Mem.load ch m2 b z = Mem.load ch m b z) ->
+  (forall z v, Mem.load Mint32 m2 bx z = Some v -> Mem.load Mint32 m bx z = Some v \/ v = Vint Int.zero) ->
+  OW.cls_surf_at ge pool m mv -> OW.cls_surf_at ge pool m2 mv.
+Proof.
+  intros ge bx m m2 pool mv Sbx Hld Hbx C P id bp z hd l o k HP G1 G2 Hin Hs L Hw Ho N Hk Lo.
+  assert (NP : P <> bx)
+    by (intros ->; pose proof (Genv.genv_symb_range _ _ Sbx) as R; unfold Plt, Ple in *; lia).
+  assert (Kc : forall id ch v, Pos.eqb id SC._gDynamicSurfacePartition = false ->
+             OW.gcell ge id ch v m2 -> OW.gcell ge id ch v m).
+  { intros id' ch v Ne (b & Hsb & Lb). exists b. split; [ exact Hsb | ]. rewrite <- Hld; [ exact Lb | ].
+    intros ->. assert (E : id' = SC._gDynamicSurfacePartition) by (eapply Genv.genv_vars_inj; eauto).
+    subst id'. rewrite Pos.eqb_refl in Ne. discriminate Ne. }
+  rewrite (OW.swalk_ext P m m2 (fun ch z _ _ => Hld _ _ _ NP)) in Hw.
+  rewrite (Hld _ _ _ NP) in Lo.
+  assert (Lold : Mem.load Mint32 m bp z = Some hd \/ hd = Vint Int.zero).
+  { destruct (peq bp bx) as [-> | Ne]; [ exact (Hbx z hd L) | left; rewrite <- (Hld _ _ _ Ne); exact L ]. }
+  destruct Lold as [L0 | ->].
+  - exact (C P id bp z hd l o k HP (Kc surface_load._sSurfacePool _ _ eq_refl G1) (Kc surface_load._sSurfaceNodePool _ _ eq_refl G2) Hin Hs L0 Hw Ho N Hk Lo).
+  - assert (E : OW.swalk P m OW.SFUEL (Vint Int.zero) = Some nil) by (vm_compute; reflexivity).
+    rewrite E in Hw. injection Hw as <-. destruct Ho.
+Qed.
+
 (* ---------------------------------------------------------------------- *)
 (* 4. THE CLEAR.                                                           *)
 (* ---------------------------------------------------------------------- *)
@@ -719,7 +745,8 @@ Section CK.
       cbn [PollKeep.ow_xc existsb] in Hn. apply orb_false_iff in Hn as (_ & Hn).
       apply orb_false_iff in Hn as (_ & Hn). apply orb_false_iff in Hn as (Hn & _). exact Hn.
     - intros pool Hs. apply PollKeep.SKp_full. intros ch z. apply Hld. exact (NX _ _ Hs eq_refl).
-    - intros pool Hs. exact (surf_keep_hd G bx m m2 pool Sbx Hs Hld Hbx).
+    - intros pool Hs. split; [ exact (surf_keep_hd G bx m m2 pool Sbx Hs Hld Hbx) | ].
+      intros mv. exact (cls_keep_hd G bx m m2 pool mv Sbx Hld Hbx).
     - intros (a & (b & Hsb & Lb) & Hb). exists a. split; [ | exact Hb ].
       exists b. split; [ exact Hsb | ]. rewrite (Hld _ _ _ (NX _ _ Hsb eq_refl)). exact Lb.
     - intros z _. exact (Hld _ _ _ Nbm).
@@ -768,12 +795,18 @@ Section CK.
         cbn [PollKeep.ow_xc existsb] in Hn. apply orb_false_iff in Hn as (_ & Hn).
         apply orb_false_iff in Hn as (Hn & _). exact Hn.
       - intros pool' Hs. apply PollKeep.SKp_full. intros ch z. apply LO1. exact (NA _ _ Hs eq_refl).
-      - intros pool' Hs. apply (OW.surf_obj_ok_ext G pool' m m1).
-        + intros id b Hin Hs' ch z. apply LO1. apply (NA id b Hs').
+      - intros pool' Hs.
+        assert (K1 : forall id b, In id OW.surf_gids -> Genv.find_symbol G id = Some b ->
+                       forall ch z, Mem.load ch m1 b z = Mem.load ch m b z).
+        { intros id b Hin Hs' ch z. apply LO1. apply (NA id b Hs').
           unfold OW.surf_gids, FloorList.part_ids in Hin. cbn [In] in Hin.
-          destruct Hin as [<- | [<- | [<- | [<- | []]]]]; reflexivity.
-        + intros P0 HP0 _ _ ch z _. apply LO1. exact (glob_ne_dyn G _ _ P0 Ssa HP0).
-        + intros k j _ _. apply LO1. exact (NA _ _ Hs eq_refl).
+          destruct Hin as [<- | [<- | [<- | [<- | []]]]]; reflexivity. }
+        split.
+        + apply (OW.surf_obj_ok_ext G pool' m m1 K1).
+          * intros P0 HP0 _ _ ch z _. apply LO1. exact (glob_ne_dyn G _ _ P0 Ssa HP0).
+          * intros k j _ _. apply LO1. exact (NA _ _ Hs eq_refl).
+        + intros mv. apply (OW.cls_surf_ext G pool' m m1 mv K1).
+          intros P0 HP0 _ _ ch z _. apply LO1. exact (glob_ne_dyn G _ _ P0 Ssa HP0).
       - intros _. exists (Int.repr OW.NS). split; [ exists bsa; exact (conj Ssa Lsa1) | ].
         rewrite ns_signed. exact ns_ctr.
       - intros z _. apply LO1. exact (NA _ _ Hbm_sym eq_refl).

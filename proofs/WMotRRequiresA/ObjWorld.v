@@ -988,6 +988,186 @@ Definition par_ok (ge : genv) (pool : block) (m : mem) (rs : list (list Z)) : Pr
         slot_node pool (Mem.load Mint32 m pool (k * OSZ + O_PARENT))).
 
 (* ---------------------------------------------------------------------- *)
+(* 3h. Mario's VM state, the animation data, the special-slot tie         *)
+(*     (2026-11-03, for BhvStep's init chain, ANIMATE row and sfr_keep).   *)
+(*   MVM   Mario's slot's VM cells (curBhvCommand @460, bhvStackIndex     *)
+(*         @464, bhvStack @468) are a reachable state OF bhvMario (vm_tab *)
+(*         filtered to v_s = bhvMario: ten states, all at depth <= 1).    *)
+(*         TRUTH: create_object starts him at &bhvMario[0], depth 0, and  *)
+(*         bhvMario has no CALL / GOTO out.  The boot witness has him at  *)
+(*         &bhvMario[0], depth 0 (checked by vm, m11).                     *)
+(*   ANIM  the tables LOAD_ANIMATIONS (0x27) loads -- word 1 of every     *)
+(*         reachable 0x27 state, anim_tabs_ok -- and the Animation structs *)
+(*         those tables point at hold their initializers, chunk by chunk  *)
+(*         (the s16 fields as Mint16signed, the words as Mint32: what     *)
+(*         geo_obj_init_animation's *(oAnimations + i), flags, startFrame *)
+(*         read).  They are writable globals (gvar_readonly false), so,   *)
+(*         like SCR, a world fact; nothing in the game stores into them.  *)
+(*   CLS   a listed slot whose interactType is POLE or CANNON_BASE, and   *)
+(*         any slot a partition surface points at, runs a VM state of     *)
+(*         sp_scripts: every script a VM state reachable from the special *)
+(*         behaviors runs in (sp_bhvs; the same computation as BhvStep's *)
+(*         sp_scripts).  So a slot running a generic script is read by no *)
+(*         pole / cannon pin (kind_ok) and no ANGV pin (surf_obj_at).     *)
+(*         Reads the slots' VM cells and interactType, the partitions and *)
+(*         the surfaces' object words; no allow_n global.                 *)
+(*   PERF TRAP: sp_scripts runs the VM explorer; never unfold it in a     *)
+(*   proof (the checker takes it, and vm_tab, as arguments).              *)
+(* ---------------------------------------------------------------------- *)
+
+(* the cells of slot k hold VM state st (vm_ok's body, named) *)
+Definition vm_at (ge : genv) (pool : block) (m : mem) (k : Z) (st : BhvVM.vst) : Prop :=
+  (exists b, Genv.find_symbol ge (BhvVM.v_s st) = Some b
+     /\ Mem.load Mint32 m pool (k * OSZ + O_CMD)
+          = Some (Vptr b (Ptrofs.repr (4 * Z.of_nat (BhvVM.v_i st)))))
+  /\ Mem.load Mint32 m pool (k * OSZ + O_SIDX)
+       = Some (Vint (Int.repr (Z.of_nat (List.length (BhvVM.v_k st)))))
+  /\ (forall n f, nth_error (BhvVM.v_k st) n = Some f ->
+       frame_ok ge f (Mem.load Mint32 m pool (stk_cell k (List.length (BhvVM.v_k st)) n))).
+
+Lemma vm_ok_at : forall ge pool m k,
+  vm_ok ge pool m k <-> exists st, In st BhvVM.vm_tab /\ vm_at ge pool m k st.
+Proof. intros. unfold vm_ok, vm_at. apply iff_refl. Qed.
+
+(* MVM *)
+Definition mvm_ok (ge : genv) (pool gmo : block) (m : mem) : Prop :=
+  forall k, 0 <= k < NSLOT -> Mem.load Mint32 m gmo 0 = Some (slot_v pool k) ->
+    exists st, In st BhvVM.vm_tab /\ BhvVM.v_s st = behavior_data._bhvMario
+               /\ vm_at ge pool m k st.
+
+(* ANIM *)
+Definition ldata_words (t : ident) : list init_data :=
+  match find (fun p => Pos.eqb (fst p) t) wmotr_level_data.global_definitions with
+  | Some (_, Gvar v) => gvar_init v
+  | _ => []
+  end.
+
+(* the cells of an initializer: (byte offset, datum) *)
+Fixpoint icells (z : Z) (l : list init_data) : list (Z * init_data) :=
+  match l with
+  | [] => []
+  | d :: l' => (z, d) :: icells (z + init_data_size d) l'
+  end.
+
+Definition init_ld (ge : genv) (m : mem) (b : block) (z : Z) (d : init_data) : Prop :=
+  match d with
+  | Init_int16 n => Mem.load Mint16signed m b z = Some (Vint (Int.sign_ext 16 n))
+  | Init_int32 n => Mem.load Mint32 m b z = Some (Vint n)
+  | Init_addrof t o => exists bt, Genv.find_symbol ge t = Some bt /\ Mem.load Mint32 m b z = Some (Vptr bt o)
+  | _ => True
+  end.
+
+Definition anim_tabs : list ident :=
+  [wmotr_level_data._bobomb_seg8_anims_0802396C; wmotr_level_data._bowser_key_seg3_anims_list;
+   wmotr_level_data._toad_seg6_anims_0600FB58; wmotr_level_data._peach_seg5_anims_0501C41C].
+
+Definition anim_structs : list ident :=
+  [wmotr_level_data._bobomb_seg8_anim_080237FC; wmotr_level_data._bobomb_seg8_anim_08023954;
+   wmotr_level_data._bowser_key_seg3_anim_unlock_door; wmotr_level_data._bowser_key_seg3_anim_course_exit;
+   wmotr_level_data._toad_seg6_anim_0600B66C; wmotr_level_data._toad_seg6_anim_0600CE78;
+   wmotr_level_data._toad_seg6_anim_0600E414; wmotr_level_data._toad_seg6_anim_0600FB40;
+   wmotr_level_data._toad_seg6_anim_060099F0; wmotr_level_data._toad_seg6_anim_0600A0D0;
+   wmotr_level_data._toad_seg6_anim_06008F7C; wmotr_level_data._toad_seg6_anim_06009310;
+   wmotr_level_data._peach_seg5_anim_0500C638; wmotr_level_data._peach_seg5_anim_0500E6B4;
+   wmotr_level_data._peach_seg5_anim_0500ED94; wmotr_level_data._peach_seg5_anim_0500F474;
+   wmotr_level_data._peach_seg5_anim_0500FE84; wmotr_level_data._peach_seg5_anim_05011050;
+   wmotr_level_data._peach_seg5_anim_05012F40; wmotr_level_data._peach_seg5_anim_05015468;
+   wmotr_level_data._peach_seg5_anim_05016798; wmotr_level_data._peach_seg5_anim_05018664;
+   wmotr_level_data._peach_seg5_anim_0501B328; wmotr_level_data._peach_seg5_anim_0501C404].
+
+Definition anim_ids : list ident := anim_tabs ++ anim_structs.
+
+(* the lists are the generated data's: every reachable LOAD_ANIMATIONS
+   state's word 1 is a listed table, ... *)
+Lemma anim_tabs_ok :
+  forallb (fun st => implb (BhvVM.opc st =? 39)
+             (match BhvVM.ptr_at st 1 with Some t => existsb (Pos.eqb t) anim_tabs | None => false end))
+    BhvVM.vm_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* ... every pointer a table holds is a listed struct, and every listed
+   global has a nonempty initializer in the linked level data (no vacuous
+   pin) *)
+Lemma anim_structs_ok :
+  forallb (fun t => forallb (fun d => match d with
+                                      | Init_addrof a _ => existsb (Pos.eqb a) anim_structs
+                                      | Init_int32 _ => true | _ => false end) (ldata_words t)) anim_tabs
+  && forallb (fun t => Nat.ltb 0 (List.length (ldata_words t))) anim_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition anim_ok (ge : genv) (m : mem) : Prop :=
+  forall t bt z d, In t anim_ids -> Genv.find_symbol ge t = Some bt ->
+    In (z, d) (icells 0 (ldata_words t)) -> init_ld ge m bt z d.
+
+(* the keep: the clause reads only the listed blocks *)
+Lemma anim_ok_ext : forall (ge : genv) m m',
+  (forall t b, In t anim_ids -> Genv.find_symbol ge t = Some b ->
+     forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+  anim_ok ge m -> anim_ok ge m'.
+Proof.
+  intros ge m m' K H t bt z d Ht Hs Hi. pose proof (H t bt z d Ht Hs Hi) as A.
+  destruct d; cbn [init_ld] in A |- *; rewrite ?(K t bt Ht Hs); exact A.
+Qed.
+
+(* CLS *)
+Definition sp_bhvs : list ident :=
+  [behavior_data._bhvPoleGrabbing; behavior_data._bhvCannon; behavior_data._bhvJumpingBox;
+   behavior_data._bhvExclamationBox; behavior_data._bhvCannonClosed;
+   behavior_data._bhvHiddenRedCoinStar; behavior_data._bhvMario].
+Definition sp_states : list BhvVM.vst :=
+  BhvVM.opt_list (BhvVM.explore 100000 (flat_map BhvVM.entries sp_bhvs) []).
+Definition sp_scripts : list ident := map BhvVM.v_s sp_states.
+
+(* slot k runs a special state *)
+Definition sp_vm (ge : genv) (pool : block) (m : mem) (k : Z) : Prop :=
+  exists st, In st BhvVM.vm_tab /\ In (BhvVM.v_s st) sp_scripts /\ vm_at ge pool m k st.
+
+(* the surface half, with the walk read on mw and the slot's VM cells on
+   mv (so a keeper keeps the two halves separately: the walk exactly as
+   surf_obj_ok_ext keeps surf_obj_ok, the VM cells as slot fields) *)
+Definition cls_surf_at (ge : genv) (pool : block) (mw mv : mem) : Prop :=
+  forall P id bp z hd l o k,
+    Ple (Genv.genv_next ge) P ->
+    gcell ge surface_load._sSurfacePool Mint32 (Vptr P (Ptrofs.repr SP_OFF)) mw ->
+    gcell ge surface_load._sSurfaceNodePool Mint32 (Vptr P (Ptrofs.repr NP_OFF)) mw ->
+    In id FloorList.part_ids -> Genv.find_symbol ge id = Some bp ->
+    Mem.load Mint32 mw bp z = Some hd -> swalk P mw SFUEL hd = Some l ->
+    In (Vptr P o) l -> in_sp (Ptrofs.unsigned o) = true -> 0 <= k < NSLOT ->
+    Mem.load Mint32 mw P (Ptrofs.unsigned o + S_OBJ) = Some (slot_v pool k) ->
+    sp_vm ge pool mv k.
+
+Definition cls_ok (ge : genv) (pool : block) (m : mem) (rs : list (list Z)) : Prop :=
+  (forall k t, In k (concat rs) ->
+     Mem.load Mint32 m pool (k * OSZ + O_INTERACT_TYPE) = Some (Vint t) ->
+     Int.unsigned t = INTERACT_POLE \/ Int.unsigned t = INTERACT_CANNON_BASE ->
+     sp_vm ge pool m k)
+  /\ cls_surf_at ge pool m m.
+
+(* the walk half's keep: the hypotheses of surf_obj_ok_ext *)
+Lemma cls_surf_ext : forall (ge : genv) pool m m' mv,
+  (forall id b, In id surf_gids -> Genv.find_symbol ge id = Some b ->
+     forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+  (forall P, Ple (Genv.genv_next ge) P ->
+     gcell ge surface_load._sSurfacePool Mint32 (Vptr P (Ptrofs.repr SP_OFF)) m ->
+     gcell ge surface_load._sSurfaceNodePool Mint32 (Vptr P (Ptrofs.repr NP_OFF)) m ->
+     forall ch z, (NP_OFF <= z /\ z + size_chunk ch <= NP_END) \/ (SP_OFF <= z /\ z + size_chunk ch <= SP_END) ->
+     Mem.load ch m' P z = Mem.load ch m P z) ->
+  cls_surf_at ge pool m mv -> cls_surf_at ge pool m' mv.
+Proof.
+  intros ge pool m m' mv KG KP C P id bp z hd l o k HP G1 G2 Hin Hs L Hw Ho N Hk Lo.
+  assert (Kc : forall id ch v, In id surf_gids -> gcell ge id ch v m' -> gcell ge id ch v m).
+  { intros id' ch v Hin' (b & Hs' & L'). exists b. rewrite <- (KG id' b Hin' Hs'). exact (conj Hs' L'). }
+  pose proof (Kc surface_load._sSurfacePool _ _ ltac:(cbn; auto) G1) as G1'.
+  pose proof (Kc surface_load._sSurfaceNodePool _ _ ltac:(cbn; auto) G2) as G2'.
+  pose proof (KP P HP G1' G2') as KR.
+  rewrite (KG id bp ltac:(cbn [surf_gids]; right; right; exact Hin) Hs) in L.
+  rewrite (swalk_ext P m m' (fun ch z H1 H2 => KR ch z (or_introl (conj H1 H2)))) in Hw.
+  destruct (in_sp_spec _ N) as (N1 & N2).
+  rewrite (KR Mint32 (Ptrofs.unsigned o + S_OBJ)) in Lo by (right; cbn [size_chunk]; unfold S_OBJ, SURF_SZ in *; lia).
+  exact (C P id bp z hd l o k HP G1' G2' Hin Hs L Hw Ho N Hk Lo).
+Qed.
+
+(* ---------------------------------------------------------------------- *)
 (* 4. obj_w.                                                                *)
 (* ---------------------------------------------------------------------- *)
 Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
@@ -1028,7 +1208,11 @@ Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
   (* 3f, 2026-11-03 *)
   ow_msurf : msurf_ok ge bm m;
   (* 3g, 2026-11-03 *)
-  ow_par : par_ok ge pool m rs
+  ow_par : par_ok ge pool m rs;
+  (* 3h, 2026-11-03 *)
+  ow_mvm : mvm_ok ge pool gmo m;
+  ow_anim : anim_ok ge m;
+  ow_cls : cls_ok ge pool m rs
 }.
 
 Definition obj_w (ge : genv) (bm : block) (m : mem) : Prop :=
@@ -2005,6 +2189,173 @@ Proof.
     exact (slot_node_b_sound _ _ Hd).
 Qed.
 
+(* 3h's checkers: vm_tab and sp_scripts come in as arguments (vt, sp), so
+   each is computed once per check and no proof unfolds them *)
+Section Chk3h.
+  Variable ge : genv.
+  Variables pool : block.
+  Variable m : mem.
+
+  Lemma st_b_sound : forall k st, st_b ge pool m k st = true -> vm_at ge pool m k st.
+  Proof.
+    intros k st H. destruct (vm_b_sound_gen ge pool m k [st] ltac:(cbn [existsb]; rewrite H; reflexivity))
+      as (st' & Hin & R). destruct Hin as [<- | []]. exact R.
+  Qed.
+
+  (* MVM at Mario's slot k *)
+  Definition mvm_b (vt : list BhvVM.vst) (k : Z) : bool :=
+    existsb (fun st => Pos.eqb (BhvVM.v_s st) behavior_data._bhvMario && st_b ge pool m k st) vt.
+
+  Lemma mvm_b_sound : forall gmo k, 0 <= k < NSLOT ->
+    Mem.load Mint32 m gmo 0 = Some (slot_v pool k) ->
+    mvm_b BhvVM.vm_tab k = true -> mvm_ok ge pool gmo m.
+  Proof.
+    intros gmo k Hk Lg H k' Hk' Lg'.
+    rewrite Lg in Lg'. assert (Ek : slot_v pool k = slot_v pool k') by congruence.
+    apply (slot_v_inj pool k k' Hk Hk') in Ek. subst k'.
+    unfold mvm_b in H. apply (proj1 (existsb_exists _ _)) in H as (st & Hin & H). apply andb_prop in H as [E H].
+    apply Pos.eqb_eq in E. exists st. exact (conj Hin (conj E (st_b_sound k st H))).
+  Qed.
+
+  (* ANIM *)
+  Definition init_ld_b (b : block) (z : Z) (d : init_data) : bool :=
+    match d with
+    | Init_int16 n =>
+        match CM.load Mint16signed m b z with Some (Vint n') => Int.eq (Int.sign_ext 16 n) n' | _ => false end
+    | Init_int32 n =>
+        match CM.load Mint32 m b z with Some (Vint n') => Int.eq n n' | _ => false end
+    | Init_addrof t o =>
+        match Genv.find_symbol ge t, CM.load Mint32 m b z with
+        | Some bt, Some (Vptr b' o') => Pos.eqb bt b' && Ptrofs.eq o o'
+        | _, _ => false
+        end
+    | _ => true
+    end.
+
+  Lemma init_ld_b_sound : forall b z d, init_ld_b b z d = true -> init_ld ge m b z d.
+  Proof.
+    intros b z d H. unfold init_ld_b in H.
+    destruct d as [n | n | n | n | f | f | sz | t o]; cbn [init_ld]; try exact I;
+      rewrite ?CM.load_eq in H.
+    - destruct (Mem.load Mint16signed m b z) as [[| i | | | | ]|]; try discriminate H.
+      apply Int.same_if_eq in H. rewrite H. reflexivity.
+    - destruct (Mem.load Mint32 m b z) as [[| i | | | | ]|]; try discriminate H.
+      apply Int.same_if_eq in H. rewrite H. reflexivity.
+    - destruct (Genv.find_symbol ge t) as [bt|] eqn:Eb; [ | discriminate H ].
+      destruct (Mem.load Mint32 m b z) as [[| | | | | b' o']|]; try discriminate H.
+      apply andb_prop in H as [H1 H2]. apply Pos.eqb_eq in H1. apply Ptrofs.same_if_eq in H2.
+      subst b' o'. exists bt. split; reflexivity.
+  Qed.
+
+  Definition anim_b : bool :=
+    forallb (fun t => match Genv.find_symbol ge t with
+                      | Some b => forallb (fun zd => init_ld_b b (fst zd) (snd zd)) (icells 0 (ldata_words t))
+                      | None => true end) anim_ids.
+
+  Lemma anim_b_sound : anim_b = true -> anim_ok ge m.
+  Proof.
+    intros H t bt z d Ht Hs Hi. unfold anim_b in H.
+    pose proof (proj1 (forallb_forall _ _) H t Ht) as H1. cbv beta in H1. rewrite Hs in H1.
+    exact (init_ld_b_sound _ _ _ (proj1 (forallb_forall _ _) H1 (z, d) Hi)).
+  Qed.
+
+  (* CLS *)
+  Definition sp_b (vt : list BhvVM.vst) (sp : list ident) (k : Z) : bool :=
+    existsb (fun st => existsb (Pos.eqb (BhvVM.v_s st)) sp && st_b ge pool m k st) vt.
+
+  Lemma sp_b_sound : forall k, sp_b BhvVM.vm_tab sp_scripts k = true -> sp_vm ge pool m k.
+  Proof.
+    intros k H. unfold sp_b in H.
+    apply (proj1 (existsb_exists _ _)) in H as (st & Hin & H). apply andb_prop in H as [E H].
+    apply (proj1 (existsb_exists _ _)) in E as (s & Hs & E). apply Pos.eqb_eq in E.
+    exists st. split; [ exact Hin | split; [ rewrite E; exact Hs | exact (st_b_sound k st H) ] ].
+  Qed.
+
+  Definition cls_type_b (vt : list BhvVM.vst) (sp : list ident) (rs : list (list Z)) : bool :=
+    forallb (fun k => match ld32 m pool (k * OSZ + O_INTERACT_TYPE) with
+                      | Some (Vint t) => negb (Z.eqb (Int.unsigned t) INTERACT_POLE
+                                               || Z.eqb (Int.unsigned t) INTERACT_CANNON_BASE)
+                                         || sp_b vt sp k
+                      | _ => true end) (concat rs).
+
+  Definition owner_b (vt : list BhvVM.vst) (sp : list ident) (P : block) (s : val) : bool :=
+    match s with
+    | Vptr b o =>
+        if eq_block b P then
+          match CM.load Mint32 m P (Ptrofs.unsigned o + S_OBJ) with
+          | Some (Vptr pb po) =>
+              if eq_block pb pool then
+                match slot_of (Ptrofs.unsigned po) with Some k => sp_b vt sp k | None => true end
+              else true
+          | _ => true
+          end
+        else true
+    | _ => true
+    end.
+
+  Definition cls_surf_b (vt : list BhvVM.vst) (sp : list ident) : bool :=
+    match Genv.find_symbol ge surface_load._sSurfaceNodePool with
+    | Some nb =>
+        match CM.load Mint32 m nb 0 with
+        | Some (Vptr P _) =>
+            forallb (fun id =>
+              match Genv.find_symbol ge id with
+              | Some bp =>
+                  forallb (fun j => match CM.load Mint32 m bp (4 * Z.of_nat j) with
+                                    | Some hd => match swalk P m SFUEL hd with
+                                                 | Some l => forallb (owner_b vt sp P) l
+                                                 | None => true end
+                                    | None => true end) (seq 0 PCELLS)
+              | None => true
+              end) FloorList.part_ids
+        | _ => true
+        end
+    | None => true
+    end.
+
+  Definition cls_b (vt : list BhvVM.vst) (sp : list ident) (rs : list (list Z)) : bool :=
+    cls_type_b vt sp rs && cls_surf_b vt sp.
+
+  Lemma cls_b_sound : forall rs, part_cells ge m ->
+    cls_b BhvVM.vm_tab sp_scripts rs = true -> cls_ok ge pool m rs.
+  Proof.
+    intros rs PC H. unfold cls_b in H. apply andb_prop in H as [Ht Hs]. split.
+    - intros k t Hk L Ht'. unfold cls_type_b in Ht.
+      pose proof (proj1 (forallb_forall _ _) Ht k Hk) as E. cbv beta in E.
+      unfold ld32 in E. rewrite CM.load_eq, L in E.
+      apply orb_true_iff in E as [E | E]; [ | exact (sp_b_sound k E) ].
+      exfalso. apply negb_true_iff in E. apply orb_false_iff in E as [E1 E2].
+      apply Z.eqb_neq in E1. apply Z.eqb_neq in E2. destruct Ht'; contradiction.
+    - intros P id bp z hd l o k _ _ (nb & Hnb & Lnb) Hin Hsy L Hw Ho _ Hk Lo.
+      unfold cls_surf_b in Hs. rewrite Hnb, CM.load_eq, Lnb in Hs.
+      pose proof (PC id bp z hd Hin Hsy L) as Bz.
+      destruct (Mem.load_valid_access _ _ _ _ _ L) as (_ & (q & Eq)). cbn [align_chunk] in Eq.
+      change (Z.of_nat PCELLS) with 1536 in Bz.
+      assert (Hq : 0 <= q < 1536) by lia.
+      set (j := Z.to_nat q).
+      assert (Ez : z = 4 * Z.of_nat j) by (unfold j; rewrite Z2Nat.id by lia; lia).
+      assert (Hj : (j < PCELLS)%nat)
+        by (apply Nat2Z.inj_lt; unfold j; rewrite Z2Nat.id by lia; change (Z.of_nat PCELLS) with 1536; lia).
+      rewrite Ez in L. clearbody j. clear Eq Bz Ez Hq.
+      pose proof (proj1 (forallb_forall _ _) Hs id Hin) as H4. cbv beta in H4. rewrite Hsy in H4.
+      pose proof (proj1 (forallb_forall _ _) H4 j (proj2 (in_seq PCELLS 0 j) (conj (Nat.le_0_l j) Hj))) as H5.
+      cbv beta in H5. rewrite CM.load_eq, L, Hw in H5.
+      pose proof (proj1 (forallb_forall _ _) H5 _ Ho) as H6. unfold owner_b in H6.
+      destruct (eq_block P P) as [_ | N]; [ | contradiction N; reflexivity ].
+      rewrite CM.load_eq, Lo in H6. unfold slot_v in H6.
+      destruct (eq_block pool pool) as [_ | N]; [ | contradiction N; reflexivity ].
+      rewrite Ptrofs.unsigned_repr in H6
+        by (unfold OSZ, NSLOT in *; change Ptrofs.max_unsigned with 4294967295; lia).
+      assert (Sk : slot_of (k * OSZ) = Some k).
+      { unfold slot_of. unfold OSZ, NSLOT in *.
+        replace ((0 <=? k * 608) && (k * 608 <? 240 * 608) && ((k * 608) mod 608 =? 0)) with true
+          by (symmetry; rewrite Z_mod_mult; apply andb_true_iff; split; [ apply andb_true_iff; split | ];
+              [ apply Z.leb_le; lia | apply Z.ltb_lt; lia | apply Z.eqb_refl ]).
+        rewrite Z_div_mult by lia. reflexivity. }
+      rewrite Sk in H6. exact (sp_b_sound k H6).
+  Qed.
+End Chk3h.
+
 Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem) : bool :=
   match rings m pool la, free_list m pool fl, ld32 m gmo 0 with
   | Some rs, Some fs, Some (Vptr pb po) =>
@@ -2031,6 +2382,7 @@ Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : 
       && scr_b_l ge (sdedup (map BhvVM.v_s BhvVM.vm_tab)) m
       && mact_b ge pool m k && forallb (resp_b ge pool m) (concat rs) && gfx_b ge pool m
       && msurf_b ge bm m && par_b ge pool m rs
+      && mvm_b ge pool m BhvVM.vm_tab k && anim_b ge m && cls_b ge pool m BhvVM.vm_tab sp_scripts rs
       | None => false
       end
   | _, _, _ => false
@@ -2061,6 +2413,7 @@ Proof.
   destruct (ld32 m gmo 0) as [[| | | | | pb po]|] eqn:Hg;
     [ discriminate H .. | | discriminate H ].
   destruct (slot_of (Ptrofs.unsigned po)) as [k|] eqn:Hk; [ | discriminate H ].
+  apply andb_prop in H as [H Hcls]. apply andb_prop in H as [H Hanim]. apply andb_prop in H as [H Hmvm].
   apply andb_prop in H as [H Hpar]. apply andb_prop in H as [H Hms].
   apply andb_prop in H as [H Hgfx]. apply andb_prop in H as [H Hresp]. apply andb_prop in H as [H Hmact].
   apply andb_prop in H as [H Hscr].
@@ -2120,6 +2473,10 @@ Proof.
   - exact (gfx_b_sound _ _ _ Hgfx).
   - exact (msurf_b_sound _ _ _ Hms).
   - exact (par_b_sound _ _ _ _ Hpar).
+  - apply (mvm_b_sound _ _ _ _ k (proj1 (slot_of_spec _ _ Hk))); [ | exact Hmvm ].
+    apply veqb_eq in Hpo. rewrite <- Hpo. unfold ld32 in Hg. rewrite CM.load_eq in Hg. exact Hg.
+  - exact (anim_b_sound _ _ Hanim).
+  - exact (cls_b_sound _ _ _ _ PC Hcls).
 Qed.
 
 Definition ow_chk (ge : genv) (bm : block) (m : mem) : bool :=

@@ -240,14 +240,21 @@ Section CR.
   Proof.
     intros m m' Hc Hgn. pose proof (cam_ow_globals m m' Hc Hgn) as KG.
     destruct Hc as [-> | (cb & co & Hcbg & PKm & U & _ & R3)].
-    { intros pool _ C. exact C. }
-    intros pool Hpool Cso.
-    apply (ObjWorld.surf_obj_ok_ext G pool m m'); [ | | | exact Cso ].
-    - intros id b Hin Hs ch z. apply (KG id b); [ | exact Hs ].
+    { intros pool _. split; [ intros C; exact C | intros mv C; exact C ]. }
+    intros pool Hpool.
+    assert (K1 : forall id b, In id ObjWorld.surf_gids -> Genv.find_symbol G id = Some b ->
+                   forall ch z, Mem.load ch m' b z = Mem.load ch m b z).
+    { intros id b Hin Hs ch z. apply (KG id b); [ | exact Hs ].
       unfold ObjWorld.surf_gids, FloorList.part_ids in Hin; cbn [In] in Hin.
       unfold PollKeep.ow_ids.
-      destruct Hin as [<- | [<- | [<- | [<- | []]]]]; cbn [In]; repeat (first [ left; reflexivity | right ]).
-    - intros P HP (bs1 & Hs1 & L1) (bs2 & Hs2 & L2) ch z Hz.
+      destruct Hin as [<- | [<- | [<- | [<- | []]]]]; cbn [In]; repeat (first [ left; reflexivity | right ]). }
+    assert (K2 : forall P, Ple (Genv.genv_next G) P ->
+       ObjWorld.gcell G surface_load._sSurfacePool Mint32 (Vptr P (Ptrofs.repr ObjWorld.SP_OFF)) m ->
+       ObjWorld.gcell G surface_load._sSurfaceNodePool Mint32 (Vptr P (Ptrofs.repr ObjWorld.NP_OFF)) m ->
+       forall ch z, (ObjWorld.NP_OFF <= z /\ z + size_chunk ch <= ObjWorld.NP_END)
+                    \/ (ObjWorld.SP_OFF <= z /\ z + size_chunk ch <= ObjWorld.SP_END) ->
+       Mem.load ch m' P z = Mem.load ch m P z).
+    { intros P HP (bs1 & Hs1 & L1) (bs2 & Hs2 & L2) ch z Hz.
       pose proof (R3 surface_load._sSurfacePool 110400 bs1 P (Ptrofs.repr ObjWorld.SP_OFF)
                     (or_introl eq_refl) Hs1 L1) as R1.
       pose proof (R3 surface_load._sSurfaceNodePool 56000 bs2 P (Ptrofs.repr ObjWorld.NP_OFF)
@@ -265,8 +272,11 @@ Section CR.
         unfold ObjWorld.NP_END, ObjWorld.SP_END, ObjWorld.NP_OFF, ObjWorld.SP_OFF, ObjWorld.NP_CAP,
           ObjWorld.SP_CAP, ObjWorld.SNODE_SZ, ObjWorld.SURF_SZ, cf_SZ in *.
         lia.
-      + exact (Plt_strict _ (Plt_Ple_trans _ _ _ (Genv.genv_symb_range _ _ Hg) HP)).
-    - intros k j _ _. apply (KG object_list_processor._gObjectPool pool); [ | exact Hpool ].
+      + exact (Plt_strict _ (Plt_Ple_trans _ _ _ (Genv.genv_symb_range _ _ Hg) HP)). }
+    split.
+    - intros Cso. apply (ObjWorld.surf_obj_ok_ext G pool m m' K1 K2); [ | exact Cso ].
+      intros k j _ _. apply (KG object_list_processor._gObjectPool pool); [ | exact Hpool ].
       unfold PollKeep.ow_ids. cbn [In]. left. reflexivity.
+    - intros mv. exact (ObjWorld.cls_surf_ext G pool m m' mv K1 K2).
   Qed.
 End CR.

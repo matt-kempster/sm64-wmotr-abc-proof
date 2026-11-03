@@ -642,6 +642,25 @@ all in `Unwired/`, and the theorem moved nowhere. See
     hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
     rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref,
     Hobj_debug, Hobj_collisions, Hobj_unload
+    (Hobj_unload groundwork 2026-11-03, `ObjUnload.v`, kept, no spine consumer yet: the
+    real deallocate_object walked -- dealloc_rings (ObjRing surgery: l1++k::l2 -> l1++l2,
+    fs -> k::fs), dealloc_ok (Clight body, only ObjAlloc.RCELL cells change), dealloc_real
+    (linked, from ow_rings / ow_free / ow_part NoDup; gfx_ok rides through).
+    `UnloadObj.v` (kept): the real unload_object -- unload_ok (fx stores, the sound
+    call, grc_ok / gac_ok, the flag RMWs, dealloc_ok: k to the free list, gfx_at kept,
+    activeFlags 0, footprint UK = slot k's non-link bytes + graph/list link cells +
+    the sound blocks) and unload_real on the link; the sound leaf is PROVED by
+    AudioWire's walk (uai_ssfs: stop_sounds_from_source / update_background_music_
+    after_sound / cai_bbmf, footprint ws_u, AudioInv kept), no new premise.
+    `UnloadLoop.v` (kept): resp_walk (set_object_respawn_info_bits: no-op, or one
+    Mint32 / Mint16unsigned int store through respawnInfo for type 1 / 2) and inlist_ok
+    (the in_list while loop over the real ring, generic in a world W kept by the
+    gCurrentObject store + a respawn call + an unload call on an INACTIVE slot; invariant
+    = split l1++l2 of ring i, obj = head of l2, since next is read before the unload).
+    Still open for the row: the outer loop over sObjectListUpdateOrder (ObjLoop NT
+    template: filler alloc via Hobj_fresh/blind, ow_order), and the per-slot Pobj keep that
+    instantiates W (mem_ok via AudioBodies.sp_stop_sounds_from_source, PhiW past the
+    respawn OR into P, obj_w with the ring change))
     (Hobj_stores PROVED 2026-11-03: obj_stores_linked12 / ObjStores.stores_safe, every
     update_objects store block classified by vm (uo_sok); rests on Hobj_blind for the stack
     stores. Reusable: ClearKeep.gstore_core_p takes a pointer to a SafeB-if-bg-is global;
@@ -898,6 +917,18 @@ all in `Unwired/`, and the theorem moved nowhere. See
        block bs; since 2026-11-03 it is find_floor's hit, an in_sp slot, so tightening
        ow_msurf to in_sp / NULL is open) and ow_par (parentObj NULL or a slot; the 12 pbc scripts' slots have a slot
        parent, pbc_ids_ok). Kbm lists gained 96 / 100 / 104 (PollKeep, Hcam_ow_res).
+       DONE 2026-11-03 (ObjWorld 3h, for BhvStep): ow_mvm (Mario's slot's VM cells are a
+       reachable bhvMario state; vm_at names vm_ok's body, vm_ok_at), ow_anim (the 4
+       LOAD_ANIMATIONS tables + 24 Animation structs hold their initializers chunk by chunk,
+       anim_tabs_ok / anim_structs_ok tie the lists to vm_tab and the linked level data),
+       ow_cls (a POLE / CANNON_BASE slot, and any slot a partition surface points at, runs
+       a state of sp_scripts -- the same computation as BhvStep.sp_scripts -- so a generic
+       slot is read by no kind / ANGV pin: sfr_keep's class tie). Checked by vm at m11 and
+       after the witness frame. Keeps: PollKeep.obj_w_slots_g (anim ids joined ow_ids;
+       VM cells are slot fields; the walk half `cls_surf_at` rides in `surf_keep`, now a
+       pair, proved by `cls_surf_ext` from surf_obj_ok_ext's own hypotheses; CamRows /
+       ClearKeep updated, ClearKeep.cls_keep_hd for the zeroed dynamic heads). PERF TRAP: `apply existsb_exists in H` with H over
+       `BhvVM.vm_tab` hangs (unification unfolds the table); unfold the wrapper first.
        PROBE PATTERN: copy StartTerrain up to wchk_gen_true, turn wchk's tail into a tuple
        of the loads / sub-checks, `Eval vm_compute` (~9 min); `++` there is string append.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
