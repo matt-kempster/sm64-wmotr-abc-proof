@@ -843,11 +843,37 @@ all in `Unwired/`, and the theorem moved nowhere. See
        evaluate the walker lazily (RC 137): `change` the exec hypothesis to the named
        statement once (AR1) and cut it with vm-proved split lemmas (AR1_split ..).
        `inv` on an eval substitutes `fs = k :: fs'` (the equation disappears).
-       Next: create_object (curBhvCommand / behavior stores, ACTIVE_FLAG_UNIMPORTANT,
-       snap_object_to_floor for lists 4 / 5 / 6: find_floor), spawn_object_at_origin
-       (parentObj, areaIndex, geo_obj_init), bhv_cmd_spawn_child / spawn_water_droplet;
-       then rows 28 / 55 and the ~50 residual natives; then the 6 value-contract natives,
-       then 30 / 40;
+       DONE 2026-11-03 (spawn footprint, part 3): ObjMake.v -- the REAL create_object
+       (create_real): the list index read off the script's first word (bhv_list w: BEGIN's
+       byte 2, else 8), objList = gObjectLists + index (ow_gol), alloc_real, curBhvCommand /
+       behavior := the script pointer, ACTIVE_FLAG_UNIMPORTANT for list 12 (activeFlags
+       0x111). Lists 4 / 5 / 10 (snap_object_to_floor -> find_floor) are EXCLUDED by a
+       positive premise (bhv_list w <> 4 / 5 / 10), to be discharged per spawned script.
+       ObjGeo.v -- geo_obj_init on the slot's GraphNodeObject (geo_ok): vec3f_set
+       (BodyFrame.v3set_frame), vec3f_copy / vec3s_copy (v3c_frame, new, byte-precise 12-byte
+       windows), then the tail through the slot walker; only non-link slot bytes change.
+       ObjOrigin.v -- the REAL spawn_object_at_origin (origin_real): segmented_to_virtual
+       (memory.c's body, the identity), create_real, parentObj := parent, areaIndex /
+       activeAreaIndex (killed: the parent's values are not tracked), geo_obj_init. Result:
+       create_real's disjunction (empty free list NAMED) with origin_facts. No new trust.
+       Traps: `rewrite !PTree.gso by RA.neq` on a bind_parameter_temps chain over
+       create_undef_temps hung (>10 min); rewrite the exact number of times. `apply filter_In`
+       against `kill .. alloc_facts` made unification compute the walker; prove membership
+       through a lemma generic in the list (cf_gen) and instantiate. `inv` on an eval of a
+       temp substitutes the le equation away (subst it first, then gss).
+       DONE 2026-11-03 (spawn footprint, part 4): ObjCopy.v -- fcall_fx (a callee whose
+       body the slot walker accepts, first parameter = the slot) and cpa_ok
+       (obj_copy_pos_and_angle on a fresh slot). ObjChild.child_real -- the REAL
+       bhv_cmd_spawn_child: model / behavior read from gCurBhvCommand[1] / [2], origin_real,
+       cpa_ok, gCurBhvCommand += 3 (load gives cs, co + 12), returns 0; unchanged outside
+       link cells, slot k and gCurBhvCommand. Premises add the command pointer and its
+       word 2 = the child's script pointer. No new trust.
+       Next: discharge bhv_list <> 4/5/10 (and < 13) for SPAWN_CHILD's WMotR scripts; row 28
+       in BhvStep from child_real (needs INV to absorb a new ring member: spawn_post);
+       spawn_water_droplet (spawn_object + random_u16 / random_f32_around_zero + obj_scale);
+       then rows 28 / 55 with a spawn_post carrying the ring / free-list /
+       slot changes into INV, and the ~50 residual natives; then the 6 value-contract
+       natives, then 30 / 40;
        the pre-/post-loop code of cur_obj_update; the loop INV = obj_w minus the current
        slot's ow_vm; then narrow Hobj_step_rest.
        DONE 2026-11-03 (ObjWorld 3e): obj_w gains ow_mact (Mario ACTIVE + in bhvMario),
