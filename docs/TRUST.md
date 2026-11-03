@@ -1264,7 +1264,27 @@ without pressing A".*
   old + s16_of w; fields 16, 19, 26). OR_INT's likewise from `ori_keep` (`row_or_int`: ONE
   store of old | u16_of w; fields 1 and 3). ADD_FLOAT's likewise from `addf_keep`
   (`row_add_float`: ONE store of old + f32_of w to field 7 = oPosY, which obj_w reads -- the
-  premise is pinned to that value). The pinned premises are bundled as `row_keeps`.
+  premise is pinned to that value). SUM_FLOAT's from `sumf_keep` (`row_sum_float`: two
+  float reads at byte3 / byte4, ONE store of their sum at byte2 -- fields 6/7/8 = pos, which
+  obj_w reads; pinned). DEACTIVATE's from `deact_keep` (`row_deactivate`: ONE s16 store of 0
+  to the CURRENT slot's activeFlags @116, return 1, the command stays; only 32
+  particle/spawner scripts hold it, never bhvMario -- so Mario's ACTIVE bit needs obj_w to
+  keep Mario's slot inside bhvMario). SET_INTERACT_TYPE's from `sit_keep`
+  (`row_set_interact_type`: ONE store of the script's next word to field 42).
+  **FOUND (2026-11-03), resolved by computation:** the reachable VM table holds
+  bhvKoopaShellFlame's SET_INTERACT_TYPE(INTERACT_FLAME = 0x40000), which is NOT in
+  `wmotr_interact_types` (`chk47_ok` states the exception). `BoxCensus` resolves WMotR's 7
+  exclamation boxes from their real macro bparams (6 wing-cap, 1 one-up: `boxes_value`,
+  `box_ids_value`, mirroring spawn_macro_objects' oBehParams2ndByte), narrows the spawn
+  closure's contents-table edge to those ids, and proves the shell and the flame outside it
+  (`shell_unreached`, `flame_unreached`; non-vacuity `box_contents_reached`,
+  `flame_in_uncut`). `BhvStep.sit_kind` is the KIND fact on that domain. Open (not a
+  premise of any lemma, a phantom check to keep honest): (a) nothing rewrites a live box's
+  oBehParams2ndByte after spawn -- no script in the narrowed closure writes field 47
+  (`script47_value`), and its five C writers (`writers47_value`) write a new child's byte or
+  the cannon's own (argued per writer, not proved per target); (b) no level-script OBJECT
+  places a box (`box_not_scripted`); (c) the debug spawner stays gated. Using it needs
+  obj_w's SCRIPT domain narrowed to `wmotr_closure_b`. The pinned premises are bundled as `row_keeps`.
   Wiring it in needs the loop's INV to be obj_w minus the current slot's `ow_vm`.
   **`ow_scr` (2026-11-03): `scr_ok` is an obj_w clause.** `ObjWorld.scr_ok` (moved from
   BhvStep, which keeps its names as notations) is obj_w's 21st clause; the boot witness
