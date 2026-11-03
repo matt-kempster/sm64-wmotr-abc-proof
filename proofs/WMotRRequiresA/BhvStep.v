@@ -58,7 +58,7 @@ From compcert Require Import Coqlib Integers Floats Values AST Ctypes Cop Clight
 From SM64.Generated Require behavior_script memory behavior_data.
 From SM64.Proofs Require Import SymbolicLinking LinkedTwelve RealFrameLinked.
 From SM64.Proofs.WMotRRequiresA Require Import BhvVM BehaviorScripts.
-From SM64.Proofs.WMotRRequiresA Require RenderAnim ObjWorld ObjPhase ObjLoop ObjCensus PlatformWalk.
+From SM64.Proofs.WMotRRequiresA Require RenderAnim ObjWorld ObjPhase ObjLoop ObjCensus PlatformWalk BoxCensus.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -294,6 +294,10 @@ Lemma succs_break : forall st w, word_at (v_s st) (v_i st) = Some w ->
   succs st = if Nat.ltb (List.length (words (v_s st))) (v_i st + 1) then None else Some [st].
 Proof. intros st w Hw [Ho | Ho]; unfold succs; cbv zeta; rewrite Hw, Ho; reflexivity. Qed.
 
+Lemma succs_deact : forall st w, word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 29 ->
+  succs st = if Nat.ltb (List.length (words (v_s st))) (v_i st + 1) then None else Some [st].
+Proof. intros st w Hw Ho. unfold succs. cbv zeta. rewrite Hw, Ho. reflexivity. Qed.
+
 Lemma succs_delay : forall st w, word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 1 ->
   succs st = if Nat.ltb (List.length (words (v_s st))) (v_i st + 1) then None else
     Some [st; at_ st (v_s st) (v_i st + 1) (v_k st)].
@@ -361,6 +365,115 @@ Proof.
   rewrite Ef in A. cbn [forallb] in A. rewrite andb_true_r in A.
   apply andb_prop in A as [A1 A2]. apply Z.leb_le in A1. apply Z.ltb_lt in A2. lia.
 Qed.
+
+Lemma succs_sum_float : forall st w, word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 31 ->
+  succs st = if Nat.ltb (List.length (words (v_s st))) (v_i st + 1) then None else
+    Some [at_ st (v_s st) (v_i st + 1) (v_k st)].
+Proof. intros st w Hw Ho. unfold succs. cbv zeta. rewrite Hw, Ho. reflexivity. Qed.
+
+(* the three field bytes of a reachable SUM_FLOAT / SUM_INT index rawData[0x50] *)
+Lemma sum_lt80 : forall st w, In st vm_tab -> word_at (v_s st) (v_i st) = Some w ->
+  Z.shiftr w 24 = 31 -> 0 <= byte2 w < 80 /\ 0 <= byte3 w < 80 /\ 0 <= byte4 w < 80.
+Proof.
+  intros st w Hst Hw Ho. pose proof vm_fields_in_rawdata as A. rewrite forallb_forall in A.
+  specialize (A st Hst). unfold fields_of, opc, w0 in A. rewrite Hw in A. cbv beta iota zeta in A.
+  rewrite Ho in A.
+  change (existsb (Z.eqb 31) field_ops) with false in A.
+  change ((31 =? 31) || (31 =? 32)) with true in A. cbv beta iota in A.
+  assert (G : forall f, In f [byte2 w; byte3 w; byte4 w] -> 0 <= f < 80).
+  { intros f Hf. rewrite forallb_forall in A. specialize (A f Hf). cbv beta in A.
+    apply andb_prop in A as [A1 A2]. apply Z.leb_le in A1. apply Z.ltb_lt in A2. lia. }
+  split; [ apply G; left; reflexivity | split; [ apply G; right; left; reflexivity | apply G; right; right; left; reflexivity ] ].
+Qed.
+
+Lemma succs_sit : forall st w, word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 47 ->
+  succs st = if Nat.ltb (List.length (words (v_s st))) (v_i st + 2) then None else
+    Some [at_ st (v_s st) (v_i st + 2) (v_k st)].
+Proof. intros st w Hw Ho. unfold succs. cbv zeta. rewrite Hw, Ho. reflexivity. Qed.
+
+(* SET_INTERACT_TYPE's argument, computed over the reachable states: the
+   word after the command is an int in wmotr_interact_types -- EXCEPT
+   bhvKoopaShellFlame's SET_INTERACT_TYPE(INTERACT_FLAME) (0x40000).
+   FOUND (2026-11-03): the reachable VM table holds bhvKoopaShellFlame and
+   INTERACT_FLAME is not in wmotr_interact_types, so obj_w's KIND clause
+   would break if a flame slot ever runs; either the set grows, or the
+   flame is shown absent from WMotR (the table over-approximates the spawn
+   graph).  The only reachable SET_INTERACT_TYPEs (all47 in the playground
+   probe): bhvBobombBuddyOpensCannon (0x800000) and this flame.
+   RESOLVED (same day): BoxCensus resolves WMotR's 7 exclamation boxes from
+   their real macro bparams (6 wing-cap, 1 one-up) and shows the shell and
+   its flame outside the narrowed spawn closure (flame_unreached); sit_kind
+   below is the KIND fact on that domain.
+   PERF TRAP: stated inline (no named bool constant over vm_tab) *)
+Lemma chk47_ok :
+  forallb (fun st => if opc st =? 47 then
+                       match word_at (v_s st) (v_i st + 1) with
+                       | Some z => existsb (Z.eqb z) SM64.Proofs.WMotRRequiresA.WMotRWorld.wmotr_interact_types
+                                   || (Pos.eqb (v_s st) SM64.Generated.behavior_data._bhvKoopaShellFlame
+                                       && (z =? 262144))
+                       | None => false end
+                     else true) vm_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma sit_arg : forall st w, In st vm_tab -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 47 ->
+  exists z, word_at (v_s st) (v_i st + 1) = Some z
+    /\ (In z SM64.Proofs.WMotRRequiresA.WMotRWorld.wmotr_interact_types
+        \/ v_s st = SM64.Generated.behavior_data._bhvKoopaShellFlame /\ z = 262144).
+Proof.
+  intros st w Hst Hw Ho. pose proof chk47_ok as A.
+  rewrite forallb_forall in A. specialize (A st Hst). unfold opc, w0 in A. rewrite Hw in A.
+  cbv beta iota in A. rewrite Ho in A. change (47 =? 47) with true in A. cbv beta iota in A.
+  destruct (word_at (v_s st) (v_i st + 1)) as [z|]; [ | discriminate A ].
+  exists z. split; [ reflexivity | ].
+  apply orb_prop in A as [A | A].
+  - left. apply existsb_exists in A as (z' & Hz' & E). apply Z.eqb_eq in E. subst z'. exact Hz'.
+  - right. apply andb_prop in A as [A1 A2]. apply Pos.eqb_eq in A1. apply Z.eqb_eq in A2. split; assumption.
+Qed.
+
+(* ... and in WMotR's real spawn graph (the box contents resolved from
+   the boxes' bparams, BoxCensus.wmotr_closure_b) the flame never comes
+   into being, so a script of that graph sets a KIND type *)
+Lemma sit_kind : forall st w, In st vm_tab -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 47 ->
+  In (v_s st) BoxCensus.wmotr_closure_b ->
+  exists z, word_at (v_s st) (v_i st + 1) = Some z
+    /\ In z SM64.Proofs.WMotRRequiresA.WMotRWorld.wmotr_interact_types.
+Proof.
+  intros st w Hst Hw Ho Hb. destruct (sit_arg st w Hst Hw Ho) as (z & Hz & [Hk | (Ef & _)]).
+  - exists z. split; assumption.
+  - exfalso. pose proof BoxCensus.flame_unreached as F. rewrite Ef in Hb.
+    assert (T : existsb (Pos.eqb SM64.Generated.behavior_data._bhvKoopaShellFlame) BoxCensus.wmotr_closure_b = true)
+      by (apply existsb_exists; exists SM64.Generated.behavior_data._bhvKoopaShellFlame;
+          split; [ exact Hb | apply Pos.eqb_refl ]).
+    rewrite T in F. discriminate F.
+Qed.
+
+
+
+(* the unsigned field bytes, as SUM_FLOAT computes them (tuint temps cast to tuchar) *)
+Lemma zx8_and : forall x, Int.unsigned (Int.zero_ext 8 (Int.and x (Int.repr 255))) = Z.land (Int.unsigned x) 255.
+Proof.
+  intros x.
+  assert (E : Int.and x (Int.repr 255) = Int.zero_ext 8 x) by (rewrite Int.zero_ext_and by lia; reflexivity).
+  rewrite E, Int.zero_ext_idem by lia. rewrite Int.zero_ext_mod by (cbn; lia). change (two_p 8) with 256.
+  change 255 with (Z.ones 8). rewrite Z.land_ones by lia. reflexivity.
+Qed.
+
+Lemma shru_u : forall n k, 0 <= k < 32 -> Int.unsigned (Int.shru n (Int.repr k)) = Z.shiftr (Int.unsigned n) k.
+Proof.
+  intros n k Hk. rewrite Int.shru_div_two_p. rewrite (Int.unsigned_repr k) by (change Int.max_unsigned with 4294967295; lia).
+  pose proof (Int.unsigned_range n) as R. change Int.modulus with 4294967296 in R.
+  rewrite Z.shiftr_div_pow2 by lia. rewrite two_p_equiv.
+  assert (P : 0 < 2 ^ k) by (apply Z.pow_pos_nonneg; lia).
+  apply Int.unsigned_repr. change Int.max_unsigned with 4294967295. split; [ apply Z.div_pos; lia | ].
+  apply Z.le_trans with (Int.unsigned n); [ | lia ]. apply Z.div_le_upper_bound; [ lia | nia ].
+Qed.
+
+Lemma b2_eq : forall n, Int.unsigned (Int.zero_ext 8 (Int.and (Int.shru n (Int.repr 16)) (Int.repr 255))) = byte2 (Int.unsigned n).
+Proof. intros n. rewrite zx8_and, shru_u by lia. reflexivity. Qed.
+Lemma b3_eq : forall n, Int.unsigned (Int.zero_ext 8 (Int.and (Int.shru n (Int.repr 8)) (Int.repr 255))) = byte3 (Int.unsigned n).
+Proof. intros n. rewrite zx8_and, shru_u by lia. reflexivity. Qed.
+Lemma b4_eq : forall n, Int.unsigned (Int.zero_ext 8 (Int.and n (Int.repr 255))) = byte4 (Int.unsigned n).
+Proof. intros n. rewrite zx8_and. reflexivity. Qed.
 
 (* END_REPEAT and END_REPEAT_CONTINUE: one body, two return codes *)
 Definition er_body (rc : Z) : statement :=
@@ -596,6 +709,12 @@ Section Link.
     union_field_offset G BS._asF32 (co_members co) = OK (0, Full).
   Proof. apply (PlatformWalk.ufo_ok_lift (prog_comp_env BS.prog)); [ vm_compute; reflexivity | exact bs_cenv ]. Qed.
 
+  Lemma ufo_u32 : forall co, (genv_cenv G) ! BS.__764 = Some co ->
+    union_field_offset G BS._asU32 (co_members co) = OK (0, Full).
+  Proof. apply (PlatformWalk.ufo_ok_lift (prog_comp_env BS.prog)); [ vm_compute; reflexivity | exact bs_cenv ]. Qed.
+  Lemma fo_flags : forall co, (genv_cenv G) ! BS._Object = Some co ->
+    field_offset G BS._activeFlags (co_members co) = OK (OW.O_FLAGS, Full).
+  Proof. apply (RA.fo_ok_lift (prog_comp_env BS.prog)); [ vm_compute; reflexivity | exact bs_cenv ]. Qed.
   Local Ltac kill_r :=
     try (match goal with Ha : access_mode _ = _ |- _ => cbn in Ha; discriminate Ha end);
     try (match goal with Ht : typeof _ = _ |- _ => cbn in Ht; discriminate Ht end);
@@ -640,6 +759,46 @@ Section Link.
     all: eexists; split; [ eassumption | split; reflexivity ].
   Qed.
 
+  (* o->rawData.asU32[k], k a constant (SET_INTERACT_TYPE) *)
+  Lemma lv_rawuc : forall m le p k b o bf,
+    eval_lvalue G empty_env le m
+      (Ederef (Ebinop Oadd
+         (Efield (Efield (Ederef (Etempvar p (tptr (Tstruct BS._Object noattr))) (Tstruct BS._Object noattr))
+            BS._rawData (Tunion BS.__764 noattr)) BS._asU32 (tarray tuint 80))
+         (Econst_int (Int.repr k) tint) (tptr tuint)) tuint) b o bf ->
+    exists o0, le ! p = Some (Vptr b o0) /\ bf = Full /\
+      o = Ptrofs.add (Ptrofs.add (Ptrofs.add o0 (Ptrofs.repr 136)) (Ptrofs.repr 0))
+            (Ptrofs.mul (Ptrofs.repr 4) (Ptrofs.of_ints (Int.repr k))).
+  Proof.
+    intros m le p k b o bf HL.
+    inv HL.
+    match goal with Hb : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ =>
+      apply RA.ev_binop in Hb; destruct Hb as (v1 & v2 & E1 & E2 & E3) end.
+    apply RA.ev_const in E2. subst v2.
+    inv E1. cbn [typeof] in E3.
+    match goal with H0 : deref_loc _ _ _ _ _ _ |- _ => inv H0 end; kill_r.
+    all: match goal with H : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ => inv H end; kill_r.
+    all: match goal with Ht : typeof _ = Tunion _ _ |- _ => cbn in Ht; injection Ht as <- <- end.
+    all: match goal with Hf : union_field_offset _ _ (co_members ?co) = OK _, Hc : _ ! _ = Some ?co |- _ =>
+           rewrite (ufo_u32 _ Hc) in Hf; injection Hf; intros; subst end.
+    all: match goal with He : eval_expr _ _ _ _ (Efield _ _ _) _ |- _ => inv He end.
+    all: match goal with Hd2 : deref_loc (typeof (Efield _ _ _)) _ _ _ _ _ |- _ =>
+           cbn [typeof] in Hd2; inv Hd2 end; kill_r.
+    all: match goal with Hl : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ => inv Hl end; kill_r.
+    all: match goal with Ht : typeof _ = Tstruct _ _ |- _ => cbn in Ht; injection Ht as <- <- end.
+    all: match goal with Hf : field_offset _ _ (co_members ?co) = OK _, Hc : _ ! _ = Some ?co |- _ =>
+           rewrite (fo_raw _ Hc) in Hf; injection Hf; intros; subst end.
+    all: match goal with He : eval_expr _ _ _ _ (Ederef _ _) _ |- _ => inv He end.
+    all: match goal with Hd2 : deref_loc (typeof (Ederef _ _)) _ _ _ _ _ |- _ =>
+           cbn [typeof] in Hd2; inv Hd2 end; kill_r.
+    all: match goal with Hl : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hl end.
+    all: match goal with Ht : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ => apply RA.ev_temp in Ht end.
+    all: cbn in E3; injection E3 as <- <-.
+    all: eexists; split; [ eassumption | split; reflexivity ].
+  Qed.
+
+
+
   (* o->rawData.asF32[field], written: the cell oc + 136 + 4 * field *)
   Lemma lv_rawf : forall m le p fi i b o bf,
     le ! fi = Some (Vint i) ->
@@ -651,6 +810,45 @@ Section Link.
     exists o0, le ! p = Some (Vptr b o0) /\ bf = Full /\
       o = Ptrofs.add (Ptrofs.add (Ptrofs.add o0 (Ptrofs.repr 136)) (Ptrofs.repr 0))
             (Ptrofs.mul (Ptrofs.repr 4) (Ptrofs.of_ints i)).
+  Proof.
+    intros m le p fi i b o bf Hfi HL.
+    inv HL.
+    match goal with Hb : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ =>
+      apply RA.ev_binop in Hb; destruct Hb as (v1 & v2 & E1 & E2 & E3) end.
+    apply RA.ev_temp in E2. rewrite Hfi in E2. injection E2 as <-.
+    inv E1. cbn [typeof] in E3.
+    match goal with H0 : deref_loc _ _ _ _ _ _ |- _ => inv H0 end; kill_r.
+    all: match goal with H : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ => inv H end; kill_r.
+    all: match goal with Ht : typeof _ = Tunion _ _ |- _ => cbn in Ht; injection Ht as <- <- end.
+    all: match goal with Hf : union_field_offset _ _ (co_members ?co) = OK _, Hc : _ ! _ = Some ?co |- _ =>
+           rewrite (ufo_f32 _ Hc) in Hf; injection Hf; intros; subst end.
+    all: match goal with He : eval_expr _ _ _ _ (Efield _ _ _) _ |- _ => inv He end.
+    all: match goal with Hd2 : deref_loc (typeof (Efield _ _ _)) _ _ _ _ _ |- _ =>
+           cbn [typeof] in Hd2; inv Hd2 end; kill_r.
+    all: match goal with Hl : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ => inv Hl end; kill_r.
+    all: match goal with Ht : typeof _ = Tstruct _ _ |- _ => cbn in Ht; injection Ht as <- <- end.
+    all: match goal with Hf : field_offset _ _ (co_members ?co) = OK _, Hc : _ ! _ = Some ?co |- _ =>
+           rewrite (fo_raw _ Hc) in Hf; injection Hf; intros; subst end.
+    all: match goal with He : eval_expr _ _ _ _ (Ederef _ _) _ |- _ => inv He end.
+    all: match goal with Hd2 : deref_loc (typeof (Ederef _ _)) _ _ _ _ _ |- _ =>
+           cbn [typeof] in Hd2; inv Hd2 end; kill_r.
+    all: match goal with Hl : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hl end.
+    all: match goal with Ht : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ => apply RA.ev_temp in Ht end.
+    all: cbn in E3; injection E3 as <- <-.
+    all: eexists; split; [ eassumption | split; reflexivity ].
+  Qed.
+
+  (* the same with a tuint index (SUM_FLOAT): of_intu *)
+  Lemma lv_rawfu : forall m le p fi i b o bf,
+    le ! fi = Some (Vint i) ->
+    eval_lvalue G empty_env le m
+      (Ederef (Ebinop Oadd
+         (Efield (Efield (Ederef (Etempvar p (tptr (Tstruct BS._Object noattr))) (Tstruct BS._Object noattr))
+            BS._rawData (Tunion BS.__764 noattr)) BS._asF32 (tarray tfloat 80))
+         (Etempvar fi tuint) (tptr tfloat)) tfloat) b o bf ->
+    exists o0, le ! p = Some (Vptr b o0) /\ bf = Full /\
+      o = Ptrofs.add (Ptrofs.add (Ptrofs.add o0 (Ptrofs.repr 136)) (Ptrofs.repr 0))
+            (Ptrofs.mul (Ptrofs.repr 4) (Ptrofs.of_intu i)).
   Proof.
     intros m le p fi i b o bf Hfi HL.
     inv HL.
@@ -1916,6 +2114,22 @@ Section Link.
     rewrite Hl in Hlv. injection Hlv as <-. reflexivity.
   Qed.
 
+  Lemma ev_w1 : forall le m x b I n v, le ! x = Some (Vptr b (Ptrofs.repr I)) -> 0 <= I <= 1000000 ->
+    Mem.load Mint32 m b (I + 4) = Some (Vint n) ->
+    eval_expr G empty_env le m
+      (Ederef (Ebinop Oadd (Etempvar x (tptr tuint)) (Econst_int (Int.repr 1) tint) (tptr tuint)) tuint) v ->
+    v = Vint n.
+  Proof.
+    intros le m x b I n v Hx HI Hl H.
+    apply (ev_deref _ _ _ _ _ tuint Mint32 _ eq_refl) in H as (b1 & o1 & Ea & Hlv).
+    apply RA.ev_binop in Ea as (p1 & p2 & E1 & E2 & E3).
+    apply RA.ev_temp in E1. rewrite Hx in E1. injection E1 as <-.
+    apply RA.ev_const in E2. subst p2. cbn [typeof] in E3. rewrite add_pi in E3. injection E3 as <- <-.
+    rewrite ptr_inc in Hlv by lia. replace (I + 4 * 1) with (I + 4) in Hlv by lia.
+    cbn [Mem.loadv] in Hlv. rewrite Ptrofs.unsigned_repr in Hlv by (rewrite maxu; lia).
+    rewrite Hl in Hlv. injection Hlv as <-. reflexivity.
+  Qed.
+
   (* ---- SET_INT (0x10): o->rawData.asS32[byte2 w] = (s16)(w & 0xFFFF) ---- *)
   Definition s16_of (w : Z) : int := Int.sign_ext 16 (Int.and (Int.repr w) (Int.repr 65535)).
 
@@ -2175,6 +2389,25 @@ Section Link.
     exists b, o0. auto.
   Qed.
 
+  (* the same with a tuint index *)
+  Lemma ev_raw_rdfu : forall m le p fi i v,
+    le ! fi = Some (Vint i) ->
+    eval_expr G empty_env le m
+      (Ederef (Ebinop Oadd
+         (Efield (Efield (Ederef (Etempvar p (tptr (Tstruct BS._Object noattr))) (Tstruct BS._Object noattr))
+            BS._rawData (Tunion BS.__764 noattr)) BS._asF32 (tarray tfloat 80))
+         (Etempvar fi tuint) (tptr tfloat)) tfloat) v ->
+    exists b o0, le ! p = Some (Vptr b o0) /\
+      Mem.loadv Mfloat32 m (Vptr b (Ptrofs.add (Ptrofs.add (Ptrofs.add o0 (Ptrofs.repr 136)) (Ptrofs.repr 0))
+                                    (Ptrofs.mul (Ptrofs.repr 4) (Ptrofs.of_intu i)))) = Some v.
+  Proof.
+    intros m le p fi i v Hfi H.
+    apply (ev_deref _ _ _ _ _ tfloat Mfloat32 _ eq_refl) in H as (b & o & Ea & Hl).
+    destruct (lv_rawfu m le p fi i b o Full Hfi (eval_Ederef G empty_env le m _ tfloat b o Ea))
+      as (o0 & Hp & _ & ->).
+    exists b, o0. auto.
+  Qed.
+
   (* ---- ADD_INT (0x0F): o->rawData.asS32[byte2 w] += (s16)(w & 0xFFFF) ---- *)
   Lemma hd_add_int : forall m st w t m' vr,
     In st vm_tab -> scr_ok G m -> V m st -> cur m ->
@@ -2416,6 +2649,276 @@ Section Link.
     - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc)) | split; [ reflexivity | ] ].
       exists old, n7. split; [ exact Hld | split; [ | exact U2 ] ]. rewrite Ev.
       try (rewrite Int.sign_ext_idem in Hs1 by lia). exact Hs1.
+  Qed.
+
+  (* ---- DEACTIVATE (0x1D): o->activeFlags = 0; return BHV_PROC_BREAK
+     (the command stays: succs = [st]) ---- *)
+  Lemma hd_deactivate : forall m st w t m' vr,
+    In st vm_tab -> V m st -> cur m ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 29 ->
+    eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_deactivate) [] t m' vr ->
+    exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 1)
+      /\ Mem.store Mint16signed m pool (oc + OW.O_FLAGS) (Vint Int.zero) = Some m'.
+  Proof.
+    intros m st w t m' vr Hst HV Hc Hw Ho H.
+    destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
+    pose proof (succs_deact st w Hw Ho) as Es. rewrite Hl in Es.
+    destruct (Nat.ltb _ _) eqn:Elt; [ discriminate Es | ].
+    injection Es as Es. subst l.
+    apply V_iff in HV as ((b & Hsb & Hcm) & HS).
+    apply fcall_inv in H as (le1 & le2 & out1 & Hb & X & Hor); [ | reflexivity ].
+    cbn [fn_params BS.f_bhv_cmd_deactivate bind_parameter_temps] in Hb. injection Hb as <-.
+    cbn [fn_body BS.f_bhv_cmd_deactivate] in X.
+    apply RA.seq_inv in X as [(t1 & le1 & m1 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
+    apply RA.seq_inv in X1 as [(t3 & le3 & m3 & t4 & X3 & X4) | (X3 & Xn)]; [ | kill_sq X3 Xn ].
+    apply ld_cur in X3 as (-> & -> & _); [ | exact Hc ].
+    apply RA.assign_inv in X4 as (b2 & o2 & bf2 & v2 & v3 & Hlv & Ev & Hcast & Has & -> & _).
+    destruct (RA.lv_fld G empty_env _ _ _ _ _ _ _ _ _ _ fo_flags Hlv) as (o1 & Ho1 & -> & ->).
+    rewrite PTree.gss in Ho1. injection Ho1 as <- <-.
+    apply RA.ev_const in Ev. subst v2.
+    assert (Ev3 : v3 = Vint Int.zero) by (cbn in Hcast; injection Hcast as <-; reflexivity). subst v3.
+    pose proof (RA.store_by_value _ tshort _ _ _ _ _ _ Mint16signed eq_refl eq_refl Has) as Hs.
+    rewrite uadd in Hs by (unfold OW.O_FLAGS; try rewrite maxu; lia).
+    apply RA.ret_inv in X2 as (-> & rv & Erv & ->). apply RA.ev_const in Erv. subst rv.
+    cbn in Hor. destruct Hor as (_ & Hor). cbn in Hor. injection Hor as <-.
+    exists [st], st. split; [ exact Hl | split; [ left; reflexivity | split ] ].
+    - apply V_iff. split.
+      + exists b. split; [ exact Hsb | ].
+        rewrite (Mem.load_store_other _ _ _ _ _ _ Hs) by (left; exact Hbp). exact Hcm.
+      + destruct HS as (Hsi & Hk). split.
+        * rewrite (Mem.load_store_other _ _ _ _ _ _ Hs); [ exact Hsi | ].
+          right. right. cbn [size_chunk]. unfold OW.O_SIDX, OW.O_FLAGS. lia.
+        * intros j f Hj.
+          assert (Hjl : (j < List.length (v_k st))%nat) by (apply nth_error_Some; rewrite Hj; discriminate).
+          rewrite (Mem.load_store_other _ _ _ _ _ _ Hs); [ exact (Hk j f Hj) | ].
+          right. right. cbn [size_chunk]. unfold OW.O_STK, OW.O_FLAGS. lia.
+    - split; [ exact (cur_store _ _ _ _ _ Hs Hc) | split; [ reflexivity | exact Hs ] ].
+  Qed.
+
+  (* ---- SET_INTERACT_TYPE (0x2F): o->rawData.asU32[42] = cmd[1]; cmd += 2 ---- *)
+  Lemma hd_set_interact_type : forall m st w t m' vr,
+    In st vm_tab -> scr_ok G m -> V m st -> cur m ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 47 ->
+    eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_set_interact_type) [] t m' vr ->
+    exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
+      /\ exists a m1, word_at (v_s st) (v_i st + 1) = Some (Int.unsigned a)
+         /\ Mem.store Mint32 m pool (oc + 136 + 4 * 42) (Vint a) = Some m1
+         /\ Mem.unchanged_on Pfr m1 m'.
+  Proof.
+    intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
+    destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
+    pose proof (succs_sit st w Hw Ho) as Es. rewrite Hl in Es.
+    destruct (Nat.ltb _ _) eqn:Elt; [ discriminate Es | ]. apply Nat.ltb_ge in Elt.
+    injection Es as Es. subst l.
+    apply V_iff in HV as ((b & Hsb & Hcm) & HS).
+    destruct (sit_arg st w Hst Hw Ho) as (z & Hz & _).
+    destruct (word_int _ _ _ Hz) as (a & Ha & Eza).
+    destruct (Hscr (v_s st) b (v_i st + 1)%nat _ Hsb (in_map _ _ _ Hst) Ha) as (va & Hla & Hia).
+    cbn in Hia. subst va.
+    assert (Hilt : (v_i st + 1 < List.length (words (v_s st)))%nat)
+      by (apply nth_error_Some; rewrite Ha; discriminate).
+    remember (4 * Z.of_nat (v_i st)) as I4 eqn:EI.
+    try rewrite <- EI in Hcm.
+    replace (4 * Z.of_nat (v_i st + 1)) with (I4 + 4) in Hla by lia.
+    apply fcall_inv in H as (le1 & le2 & out1 & Hb & X & Hor); [ | reflexivity ].
+    cbn [fn_params BS.f_bhv_cmd_set_interact_type bind_parameter_temps] in Hb. injection Hb as <-.
+    cbn [fn_body BS.f_bhv_cmd_set_interact_type] in X.
+    apply RA.seq_inv in X as [(t1 & le1 & m1 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
+    apply RA.seq_inv in X1 as [(t3 & le3 & m3 & t4 & X3 & X4) | (X3 & Xn)]; [ | kill_sq X3 Xn ].
+    apply ld_cur in X3 as (-> & -> & _); [ | exact Hc ].
+    apply RA.seq_inv in X4 as [(t5 & le5 & m5 & t6 & X5 & X6) | (X5 & Xn)]; [ | kill_sq X5 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ X5 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in X6 as [(t7 & le7 & m7 & t8 & X7 & X8) | (X7 & Xn)]; [ | kill_sq X7 Xn ].
+    apply RA.set_inv in X7 as (vw & Evw & -> & -> & _).
+    apply (ev_w1 _ _ _ b I4 a _ (PTree.gss _ _ _) ltac:(lia) Hla) in Evw. subst vw.
+    apply RA.assign_inv in X8 as (b2 & o2 & bf2 & v2 & v3 & Hlv2 & Ev2 & Hcast2 & Has & -> & _).
+    destruct (lv_rawuc _ _ _ _ _ _ _ Hlv2) as (o0 & Ho0 & -> & ->).
+    rewrite PTree.gso, PTree.gso, PTree.gss in Ho0 by (vm_compute; discriminate). injection Ho0 as <- <-.
+    apply RA.ev_cast in Ev2 as (z1 & Ez1 & Cz). apply RA.ev_temp in Ez1. rewrite PTree.gss in Ez1.
+    injection Ez1 as <-. cbn in Cz. injection Cz as <-. cbn in Hcast2. injection Hcast2 as <-.
+    pose proof (RA.store_by_value _ tuint _ _ _ _ _ _ Mint32 eq_refl eq_refl Has) as Hs1.
+    change (Ptrofs.of_ints (Int.repr 42)) with (Ptrofs.repr 42) in Hs1.
+    rewrite raw_addr in Hs1 by lia.
+    (* cmd = cmd + 2 *)
+    apply RA.seq_inv in X2 as [(u11 & ke11 & n11 & u12 & Y11 & Y12) | (Y11 & Xn)]; [ | kill_sq Y11 Xn ].
+    apply RA.seq_inv in Y11 as [(u13 & ke13 & n13 & u14 & Y13 & Y14) | (Y13 & Xn)]; [ | kill_sq Y13 Xn ].
+    assert (Lc : Mem.load Mint32 m1 bc 0 = Some (Vptr b (Ptrofs.repr I4)))
+      by (rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1) by (left; exact Hbp); exact Hcm).
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Y13 Lc) as (-> & -> & _).
+    apply st_cmd in Y14 as (v4 & v5 & Ev4 & Hcast4 & Hs2 & -> & _).
+    apply RA.ev_binop in Ev4 as (q1 & q2 & Eq1 & Eq2 & Eadd).
+    apply RA.ev_temp in Eq1. rewrite PTree.gss in Eq1. injection Eq1 as <-.
+    apply RA.ev_const in Eq2. subst q2. cbn [typeof] in Eadd. rewrite add_pi in Eadd. injection Eadd as <-.
+    cbn [typeof] in Hcast4. rewrite cast_pp in Hcast4. injection Hcast4 as <-.
+    rewrite ptr_inc in Hs2 by lia. norm_off Hs2 (4 * Z.of_nat (v_i st + 2)).
+    destruct (bc_store _ _ _ Hs2) as (Hc2 & _ & U2).
+    apply RA.ret_inv in Y12 as (-> & rv & Erv & ->). apply RA.ev_const in Erv. subst rv.
+    cbn in Hor. destruct Hor as (_ & Hor). cbn in Hor. injection Hor as <-.
+    assert (HS1 : Vstk m1 (v_k st)).
+    { destruct HS as (Hsi & Hk). split.
+      - rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1); [ exact Hsi | ].
+        right. right. cbn [size_chunk]. unfold OW.O_SIDX. lia.
+      - intros j f Hj.
+        assert (Hjl : (j < List.length (v_k st))%nat) by (apply nth_error_Some; rewrite Hj; discriminate).
+        rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1); [ exact (Hk j f Hj) | ].
+        right. right. cbn [size_chunk]. unfold OW.O_STK. lia. }
+    eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
+    - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
+    - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc)) | split; [ reflexivity | ] ].
+      exists a, m1. split; [ rewrite <- Eza; exact Hz | split; [ exact Hs1 | exact U2 ] ].
+  Qed.
+
+
+  (* ---- SUM_FLOAT (0x1F): o->rawData.asF32[byte2 w] =
+          o->rawData.asF32[byte3 w] + o->rawData.asF32[byte4 w] ---- *)
+  Lemma hd_sum_float : forall m st w t m' vr,
+    In st vm_tab -> scr_ok G m -> V m st -> cur m ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 31 ->
+    eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_sum_float) [] t m' vr ->
+    exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
+      /\ exists a1 a2 m1, Mem.load Mfloat32 m pool (oc + 136 + 4 * byte3 w) = Some (Vsingle a1)
+         /\ Mem.load Mfloat32 m pool (oc + 136 + 4 * byte4 w) = Some (Vsingle a2)
+         /\ Mem.store Mfloat32 m pool (oc + 136 + 4 * byte2 w) (Vsingle (Float32.add a1 a2)) = Some m1
+         /\ Mem.unchanged_on Pfr m1 m'.
+  Proof.
+    intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
+    destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
+    pose proof (succs_sum_float st w Hw Ho) as Es. rewrite Hl in Es.
+    destruct (Nat.ltb _ _) eqn:Elt; [ discriminate Es | ]. apply Nat.ltb_ge in Elt.
+    injection Es as Es. subst l.
+    destruct (sum_lt80 st w Hst Hw Ho) as (H2 & H3 & H4).
+    apply V_iff in HV as ((b & Hsb & Hcm) & HS).
+    destruct (word_int _ _ _ Hw) as (n & Hn & Ewn).
+    assert (Hilt : (v_i st < List.length (words (v_s st)))%nat)
+      by (apply nth_error_Some; rewrite Hn; discriminate).
+    destruct (Hscr (v_s st) b (v_i st) _ Hsb (in_map _ _ _ Hst) Hn) as (vn & Hlv & Hiv).
+    cbn in Hiv. subst vn.
+    remember (4 * Z.of_nat (v_i st)) as I4 eqn:EI.
+    try rewrite <- EI in Hlv. try rewrite <- EI in Hcm.
+    apply fcall_inv in H as (le1 & le2 & out1 & Hb & X & Hor); [ | reflexivity ].
+    cbn [fn_params BS.f_bhv_cmd_sum_float bind_parameter_temps] in Hb. injection Hb as <-.
+    cbn [fn_body BS.f_bhv_cmd_sum_float] in X.
+    (* fieldDst = (w >> 16) & 0xFF *)
+    apply RA.seq_inv in X as [(t1 & le1 & m1 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
+    apply RA.seq_inv in X1 as [(t3 & le3 & m3 & t4 & X3 & X4) | (X3 & Xn)]; [ | kill_sq X3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ X3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in X4 as [(t5 & le5 & m5 & t6 & X5 & X6) | (X5 & Xn)]; [ | kill_sq X5 Xn ].
+    apply RA.set_inv in X5 as (vw & Evw & -> & -> & _).
+    apply (ev_w0 _ _ _ b I4 n _ (PTree.gss _ _ _) ltac:(lia) Hlv) in Evw. subst vw.
+    apply RA.set_inv in X6 as (vf & Evf & -> & -> & _).
+    apply RA.ev_cast in Evf as (x1 & Ex1 & C1).
+    apply RA.ev_binop in Ex1 as (a1 & a2 & Ea1 & Ea2 & Eand).
+    apply RA.ev_binop in Ea1 as (s1 & s2 & Es1 & Es2 & Eshr).
+    apply RA.ev_temp in Es1. rewrite PTree.gss in Es1. injection Es1 as <-.
+    apply RA.ev_const in Es2. subst s2. apply RA.ev_const in Ea2. subst a2.
+    cbn in Eshr. injection Eshr as <-. cbn in Eand. injection Eand as <-.
+    cbn in C1. injection C1 as <-.
+    (* fieldSrc1 = (w >> 8) & 0xFF *)
+    apply RA.seq_inv in X2 as [(t7 & le7 & m7 & t8 & X7 & X8) | (X7 & Xn)]; [ | kill_sq X7 Xn ].
+    apply RA.seq_inv in X7 as [(t9 & le9 & m9 & t10 & X9 & X10) | (X9 & Xn)]; [ | kill_sq X9 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ X9 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in X10 as [(t11 & le11 & m11 & t12 & X11 & X12) | (X11 & Xn)]; [ | kill_sq X11 Xn ].
+    apply RA.set_inv in X11 as (vw & Evw & -> & -> & _).
+    apply (ev_w0 _ _ _ b I4 n _ (PTree.gss _ _ _) ltac:(lia) Hlv) in Evw. subst vw.
+    apply RA.set_inv in X12 as (vf & Evf & -> & -> & _).
+    apply RA.ev_cast in Evf as (x1 & Ex1 & C1).
+    apply RA.ev_binop in Ex1 as (a1 & a2 & Ea1 & Ea2 & Eand).
+    apply RA.ev_binop in Ea1 as (s1 & s2 & Es1 & Es2 & Eshr).
+    apply RA.ev_temp in Es1. rewrite PTree.gss in Es1. injection Es1 as <-.
+    apply RA.ev_const in Es2. subst s2. apply RA.ev_const in Ea2. subst a2.
+    cbn in Eshr. injection Eshr as <-. cbn in Eand. injection Eand as <-.
+    cbn in C1. injection C1 as <-.
+    (* fieldSrc2 = w & 0xFF *)
+    apply RA.seq_inv in X8 as [(t13 & le13 & m13 & t14 & X13 & X14) | (X13 & Xn)]; [ | kill_sq X13 Xn ].
+    apply RA.seq_inv in X13 as [(t15 & le15 & m15 & t16 & X15 & X16) | (X15 & Xn)]; [ | kill_sq X15 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ X15 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in X16 as [(t17 & le17 & m17 & t18 & X17 & X18) | (X17 & Xn)]; [ | kill_sq X17 Xn ].
+    apply RA.set_inv in X17 as (vw & Evw & -> & -> & _).
+    apply (ev_w0 _ _ _ b I4 n _ (PTree.gss _ _ _) ltac:(lia) Hlv) in Evw. subst vw.
+    apply RA.set_inv in X18 as (vf & Evf & -> & -> & _).
+    apply RA.ev_cast in Evf as (x1 & Ex1 & C1).
+    apply RA.ev_binop in Ex1 as (a1 & a2 & Ea1 & Ea2 & Eand).
+    apply RA.ev_temp in Ea1. rewrite PTree.gss in Ea1. injection Ea1 as <-.
+    apply RA.ev_const in Ea2. subst a2. cbn in Eand. injection Eand as <-.
+    cbn in C1. injection C1 as <-.
+    (* t4 = o->asF32[src1]; t6 = o->asF32[src2]; o->asF32[dst] = t4 + t6 *)
+    apply RA.seq_inv in X14 as [(u1 & ke1 & n1 & u2 & D1 & E1) | (D1 & Xn)]; [ | kill_sq D1 Xn ].
+    apply RA.seq_inv in D1 as [(u3 & ke3 & n3 & u4 & Y1 & Y2) | (Y1 & Xn)]; [ | kill_sq Y1 Xn ].
+    apply ld_cur in Y1 as (-> & -> & _); [ | exact Hc ].
+    apply RA.seq_inv in Y2 as [(u5 & ke5 & n5 & u6 & Y3 & Y4) | (Y3 & Xn)]; [ | kill_sq Y3 Xn ].
+    apply ld_cur in Y3 as (-> & -> & _); [ | exact Hc ].
+    apply RA.seq_inv in Y4 as [(u7 & ke7 & n7 & u8 & Y5 & Y6) | (Y5 & Xn)]; [ | kill_sq Y5 Xn ].
+    apply RA.set_inv in Y5 as (va & Eva & -> & -> & _).
+    match type of Eva with eval_expr _ _ ?le _ _ _ =>
+      assert (Hf1 : exists fi, le ! BS._fieldSrc1 = Some (Vint fi) /\ Int.unsigned fi = byte3 w)
+        by (eexists; split;
+            [ do 5 rewrite PTree.gso by (vm_compute; discriminate); apply PTree.gss
+            | rewrite Ewn; apply b3_eq ]) end.
+    destruct Hf1 as (f1 & Hf1 & Ef1).
+    destruct (ev_raw_rdfu _ _ _ _ _ _ Hf1 Eva) as (bo & oo & Hpo & Hld1).
+    rewrite PTree.gss in Hpo. injection Hpo as <- <-.
+    cbn [Mem.loadv] in Hld1. unfold Ptrofs.of_intu, Ptrofs.of_int in Hld1. rewrite Ef1 in Hld1. rewrite raw_addr in Hld1 by lia.
+    apply RA.seq_inv in Y6 as [(u9 & ke9 & n9 & u10 & Y7 & Y8) | (Y7 & Xn)]; [ | kill_sq Y7 Xn ].
+    apply ld_cur in Y7 as (-> & -> & _); [ | exact Hc ].
+    apply RA.seq_inv in Y8 as [(u11 & ke11 & n11 & u12 & Y9 & Y10) | (Y9 & Xn)]; [ | kill_sq Y9 Xn ].
+    apply RA.set_inv in Y9 as (vb & Evb & -> & -> & _).
+    match type of Evb with eval_expr _ _ ?le _ _ _ =>
+      assert (Hf2 : exists fi, le ! BS._fieldSrc2 = Some (Vint fi) /\ Int.unsigned fi = byte4 w)
+        by (eexists; split;
+            [ do 4 rewrite PTree.gso by (vm_compute; discriminate); apply PTree.gss
+            | rewrite Ewn; apply b4_eq ]) end.
+    destruct Hf2 as (f2 & Hf2 & Ef2).
+    destruct (ev_raw_rdfu _ _ _ _ _ _ Hf2 Evb) as (bo & oo & Hpo & Hld2).
+    rewrite PTree.gss in Hpo. injection Hpo as <- <-.
+    cbn [Mem.loadv] in Hld2. unfold Ptrofs.of_intu, Ptrofs.of_int in Hld2. rewrite Ef2 in Hld2. rewrite raw_addr in Hld2 by lia.
+    apply RA.assign_inv in Y10 as (b2 & o2 & bf2 & v2 & v3 & Hlv2 & Ev2 & Hcast2 & Has & -> & _).
+    match type of Hlv2 with eval_lvalue _ _ ?le _ _ _ _ _ =>
+      assert (Hf0 : exists fi, le ! BS._fieldDst = Some (Vint fi) /\ Int.unsigned fi = byte2 w)
+        by (eexists; split;
+            [ do 11 rewrite PTree.gso by (vm_compute; discriminate); apply PTree.gss
+            | rewrite Ewn; apply b2_eq ]) end.
+    destruct Hf0 as (f0 & Hf0 & Ef0).
+    destruct (lv_rawfu _ _ _ _ _ _ _ _ Hf0 Hlv2) as (o0 & Ho0 & -> & ->).
+    do 4 rewrite PTree.gso in Ho0 by (vm_compute; discriminate). rewrite PTree.gss in Ho0.
+    injection Ho0 as <- <-.
+    apply RA.ev_cast in Ev2 as (z & Ez & Cz).
+    apply RA.ev_binop in Ez as (e1 & e2 & Ee1 & Ee2 & Eadd').
+    apply RA.ev_temp in Ee1. do 2 rewrite PTree.gso in Ee1 by (vm_compute; discriminate).
+    rewrite PTree.gss in Ee1. injection Ee1 as <-.
+    apply RA.ev_temp in Ee2. rewrite PTree.gss in Ee2. injection Ee2 as <-.
+    destruct va as [| | | | a1 | ]; cbn -[Float32.add] in Eadd'; try discriminate Eadd'.
+    destruct vb as [| | | | a2 | ]; cbn -[Float32.add] in Eadd'; try discriminate Eadd'.
+    injection Eadd' as <-. cbn -[Float32.add] in Cz. injection Cz as <-.
+    cbn -[Float32.add] in Hcast2. injection Hcast2 as <-.
+    pose proof (RA.store_by_value _ tfloat _ _ _ _ _ _ Mfloat32 eq_refl eq_refl Has) as Hs1.
+    unfold Ptrofs.of_intu, Ptrofs.of_int in Hs1. rewrite Ef0 in Hs1. rewrite raw_addr in Hs1 by lia.
+    (* cmd = cmd + 1 *)
+    apply RA.seq_inv in E1 as [(u13 & ke13 & n13 & u14 & Y11 & Y12) | (Y11 & Xn)]; [ | kill_sq Y11 Xn ].
+    apply RA.seq_inv in Y11 as [(u15 & ke15 & n15 & u16 & Y13 & Y14) | (Y13 & Xn)]; [ | kill_sq Y13 Xn ].
+    assert (Lc : Mem.load Mint32 n1 bc 0 = Some (Vptr b (Ptrofs.repr I4)))
+      by (rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1) by (left; exact Hbp); exact Hcm).
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Y13 Lc) as (-> & -> & _).
+    apply st_cmd in Y14 as (v4 & v5 & Ev4 & Hcast4 & Hs2 & -> & _).
+    apply RA.ev_binop in Ev4 as (q1 & q2 & Eq1 & Eq2 & Eadd).
+    apply RA.ev_temp in Eq1. rewrite PTree.gss in Eq1. injection Eq1 as <-.
+    apply RA.ev_const in Eq2. subst q2. cbn [typeof] in Eadd. rewrite add_pi in Eadd. injection Eadd as <-.
+    cbn [typeof] in Hcast4. rewrite cast_pp in Hcast4. injection Hcast4 as <-.
+    rewrite ptr_inc in Hs2 by lia. norm_off Hs2 (4 * Z.of_nat (v_i st + 1)).
+    destruct (bc_store _ _ _ Hs2) as (Hc2 & _ & U2).
+    apply RA.ret_inv in Y12 as (-> & rv & Erv & ->). apply RA.ev_const in Erv. subst rv.
+    cbn in Hor. destruct Hor as (_ & Hor). cbn in Hor. injection Hor as <-.
+    assert (HS1 : Vstk n1 (v_k st)).
+    { destruct HS as (Hsi & Hk). split.
+      - rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1); [ exact Hsi | ].
+        right. right. cbn [size_chunk]. unfold OW.O_SIDX. lia.
+      - intros j f Hj.
+        assert (Hjl : (j < List.length (v_k st))%nat) by (apply nth_error_Some; rewrite Hj; discriminate).
+        rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1); [ exact (Hk j f Hj) | ].
+        right. right. cbn [size_chunk]. unfold OW.O_STK. lia. }
+    eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
+    - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
+    - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc)) | split; [ reflexivity | ] ].
+      exists a1, a2, n1. split; [ exact Hld1 | split; [ exact Hld2 | split; [ exact Hs1 | exact U2 ] ] ].
   Qed.
 
   (* ---- OR_INT (0x11): o->rawData.asS32[byte2 w] |= ((s16)(w & 0xFFFF)) & 0xFFFF ---- *)
@@ -2940,17 +3443,98 @@ Section Link.
     - left. reflexivity.
   Qed.
 
+  (* SUM_FLOAT's row.  Its reachable destination fields are 6 / 7 / 8 =
+     oPosX / oPosY / oPosZ, which obj_w DOES read: the premise is pinned
+     to the one store of the sum of the two source cells read at m *)
+  Definition sumf_keep : Prop := forall m st w a1 a2 m1, INV m -> In st vm_tab ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 31 ->
+    Mem.load Mfloat32 m pool (oc + 136 + 4 * byte3 w) = Some (Vsingle a1) ->
+    Mem.load Mfloat32 m pool (oc + 136 + 4 * byte4 w) = Some (Vsingle a2) ->
+    Mem.store Mfloat32 m pool (oc + 136 + 4 * byte2 w) (Vsingle (Float32.add a1 a2)) = Some m1 ->
+    INV m1.
+
+  Lemma row_sum_float : sumf_keep -> cmd_row_op 31.
+  Proof.
+    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 31) = Some BS._bhv_cmd_sum_float)
+      by (vm_compute; reflexivity).
+    rewrite E in Hid. injection Hid as <-.
+    assert (Hdm : (prog_defmap BS.prog) ! BS._bhv_cmd_sum_float
+                  = Some (Gfun (Internal BS.f_bhv_cmd_sum_float))) by (vm_compute; reflexivity).
+    rewrite (fun_bs _ _ Hdm _ _ Hhb Hfd) in Hev.
+    destruct (hd_sum_float _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
+      as (l & st' & Hl & Hin & HV' & _ & -> & a1 & a2 & m1 & Hl1 & Hl2 & Hs1 & U).
+    exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ HI Hst Hw Ho Hl1 Hl2 Hs1) U).
+    - left. reflexivity.
+  Qed.
+
+  (* DEACTIVATE's row.  obj_w reads activeFlags (a FREE slot is inactive;
+     the converse is not claimed, so a listed slot going inactive is a
+     state the real game produces: unload_deactivated_objects frees it on
+     the next pass).  Pinned to the one store of 0 at reachable DEACTIVATE
+     words only *)
+  Definition deact_keep : Prop := forall m st w m1, INV m -> In st vm_tab ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 29 ->
+    Mem.store Mint16signed m pool (oc + OW.O_FLAGS) (Vint Int.zero) = Some m1 -> INV m1.
+
+  Lemma row_deactivate : deact_keep -> cmd_row_op 29.
+  Proof.
+    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 29) = Some BS._bhv_cmd_deactivate)
+      by (vm_compute; reflexivity).
+    rewrite E in Hid. injection Hid as <-.
+    assert (Hdm : (prog_defmap BS.prog) ! BS._bhv_cmd_deactivate
+                  = Some (Gfun (Internal BS.f_bhv_cmd_deactivate))) by (vm_compute; reflexivity).
+    rewrite (fun_bs _ _ Hdm _ _ Hhb Hfd) in Hev.
+    destruct (hd_deactivate _ _ _ _ _ _ Hst HV (Hinv_cur m HI) Hw Ho Hev)
+      as (l & st' & Hl & Hin & HV' & _ & -> & Hs1).
+    exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
+    - exact (Hk _ _ _ _ HI Hst Hw Ho Hs1).
+    - right. reflexivity.
+  Qed.
+
+  (* SET_INTERACT_TYPE's row.  It writes field 42 = oInteractType, which
+     obj_w's KIND clause reads.  Computed (sit_arg): the value is the
+     script's next word -- bhvBobombBuddyOpensCannon's 0x800000 (in
+     wmotr_interact_types) or bhvKoopaShellFlame's INTERACT_FLAME (NOT in
+     it: the FOUND at chk47_ok).  The flame is outside WMotR's real spawn
+     graph (BoxCensus.flame_unreached; sit_kind), so discharging this
+     premise from obj_w needs obj_w's SCRIPT domain narrowed to
+     BoxCensus.wmotr_closure_b.  Pinned to that one store *)
+  Definition sit_keep : Prop := forall m st w a m1, INV m -> In st vm_tab ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 47 ->
+    word_at (v_s st) (v_i st + 1) = Some (Int.unsigned a) ->
+    Mem.store Mint32 m pool (oc + 136 + 4 * 42) (Vint a) = Some m1 -> INV m1.
+
+  Lemma row_set_interact_type : sit_keep -> cmd_row_op 47.
+  Proof.
+    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 47) = Some BS._bhv_cmd_set_interact_type)
+      by (vm_compute; reflexivity).
+    rewrite E in Hid. injection Hid as <-.
+    assert (Hdm : (prog_defmap BS.prog) ! BS._bhv_cmd_set_interact_type
+                  = Some (Gfun (Internal BS.f_bhv_cmd_set_interact_type))) by (vm_compute; reflexivity).
+    rewrite (fun_bs _ _ Hdm _ _ Hhb Hfd) in Hev.
+    destruct (hd_set_interact_type _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
+      as (l & st' & Hl & Hin & HV' & _ & -> & a & m1 & Ha & Hs1 & U).
+    exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ HI Hst Hw Ho Ha Hs1) U).
+    - left. reflexivity.
+  Qed.
+
   (* the pinned one-store premises of the field commands, together *)
-  Definition row_keeps : Prop := set_keep /\ setf_keep /\ addi_keep /\ ori_keep /\ addf_keep.
+  Definition row_keeps : Prop := set_keep /\ setf_keep /\ addi_keep /\ ori_keep /\ addf_keep /\ sumf_keep /\ deact_keep /\ sit_keep.
 
   (* the opcodes whose rows are proved: the control layer, DELAY_VAR, and
-     SET_INT / SET_FLOAT / ADD_INT / OR_INT / ADD_FLOAT (from row_keeps) *)
-  Definition done_ops : list Z := 13 :: 17 :: 15 :: 14 :: 16 :: 37 :: ctl_ops.
+     SET_INT / SET_FLOAT / ADD_INT / OR_INT / ADD_FLOAT / SUM_FLOAT / DEACTIVATE / SET_INTERACT_TYPE (from row_keeps) *)
+  Definition done_ops : list Z := 47 :: 29 :: 31 :: 13 :: 17 :: 15 :: 14 :: 16 :: 37 :: ctl_ops.
 
   Lemma done_rows : row_keeps -> forall op, In op done_ops -> cmd_row_op op.
   Proof.
-    intros (K16 & K14 & K15 & K17 & K13) op [<- | [<- | [<- | [<- | [<- | [<- | H]]]]]];
-      [ exact (row_add_float K13) | exact (row_or_int K17) | exact (row_add_int K15)
+    intros (K16 & K14 & K15 & K17 & K13 & K31 & K29 & K47) op
+      [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | H]]]]]]]]];
+      [ exact (row_set_interact_type K47) | exact (row_deactivate K29) | exact (row_sum_float K31) | exact (row_add_float K13) | exact (row_or_int K17) | exact (row_add_int K15)
       | exact (row_set_float K14) | exact (row_set_int K16) | exact row_delay_var | exact (ctl_rows op H) ].
   Qed.
 
