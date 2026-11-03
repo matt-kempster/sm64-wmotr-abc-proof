@@ -651,10 +651,16 @@ all in `Unwired/`, and the theorem moved nowhere. See
     activeFlags 0, footprint UK = slot k's non-link bytes + graph/list link cells +
     the sound blocks) and unload_real on the link; the sound leaf is PROVED by
     AudioWire's walk (uai_ssfs: stop_sounds_from_source / update_background_music_
-    after_sound / cai_bbmf, footprint ws_u, AudioInv kept), no new premise. Still open
-    for the row: the two list loops, set_object_respawn_info_bits, and re-establishing
-    Pobj (mem_ok via AudioBodies.sp_stop_sounds_from_source, PhiW past the respawn OR
-    into P, obj_w with the ring change))
+    after_sound / cai_bbmf, footprint ws_u, AudioInv kept), no new premise.
+    `UnloadLoop.v` (kept): resp_walk (set_object_respawn_info_bits: no-op, or one
+    Mint32 / Mint16unsigned int store through respawnInfo for type 1 / 2) and inlist_ok
+    (the in_list while loop over the real ring, generic in a world W kept by the
+    gCurrentObject store + a respawn call + an unload call on an INACTIVE slot; invariant
+    = split l1++l2 of ring i, obj = head of l2, since next is read before the unload).
+    Still open for the row: the outer loop over sObjectListUpdateOrder (ObjLoop NT
+    template: filler alloc via Hobj_fresh/blind, ow_order), and the per-slot Pobj keep that
+    instantiates W (mem_ok via AudioBodies.sp_stop_sounds_from_source, PhiW past the
+    respawn OR into P, obj_w with the ring change))
     (Hobj_stores PROVED 2026-11-03: obj_stores_linked12 / ObjStores.stores_safe, every
     update_objects store block classified by vm (uo_sok); rests on Hobj_blind for the stack
     stores. Reusable: ClearKeep.gstore_core_p takes a pointer to a SafeB-if-bg-is global;
