@@ -1229,6 +1229,12 @@ without pressing A".*
   and obj_w's `cmdtab_ok`, given one row per opcode (`cmd_row_op`). The 11 control rows
   are discharged (`ctl_rows`). The other opcodes' rows (advancing commands, DELAY_VAR,
   DEACTIVATE, CALL_NATIVE) are the loop's open premise. Still no spine row depends on it.
+  Sharpened (`dloop_used`): the reachable VM executes 39 of the 56 opcodes (`vm_used`,
+  vm-checked over `vm_tab`), so the rows of the other 17 hold vacuously (`unused_row`)
+  and the open premise is the 28 used non-control rows. `scr_ok` now has a decidable
+  check (`scr_b_sound`: each cell of each reachable script against its initializer),
+  ready to become an obj_w clause checked at boot; that obj_w/wchk step is held for the
+  next StartTerrain rebuild. No trust moves.
   **Indexed handler arguments (2026-10-26, B3 iii-a, `BhvVM`).** These are vm-checked at
   every reachable state:
   - The field commands index `o->rawData.asU32[0x50]` (`vm_fields_in_rawdata`): every field
