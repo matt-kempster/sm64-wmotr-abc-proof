@@ -45,11 +45,11 @@ From Coq Require Import ZArith List Lia Bool String.
 From compcert Require Import Coqlib Maps AST Integers Floats Values Memory Ctypesdefs
   Globalenvs Ctypes Clight Errors.
 From SM64.Generated Require object_list_processor behavior_data behavior_script object_helpers debug
-  surface_load macro_special_objects wmotr_level_data.
+  surface_load macro_special_objects wmotr_level_data area.
 From SM64.Proofs Require Interp.CMem.
 From SM64.Proofs Require Import CensusV2.
 From SM64.Proofs.WMotRRequiresA Require Import WMotRLevel WMotRWorld.
-From SM64.Proofs.WMotRRequiresA Require BehaviorScripts ObjAct ObjCensus BhvVM FloorList.
+From SM64.Proofs.WMotRRequiresA Require BehaviorScripts ObjAct ObjCensus BhvVM FloorList BoxCensus.
 
 Import ListNotations.
 Local Open Scope string_scope.
@@ -201,7 +201,43 @@ Definition tlen (t : ident) : Z := Z.of_nat (List.length (ObjAct.tentries t)).
 Lemma act_tables_pinned : map (fun p => tlen (snd p)) act_pairs = [2; 7; 6].
 Proof. vm_compute. reflexivity. Qed.
 
-Definition live_bhvs : list ident := BehaviorScripts.reached_bhvs.
+(* SCRIPT, narrowed 2026-11-03 (FOUND, the objects agent): reached_bhvs is
+   the closure over every symbol a body or table mentions, so it held the
+   exclamation box's koopa-shell content and the shell's flame
+   (bhvKoopaShellFlame, INTERACT_FLAME 0x40000, outside
+   wmotr_interact_types: a slot running it breaks KIND through its
+   SET_INTERACT_TYPE).  WMotR's boxes spawn only the contents of their real
+   ids (BoxCensus.wmotr_closure_b, the box-contents edge cut to those ids),
+   so the live scripts are reached_bhvs minus the 13 that closure never
+   reaches (cut_bhvs, pinned against the closure by vm below: every live
+   script is in wmotr_closure_b, and the cut ones are not).  PHANTOM CHECK:
+   the boot slots run only closure scripts (m11, vm); in play a slot's
+   script changes only by a spawn of a closure behavior. *)
+Definition cut_bhvs : list ident :=
+  map Ctypesdefs.ident_of_string
+    ["bhvMetalCap"; "bhvObjectWaveTrail"; "bhvSingleCoinGetsSpawned"; "bhvSpawnedStar";
+     "bhvKoopaShellUnderwater"; "bhvKoopaShell"; "bhvKoopaShellFlame"; "bhv1UpRunningAway";
+     "bhvVanishCap"; "bhvBlueCoinJumping"; "bhvJumpingBox"; "bhvTenCoinsSpawn"; "bhvThreeCoinsSpawn"].
+Definition live_bhvs : list ident :=
+  filter (fun x => negb (existsb (Pos.eqb x) cut_bhvs)) BehaviorScripts.reached_bhvs.
+
+Lemma live_in_closure_b : forallb (fun x => existsb (Pos.eqb x) BoxCensus.wmotr_closure_b) live_bhvs = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma cut_not_closure_b : forallb (fun x => negb (existsb (Pos.eqb x) BoxCensus.wmotr_closure_b)) cut_bhvs = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma flame_not_live : existsb (Pos.eqb behavior_data._bhvKoopaShellFlame) live_bhvs = false.
+Proof. vm_compute. reflexivity. Qed.
+
+(* generic over the lists, so nothing unfolds the computed closure *)
+Lemma forallb_existsb_incl : forall l1 l2 : list ident,
+  forallb (fun x => existsb (Pos.eqb x) l2) l1 = true -> forall x, In x l1 -> In x l2.
+Proof.
+  intros l1 l2 H x Hin. rewrite forallb_forall in H. specialize (H x Hin). cbv beta in H.
+  apply existsb_exists in H as (y & Hy & E). apply Pos.eqb_eq in E. subst y. exact Hy.
+Qed.
+
+Lemma live_closure_b : forall id, In id live_bhvs -> In id BoxCensus.wmotr_closure_b.
+Proof. exact (forallb_existsb_incl _ _ live_in_closure_b). Qed.
 
 Section CLAUSES.
   Variable ge : genv.
@@ -778,6 +814,103 @@ Proof.
 Qed.
 
 (* ---------------------------------------------------------------------- *)
+(* 3e. Mario stays live, respawn targets, graph links (2026-11-03).        *)
+(*   FOUND (phantom forall, 2026-11-03): HeightFrame's row Hobj_unload    *)
+(*   (unload_deactivated_objects keeps Pobj) was FALSE over memories obj_w *)
+(*   allowed, so both capstones assumed a false hypothesis:               *)
+(*   (a) Mario's slot with ACTIVE_FLAG_ACTIVE clear: the real             *)
+(*       unload_deactivated_objects_in_list frees it, breaking MARIO      *)
+(*       (ow_mario) and PhiW;                                             *)
+(*   (b) a listed slot of respawnInfoType 1 / 2 whose respawnInfo aims    *)
+(*       anywhere (gMarioStates, a list head): set_object_respawn_info_   *)
+(*       bits ORs 0xFF00 into it;                                         *)
+(*   (c) graph links aimed anywhere: unload_object's geo_remove_child /   *)
+(*       geo_add_child (graph_node.c:525-577) store through the node's    *)
+(*       prev->next, next->prev, parent->children and the old first       *)
+(*       child's prev / last child's next.                                *)
+(*   REPAIRED by three clauses, each vm-checked on the real boot memory   *)
+(*   (m11, StartTerrain; the probe of 2026-11-03 read: Mario = slot 34,   *)
+(*   every live slot's activeFlags 257; respawn targets as listed below;  *)
+(*   all 240 nodes under gObjParentGraphNode in one consistent ring whose *)
+(*   first child is Mario's node):                                        *)
+(*   MACT  Mario's slot has ACTIVE (bit 0 of activeFlags) and runs        *)
+(*         bhvMario: curBhvCommand and every pushed bhvStack address lie  *)
+(*         in bhvMario's block.  TRUTH: allocate_object sets ACTIVE|UNK8; *)
+(*         the clearers are DEACTIVATE (bhv op 29, in no bhvMario command *)
+(*         and bhvMario has no CALL / GOTO out: the stepper's census,     *)
+(*         BhvStep) and obj_mark_for_deletion, applied to Mario's object  *)
+(*         on no WMotR path.                                               *)
+(*   RESP  a listed slot's respawnInfoType is an int; type 1 aims at      *)
+(*         gPlayerSpawnInfos' behaviorArg (+16, Mario's) or at one of the *)
+(*         area's eight SpawnInfo behaviorArg cells in the main-pool block *)
+(*         (sSurfacePool's block, offsets 2336 .. 2560 step 32, under the *)
+(*         node pool at 2592); type 2 at a macro entry's params word      *)
+(*         (wmotr_seg7_macro_objs + 10 i + 8, i < 26).  TRUTH: the pair   *)
+(*         is written only by allocate_object (NULL, NULL;                *)
+(*         spawn_object.c:281), spawn_objects_from_info (type 1) and      *)
+(*         spawn_macro_objects (type 2); the last two run only at area    *)
+(*         load, so every slot spawned in play is NULL-typed.              *)
+(*   GFX   every slot's graph node (all 240, free ones too) has parent    *)
+(*         &gObjParentGraphNode and prev / next slot nodes; the parent's  *)
+(*         children is NULL or a slot node.  TRUTH: clear_objects puts    *)
+(*         every node under gObjParentGraphNode (geo_reset_object_node,   *)
+(*         graph_node.c:686); the in-play relinkers try_allocate_object   *)
+(*         and unload_object (spawn_object.c:95-96, 194-195: remove, then  *)
+(*         add under gObjParentGraphNode) keep this shape whatever the     *)
+(*         ring order; geo_make_first_child runs only at Mario's spawn    *)
+(*         (object_list_processor.c:500), gMirrorMario's links only at    *)
+(*         area load / unload (mario_misc.c:598-601).  The shape is the   *)
+(*         writer-stable one, weaker than the ring the boot shows.        *)
+(* ---------------------------------------------------------------------- *)
+Definition O_RTYPE : Z := 502.   (* respawnInfoType (s16) *)
+Definition O_RINFO : Z := 604.   (* respawnInfo *)
+Lemma resp_pinned :
+  (fo object_helpers._Object object_helpers._respawnInfoType, fo object_helpers._Object object_helpers._respawnInfo)
+  = (Some O_RTYPE, Some O_RINFO).
+Proof. vm_compute. reflexivity. Qed.
+
+Definition mact_ok (ge : genv) (pool gmo : block) (m : mem) : Prop :=
+  forall k, 0 <= k < NSLOT -> Mem.load Mint32 m gmo 0 = Some (slot_v pool k) ->
+    (exists f, Mem.load Mint16signed m pool (k * OSZ + O_FLAGS) = Some (Vint f)
+               /\ Int.and f Int.one = Int.one)
+    /\ (exists b, Genv.find_symbol ge behavior_data._bhvMario = Some b
+        /\ (exists o, Mem.load Mint32 m pool (k * OSZ + O_CMD) = Some (Vptr b o))
+        /\ (forall d n, Mem.load Mint32 m pool (k * OSZ + O_SIDX) = Some (Vint d) ->
+              0 <= n < Z.min (Int.unsigned d) 8 ->
+              (exists o, Mem.load Mint32 m pool (k * OSZ + O_STK + 4 * n) = Some (Vptr b o))
+              \/ (exists c, Mem.load Mint32 m pool (k * OSZ + O_STK + 4 * n) = Some (Vint c)))).
+
+Definition SI_OFFS : list Z := [2336; 2368; 2400; 2432; 2464; 2496; 2528; 2560].
+Definition MAC_OFFS : list Z := map (fun i => 10 * Z.of_nat i + 8) (seq 0 26).
+
+Definition resp_ok (ge : genv) (pool : block) (m : mem) (k : Z) : Prop :=
+  exists t, Mem.load Mint16signed m pool (k * OSZ + O_RTYPE) = Some (Vint t)
+    /\ (Int.unsigned t = 1 -> exists b o, Mem.load Mint32 m pool (k * OSZ + O_RINFO) = Some (Vptr b o)
+          /\ ((Genv.find_symbol ge area._gPlayerSpawnInfos = Some b /\ Ptrofs.unsigned o = 16)
+              \/ (gcell ge surface_load._sSurfacePool Mint32 (Vptr b (Ptrofs.repr SP_OFF)) m
+                  /\ In (Ptrofs.unsigned o) SI_OFFS)))
+    /\ (Int.unsigned t = 2 -> exists b o, Mem.load Mint32 m pool (k * OSZ + O_RINFO) = Some (Vptr b o)
+          /\ Genv.find_symbol ge wmotr_level_data._wmotr_seg7_macro_objs = Some b
+          /\ In (Ptrofs.unsigned o) MAC_OFFS).
+
+Definition G_PREV : Z := 4.   (* GraphNode.prev *)
+Definition G_NEXT : Z := 8.   (* GraphNode.next *)
+Definition G_PAR : Z := 12.   (* GraphNode.parent *)
+Definition G_CHILD : Z := 16. (* GraphNode.children *)
+
+Definition slot_node (pool : block) (ov : option val) : Prop :=
+  exists j, 0 <= j < NSLOT /\ ov = Some (slot_v pool j).
+
+Definition gfx_ok (ge : genv) (pool : block) (m : mem) : Prop :=
+  forall bpg, Genv.find_symbol ge area._gObjParentGraphNode = Some bpg ->
+    (forall k, 0 <= k < NSLOT ->
+       Mem.load Mint32 m pool (k * OSZ + G_PAR) = Some (Vptr bpg Ptrofs.zero)
+       /\ slot_node pool (Mem.load Mint32 m pool (k * OSZ + G_PREV))
+       /\ slot_node pool (Mem.load Mint32 m pool (k * OSZ + G_NEXT)))
+    /\ (Mem.load Mint32 m bpg G_CHILD = Some (Vint Int.zero)
+        \/ slot_node pool (Mem.load Mint32 m bpg G_CHILD)).
+
+(* ---------------------------------------------------------------------- *)
 (* 4. obj_w.                                                                *)
 (* ---------------------------------------------------------------------- *)
 Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
@@ -810,7 +943,11 @@ Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
   ow_ctr : ctr_s_ok ge m;
   ow_ter : ter_ok ge pool m rs;
   (* 3d, 2026-11-03 *)
-  ow_scr : scr_ok ge m
+  ow_scr : scr_ok ge m;
+  (* 3e, 2026-11-03 *)
+  ow_mact : mact_ok ge pool gmo m;
+  ow_resp : forall k, In k (concat rs) -> resp_ok ge pool m k;
+  ow_gfx : gfx_ok ge pool m
 }.
 
 Definition obj_w (ge : genv) (bm : block) (m : mem) : Prop :=
@@ -1569,6 +1706,172 @@ Section ScrCheck.
   Qed.
 End ScrCheck.
 
+(* 3e's checkers *)
+Definition mstk_b (m : mem) (pool b : block) (k : Z) : bool :=
+  match ld32 m pool (k * OSZ + O_SIDX) with
+  | Some (Vint d) =>
+      forallb (fun n => negb (n <? Z.min (Int.unsigned d) 8)
+                        || match ld32 m pool (k * OSZ + O_STK + 4 * n) with
+                           | Some (Vptr b' _) => Pos.eqb b' b
+                           | Some (Vint _) => true
+                           | _ => false
+                           end) (map Z.of_nat (seq 0 8))
+  | _ => true
+  end.
+
+Definition mact_b (ge : genv) (pool : block) (m : mem) (k : Z) : bool :=
+  match CM.load Mint16signed m pool (k * OSZ + O_FLAGS) with
+  | Some (Vint f) => Int.eq (Int.and f Int.one) Int.one
+  | _ => false
+  end
+  && match Genv.find_symbol ge behavior_data._bhvMario, ld32 m pool (k * OSZ + O_CMD) with
+     | Some b, Some (Vptr b' _) => Pos.eqb b' b && mstk_b m pool b k
+     | _, _ => false
+     end.
+
+Lemma slot_v_inj : forall pool k k', 0 <= k < NSLOT -> 0 <= k' < NSLOT ->
+  slot_v pool k = slot_v pool k' -> k = k'.
+Proof.
+  intros pool k k' Hk Hk' E0. unfold slot_v in E0.
+  assert (E : Ptrofs.repr (k * OSZ) = Ptrofs.repr (k' * OSZ)) by congruence.
+  apply (f_equal Ptrofs.unsigned) in E.
+  rewrite !Ptrofs.unsigned_repr in E
+    by (unfold OSZ, NSLOT in *; change Ptrofs.max_unsigned with 4294967295; lia).
+  unfold OSZ in E. lia.
+Qed.
+
+Lemma in_seq8 : forall n, 0 <= n < 8 -> In n (map Z.of_nat (seq 0 8)).
+Proof.
+  intros n Hn. apply in_map_iff. exists (Z.to_nat n). split; [ lia | ].
+  apply in_seq. lia.
+Qed.
+
+Lemma mact_b_sound : forall ge pool gmo m k, 0 <= k < NSLOT ->
+  Mem.load Mint32 m gmo 0 = Some (slot_v pool k) -> mact_b ge pool m k = true -> mact_ok ge pool gmo m.
+Proof.
+  intros ge pool gmo m k Hk Lg H k' Hk' Lg'.
+  rewrite Lg in Lg'. assert (Ek : slot_v pool k = slot_v pool k') by congruence.
+  apply (slot_v_inj pool k k' Hk Hk') in Ek. subst k'.
+  unfold mact_b in H. rewrite !CM.load_eq in H. apply andb_prop in H as [H1 H2]. split.
+  - destruct (Mem.load Mint16signed m pool (k * OSZ + O_FLAGS)) as [[| f | | | |]|]; try discriminate H1.
+    exists f. split; [ reflexivity | apply Int.same_if_eq; exact H1 ].
+  - destruct (Genv.find_symbol ge behavior_data._bhvMario) as [b|] eqn:Hs; [ | discriminate H2 ].
+    unfold ld32 in H2. rewrite CM.load_eq in H2.
+    destruct (Mem.load Mint32 m pool (k * OSZ + O_CMD)) as [[| | | | | b' o]|] eqn:Lc; try discriminate H2.
+    apply andb_prop in H2 as [E Hst]. apply Pos.eqb_eq in E. subst b'.
+    exists b. split; [ reflexivity | split; [ exists o; reflexivity | ] ].
+    intros d n Ld Hn. unfold mstk_b, ld32 in Hst. rewrite CM.load_eq, Ld in Hst.
+    assert (Hn8 : 0 <= n < 8) by lia.
+    pose proof (proj1 (forallb_forall _ _) Hst n (in_seq8 n Hn8)) as Hc. cbv beta in Hc.
+    assert (Lt : (n <? Z.min (Int.unsigned d) 8) = true) by (apply Z.ltb_lt; lia).
+    rewrite Lt in Hc. cbn [negb orb] in Hc. rewrite CM.load_eq in Hc.
+    destruct (Mem.load Mint32 m pool (k * OSZ + O_STK + 4 * n)) as [[| c | | | | b' o']|]; try discriminate Hc.
+    + right. exists c. reflexivity.
+    + left. apply Pos.eqb_eq in Hc. subst b'. exists o'. reflexivity.
+Qed.
+
+Definition resp_b (ge : genv) (pool : block) (m : mem) (k : Z) : bool :=
+  match CM.load Mint16signed m pool (k * OSZ + O_RTYPE) with
+  | Some (Vint t) =>
+      (negb (Z.eqb (Int.unsigned t) 1)
+       || match ld32 m pool (k * OSZ + O_RINFO) with
+          | Some (Vptr b o) =>
+              (sym_is ge area._gPlayerSpawnInfos b && Z.eqb (Ptrofs.unsigned o) 16)
+              || (gcell_b ge surface_load._sSurfacePool Mint32 (Vptr b (Ptrofs.repr SP_OFF)) m
+                  && existsb (Z.eqb (Ptrofs.unsigned o)) SI_OFFS)
+          | _ => false
+          end)
+      && (negb (Z.eqb (Int.unsigned t) 2)
+          || match ld32 m pool (k * OSZ + O_RINFO) with
+             | Some (Vptr b o) =>
+                 sym_is ge wmotr_level_data._wmotr_seg7_macro_objs b
+                 && existsb (Z.eqb (Ptrofs.unsigned o)) MAC_OFFS
+             | _ => false
+             end)
+  | _ => false
+  end.
+
+Lemma sym_is_sound : forall ge id b, sym_is ge id b = true -> Genv.find_symbol ge id = Some b.
+Proof.
+  intros ge id b H. unfold sym_is in H. destruct (Genv.find_symbol ge id) as [b'|]; [ | discriminate H ].
+  apply Pos.eqb_eq in H. subst b'. reflexivity.
+Qed.
+
+Lemma existsb_eqb_in : forall z l, existsb (Z.eqb z) l = true -> In z l.
+Proof.
+  intros z l H. apply existsb_exists in H as (x & Hx & E). apply Z.eqb_eq in E. subst x. exact Hx.
+Qed.
+
+Lemma resp_b_sound : forall ge pool m k, resp_b ge pool m k = true -> resp_ok ge pool m k.
+Proof.
+  intros ge pool m k H. unfold resp_ok. unfold resp_b, ld32 in H. rewrite !CM.load_eq in H.
+  destruct (Mem.load Mint16signed m pool (k * OSZ + O_RTYPE)) as [[| t | | | |]|]; try discriminate H.
+  apply andb_prop in H as [H1 H2]. exists t. split; [ reflexivity | split ].
+  - intros Et. rewrite Et in H1. cbn [Z.eqb negb orb Pos.eqb] in H1.
+    destruct (Mem.load Mint32 m pool (k * OSZ + O_RINFO)) as [[| | | | | b o]|]; try discriminate H1.
+    exists b, o. split; [ reflexivity | ].
+    apply orb_true_iff in H1 as [H1 | H1]; apply andb_prop in H1 as [A B]; [ left | right ].
+    + split; [ exact (sym_is_sound _ _ _ A) | apply Z.eqb_eq; exact B ].
+    + split; [ exact (gcell_b_sound _ _ _ _ _ A) | exact (existsb_eqb_in _ _ B) ].
+  - intros Et. rewrite Et in H2. cbn [Z.eqb negb orb Pos.eqb] in H2.
+    destruct (Mem.load Mint32 m pool (k * OSZ + O_RINFO)) as [[| | | | | b o]|]; try discriminate H2.
+    exists b, o. split; [ reflexivity | ].
+    apply andb_prop in H2 as [A B]. exact (conj (sym_is_sound _ _ _ A) (existsb_eqb_in _ _ B)).
+Qed.
+
+Definition slot_node_b (pool : block) (ov : option val) : bool :=
+  match ov with
+  | Some (Vptr b o) => Pos.eqb b pool && match slot_of (Ptrofs.unsigned o) with Some _ => true | None => false end
+  | _ => false
+  end.
+
+Lemma slot_node_b_sound : forall pool ov, slot_node_b pool ov = true -> slot_node pool ov.
+Proof.
+  intros pool ov H. destruct ov as [[| | | | | b o]|]; try discriminate H.
+  cbn [slot_node_b] in H. apply andb_prop in H as [Hb Hs]. apply Pos.eqb_eq in Hb. subst b.
+  destruct (slot_of (Ptrofs.unsigned o)) as [j|] eqn:Hj; [ | discriminate Hs ].
+  destruct (slot_of_spec _ _ Hj) as (Hr & Ho). exists j. split; [ exact Hr | ].
+  unfold slot_v. rewrite <- Ho, Ptrofs.repr_unsigned. reflexivity.
+Qed.
+
+Definition gfx_b (ge : genv) (pool : block) (m : mem) : bool :=
+  match Genv.find_symbol ge area._gObjParentGraphNode with
+  | Some bpg =>
+      forallb (fun k => match ld32 m pool (k * OSZ + G_PAR) with
+                        | Some v => veqb v (Vptr bpg Ptrofs.zero) | None => false end
+                        && slot_node_b pool (ld32 m pool (k * OSZ + G_PREV))
+                        && slot_node_b pool (ld32 m pool (k * OSZ + G_NEXT)))
+              (map Z.of_nat (seq 0 240))
+      && match ld32 m bpg G_CHILD with
+         | Some (Vint i) => Int.eq i Int.zero
+         | ov => slot_node_b pool ov
+         end
+  | None => false
+  end.
+
+Lemma gfx_b_sound : forall ge pool m, gfx_b ge pool m = true -> gfx_ok ge pool m.
+Proof.
+  intros ge pool m H bpg Hs. unfold gfx_b in H. rewrite Hs in H. apply andb_prop in H as [H1 H2]. split.
+  - intros k Hk.
+    assert (Hin : In k (map Z.of_nat (seq 0 240))).
+    { apply in_map_iff. exists (Z.to_nat k). split; [ lia | apply in_seq; unfold NSLOT in Hk; lia ]. }
+    pose proof (proj1 (forallb_forall _ _) H1 k Hin) as Hc. cbv beta in Hc.
+    apply andb_prop in Hc as [Hc Hn]. apply andb_prop in Hc as [Hp Hv].
+    unfold ld32 in *. rewrite !CM.load_eq in *.
+    split; [ | split; [ exact (slot_node_b_sound _ _ Hv) | exact (slot_node_b_sound _ _ Hn) ] ].
+    destruct (Mem.load Mint32 m pool (k * OSZ + G_PAR)) as [v|]; [ | discriminate Hp ].
+    apply veqb_eq in Hp. subst v. reflexivity.
+  - unfold ld32 in H2. rewrite CM.load_eq in H2.
+    destruct (Mem.load Mint32 m bpg G_CHILD) as [[| i | | | | b o]|] eqn:L.
+    + right. exact (slot_node_b_sound _ _ H2).
+    + left. apply Int.same_if_eq in H2. subst i. reflexivity.
+    + right. exact (slot_node_b_sound _ _ H2).
+    + right. exact (slot_node_b_sound _ _ H2).
+    + right. exact (slot_node_b_sound _ _ H2).
+    + right. exact (slot_node_b_sound _ _ H2).
+    + right. exact (slot_node_b_sound _ _ H2).
+Qed.
+
 Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem) : bool :=
   match rings m pool la, free_list m pool fl, ld32 m gmo 0 with
   | Some rs, Some fs, Some (Vptr pb po) =>
@@ -1593,6 +1896,7 @@ Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : 
       && spool_b ge m && surf_b ge pool m && coll_b ge pool m rs
       && ctr_s_b ge m && ter_b ge pool m rs
       && scr_b_l ge (sdedup (map BhvVM.v_s BhvVM.vm_tab)) m
+      && mact_b ge pool m k && forallb (resp_b ge pool m) (concat rs) && gfx_b ge pool m
       | None => false
       end
   | _, _, _ => false
@@ -1623,6 +1927,7 @@ Proof.
   destruct (ld32 m gmo 0) as [[| | | | | pb po]|] eqn:Hg;
     [ discriminate H .. | | discriminate H ].
   destruct (slot_of (Ptrofs.unsigned po)) as [k|] eqn:Hk; [ | discriminate H ].
+  apply andb_prop in H as [H Hgfx]. apply andb_prop in H as [H Hresp]. apply andb_prop in H as [H Hmact].
   apply andb_prop in H as [H Hscr].
   apply andb_prop in H as [H Hter]. apply andb_prop in H as [H Hctr].
   apply andb_prop in H as [H Hcoll]. apply andb_prop in H as [H Hsurf]. apply andb_prop in H as [H Hspool].
@@ -1674,6 +1979,10 @@ Proof.
   - exact (ctr_s_b_sound _ _ Hctr).
   - exact (ter_b_sound _ _ _ _ Hter).
   - exact (scr_b_sound _ _ Hscr).
+  - apply (mact_b_sound _ _ _ _ k (proj1 (slot_of_spec _ _ Hk))); [ | exact Hmact ].
+    apply veqb_eq in Hpo. rewrite <- Hpo. unfold ld32 in Hg. rewrite CM.load_eq in Hg. exact Hg.
+  - intros j Hj. exact (resp_b_sound _ _ _ _ (proj1 (forallb_forall _ _) Hresp j Hj)).
+  - exact (gfx_b_sound _ _ _ Hgfx).
 Qed.
 
 Definition ow_chk (ge : genv) (bm : block) (m : mem) : bool :=

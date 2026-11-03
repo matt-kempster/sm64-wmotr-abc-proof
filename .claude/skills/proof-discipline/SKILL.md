@@ -758,6 +758,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
        script's rate);
        the pre-/post-loop code of cur_obj_update; the loop INV = obj_w minus the current
        slot's ow_vm; then narrow Hobj_step_rest.
+       DONE 2026-11-03 (ObjWorld 3e): obj_w gains ow_mact (Mario ACTIVE + in bhvMario),
+       ow_resp (respawnInfo targets), ow_gfx (graph links of all 240 nodes); FOUND
+       Hobj_unload false over the old obj_w, REPAIRED; SKp covers [4,16); ow_ids has
+       gObjParentGraphNode; SCRIPT narrowed to wmotr_closure_b (live_bhvs). PERF TRAP:
+       `proj1 (forallb_forall _ _) <vm lemma>` over a computed list hung 15 min -- state
+       the inclusion generically (forallb_existsb_incl) and instantiate.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
     PROVED at the boot witness, which now runs the real init_graph_node_start + clear_objects
     and Mario's spawn_objects_from_info; one real area_update_objects runs from it
