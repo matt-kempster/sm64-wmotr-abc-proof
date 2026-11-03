@@ -69,8 +69,8 @@
 (*  - Hobj_unload (unload_deactivated_objects): an unloaded slot that    *)
 (*    Mario's usedObj / heldObj / riddenObj names is still a SafeB pool  *)
 (*    slot.                                                               *)
-(*  - Hobj_mplat (update_mario_platform): writes gMarioPlatform and      *)
-(*    Mario's object's platform field only; no MarioState cell.          *)
+(*  (Hobj_mplat, update_mario_platform, is PROVED since 2026-11-03:     *)
+(*    HeightFrame.obj_mplat_linked12, from the real body, MplatKeep.)    *)
 (*  - Hobj_debug, Hobj_blind / Hobj_fresh / Hobj_noref, Hobj_stores /    *)
 (*    Hobj_counter / Hobj_ctr: the debug calls (off) and the phase's own *)
 (*    stores (counters, gTimeStopState, the stack array) write no         *)
@@ -189,7 +189,6 @@ Section NoAImpliesNoFlyFrame.
     Genv.find_symbol (lp_ge lp) object_list_processor._gObjectCounter = Some b ->
     Mem.store Mint32 m b 0 (Vint c) = Some m' -> Pobjl m'.
   Hypothesis Hobj_unload : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._unload_deactivated_objects.
-  Hypothesis Hobj_mplat : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._update_mario_platform.
   (* the camera statement's object-world footprint, its residual part
      (HeightFrame.Hcam_ow_res: Mario's object-pointer cells; the
      object-world globals and the surface clause are PROVED,
@@ -215,7 +214,7 @@ Section NoAImpliesNoFlyFrame.
                     Hcam_phi Hobj_blind Hobj_fresh Hobj_noref Hobj_stores Hobj_counter Hobj_debug
                     Hobj_surfaces Hobj_collisions Hobj_step_act_terrain Hobj_step_rest_terrain
                     Hobj_step_act_nonterrain Hobj_step_rest_nonterrain Hobj_ctr
-                    Hobj_unload Hobj_mplat Hcam_ow_res
+                    Hobj_unload Hcam_ow_res
                     init is m Hok Hphi Hst How HA Hr)).
   Qed.
 End NoAImpliesNoFlyFrame.

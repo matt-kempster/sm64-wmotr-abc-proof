@@ -137,6 +137,18 @@ Ltac bmk_t := first
     | H : ?z = _ \/ _ |- bmk _ ?z => destruct H as [-> | ->]; bmk_c
     end ].
 
+(* the cells of Mario's object a flank may change (2026-11-03): the
+   animation cells [64, 72) (the render step) and the platform field
+   [532, 536) (update_mario_platform, MplatKeep).  PhiW reads neither. *)
+Definition owin (mo : ptrofs) (ch : memory_chunk) (z : Z) : Prop :=
+  z + size_chunk ch <= Ptrofs.unsigned mo + 64
+  \/ (Ptrofs.unsigned mo + 72 <= z /\ z + size_chunk ch <= Ptrofs.unsigned mo + 532)
+  \/ Ptrofs.unsigned mo + 536 <= z.
+
+Lemma owin_old : forall mo ch z, owin mo ch z ->
+  z + size_chunk ch <= Ptrofs.unsigned mo + 64 \/ Ptrofs.unsigned mo + 72 <= z.
+Proof. intros mo ch z [H | [(H & _) | H]]; [ left; exact H | right; exact H | right; lia ]. Qed.
+
 Lemma max_mod : Ptrofs.max_unsigned = Ptrofs.modulus - 1.
 Proof. reflexivity. Qed.
 
@@ -314,8 +326,7 @@ Section RK.
     Hypothesis Lmo : Mem.load Mint32 m bm 136 = Some (Vptr mb mo).
     Hypothesis NB : Ple (Mem.nextblock m) (Mem.nextblock m').
     Hypothesis PM : forall b o k p, Plt b (Mem.nextblock m) -> Mem.perm m b o k p -> Mem.perm m' b o k p.
-    Hypothesis LD : forall ch b z, ~ rgb b -> b <> bm ->
-      (b <> mb \/ z + size_chunk ch <= u mo + 64 \/ u mo + 72 <= z) ->
+    Hypothesis LD : forall ch b z, ~ rgb b -> b <> bm -> (b <> mb \/ owin mo ch z) ->
       Mem.load ch m' b z = Mem.load ch m b z.
     Hypothesis LM : forall ch z, bmk ch z -> Mem.load ch m' bm z = Mem.load ch m bm z.
     Hypothesis Sbm : Genv.find_symbol G level_update._gMarioStates = Some bm.
@@ -338,7 +349,8 @@ Section RK.
     Lemma LHm : forall ch z, bmk ch z -> Mem.load ch m' bm z = Mem.load ch m bm z.
     Proof. exact LM. Qed.
 
-    Lemma LHo : forall ch z, z + size_chunk ch <= u mo + 64 \/ u mo + 72 <= z ->
+    Lemma LHo : forall ch z,
+      z + size_chunk ch <= u mo + 64 \/ (u mo + 72 <= z /\ z + size_chunk ch <= u mo + 532) \/ u mo + 536 <= z ->
       Mem.load ch m' mb z = Mem.load ch m mb z.
     Proof. intros ch z H. exact (LD ch mb z Nmb (fun E => Bmb (eq_sym E)) (or_intror H)). Qed.
 
@@ -351,10 +363,10 @@ Section RK.
 
     (* an object of Mario's block that is Mario's own or a whole Object away *)
     Lemma far_keep : forall co ch o', (co = mo \/ u co + 608 <= u mo \/ u mo + 608 <= u co) ->
-      72 <= o' -> o' + size_chunk ch <= 608 ->
+      72 <= o' -> o' + size_chunk ch <= 532 ->
       Mem.load ch m' mb (u co + o') = Mem.load ch m mb (u co + o').
     Proof.
-      intros co ch o' H H1 H2. apply LHo. destruct H as [-> | [H | H]]; [right | left | right]; lia.
+      intros co ch o' H H1 H2. apply LHo. destruct H as [-> | [H | H]]; lia.
     Qed.
 
     Lemma obj_eq : forall bo oo, Mem.load Mint32 m bm 136 = Some (Vptr bo oo) -> bo = mb /\ oo = mo.
@@ -642,7 +654,7 @@ Section RK.
       - intros ch b z (A & B & C). exact (LHb ch b z A B C).
     Qed.
 
-    Lemma k_all : phiw lp bm m -> surf_apart lp bm Xs m -> phiw lp bm m'.
+    Lemma k_all_w : phiw lp bm m -> surf_apart lp bm Xs m -> phiw lp bm m'.
     Proof using HXs HXl Lmo NB PM LD LM Sbm Nbm Bmb RGa CL FR.
       intros (Hh & Hw & Han & Hmo & Hf & Hu & Haw & Hl) RSA.
       assert (Co : forall i cb co, 0 <= i < 4 ->
@@ -672,7 +684,7 @@ Section RK.
 
     (* the same, for a step that writes level cells lvl_w pins and
        re-establishes lvl_w itself (LevelKeep's POST tail) *)
-    Lemma k_all_lvl : phiw lp bm m -> surf_apart lp bm Xs m -> lvl_w G m' -> phiw lp bm m'.
+    Lemma k_all_lvl_w : phiw lp bm m -> surf_apart lp bm Xs m -> lvl_w G m' -> phiw lp bm m'.
     Proof using HXs Lmo NB PM LD LM Sbm Nbm Bmb RGa CL FR.
       intros (Hh & Hw & Han & Hmo & Hf & Hu & Haw & _) RSA Hl'.
       assert (Co : forall i cb co, 0 <= i < 4 ->
@@ -701,6 +713,71 @@ Section RK.
     Qed.
   End KEEP.
   End XG.
+
+  (* the keeps with the animation window only (the render / platform /
+     level flanks' footprint) *)
+  Lemma k_all : forall Xs
+      (HXs : forall id, In id Xs -> existsb (Pos.eqb id) core_ids = false)
+      (HXl : forall id, In id Xs -> existsb (Pos.eqb id) lvl_rd_ids = false)
+      m m' mb mo,
+      Mem.load Mint32 m bm 136 = Some (Vptr mb mo) ->
+      Ple (Mem.nextblock m) (Mem.nextblock m') ->
+      (forall b o k p, Plt b (Mem.nextblock m) -> Mem.perm m b o k p -> Mem.perm m' b o k p) ->
+      (forall ch b z, ~ rgb Xs b -> b <> bm ->
+         (b <> mb \/ z + size_chunk ch <= u mo + 64 \/ u mo + 72 <= z) ->
+         Mem.load ch m' b z = Mem.load ch m b z) ->
+      (forall ch z, bmk ch z -> Mem.load ch m' bm z = Mem.load ch m bm z) ->
+      Genv.find_symbol G level_update._gMarioStates = Some bm ->
+      ~ rgb Xs bm -> bm <> mb ->
+      (forall b, rgb Xs b -> b <> mb /\ tab_apart G m b) ->
+      (forall gp, closed_by gp m -> gp mb <> None ->
+         (forall id b, Genv.find_symbol G id = Some b -> gp b <> None) ->
+         exists gp', (forall b, gp b <> None -> gp' b <> None) /\ closed_by gp' m') ->
+      (forall bt ot k, In k hs_ids ->
+         Mem.load Mint32 m mb (u mo + 60) = Some (Vptr bt ot) ->
+         Mem.load Mint32 m mb (u mo + 72) = Some (Vint Int.zero) ->
+         (exists f, -1 <= f <= hs_le k /\ Mem.load Mint16signed m mb (u mo + 64) = Some (Vint (Int.repr f))) ->
+         buf_ok m bt ot k -> u ot + BUFSZ < Ptrofs.modulus ->
+         exists f, -1 <= f <= hs_le k /\ Mem.load Mint16signed m' mb (u mo + 64) = Some (Vint (Int.repr f))) ->
+      phiw lp bm m -> surf_apart lp bm Xs m -> phiw lp bm m'.
+  Proof.
+    intros Xs HXs HXl m m' mb mo Lmo NB PM LD LM Sbm Nbm Bmb RGa CL FR.
+    exact (k_all_w Xs HXs HXl m m' mb mo Lmo NB PM
+             (fun ch b z Nr Nb H => LD ch b z Nr Nb
+                match H with or_introl H1 => or_introl H1 | or_intror H2 => or_intror (owin_old mo ch z H2) end)
+             LM Sbm Nbm Bmb RGa CL FR).
+  Qed.
+
+  Lemma k_all_lvl : forall Xs
+      (HXs : forall id, In id Xs -> existsb (Pos.eqb id) core_ids = false)
+      m m' mb mo,
+      Mem.load Mint32 m bm 136 = Some (Vptr mb mo) ->
+      Ple (Mem.nextblock m) (Mem.nextblock m') ->
+      (forall b o k p, Plt b (Mem.nextblock m) -> Mem.perm m b o k p -> Mem.perm m' b o k p) ->
+      (forall ch b z, ~ rgb Xs b -> b <> bm ->
+         (b <> mb \/ z + size_chunk ch <= u mo + 64 \/ u mo + 72 <= z) ->
+         Mem.load ch m' b z = Mem.load ch m b z) ->
+      (forall ch z, bmk ch z -> Mem.load ch m' bm z = Mem.load ch m bm z) ->
+      Genv.find_symbol G level_update._gMarioStates = Some bm ->
+      ~ rgb Xs bm -> bm <> mb ->
+      (forall b, rgb Xs b -> b <> mb /\ tab_apart G m b) ->
+      (forall gp, closed_by gp m -> gp mb <> None ->
+         (forall id b, Genv.find_symbol G id = Some b -> gp b <> None) ->
+         exists gp', (forall b, gp b <> None -> gp' b <> None) /\ closed_by gp' m') ->
+      (forall bt ot k, In k hs_ids ->
+         Mem.load Mint32 m mb (u mo + 60) = Some (Vptr bt ot) ->
+         Mem.load Mint32 m mb (u mo + 72) = Some (Vint Int.zero) ->
+         (exists f, -1 <= f <= hs_le k /\ Mem.load Mint16signed m mb (u mo + 64) = Some (Vint (Int.repr f))) ->
+         buf_ok m bt ot k -> u ot + BUFSZ < Ptrofs.modulus ->
+         exists f, -1 <= f <= hs_le k /\ Mem.load Mint16signed m' mb (u mo + 64) = Some (Vint (Int.repr f))) ->
+      phiw lp bm m -> surf_apart lp bm Xs m -> lvl_w G m' -> phiw lp bm m'.
+  Proof.
+    intros Xs HXs m m' mb mo Lmo NB PM LD LM Sbm Nbm Bmb RGa CL FR.
+    exact (k_all_lvl_w Xs HXs m m' mb mo Lmo NB PM
+             (fun ch b z Nr Nb H => LD ch b z Nr Nb
+                match H with or_introl H1 => or_introl H1 | or_intror H2 => or_intror (owin_old mo ch z H2) end)
+             LM Sbm Nbm Bmb RGa CL FR).
+  Qed.
 
   (* ===================================================================== *)
   (* 3. THE RENDER FLANK'S PhiW CARRY.                                     *)

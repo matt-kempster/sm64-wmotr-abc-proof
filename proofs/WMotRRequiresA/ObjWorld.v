@@ -274,13 +274,16 @@ End CLAUSES.
    block (frames call this rather than destructing the clause) *)
 Local Ltac ko := unfold OSZ, O_INTERACT_TYPE, O_POSX, O_POSY, O_POSZ, HITBOX_DOWN_OFF, HITBOX_H_OFF,
                    RAW_OFF; cbn [size_chunk]; lia.
+(* the slot fields obj_w reads: from offset 96 on, except the platform
+   field (Object.platform, offset 532, which update_mario_platform writes
+   and no obj_w clause reads) *)
 Lemma kind_ok_eq : forall pool m m',
-  (forall ch k off, 96 <= off -> off + size_chunk ch <= OSZ ->
+  (forall ch k off, 96 <= off -> off + size_chunk ch <= OSZ -> (off + size_chunk ch <= 532 \/ 536 <= off) ->
      Mem.load ch m' pool (k * OSZ + off) = Mem.load ch m pool (k * OSZ + off)) ->
   forall k, kind_ok pool m k -> kind_ok pool m' k.
 Proof.
   intros pool m m' Kp k (t & Lt & Hin & Hp & Hc & Hpx & Hcx).
-  assert (S : forall ch off, 96 <= off -> off + size_chunk ch <= OSZ ->
+  assert (S : forall ch off, 96 <= off -> off + size_chunk ch <= OSZ -> (off + size_chunk ch <= 532 \/ 536 <= off) ->
             Mem.load ch m' pool (k * OSZ + off) = Mem.load ch m pool (k * OSZ + off)) by (intros; apply Kp; assumption).
   exists t.
   split; [ rewrite S by ko; exact Lt | split; [ exact Hin | split; [ | split; [ | split ] ] ] ].
@@ -488,14 +491,27 @@ Definition surf_obj_at (P pool : block) (m : mem) (s : val) : Prop :=
              /\ forall j, In j ANGV -> Mem.load Mint32 m pool (k * OSZ + RAW_OFF + 4 * j) = Some (Vint Int.zero)).
 
 (* P is the pools' block (both pointers, as spool_ok pins them; stated
-   here too so the clause names the ranges it reads) *)
+   here too so the clause names the ranges it reads).
+   2026-11-03: EVERY word a partition holds (any offset a Mint32 load
+   reads), not only the cells 4 * j, j < PCELLS: find_floor's contract
+   (FloorList.FL) names its list head by an arbitrary partition offset.
+   The two forms agree on every reachable memory: a partition is the
+   definer's 6144 bytes and no Clight run grows a block's permissions
+   (part_cells below, checked at boot from Generic.MaxPerm). *)
 Definition surf_obj_ok (ge : genv) (pool : block) (m : mem) : Prop :=
   exists P, Ple (Genv.genv_next ge) P
     /\ gcell ge surface_load._sSurfacePool Mint32 (Vptr P (Ptrofs.repr SP_OFF)) m
     /\ gcell ge surface_load._sSurfaceNodePool Mint32 (Vptr P (Ptrofs.repr NP_OFF)) m
-    /\ forall id bp j hd, In id FloorList.part_ids -> Genv.find_symbol ge id = Some bp -> (j < PCELLS)%nat ->
-         Mem.load Mint32 m bp (4 * Z.of_nat j) = Some hd ->
+    /\ forall id bp z hd, In id FloorList.part_ids -> Genv.find_symbol ge id = Some bp ->
+         Mem.load Mint32 m bp z = Some hd ->
          exists l, swalk P m SFUEL hd = Some l /\ Forall (surf_obj_at P pool m) l.
+
+(* a partition word is one of its 1536 cells: what the boot witness's
+   memories satisfy (a partition is 6144 bytes, StartTerrain.part_bound,
+   and Max permissions never grow, Generic.MaxPerm) *)
+Definition part_cells (ge : genv) (m : mem) : Prop :=
+  forall id bp z hd, In id FloorList.part_ids -> Genv.find_symbol ge id = Some bp ->
+    Mem.load Mint32 m bp z = Some hd -> 0 <= z < 4 * Z.of_nat PCELLS.
 
 (* the globals the clause reads *)
 Definition surf_gids : list ident :=
@@ -520,9 +536,9 @@ Proof.
   { intros id ch v Hin (b & Hs & L). exists b. rewrite (KG id b Hin Hs). exact (conj Hs L). }
   pose proof (KP P HP G1 G2) as KR.
   exists P. split; [ exact HP | split; [ apply Kc; [ cbn; auto | exact G1 ] | split; [ apply Kc; [ cbn; auto | exact G2 ] | ] ] ].
-  intros id bp j hd Hin Hs Hj L.
+  intros id bp z hd Hin Hs L.
   rewrite (KG id bp ltac:(cbn [surf_gids]; right; right; exact Hin) Hs) in L.
-  destruct (W id bp j hd Hin Hs Hj L) as (l & Hw & F).
+  destruct (W id bp z hd Hin Hs L) as (l & Hw & F).
   exists l. rewrite (swalk_ext P m m' (fun ch z H1 H2 => KR ch z (or_introl (conj H1 H2)))). split; [ exact Hw | ].
   refine (Forall_impl _ _ F). intros s (o & -> & N & H).
   exists o. split; [ reflexivity | split; [ exact N | ] ].
@@ -1293,15 +1309,24 @@ Definition surf_b (ge : genv) (pool : block) (m : mem) : bool :=
   | None => false
   end.
 
-Lemma surf_b_sound : forall ge pool m, surf_b ge pool m = true -> surf_obj_ok ge pool m.
+Lemma surf_b_sound : forall ge pool m, part_cells ge m -> surf_b ge pool m = true -> surf_obj_ok ge pool m.
 Proof.
-  intros ge pool m H. unfold surf_b in H.
+  intros ge pool m PC H. unfold surf_b in H.
   destruct (Genv.find_symbol ge surface_load._sSurfaceNodePool) as [nb|]; [ | discriminate H ].
   destruct (CM.load Mint32 m nb 0) as [[| | | | | P po]|]; try discriminate H.
   apply andb_prop in H as [H H3]. apply andb_prop in H as [H H2]. apply andb_prop in H as [H0 H1].
   exists P. split; [ apply Pos.leb_le in H0; exact H0 | ].
   split; [ exact (gcell_b_sound _ _ _ _ _ H1) | split; [ exact (gcell_b_sound _ _ _ _ _ H2) | ] ].
-  intros id bp j hd Hin Hs Hj L.
+  intros id bp z hd Hin Hs L.
+  pose proof (PC id bp z hd Hin Hs L) as Bz.
+  destruct (Mem.load_valid_access _ _ _ _ _ L) as (_ & (q & Eq)). cbn [align_chunk] in Eq.
+  change (Z.of_nat PCELLS) with 1536 in Bz.
+  assert (Hq : 0 <= q < 1536) by lia.
+  set (j := Z.to_nat q).
+  assert (Ez : z = 4 * Z.of_nat j) by (unfold j; rewrite Z2Nat.id by lia; lia).
+  assert (Hj : (j < PCELLS)%nat)
+    by (apply Nat2Z.inj_lt; unfold j; rewrite Z2Nat.id by lia; change (Z.of_nat PCELLS) with 1536; lia).
+  rewrite Ez in L. clearbody j. clear Eq Bz Ez Hq.
   pose proof (proj1 (forallb_forall _ _) H3 id Hin) as H4. cbv beta in H4. rewrite Hs in H4.
   pose proof (proj1 (forallb_forall _ _) H4 j (proj2 (in_seq PCELLS 0 j) (conj (Nat.le_0_l j) Hj))) as H5.
   cbv beta in H5. rewrite CM.load_eq, L in H5.
@@ -1588,10 +1613,11 @@ Proof.
 Qed.
 
 Lemma ow_chk_core_sound : forall ge pool la fl gol gmo sdp gdi bm m,
+    part_cells ge m ->
     ow_chk_core ge pool la fl gol gmo sdp gdi bm m = true ->
     exists rs fs, ow_core ge pool la fl gol gmo sdp gdi bm m rs fs.
 Proof.
-  intros ge pool la fl gol gmo sdp gdi bm m H. unfold ow_chk_core in H.
+  intros ge pool la fl gol gmo sdp gdi bm m PC H. unfold ow_chk_core in H.
   destruct (rings m pool la) as [rs|] eqn:Hr; [ | discriminate H ].
   destruct (free_list m pool fl) as [fs|] eqn:Hf; [ | discriminate H ].
   destruct (ld32 m gmo 0) as [[| | | | | pb po]|] eqn:Hg;
@@ -1643,7 +1669,7 @@ Proof.
     intros j Hj. pose proof (proj1 (forallb_forall _ _) Hvm j Hj) as Hj'. cbv beta in Hj'.
     unfold vm_ok. exact (vm_b_sound_gen _ _ _ j BhvVM.vm_tab Hj').
   - exact (spool_b_sound _ _ Hspool).
-  - exact (surf_b_sound _ _ _ Hsurf).
+  - exact (surf_b_sound _ _ _ PC Hsurf).
   - exact (coll_b_sound _ _ _ _ Hcoll).
   - exact (ctr_s_b_sound _ _ Hctr).
   - exact (ter_b_sound _ _ _ _ Hter).
@@ -1662,9 +1688,9 @@ Definition ow_chk (ge : genv) (bm : block) (m : mem) : bool :=
   | _, _, _, _, _, _, _ => false
   end.
 
-Theorem ow_chk_sound : forall ge bm m, ow_chk ge bm m = true -> obj_w ge bm m.
+Theorem ow_chk_sound : forall ge bm m, part_cells ge m -> ow_chk ge bm m = true -> obj_w ge bm m.
 Proof.
-  intros ge bm m H. unfold ow_chk in H.
+  intros ge bm m PC H. unfold ow_chk in H.
   destruct (Genv.find_symbol ge object_list_processor._gObjectPool) as [pool|] eqn:H1; [ | discriminate H ].
   destruct (Genv.find_symbol ge object_list_processor._gObjectListArray) as [la|] eqn:H2; [ | discriminate H ].
   destruct (Genv.find_symbol ge object_list_processor._gFreeObjectList) as [fl|] eqn:H3; [ | discriminate H ].
@@ -1672,7 +1698,7 @@ Proof.
   destruct (Genv.find_symbol ge object_list_processor._gMarioObject) as [gmo|] eqn:H5; [ | discriminate H ].
   destruct (Genv.find_symbol ge debug._sDebugPage) as [sdp|] eqn:H6; [ | discriminate H ].
   destruct (Genv.find_symbol ge debug._gDebugInfo) as [gdi|] eqn:H7; [ | discriminate H ].
-  destruct (ow_chk_core_sound _ _ _ _ _ _ _ _ _ _ H) as (rs & fs & C).
+  destruct (ow_chk_core_sound _ _ _ _ _ _ _ _ _ _ PC H) as (rs & fs & C).
   exists pool, la, fl, gol, gmo, sdp, gdi, rs, fs.
   exact (conj H1 (conj H2 (conj H3 (conj H4 (conj H5 (conj H6 (conj H7 C))))))).
 Qed.
