@@ -35,8 +35,20 @@
 (* these handlers writes them (Pfr: they write only gCurBhvCommand and    *)
 (* the slot's stack index / stack / delay timer cells).                   *)
 (*                                                                         *)
+(* DELAY (0x01) is in ctl_step too (2026-11-02).                          *)
+(*                                                                         *)
+(* THE DISPATCH LOOP (dloop / dloop_ctl): cur_obj_update's real loop      *)
+(* (dloop_is_real: DLOOP is the first loop of the generated body) reads   *)
+(* the word, indexes BehaviorCmdTable (obj_w's cmdtab_ok), calls the     *)
+(* handler, and repeats while it returns 0.  From a reachable state whose *)
+(* cells hold it, under an invariant INV (carrying scr_ok + cmdtab_ok),   *)
+(* it ends at a reachable state whose cells hold it -- given one row per  *)
+(* opcode (cmd_row_op).  ctl_rows DISCHARGES the rows of the 11 control   *)
+(* opcodes (INV stable under the control handlers' footprint Pfr, and    *)
+(* carrying gCurrentObject); the open rows are the other opcodes          *)
+(* (dloop_ctl's premise).                                                 *)
 (* OPEN (the rest of B3 iii): the advancing commands (cmd += cmd_len),    *)
-(* DELAY / DELAY_VAR, DEACTIVATE, CALL_NATIVE's callees; the dispatch     *)
+(* DELAY_VAR, DEACTIVATE, CALL_NATIVE's callees; the dispatch           *)
 (* loop of cur_obj_update; the scr_ok obj_w clause; then narrowing        *)
 (* Hobj_step_rest by it.                                                  *)
 (* ======================================================================= *)
@@ -46,7 +58,7 @@ From compcert Require Import Coqlib Integers Floats Values AST Ctypes Cop Clight
 From SM64.Generated Require behavior_script memory.
 From SM64.Proofs Require Import SymbolicLinking LinkedTwelve RealFrameLinked.
 From SM64.Proofs.WMotRRequiresA Require Import BhvVM BehaviorScripts.
-From SM64.Proofs.WMotRRequiresA Require RenderAnim ObjWorld ObjPhase ObjLoop.
+From SM64.Proofs.WMotRRequiresA Require RenderAnim ObjWorld ObjPhase ObjLoop ObjCensus.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -331,6 +343,109 @@ Lemma cast_uu : forall v m, (exists b o, v = Vptr b o) \/ (exists n, v = Vint n)
   sem_cast v tuint tuint m = Some v.
 Proof. intros v m [(b & o & ->) | (n & ->)]; reflexivity. Qed.
 
+(* ---- 6. the dispatch's side facts ---- *)
+Lemma word_int : forall s i w, word_at s i = Some w ->
+  exists n, nth_error (words s) i = Some (Init_int32 n) /\ w = Int.unsigned n.
+Proof.
+  intros s i w H. unfold word_at in H. destruct (nth_error (words s) i) as [d|]; [ | discriminate H ].
+  destruct d; cbn in H; try discriminate H. injection H as <-. eauto.
+Qed.
+
+Lemma succs_word : forall st l, succs st = Some l -> exists w, word_at (v_s st) (v_i st) = Some w.
+Proof.
+  intros st l H. unfold succs in H. cbv zeta in H.
+  destruct (word_at (v_s st) (v_i st)) as [w|]; [ exists w; reflexivity | discriminate H ].
+Qed.
+
+(* every reachable opcode indexes BehaviorCmdTable[56] *)
+Lemma vm_op : forallb (fun st => (0 <=? opc st) && (opc st <? 56)) vm_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma op_range : forall st w, In st vm_tab -> word_at (v_s st) (v_i st) = Some w ->
+  0 <= Z.shiftr w 24 < 56.
+Proof.
+  intros st w Hst Hw. pose proof vm_op as A. rewrite forallb_forall in A. specialize (A st Hst).
+  unfold opc, w0 in A. rewrite Hw in A. apply andb_prop in A as [A1 A2].
+  apply Z.leb_le in A1. apply Z.ltb_lt in A2. lia.
+Qed.
+
+Lemma cmd_handlers_len : List.length ObjCensus.cmd_handlers = 56%nat.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma shr_ui : forall (ce : composite_env) n m,
+  sem_binary_operation ce Oshr (Vint n) tuint (Vint (Int.repr 24)) tint m
+  = Some (Vint (Int.shru n (Int.repr 24))).
+Proof. reflexivity. Qed.
+
+Lemma shru24 : forall n, Int.unsigned (Int.shru n (Int.repr 24)) = Z.shiftr (Int.unsigned n) 24.
+Proof.
+  intros n. unfold Int.shru. change (Int.unsigned (Int.repr 24)) with 24.
+  pose proof (Int.unsigned_range n) as R. change Int.modulus with 4294967296 in R.
+  apply Int.unsigned_repr. rewrite Z.shiftr_div_pow2 by lia. change (2 ^ 24) with 16777216.
+  split; [ apply Z.div_pos; lia | ]. change Int.max_unsigned with 4294967295.
+  apply Z.div_le_upper_bound; lia.
+Qed.
+
+Definition fpt : type := tptr (Tfunction [] tint cc_default).
+
+Lemma add_au : forall (ce : composite_env) b o x m,
+  sem_binary_operation ce Oadd (Vptr b o) (tarray fpt 56) (Vint x) tuint m
+  = Some (Vptr b (Ptrofs.add o (Ptrofs.mul (Ptrofs.repr 4) (Ptrofs.of_intu x)))).
+Proof. reflexivity. Qed.
+
+Lemma tab_off : forall x, 0 <= Int.unsigned x < 56 ->
+  Ptrofs.unsigned (Ptrofs.add Ptrofs.zero (Ptrofs.mul (Ptrofs.repr 4) (Ptrofs.of_intu x)))
+  = 4 * Int.unsigned x.
+Proof.
+  intros x Hx. rewrite Ptrofs.add_zero_l. unfold Ptrofs.mul, Ptrofs.of_intu, Ptrofs.of_int.
+  rewrite (Ptrofs.unsigned_repr 4), (Ptrofs.unsigned_repr (Int.unsigned x)) by (rewrite maxu; lia).
+  apply Ptrofs.unsigned_repr. rewrite maxu. lia.
+Qed.
+
+(* a global array, as an rvalue: its address *)
+Lemma ev_garr : forall (ge : genv) e m le id ty n v, e ! id = None ->
+  eval_expr ge e le m (Evar id (tarray ty n)) v ->
+  exists b, Genv.find_symbol ge id = Some b /\ v = Vptr b Ptrofs.zero.
+Proof.
+  intros ge e m le id ty n v He H. inv H.
+  match goal with Hl : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hl end; [ congruence | ].
+  match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inv Hd end; cbn in *; try discriminate. eauto.
+Qed.
+
+(* cur_obj_update's dispatch loop:
+     do { bhvCmdProc = BehaviorCmdTable[*gCurBhvCommand >> 24];
+          bhvProcResult = bhvCmdProc(); } while (bhvProcResult == BHV_PROC_CONTINUE); *)
+Definition DISP : statement :=
+  Ssequence
+    (Ssequence
+      (Sset BS._t'50 (Evar BS._gCurBhvCommand (tptr tuint)))
+      (Ssequence
+        (Sset BS._t'51 (Ederef (Etempvar BS._t'50 (tptr tuint)) tuint))
+        (Sset BS._bhvCmdProc
+          (Ederef
+            (Ebinop Oadd (Evar BS._BehaviorCmdTable (tarray fpt 56))
+              (Ebinop Oshr (Etempvar BS._t'51 tuint) (Econst_int (Int.repr 24) tint) tuint)
+              (tptr fpt)) fpt))))
+    (Ssequence
+      (Scall (Some BS._t'3) (Etempvar BS._bhvCmdProc fpt) [])
+      (Sset BS._bhvProcResult (Etempvar BS._t'3 tint))).
+Definition DCHK : statement :=
+  Sifthenelse (Ebinop Oeq (Etempvar BS._bhvProcResult tint) (Econst_int (Int.repr 0) tint) tint)
+    Sskip Sbreak.
+Definition DLOOP : statement := Sloop DISP DCHK.
+
+(* DLOOP is the generated code: the first (and only) loop of cur_obj_update's body *)
+Fixpoint first_loop (s : statement) : option statement :=
+  match s with
+  | Sloop _ _ => Some s
+  | Ssequence a b | Sifthenelse _ a b =>
+      match first_loop a with Some l => Some l | None => first_loop b end
+  | Slabel _ a => first_loop a
+  | _ => None
+  end.
+Lemma dloop_is_real : first_loop (fn_body BS.f_cur_obj_update) = Some DLOOP.
+Proof. vm_compute. reflexivity. Qed.
+
 Section Link.
   Variable lp : Clight.program.
   Hypothesis H12 : linked12 lp.
@@ -347,6 +462,10 @@ Section Link.
   Proof. apply (RA.fo_ok_lift (prog_comp_env BS.prog)); [ vm_compute; reflexivity | exact bs_cenv ]. Qed.
   Lemma fo_stk : forall co, (genv_cenv G) ! BS._Object = Some co ->
     field_offset G BS._bhvStack (co_members co) = OK (OW.O_STK, Full).
+  Proof. apply (RA.fo_ok_lift (prog_comp_env BS.prog)); [ vm_compute; reflexivity | exact bs_cenv ]. Qed.
+  (* bhvDelayTimer (s16), right after bhvStack[8] *)
+  Lemma fo_dt : forall co, (genv_cenv G) ! BS._Object = Some co ->
+    field_offset G BS._bhvDelayTimer (co_members co) = OK (OW.O_STK + 32, Full).
   Proof. apply (RA.fo_ok_lift (prog_comp_env BS.prog)); [ vm_compute; reflexivity | exact bs_cenv ]. Qed.
 
   Lemma fun_bs : forall id f, (prog_defmap BS.prog) ! id = Some (Gfun (Internal f)) ->
@@ -1371,6 +1490,112 @@ Section Link.
         exact (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ U4 U5) U6).
   Qed.
 
+  (* the slot's bhvDelayTimer store *)
+  Lemma timer_store : forall m v m',
+    Mem.store Mint16signed m pool (oc + (OW.O_STK + 32)) v = Some m' ->
+    (cur m -> cur m') /\ Mem.load Mint32 m' bc 0 = Mem.load Mint32 m bc 0 /\ Mem.unchanged_on Pfr m m'
+    /\ (forall k, Vstk m k -> (List.length k <= 8)%nat -> Vstk m' k).
+  Proof.
+    intros m v m' Hs. split; [ | split; [ | split ] ].
+    - exact (cur_store _ _ _ _ _ Hs).
+    - apply (Mem.load_store_other _ _ _ _ _ _ Hs). left. exact Hbp.
+    - apply (Mem.store_unchanged_on _ _ _ _ _ _ _ Hs). intros i Hi [_ Hn]. apply Hn.
+      split; [ reflexivity | ]. change (size_chunk Mint16signed) with 2 in Hi. unfold OW.O_SIDX, OW.O_STK in *. lia.
+    - intros k (Hsi & Hk) Hl. split.
+      + rewrite (Mem.load_store_other _ _ _ _ _ _ Hs); [ exact Hsi | ].
+        right. left. change (size_chunk Mint32) with 4. unfold OW.O_SIDX, OW.O_STK. lia.
+      + intros n f Hn. assert (Hnl : (n < List.length k)%nat) by (apply nth_error_Some; congruence).
+        rewrite (Mem.load_store_other _ _ _ _ _ _ Hs); [ exact (Hk n f Hn) | ].
+        right. left. change (size_chunk Mint32) with 4. unfold OW.O_STK. lia.
+  Qed.
+
+  (* o->bhvDelayTimer = e, o = gCurrentObject in temp x *)
+  Lemma st_timer : forall le m t le' m' out x a,
+    exec_stmt function_entry2 G empty_env le m
+      (Sassign (Efield (Ederef (Etempvar x (tptr (Tstruct BS._Object noattr))) (Tstruct BS._Object noattr))
+                 BS._bhvDelayTimer tshort) a) t le' m' out ->
+    le ! x = Some (Vptr pool (Ptrofs.repr oc)) ->
+    (exists v, Mem.store Mint16signed m pool (oc + (OW.O_STK + 32)) v = Some m') /\ le' = le /\ out = Out_normal.
+  Proof.
+    intros le m t le' m' out x a H Hx.
+    apply RA.assign_inv in H as (b2 & o2 & bf2 & w2 & w3 & Hlv & _ & _ & Has & -> & ->).
+    destruct (RA.lv_fld G empty_env m _ _ _ _ _ _ _ _ _ fo_dt Hlv) as (o1 & Ho1 & -> & ->).
+    rewrite Hx in Ho1. injection Ho1 as <- <-.
+    pose proof (RA.store_by_value _ tshort _ _ _ _ _ _ Mint16signed eq_refl eq_refl Has) as Hs.
+    rewrite uadd in Hs by (unfold OW.O_STK; try rewrite maxu; lia). eauto.
+  Qed.
+
+  (* ---- DELAY (0x01) ---- *)
+  Lemma hd_delay : forall m st w t m' vr,
+    In st vm_tab -> V m st -> cur m ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 1 ->
+    eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_delay) [] t m' vr ->
+    exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m'
+      /\ vr = Vint (Int.repr 1) /\ Mem.unchanged_on Pfr m m'.
+  Proof.
+    intros m st w t m' vr Hst HV Hc Hw Ho H.
+    destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
+    pose proof (succs_delay st w Hw Ho) as Es. rewrite Hl in Es.
+    destruct (Nat.ltb _ _) eqn:Elt; [ discriminate Es | ]. apply Nat.ltb_ge in Elt.
+    injection Es as Es. subst l.
+    pose proof HV as HV0.
+    apply V_iff in HV as ((b & Hsb & Hcm) & HS).
+    remember (4 * Z.of_nat (v_i st)) as I4 eqn:EI.
+    apply fcall_inv in H as (le1 & le2 & out1 & Hb & X & Hor); [ | reflexivity ].
+    cbn [fn_params BS.f_bhv_cmd_delay bind_parameter_temps] in Hb. injection Hb as <-.
+    cbn [fn_body BS.f_bhv_cmd_delay] in X.
+    apply RA.seq_inv in X as [(t1 & le1 & m1 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
+    (* num = ( *cmd) & 0xFFFF *)
+    apply RA.seq_inv in X1 as [(t3 & le3 & m3 & t4 & X3 & X4) | (X3 & Xn)]; [ | kill_sq X3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ X3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in X4 as [(t5 & le5 & m5 & t6 & X5 & X6) | (X5 & Xn)]; [ | kill_sq X5 Xn ].
+    apply RA.set_inv in X5 as (va & _ & -> & -> & _).
+    apply RA.set_inv in X6 as (vn & _ & -> & -> & _).
+    apply RA.seq_inv in X2 as [(u1 & ke1 & n1 & u2 & Y1 & Y2) | (Y1 & Xn)]; [ | kill_sq Y1 Xn ].
+    apply RA.ret_inv in Y2 as (-> & rv & Erv & ->). apply RA.ev_const in Erv. subst rv.
+    cbn in Hor. destruct Hor as (_ & Hor). cbn in Hor. injection Hor as <-.
+    apply RA.seq_inv in Y1 as [(u3 & ke3 & n3 & u4 & Y3 & Y4) | (Y3 & Xn)]; [ | kill_sq Y3 Xn ].
+    apply ld_cur in Y3 as (-> & -> & _); [ | exact Hc ].
+    apply RA.seq_inv in Y4 as [(u5 & ke5 & n5 & u6 & Y5 & Y6) | (Y5 & Xn)]; [ | kill_sq Y5 Xn ].
+    apply RA.set_inv in Y5 as (vt & _ & -> & -> & _).
+    apply RA.if_inv in Y6 as (vb & bb & _ & _ & Y6).
+    destruct bb.
+    - (* timer < num - 1: timer++, the command stays *)
+      apply RA.seq_inv in Y6 as [(u7 & ke7 & n7 & u8 & Y7 & Y8) | (Y7 & Xn)]; [ | kill_sq Y7 Xn ].
+      apply ld_cur in Y7 as (-> & -> & _); [ | exact Hc ].
+      apply RA.seq_inv in Y8 as [(u9 & ke9 & n9 & u10 & Y9 & Y10) | (Y9 & Xn)]; [ | kill_sq Y9 Xn ].
+      apply ld_cur in Y9 as (-> & -> & _); [ | exact Hc ].
+      apply RA.seq_inv in Y10 as [(u11 & ke11 & n11 & u12 & Y11 & Y12) | (Y11 & Xn)]; [ | kill_sq Y11 Xn ].
+      apply RA.set_inv in Y11 as (vt2 & _ & -> & -> & _).
+      destruct (st_timer _ _ _ _ _ _ _ _ Y12) as ((v1 & Hs1) & _ & _);
+        [ rewrite PTree.gso, PTree.gso, PTree.gss by (vm_compute; discriminate); reflexivity | ].
+      destruct (timer_store _ _ _ Hs1) as (Hc1 & Lb1 & U1 & Vk1).
+      exists [st; at_ st (v_s st) (v_i st + 1) (v_k st)], st.
+      split; [ exact Hl | split; [ left; reflexivity | split ] ].
+      + apply V_iff. split; [ exists b; split; [ exact Hsb | rewrite Lb1; subst I4; exact Hcm ] | ].
+        exact (Vk1 _ HS Hd).
+      + split; [ exact (Hc1 Hc) | split; [ reflexivity | exact U1 ] ].
+    - (* timer = 0; cmd = cmd + 1 *)
+      apply RA.seq_inv in Y6 as [(u7 & ke7 & n7 & u8 & Y7 & Y8) | (Y7 & Xn)]; [ | kill_sq Y7 Xn ].
+      apply RA.seq_inv in Y7 as [(u9 & ke9 & n9 & u10 & Y9 & Y10) | (Y9 & Xn)]; [ | kill_sq Y9 Xn ].
+      apply ld_cur in Y9 as (-> & -> & _); [ | exact Hc ].
+      destruct (st_timer _ _ _ _ _ _ _ _ Y10) as ((v1 & Hs1) & -> & _); [ apply PTree.gss | ].
+      destruct (timer_store _ _ _ Hs1) as (Hc1 & Lb1 & U1 & Vk1).
+      apply RA.seq_inv in Y8 as [(u11 & ke11 & n11 & u12 & Y11 & Y12) | (Y11 & Xn)]; [ | kill_sq Y11 Xn ].
+      assert (Lc : Mem.load Mint32 n7 bc 0 = Some (Vptr b (Ptrofs.repr I4))) by (rewrite Lb1; exact Hcm).
+      destruct (ld_cmd _ _ _ _ _ _ _ _ Y11 Lc) as (-> & -> & _).
+      apply st_cmd in Y12 as (v2 & v & Ev & Hcast & Hs2 & -> & _).
+      apply RA.ev_binop in Ev as (q1 & q2 & Eq1 & Eq2 & Eadd).
+      apply RA.ev_temp in Eq1. rewrite PTree.gss in Eq1. injection Eq1 as <-.
+      apply RA.ev_const in Eq2. subst q2. cbn [typeof] in Eadd. rewrite add_pi in Eadd. injection Eadd as <-.
+      cbn [typeof] in Hcast. rewrite cast_pp in Hcast. injection Hcast as <-.
+      rewrite ptr_inc in Hs2 by lia. norm_off Hs2 (4 * Z.of_nat (v_i st + 1)).
+      destruct (bc_store _ _ _ Hs2) as (Hc2 & _ & U2).
+      eexists _, _. split; [ exact Hl | split; [ right; left; reflexivity | split ] ].
+      + apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ (Vk1 _ HS Hd) Hs2) ].
+      + split; [ exact (Hc2 (Hc1 Hc)) | split; [ reflexivity | exact (Mem.unchanged_on_trans _ _ _ _ U1 U2) ] ].
+  Qed.
+
   (* ---- the control commands, together ---- *)
   Definition ctl_handler (op : Z) (f : function) (rc : Z) : Prop :=
        op = 2 /\ f = BS.f_bhv_cmd_call /\ rc = 0
@@ -1382,7 +1607,8 @@ Section Link.
     \/ op = 8 /\ f = BS.f_bhv_cmd_begin_loop /\ rc = 0
     \/ op = 9 /\ f = BS.f_bhv_cmd_end_loop /\ rc = 1
     \/ op = 10 /\ f = BS.f_bhv_cmd_break /\ rc = 1
-    \/ op = 11 /\ f = BS.f_bhv_cmd_break_unused /\ rc = 1.
+    \/ op = 11 /\ f = BS.f_bhv_cmd_break_unused /\ rc = 1
+    \/ op = 1 /\ f = BS.f_bhv_cmd_delay /\ rc = 1.
 
   (* B3 (iii), the control layer: at a reachable VM state whose command
      cells hold it, the generated handler of a control opcode moves the
@@ -1398,7 +1624,7 @@ Section Link.
     intros op f rc m st w t m' vr Hh Hst Hscr HV Hc Hw Ho H.
     destruct Hh as [(-> & -> & ->) | [(-> & -> & ->) | [(-> & -> & ->) | [(-> & -> & ->) |
                    [(-> & -> & ->) | [(-> & -> & ->) | [(-> & -> & ->) | [(-> & -> & ->) |
-                   [(-> & -> & ->) | (-> & -> & ->)]]]]]]]]].
+                   [(-> & -> & ->) | [(-> & -> & ->) | (-> & -> & ->)]]]]]]]]]].
     - exact (hd_call _ _ _ _ _ _ Hst Hscr HV Hc Hw Ho H).
     - exact (hd_return _ _ _ _ _ _ Hst HV Hc Hw Ho H).
     - exact (hd_goto _ _ _ _ _ _ Hst Hscr HV Hc Hw Ho H).
@@ -1409,5 +1635,167 @@ Section Link.
     - exact (hd_end_loop _ _ _ _ _ _ Hst HV Hc Hw Ho H).
     - exact (hd_break _ _ _ _ _ _ _ (or_introl eq_refl) (or_introl Ho) Hst HV Hc Hw H).
     - exact (hd_break _ _ _ _ _ _ _ (or_intror eq_refl) (or_intror Ho) Hst HV Hc Hw H).
+    - exact (hd_delay _ _ _ _ _ _ Hst HV Hc Hw Ho H).
+  Qed.
+
+  (* ---- the dispatch loop ---- *)
+  Variable INV : mem -> Prop.
+
+  (* ONE COMMAND: the handler BehaviorCmdTable names for opcode op, called
+     at a reachable state whose cells hold it, moves the cells to a VM
+     successor, keeps INV, and returns BHV_PROC_CONTINUE (0) or _BREAK (1) *)
+  Definition cmd_row_op (op : Z) : Prop :=
+    forall m st w id hb fd t m' vr, In st vm_tab -> V m st -> INV m ->
+      word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = op ->
+      nth_error ObjCensus.cmd_handlers (Z.to_nat op) = Some id ->
+      Genv.find_symbol G id = Some hb -> Genv.find_funct G (Vptr hb Ptrofs.zero) = Some fd ->
+      eval_funcall function_entry2 G m fd [] t m' vr ->
+      exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ INV m'
+        /\ (vr = Vint (Int.repr 0) \/ vr = Vint (Int.repr 1)).
+
+  Hypothesis Hinv : forall m, INV m -> scr_ok G m /\ OW.cmdtab_ok G m.
+
+  Lemma disp_step : forall le m t le1 m1 out1 st, (forall op, cmd_row_op op) ->
+    exec_stmt function_entry2 G empty_env le m DISP t le1 m1 out1 ->
+    In st vm_tab -> V m st -> INV m ->
+    out1 = Out_normal /\ exists st1 vr, In st1 vm_tab /\ V m1 st1 /\ INV m1
+      /\ le1 ! BS._bhvProcResult = Some vr /\ (vr = Vint (Int.repr 0) \/ vr = Vint (Int.repr 1)).
+  Proof.
+    intros le m t le1 m1 out1 st Hrow H Hst HV HI.
+    destruct (Hinv m HI) as (Hscr & (btab & Hbt & Htab)).
+    destruct (st_facts st Hst) as (Hlen & _ & _ & l & Hl & Hcl).
+    pose proof HV as HV0. destruct HV as ((b & Hsb & Hcm) & Hsi & Hk).
+    unfold DISP in H.
+    apply RA.seq_inv in H as [(t1 & le2 & m2 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
+    apply RA.seq_inv in X1 as [(t3 & le3 & m3 & t4 & X3 & X4) | (X3 & Xn)]; [ | kill_sq X3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ X3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in X4 as [(t5 & le5 & m5 & t6 & X5 & X6) | (X5 & Xn)]; [ | kill_sq X5 Xn ].
+    (* the command word *)
+    apply RA.set_inv in X5 as (vw & Evw & -> & -> & _).
+    apply (ev_deref _ _ _ _ _ tuint Mint32 _ eq_refl) in Evw as (b1 & o1 & Ea & Hlw).
+    remember (4 * Z.of_nat (v_i st)) as I4 eqn:EI.
+    apply RA.ev_temp in Ea. rewrite PTree.gss in Ea. injection Ea as <- <-.
+    destruct (succs_word _ _ Hl) as (w & Hw). destruct (word_int _ _ _ Hw) as (n & Hn & Ewn).
+    assert (Hilt : (v_i st < List.length (words (v_s st)))%nat) by (apply nth_error_Some; congruence).
+    destruct (Hscr (v_s st) b (v_i st) _ Hsb (in_map _ _ _ Hst) Hn) as (vn & Hlv & Hiv).
+    cbn in Hiv. subst vn.
+    cbn [Mem.loadv] in Hlw. rewrite Ptrofs.unsigned_repr in Hlw by (rewrite maxu; lia). rewrite <- EI in Hlv.
+    rewrite Hlv in Hlw. injection Hlw as <-.
+    (* the handler pointer *)
+    apply RA.set_inv in X6 as (vp & Evp & -> & -> & _).
+    apply (ev_deref _ _ _ _ _ fpt Mint32 _ eq_refl) in Evp as (b2 & o2 & Ea & Hlp).
+    apply RA.ev_binop in Ea as (p1 & p2 & Ep1 & Ep2 & Eadd).
+    destruct (ev_garr _ _ _ _ _ _ _ _ (PTree.gempty _ _) Ep1) as (bt & Hbt' & ->).
+    rewrite Hbt in Hbt'. injection Hbt' as <-.
+    apply RA.ev_binop in Ep2 as (q1 & q2 & Eq1 & Eq2 & Eshr).
+    apply RA.ev_temp in Eq1. rewrite PTree.gss in Eq1. injection Eq1 as <-.
+    apply RA.ev_const in Eq2. subst q2. cbn [typeof] in Eshr, Eadd.
+    rewrite shr_ui in Eshr. injection Eshr as <-.
+    rewrite add_au in Eadd. injection Eadd as <- <-.
+    pose proof (op_range st w Hst Hw) as Hop.
+    assert (Eop : Int.unsigned (Int.shru n (Int.repr 24)) = Z.shiftr w 24) by (rewrite shru24, Ewn; reflexivity).
+    cbn [Mem.loadv] in Hlp. rewrite tab_off in Hlp by lia. rewrite Eop in Hlp.
+    destruct (nth_error ObjCensus.cmd_handlers (Z.to_nat (Z.shiftr w 24))) as [id|] eqn:Eid;
+      [ | apply nth_error_None in Eid; rewrite cmd_handlers_len in Eid; lia ].
+    destruct (Htab _ _ Eid) as (hb & Hhb & Hlt). rewrite Z2Nat.id in Hlt by lia.
+    rewrite Hlt in Hlp. injection Hlp as <-.
+    (* the call *)
+    apply RA.seq_inv in X2 as [(u1 & ke1 & n1 & u2 & Y1 & Y2) | (Y1 & Xn)]; [ | kill_sq Y1 Xn ].
+    apply RA.call_inv in Y1 as (tya & tyr & cc & vf & vargs & fd & vres & Hcf & Evf & Eal & Hff & _ & Hx & -> & _).
+    apply RA.ev_temp in Evf. rewrite PTree.gss in Evf. injection Evf as <-.
+    inversion Eal; subst.
+    destruct (Hrow _ _ _ _ _ _ _ _ _ _ Hst HV0 HI Hw eq_refl Eid Hhb Hff Hx)
+      as (l' & st1 & Hl' & Hin & HV1 & HI1 & Hvr).
+    apply RA.set_inv in Y2 as (vr & Evr & -> & -> & ->).
+    apply RA.ev_temp in Evr. cbn [set_opttemp] in Evr. rewrite PTree.gss in Evr.
+    injection Evr as <-.
+    split; [ reflexivity | ].
+    exists st1, vres. split; [ exact (vm_succ_in st l' st1 Hst Hl' Hin) | ].
+    split; [ exact HV1 | split; [ exact HI1 | split; [ apply PTree.gss | exact Hvr ] ] ].
+  Qed.
+
+  Lemma dchk : forall le m t le' m' out vr, exec_stmt function_entry2 G empty_env le m DCHK t le' m' out ->
+    le ! BS._bhvProcResult = Some vr -> (vr = Vint (Int.repr 0) \/ vr = Vint (Int.repr 1)) ->
+    m' = m /\ (vr = Vint (Int.repr 0) /\ out = Out_normal \/ vr = Vint (Int.repr 1) /\ out = Out_break).
+  Proof.
+    intros le m t le' m' out vr H Hv Hvr. unfold DCHK in H.
+    apply RA.if_inv in H as (c & bb & Ec & Hb & H).
+    apply RA.ev_binop in Ec as (c1 & c2 & E1 & E2 & E3).
+    apply RA.ev_temp in E1. rewrite Hv in E1. injection E1 as <-. apply RA.ev_const in E2. subst c2.
+    destruct Hvr as [-> | ->]; cbn in E3; injection E3 as <-; cbn in Hb; injection Hb as <-.
+    - apply RA.skip_inv in H as (-> & _ & ->). auto.
+    - inv H. auto.
+  Qed.
+
+  (* THE DISPATCH LOOP: from a reachable state whose cells hold it, the loop
+     ends at a reachable state whose cells hold it, keeping INV *)
+  Theorem dloop : (forall op, cmd_row_op op) ->
+    forall le m t le' m' out, exec_stmt function_entry2 G empty_env le m DLOOP t le' m' out ->
+    forall st, In st vm_tab -> V m st -> INV m ->
+    out = Out_normal /\ exists st', In st' vm_tab /\ V m' st' /\ INV m'.
+  Proof.
+    intros Hrow le m t le' m' out H.
+    remember empty_env as e0 eqn:Ee. remember DLOOP as S eqn:ES.
+    induction H; intros st0 Hst HV HI; try discriminate ES; unfold DLOOP in ES; injection ES as E1 E2; subst.
+    - destruct (disp_step _ _ _ _ _ _ _ Hrow H Hst HV HI) as (-> & _). inv H0.
+    - destruct (disp_step _ _ _ _ _ _ _ Hrow H Hst HV HI) as (_ & st1 & vr & Hst1 & HV1 & HI1 & Hv & Hvr).
+      destruct (dchk _ _ _ _ _ _ _ H1 Hv Hvr) as (-> & [(_ & ->) | (_ & ->)]); inv H2.
+      split; [ reflexivity | exact (ex_intro _ st1 (conj Hst1 (conj HV1 HI1))) ].
+    - destruct (disp_step _ _ _ _ _ _ _ Hrow H Hst HV HI) as (_ & st1 & vr & Hst1 & HV1 & HI1 & Hv & Hvr).
+      destruct (dchk _ _ _ _ _ _ _ H1 Hv Hvr) as (-> & [(_ & _) | (_ & E)]); [ | discriminate E ].
+      exact (IHexec_stmt3 eq_refl eq_refl st1 Hst1 HV1 HI1).
+  Qed.
+
+  (* the control opcodes discharge their rows *)
+  Hypothesis Hinv_cur : forall m, INV m -> cur m.
+  Hypothesis Hinv_frame : forall m m', INV m -> Mem.unchanged_on Pfr m m' -> INV m'.
+
+  Lemma ctl_id : forall op f rc, ctl_handler op f rc ->
+    exists id, nth_error ObjCensus.cmd_handlers (Z.to_nat op) = Some id
+      /\ (prog_defmap BS.prog) ! id = Some (Gfun (Internal f)).
+  Proof.
+    intros op f rc H. unfold ctl_handler in H.
+    destruct H as [H|[H|[H|[H|[H|[H|[H|[H|[H|[H|H]]]]]]]]]];
+      destruct H as (-> & -> & ->); eexists; split; vm_compute; reflexivity.
+  Qed.
+
+  Lemma ctl_rc : forall op f rc, ctl_handler op f rc -> rc = 0 \/ rc = 1.
+  Proof.
+    intros op f rc H. unfold ctl_handler in H.
+    destruct H as [H|[H|[H|[H|[H|[H|[H|[H|[H|[H|H]]]]]]]]]];
+      destruct H as (_ & _ & ->); auto.
+  Qed.
+
+  Lemma ctl_row1 : forall op f rc, ctl_handler op f rc -> cmd_row_op op.
+  Proof.
+    intros op f rc Hh m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    destruct (ctl_id _ _ _ Hh) as (id' & Hid' & Hdm). rewrite Hid' in Hid. injection Hid as <-.
+    rewrite (fun_bs _ _ Hdm _ _ Hhb Hfd) in Hev.
+    destruct (ctl_step _ _ _ _ _ _ _ _ _ Hh Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
+      as (l & st' & Hl & Hin & HV' & Hc' & -> & U).
+    exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
+    - exact (Hinv_frame _ _ HI U).
+    - destruct (ctl_rc _ _ _ Hh) as [-> | ->]; [ left | right ]; reflexivity.
+  Qed.
+
+  Definition ctl_ops : list Z := [1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11].
+
+  Theorem ctl_rows : forall op, In op ctl_ops -> cmd_row_op op.
+  Proof.
+    intros op Hin. cbn [ctl_ops In] in Hin.
+    destruct Hin as [<-|[<-|[<-|[<-|[<-|[<-|[<-|[<-|[<-|[<-|[<-|[]]]]]]]]]]]].
+    all: eapply ctl_row1; unfold ctl_handler;
+      repeat (first [ left; split; [ reflexivity | split; reflexivity ] | right ]);
+      try (split; [ reflexivity | split; reflexivity ]).
+  Qed.
+
+  (* so the loop needs the rows of the other opcodes only *)
+  Theorem dloop_ctl : (forall op, ~ In op ctl_ops -> cmd_row_op op) ->
+    forall le m t le' m' out, exec_stmt function_entry2 G empty_env le m DLOOP t le' m' out ->
+    forall st, In st vm_tab -> V m st -> INV m ->
+    out = Out_normal /\ exists st', In st' vm_tab /\ V m' st' /\ INV m'.
+  Proof.
+    intros Hrest. apply dloop. intros op.
+    destruct (in_dec Z.eq_dec op ctl_ops) as [Hin | Hn]; [ exact (ctl_rows op Hin) | exact (Hrest op Hn) ].
   Qed.
 End Link.
