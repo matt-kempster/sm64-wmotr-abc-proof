@@ -61,11 +61,9 @@
 (*  - Hobj_collisions (detect_object_collisions): Mario's object's      *)
 (*    collided list, which the next Mario frame's interactions read,     *)
 (*    holds SafeB pool slots (MWF_real's chase).                          *)
-(*  - Hobj_surfaces (clear_dynamic_surfaces): Mario's floor / wall /    *)
-(*    ceiling pointers into the dynamic pool stay chase-safe after the   *)
-(*    pool counts drop back.  (2026-11-02: it also yields the post-clear *)
-(*    fact, ObjWorld.post_clear, the surface budget the terrain walk     *)
-(*    starts from; the terrain rest rows carry that budget, ter_row.)    *)
+(*  (Hobj_surfaces, clear_dynamic_surfaces with the post-clear fact,   *)
+(*    is PROVED since 2026-11-03: HeightFrame.obj_surfaces_linked12,     *)
+(*    from the real body, ClearRun / ClearKeep.)                         *)
 (*  - Hobj_unload (unload_deactivated_objects): an unloaded slot that    *)
 (*    Mario's usedObj / heldObj / riddenObj names is still a SafeB pool  *)
 (*    slot.                                                               *)
@@ -159,8 +157,6 @@ Section NoAImpliesNoFlyFrame.
     ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._reset_debug_objectinfo
     /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._stub_debug_5
     /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._try_print_debug_mario_object_info.
-  Hypothesis Hobj_surfaces : ObjPhase.call_rel (lp_ge lp) Pobjl
-    (fun m => Pobjl m /\ ObjWorld.post_clear (lp_ge lp) m) object_list_processor._clear_dynamic_surfaces.
   Hypothesis Hobj_collisions : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._detect_object_collisions.
   Hypothesis Hobj_step_act_terrain :
     ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
@@ -212,7 +208,7 @@ Section NoAImpliesNoFlyFrame.
     exact (proj1 (HeightFrame.wmotr_noA_run_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms
                     Hbm_sym Hbc_sym Hoc0 Hls Hdma_floor Hseg_na_open Hdma_anim Hsqrtf Hsqrtf_float
                     Hcam_phi Hobj_blind Hobj_fresh Hobj_noref Hobj_stores Hobj_counter Hobj_debug
-                    Hobj_surfaces Hobj_collisions Hobj_step_act_terrain Hobj_step_rest_terrain
+                    Hobj_collisions Hobj_step_act_terrain Hobj_step_rest_terrain
                     Hobj_step_act_nonterrain Hobj_step_rest_nonterrain Hobj_ctr
                     Hobj_unload Hcam_ow_res
                     init is m Hok Hphi Hst How HA Hr)).

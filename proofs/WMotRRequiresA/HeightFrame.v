@@ -76,7 +76,7 @@ From SM64.Proofs.WMotRRequiresA Require Import ProRows NaSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
 From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT LsContract AudioInv.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
-From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep PollKeep MidKeep CamRows MplatKeep.
+From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep PollKeep MidKeep CamRows MplatKeep ClearKeep.
 From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop ObjStepSplit BhvVM.
 From SM64.Generated Require object_list_processor area platform_displacement.
 From SM64.Proofs Require OsDmaFloor LptBody ObjExtBodies UpdateCameraBody.
@@ -1404,14 +1404,9 @@ Section HeightLinked12.
     ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._reset_debug_objectinfo
     /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._stub_debug_5
     /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._try_print_debug_mario_object_info.
-  (* the clear, with the post-clear fact (2026-11-02, ObjPhase 3b).  TRUTH:
-     clear_dynamic_surfaces sets gSurfacesAllocated = gNumStaticSurfaces
-     (surface_load.c:643), pinned NS by obj_w's ow_spool, unless
-     TIME_STOP_ACTIVE (then post_clear's other disjunct holds); it writes
-     only the surface pools' counters, so Pobjl's other clauses are those of
-     the old row.  Open. *)
-  Hypothesis Hobj_surfaces : ObjPhase.call_rel (lp_ge lp) Pobjl
-    (fun m => Pobjl m /\ ObjWorld.post_clear (lp_ge lp) m) object_list_processor._clear_dynamic_surfaces.
+  (* (Hobj_surfaces, clear_dynamic_surfaces with the post-clear fact:
+     PROVED 2026-11-03, obj_surfaces_linked12 below, from the real body,
+     ClearRun / ClearKeep) *)
   Hypothesis Hobj_collisions : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._detect_object_collisions.
   (* OPEN, B2 (2026-10-26): the two list walks update_terrain_objects /
      update_non_terrain_objects are PROVED (ObjLoop.terrain_keeps_ix /
@@ -1758,6 +1753,34 @@ Section HeightLinked12.
     exact (conj Hok' (conj Hphi' (conj HD' (conj Hst' (conj (Hphi_sa_linked12 _ m' Hphi') How'))))).
   Qed.
 
+  (* PROVED (2026-11-03, was the row Hobj_surfaces): the real
+     clear_dynamic_surfaces (ClearRun.cds_run inverts the generated body:
+     nothing under a time stop; else gSurfacesAllocated =
+     gNumStaticSurfaces, gSurfaceNodesAllocated = gNumStaticSurfaceNodes,
+     and the 768 dynamic partition heads NULL) keeps Pobjl and leaves
+     post_clear (ClearKeep.clear_keeps): the counter is NS by obj_w's spool
+     pin, each counter store is off every invariant's footprint
+     (ClearKeep.gstore_core), and a NULL head only empties a list whose
+     nodes and surfaces are dynamic blocks (ClearKeep.hstore_keep).
+     PHANTOM CHECK: no premise beyond Pobjl. *)
+  Lemma obj_surfaces_linked12 : ObjPhase.call_rel (lp_ge lp) Pobjl
+    (fun m => Pobjl m /\ ObjWorld.post_clear (lp_ge lp) m) object_list_processor._clear_dynamic_surfaces.
+  Proof.
+    intros bf fd m vargs t m' vr Hs Hf HP Hev.
+    rewrite (ObjPhase.fun_of lp _ _ _ (linked12_LO_surface_load lp H12) ClearKeep.dm_cds bf fd Hs Hf) in Hev.
+    assert (Hv : vargs = []).
+    { inversion Hev; subst.
+      match goal with Hfe : function_entry2 _ _ _ _ _ _ _ |- _ => inversion Hfe; subst end.
+      match goal with Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+        destruct vargs; [ reflexivity | cbn [bind_parameter_temps surface_load.f_clear_dynamic_surfaces fn_params] in Hb;
+                                        discriminate Hb ] end. }
+    subst vargs.
+    destruct HP as (Hok & Hphi & HD & Hst & _ & How).
+    destruct (ClearKeep.clear_keeps lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 m t m' vr Hev
+                (conj Hok (conj Hphi (conj HD (conj Hst How))))) as ((Hok' & Hphi' & HD' & Hst' & How') & Hpc).
+    exact (conj (conj Hok' (conj Hphi' (conj HD' (conj Hst' (conj (Hphi_sa_linked12 _ m' Hphi') How'))))) Hpc).
+  Qed.
+
   Lemma pobj_ow : forall m, Pobjl m -> OWl m.
   Proof. intros m (_ & _ & _ & _ & _ & H). exact H. Qed.
 
@@ -1799,7 +1822,7 @@ Section HeightLinked12.
                     obj_clock_linked12 obj_auo_linked12
                     Hobj_blind (Hobj_fresh 240) Hobj_noref Hobj_stores Hobj_counter
                     Hobj_debug (ObjWorld.post_clear (lp_ge lp)) obj_R_store_linked12
-                    Hobj_surfaces obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
+                    obj_surfaces_linked12 obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
                     Hobj_unload obj_mplat_linked12 obj_platform_linked12 Hlvl_ow Hrender_ow
                     lvl_pre_linked12 lvl_post_linked12 seg_action_phi Hphi_y Hphi_sa_linked12
                     srd_ok_linked12 srd_keep_linked12 mid_keep_linked12 poll_ok_linked12
@@ -1822,7 +1845,7 @@ Section HeightLinked12.
                     obj_clock_linked12 obj_auo_linked12
                     Hobj_blind (Hobj_fresh 240) Hobj_noref Hobj_stores Hobj_counter
                     Hobj_debug (ObjWorld.post_clear (lp_ge lp)) obj_R_store_linked12
-                    Hobj_surfaces obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
+                    obj_surfaces_linked12 obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
                     Hobj_unload obj_mplat_linked12 obj_platform_linked12 Hlvl_ow Hrender_ow
                     lvl_pre_linked12 lvl_post_linked12 seg_action_phi Hphi_y Hphi_sa_linked12
                     srd_ok_linked12 srd_keep_linked12 mid_keep_linked12 poll_ok_linked12
