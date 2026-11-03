@@ -1323,7 +1323,29 @@ Section HeightLinked12.
        main-pool data PhiW reads beside the Camera (R3 bounds only the
        surface pools).  Deriving it needs value facts about those writes
        (cut_census_wmotr's) and a Camera-apartness clause for every
-       main-pool region PhiW reads. *)
+       main-pool region PhiW reads.
+     WHAT WOULD DISCHARGE IT (2026-11-03; still labeled), the value-level
+       facts per cell class:
+       - the Camera's cutscene byte (co + 48) and sObjectCutscene: carry
+         cam_w's cut_ok on both cells as the walker's invariant (CamFoot's
+         Inv slot, beside AudioInv) and check every store the walk meets
+         into those cells against CamCutCensus.cut_census_wmotr (no live
+         store writes 144 / 168).  The census is over the live closure
+         uc_wmotr, so the walk must also be cut to that closure (the
+         cam_w-dead arms pruned, as CamCutCensus does) or the census
+         widened to every walked body;
+       - Mario's block through the set_mario_npc_dialog leaf: the leaf is
+         not in uc_wmotr (dead under cam_w), so the same pruning removes
+         it; otherwise a value spec of its stores (usedObj at 128, the
+         action fields) against PhiW's Mario reads is needed;
+       - main-pool data beside the Camera: R3 plus the pool-range bound
+         (ObjWorld.surf_obj_ok, 2026-11-03) cover every surface / node
+         read that goes through the partition lists; PhiW's other
+         main-pool reads (wmotr_world's surfaces, the collision data) need
+         the same pool-range bound in their clauses, then R3 keeps them;
+       - the cf_FP globals PhiW reads besides these (lvl_w / ffw cells):
+         a per-global check that no walked store writes them, or a value
+         fact as above. *)
   Hypothesis Hcam_phi : LevelKeep.cam_phi_row lp bm MWF.
 
   Lemma lvl_pre_linked12 :
@@ -1516,7 +1538,8 @@ Section HeightLinked12.
      Camera's bytes apart from the surface pools (the main-pool block the
      Camera shares with them), so the camera's stores into the Camera keep
      the partitions' lists and surfaces (the surf_keep conjunct, master
-     2026-11-02); aud_w keeps the audio
+     2026-11-02; PROVED 2026-11-03 once surf_obj_ok bounds the lists to
+     the pools, see below); aud_w keeps the audio
      state's pointers on audio blocks (no ow_ids block among them).
      These hold at boot and are kept by every phase, so the row ranges
      over no unreachable state.
@@ -1532,26 +1555,24 @@ Section HeightLinked12.
        stores into Mario's block, probe 2026-11-02), which stores usedObj
        (offset 128); dead under cam_w (the dialog cutscenes are outside
        CamCutCensus.uc_wmotr).  A value fact, not a footprint one.
-     - surf_keep: FOUND FALSE AS STATED (phantom forall, 2026-11-02): the
-       Camera may share the main-pool block with the surface lists, R3
-       keeps its bytes off the two pools' ranges, but ObjWorld's surface
-       clause (surf_obj_ok) lets a partition list's nodes lie anywhere in
-       a dynamic block -- so over Phi states whose list nodes sit inside
-       the Camera's bytes the camera's own stores break the walk.  In the
-       game every node is a sSurfaceNodePool slot.  NAMED FIX: bound the
-       list nodes and surfaces to the pools' ranges in surf_obj_ok (or
-       spool_ok); with R3 the conjunct then follows from the footprint. *)
+     - (was) surf_keep: FOUND FALSE AS STATED (phantom forall,
+       2026-11-02): ObjWorld's surface clause (surf_obj_ok) let a
+       partition list's nodes lie anywhere in a dynamic block, and the
+       Camera may share the main-pool block, so over Phi states whose list
+       nodes sat inside the Camera's bytes the camera's own stores broke
+       the walk.  REPAIRED (2026-11-03): surf_obj_ok bounds every node /
+       surface to its pool's range at its stride (the boot witness checks
+       it by vm, surf_b at m11), and the conjunct is now PROVED from R3 and
+       the footprint (CamRows.cam_surf_keep), so it left this row. *)
   Hypothesis Hcam_ow_res : forall m m', LevelFlank.cam_step lp m m' ->
     mem_ok_lp bm MWF m -> Phi m ->
-    (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
-       Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z)
-    (* 2026-11-02: the surface clause of obj_w (ObjWorld.surf_obj_ok: the
-       partitions' lists and their surfaces' objects) is kept *)
-    /\ PollKeep.surf_keep m m' (lp_ge lp).
+    forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
+      Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z.
 
-  (* PROVED (step (a), 2026-11-02): the camera statement's object-world
-     footprint -- the ow_ids globals' half from the real update_camera's
-     footprint (CamRows), the rest the residual row above *)
+  (* PROVED (step (a), 2026-11-02; the surface clause 2026-11-03): the
+     camera statement's object-world footprint -- the ow_ids globals and
+     the surface clause from the real update_camera's footprint (CamRows),
+     Mario's object-pointer cells the residual row above *)
   Lemma Hcam_ow_fp : forall m m', LevelFlank.cam_step lp m m' ->
     mem_ok_lp bm MWF m -> Phi m ->
     (forall id b, In id PollKeep.ow_ids -> Genv.find_symbol (lp_ge lp) id = Some b ->
@@ -1561,16 +1582,17 @@ Section HeightLinked12.
     /\ PollKeep.surf_keep m m' (lp_ge lp).
   Proof.
     intros m m' Hc Hok Hphi.
-    destruct (Hcam_ow_res m m' Hc Hok Hphi) as (Kbm & KS).
-    split; [ | exact (conj Kbm KS) ].
+    pose proof (Hcam_ow_res m m' Hc Hok Hphi) as Kbm.
     pose proof Hphi as (_ & _ & _ & _ & (Hgn & _) & _ & _ & Hlw).
-    apply (CamRows.cam_ow_globals lp m m'); [ | exact Hgn ].
-    refine (CamRows.cam_foot_step lp H12 Hsqrtf (proj2 Hls) Hdma_floor m m' Hc
-              (lvl_w_cam _ _ Hlw) (proj1 (AudioInv.aud_w_eq _ _) (lvl_w_aud _ _ Hlw)) Hgn _).
-    intros gb b o Hgb Hl.
-    pose proof Hok as (_ & _ & HM).
-    destruct (mwf_real_pgms lp bm bc oc0 SafeB m gb b o HM Hgb Hl) as (-> & _).
-    exists level_update._gMarioStates. split; [ vm_compute; reflexivity | exact Hbm_sym ].
+    assert (Hfp : CamRows.cam_fp lp m m').
+    { refine (CamRows.cam_foot_step lp H12 Hsqrtf (proj2 Hls) Hdma_floor m m' Hc
+                (lvl_w_cam _ _ Hlw) (proj1 (AudioInv.aud_w_eq _ _) (lvl_w_aud _ _ Hlw)) Hgn _).
+      intros gb b o Hgb Hl.
+      pose proof Hok as (_ & _ & HM).
+      destruct (mwf_real_pgms lp bm bc oc0 SafeB m gb b o HM Hgb Hl) as (-> & _).
+      exists level_update._gMarioStates. split; [ vm_compute; reflexivity | exact Hbm_sym ]. }
+    exact (conj (CamRows.cam_ow_globals lp m m' Hfp Hgn)
+             (conj Kbm (CamRows.cam_surf_keep lp m m' Hfp Hgn))).
   Qed.
 
   Lemma Hcam_ow : forall m m', LevelFlank.cam_step lp m m' ->

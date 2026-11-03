@@ -576,12 +576,13 @@ all in `Unwired/`, and the theorem moved nowhere. See
       camera statement's footprint on cam_w + AudioInv states) is ON THE SPINE;
       `HeightFrame.Hcam_ow_fp` is a LEMMA (ow_ids globals PROVED, `cam_ow_globals`) over the
       labeled residual `Hcam_ow_res` (Mario's 5 object cells: only the npc leaf writes
-      Mario's block; surf_keep). cam_w's Camera cell is now read at `Ptrofs.add o 36` (the
+      Mario's block). cam_w's Camera cell is now read at `Ptrofs.add o 36` (the
       code's address; was integer o + 36).
-      **FOUND FALSE (phantom ∀):** `Hcam_ow_res`'s surf_keep conjunct: surf_obj_ok lets list
-      nodes lie anywhere in a dynamic block, so nodes inside the Camera's bytes break it.
-      Named fix (objects side): bound nodes / surfaces to the pools' ranges in surf_obj_ok;
-      R3 + cam_foot_step then give it.
+      **FOUND FALSE (phantom ∀) 2026-11-02, REPAIRED 2026-11-03:** the surf_keep conjunct:
+      surf_obj_ok let list nodes lie anywhere in a dynamic block, so nodes inside the
+      Camera's bytes broke it. Now surf_obj_ok bounds nodes / surfaces to the pools' ranges
+      at their strides (vm-checked at boot, surf_b), and `CamRows.cam_surf_keep` (R3 in
+      cam_fp + `ObjWorld.surf_obj_ok_ext`) PROVES it; `Hcam_ow_res` is Mario's 5 cells only.
     - NEXT: `Hcam_phi` stays labeled. PhiW reads cells inside the camera footprint (the
       Camera's cutscene byte, sObjectCutscene, Mario via the npc leaf, main-pool data beside
       the Camera): needs value facts (cut_census_wmotr) + Camera apartness for each main-pool
@@ -630,7 +631,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
     hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
     rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref, Hobj_stores /
     Hobj_counter, Hobj_debug, Hobj_surfaces, Hobj_collisions, Hobj_unload, Hobj_mplat;
-    Hcam_ow_res (2026-11-02, step (a): Hcam_ow_fp is a LEMMA, its ow_ids globals PROVED by CamRows.cam_ow_globals; the residual row keeps Mario's 5 object cells + surf_keep, the latter FOUND FALSE as stated (list nodes unbounded), see the level rows; Hcam_ow PROVED by obj_w_unch). PROVED 2026-10-26:
+    Hcam_ow_res (2026-11-02, step (a): Hcam_ow_fp is a LEMMA, its ow_ids globals PROVED by CamRows.cam_ow_globals; the residual row keeps Mario's 5 object cells only; surf_keep FOUND FALSE as stated 2026-11-02 (list nodes unbounded), REPAIRED + PROVED 2026-11-03 (CamRows.cam_surf_keep), see the level rows; Hcam_ow PROVED by obj_w_unch). PROVED 2026-10-26:
     Hplat_keep (plat_keep_linked12), Hlvl_ow (lvl_ow_linked12: pre_eff / post_split footprints
     + Hcam_ow), Hrender_ow (render_ow_linked12: render_eff + PollKeep.obj_w_slots). Proved: the walk of update_objects' body, the clock
     calls, objects_keep, the platform call inside. B2 DONE (ObjLoop.v): update_terrain_objects

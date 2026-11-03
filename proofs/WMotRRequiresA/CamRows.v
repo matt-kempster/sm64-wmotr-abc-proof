@@ -17,6 +17,11 @@
 (*                                                                        *)
 (* COROLLARY (cam_ow_globals): the object world's globals (PollKeep.      *)
 (* ow_ids) are none of those, so their blocks are unchanged.              *)
+(*                                                                        *)
+(* COROLLARY (cam_surf_keep): the surface clause of obj_w (ObjWorld.      *)
+(* surf_obj_ok) is kept -- it reads its globals, the two surface pools'   *)
+(* ranges and the listed slots' angle velocities, and R3 (cam_w) keeps    *)
+(* the Camera's bytes off both pools.                                     *)
 (* ====================================================================== *)
 
 From Coq Require Import String ZArith Lia List Bool.
@@ -27,7 +32,8 @@ From SM64.Proofs Require Import SymbolicLinking RealFrameLinked LinkedTwelve OsD
   MathGeomGated Generic.PermWalk.
 From SM64.Proofs.WMotRRequiresA Require Import CamFootKit CamFootSound CamFootTable CamFootInst
   RenderAnim.
-From SM64.Proofs.WMotRRequiresA Require FfWorld AudioInv LevelFlank PollKeep FpuFloor.
+From SM64.Proofs.WMotRRequiresA Require FfWorld AudioInv LevelFlank PollKeep FpuFloor ObjWorld FloorList.
+From SM64.Generated Require surface_load object_list_processor.
 Import ListNotations.
 Import Clightdefs.ClightNotations.
 Local Open Scope Z_scope.
@@ -80,7 +86,11 @@ Section CR.
     \/ exists cb co, Ple (Genv.genv_next G) cb /\ PK m m'
        /\ Mem.unchanged_on (fun b z => ~ (FB0 G cf_FP b \/ FB0 G cf_XP b
                                          \/ (b = cb /\ co <= z < co + cf_SZ) \/ PCell G cf_pins b z)) m m'
-       /\ AudioInv.AudioInv G m'.
+       /\ AudioInv.AudioInv G m'
+       (* R3 at the Camera the footprint names *)
+       /\ (forall id n bs bp op, In (id, n) FfWorld.cam_pools -> Genv.find_symbol G id = Some bs ->
+             Mem.load Mint32 m bs 0 = Some (Vptr bp op) ->
+             bp <> cb \/ Ptrofs.unsigned op + n <= co \/ co + cf_SZ <= Ptrofs.unsigned op).
 
   Lemma fo_area_camera : forall co, (genv_cenv G) ! LU._Area = Some co ->
     field_offset G LU._camera (co_members co) = OK (36, Full).
@@ -127,7 +137,7 @@ Section CR.
     cbn [Mem.loadv] in Hga_ld. change Mptr with Mint32 in Hga_ld. rewrite Ptrofs.unsigned_zero in Hga_ld.
     subst v11.
     destruct CW as (_ & CA & (Pcam & Pcs & Psf)).
-    destruct (CA ga a o Hga Hga_ld) as (cb & co & Lc & Hcbg & _ & (n & Lcut & _) & Hco & _).
+    destruct (CA ga a o Hga Hga_ld) as (cb & co & Lc & Hcbg & _ & (n & Lcut & _) & Hco & R3).
     cbn [Mem.loadv] in Hld.
     rewrite Lc in Hld. injection Hld as <-.
     (* the cast keeps the pointer *)
@@ -160,7 +170,7 @@ Section CR.
                 ltac:(intros bb oo E; injection E as <- <-; split; reflexivity)
                 Hcb HG Hpins) as (PKm & U & (_ & AI')).
     right. exists cb, (Ptrofs.unsigned co).
-    split; [ exact Hcbg | split; [ exact PKm | split; [ exact U | exact AI' ] ] ].
+    exact (conj Hcbg (conj PKm (conj U (conj AI' R3)))).
   Qed.
 
   (* THE OBJECT WORLD'S GLOBALS: their blocks are none of the footprint's *)
@@ -169,7 +179,7 @@ Section CR.
       forall id b, In id PollKeep.ow_ids -> Genv.find_symbol G id = Some b ->
       forall ch z, Mem.load ch m' b z = Mem.load ch m b z.
   Proof.
-    intros m m' [-> | (cb & co & Hcbg & _ & U & _)] Hgn id b Hin Hs ch z; [ reflexivity | ].
+    intros m m' [-> | (cb & co & Hcbg & _ & U & _ & _)] Hgn id b Hin Hs ch z; [ reflexivity | ].
     pose proof (proj1 (forallb_forall _ _) ow_not_fp id Hin) as E. cbv beta in E.
     apply andb_prop in E as [E E3]. apply andb_prop in E as [E1 E2].
     apply negb_true_iff in E1, E2, E3.
@@ -182,5 +192,58 @@ Section CR.
       + subst b. exact (Plt_strict _ (Plt_Ple_trans _ _ _ Hlt Hcbg)).
       + assert (x = id) by (eapply Genv.genv_vars_inj; eassumption). subst x.
         rewrite (In_mem_idf _ _ (pin_of_in _ _ _ Hp)) in E3. discriminate E3.
+  Qed.
+
+  (* a load off the changed cells is unchanged (an invalid block stays
+     without permissions, PK) *)
+  Lemma ld_keep : forall (Q : block -> Z -> Prop) m m' b ch z, PK m m' -> Mem.unchanged_on Q m m' ->
+    (forall i, z <= i < z + size_chunk ch -> Q b i) -> Mem.load ch m' b z = Mem.load ch m b z.
+  Proof.
+    intros Q m m' b ch z (_ & _ & Pinv) U HQ.
+    destruct (plt b (Mem.nextblock m)) as [V | NV].
+    - exact (Mem.load_unchanged_on_1 _ _ _ _ _ _ U V HQ).
+    - assert (Lm : Mem.load ch m b z = None).
+      { destruct (Mem.load ch m b z) eqn:L; [ | reflexivity ]. exfalso. apply NV.
+        apply Mem.load_valid_access in L.
+        exact (Mem.valid_access_valid_block _ _ _ _ (Mem.valid_access_implies _ _ _ _ _ _ L (perm_any_N _))). }
+      rewrite Lm. destruct (Mem.load ch m' b z) eqn:L; [ | reflexivity ]. exfalso.
+      apply Mem.load_valid_access in L. destruct L as (Hr & _).
+      apply (Pinv b z Cur Readable NV). apply Hr. pose proof (size_chunk_pos ch). lia.
+  Qed.
+
+  (* THE SURFACE CLAUSE: kept by the camera statement (with R3) *)
+  Theorem cam_surf_keep : forall m m', cam_fp m m' ->
+      Ple (Genv.genv_next G) (Mem.nextblock m) -> PollKeep.surf_keep m m' G.
+  Proof.
+    intros m m' Hc Hgn. pose proof (cam_ow_globals m m' Hc Hgn) as KG.
+    destruct Hc as [-> | (cb & co & Hcbg & PKm & U & _ & R3)].
+    { intros pool _ C. exact C. }
+    intros pool Hpool Cso.
+    apply (ObjWorld.surf_obj_ok_ext G pool m m'); [ | | | exact Cso ].
+    - intros id b Hin Hs ch z. apply (KG id b); [ | exact Hs ].
+      unfold ObjWorld.surf_gids, FloorList.part_ids in Hin; cbn [In] in Hin.
+      unfold PollKeep.ow_ids.
+      destruct Hin as [<- | [<- | [<- | [<- | []]]]]; cbn [In]; repeat (first [ left; reflexivity | right ]).
+    - intros P HP (bs1 & Hs1 & L1) (bs2 & Hs2 & L2) ch z Hz.
+      pose proof (R3 surface_load._sSurfacePool 110400 bs1 P (Ptrofs.repr ObjWorld.SP_OFF)
+                    (or_introl eq_refl) Hs1 L1) as R1.
+      pose proof (R3 surface_load._sSurfaceNodePool 56000 bs2 P (Ptrofs.repr ObjWorld.NP_OFF)
+                    (or_intror (or_introl eq_refl)) Hs2 L2) as R2.
+      assert (U1 : Ptrofs.unsigned (Ptrofs.repr ObjWorld.SP_OFF) = ObjWorld.SP_OFF) by reflexivity.
+      assert (U2 : Ptrofs.unsigned (Ptrofs.repr ObjWorld.NP_OFF) = ObjWorld.NP_OFF) by reflexivity.
+      rewrite U1 in R1. rewrite U2 in R2.
+      apply (ld_keep _ m m' P ch z PKm U). intros i Hi.
+      intros [(g & _ & Hg) | [(g & _ & Hg) | [(Eb & Hr) | (x & c & _ & Hg & _)]]].
+      + exact (Plt_strict _ (Plt_Ple_trans _ _ _ (Genv.genv_symb_range _ _ Hg) HP)).
+      + exact (Plt_strict _ (Plt_Ple_trans _ _ _ (Genv.genv_symb_range _ _ Hg) HP)).
+      + subst P.
+        destruct R1 as [R1 | R1]; [ exact (R1 eq_refl) | ].
+        destruct R2 as [R2 | R2]; [ exact (R2 eq_refl) | ].
+        unfold ObjWorld.NP_END, ObjWorld.SP_END, ObjWorld.NP_OFF, ObjWorld.SP_OFF, ObjWorld.NP_CAP,
+          ObjWorld.SP_CAP, ObjWorld.SNODE_SZ, ObjWorld.SURF_SZ, cf_SZ in *.
+        lia.
+      + exact (Plt_strict _ (Plt_Ple_trans _ _ _ (Genv.genv_symb_range _ _ Hg) HP)).
+    - intros k j _ _. apply (KG object_list_processor._gObjectPool pool); [ | exact Hpool ].
+      unfold PollKeep.ow_ids. cbn [In]. left. reflexivity.
   Qed.
 End CR.
