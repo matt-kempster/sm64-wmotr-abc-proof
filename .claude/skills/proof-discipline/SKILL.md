@@ -808,10 +808,32 @@ all in `Unwired/`, and the theorem moved nowhere. See
        hypothesis that fixes the evars first (or pass the index explicitly); `injection` of
        `Some (Vptr ..) = Some (Vptr ..)` already splits both fields; Archi.ptr64 is opaque
        (destruct the `if` or use a Local Transparent section).
-       Next: allocate_object (35 field stores + the rawData loop + mtxf_identity; empty
-       free list -> find_unimportant_object / unload_object, Hseg's direction), create_object
-       (snap_object_to_floor), spawn_object_at_origin, then rows 28 / 55 and the ~50 residual
-       natives; then the 6 value-contract natives, then 30 / 40;
+       DONE 2026-11-03 (spawn footprint, part 2): ObjCreate.v -- the REAL allocate_object.
+       A slot-store walker (fx / fxl, fx_sound): stores through the fresh slot temp at
+       constant offsets (ObjSelf.lad), temp sets and ifs keep VALUE FACTS (chunk, offset,
+       constant or the slot's own pointer, kept symbolic as SSelf so the lists stay closed and
+       vm-computable) and change only the slot's non-link bytes (KP). By hand: the rawData
+       zeroing loop (zloop, 80 words) and mtxf_identity's real math_util body (mtx_ok, two
+       strided loops, 64 bytes). alloc_ok / alloc_real: premises = ow_rings / ow_free /
+       ow_part NoDup / ow_gfx and the four symbols; result: EITHER the free list was empty
+       (NAMED: find_unimportant_object / unload_object or the endless loop; nothing claimed)
+       OR head k popped into ring i, gfx kept, returns slot k, unchanged outside link cells
+       and slot k, and alloc_facts (101 cell values: activeFlags 0x101, parentObj = self,
+       prevObj / platform / collisionData / respawnInfo / throwMatrix NULL, bhvStackIndex 0,
+       respawnInfoType 0, rawData zero but words 5 / 62 / 63 / 67 / 53 / 70 / (69 dropped:
+       the TTC branch)). Pool-never-fills (coordinator's ask): not attempted yet; needs a
+       live-count clause carried by every spawn row (length (concat rs) <= N < 240).
+       Traps: an `ltac:(..)` with an `_` for a later-unified argument runs vm_compute on an
+       evar goal -- it blew memory (RC 137); give every argument explicitly. Unifying
+       `ffacts .. <literal statement> ..` against `ffacts .. AR1 ..` made the kernel
+       evaluate the walker lazily (RC 137): `change` the exec hypothesis to the named
+       statement once (AR1) and cut it with vm-proved split lemmas (AR1_split ..).
+       `inv` on an eval substitutes `fs = k :: fs'` (the equation disappears).
+       Next: create_object (curBhvCommand / behavior stores, ACTIVE_FLAG_UNIMPORTANT,
+       snap_object_to_floor for lists 4 / 5 / 6: find_floor), spawn_object_at_origin
+       (parentObj, areaIndex, geo_obj_init), bhv_cmd_spawn_child / spawn_water_droplet;
+       then rows 28 / 55 and the ~50 residual natives; then the 6 value-contract natives,
+       then 30 / 40;
        the pre-/post-loop code of cur_obj_update; the loop INV = obj_w minus the current
        slot's ow_vm; then narrow Hobj_step_rest.
        DONE 2026-11-03 (ObjWorld 3e): obj_w gains ow_mact (Mario ACTIVE + in bhvMario),
