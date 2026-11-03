@@ -790,8 +790,28 @@ all in `Unwired/`, and the theorem moved nowhere. See
        (nat_bulk := filter .. cn_gen) hung (elaborator / kernel unfold the list); test
        membership by the generic predicate (has_null fid self_tab_n) instead.
        `congruence` with a computed list in context: 127 s (use rewrite; discriminate).
-       Next: the spawn / allocate footprint (Hspawn_fr; rows 28 / 55 and ~50 residual
-       natives), then the 6 value-contract natives, then 30 / 40;
+       DONE 2026-11-03 (spawn footprint, part 1): ObjRing.v -- declarative accessors for
+       ObjWorld's computed walks (chain / ring_enc / ring_i_iff / rings_iff / fchain /
+       free_list_iff; chain_app / chain_ext; alloc_rings: the 5-cell tail insert gives
+       rings' = upd rs i (l ++ [k]), free' = fs). Shared with Hseg's deallocate (its own file
+       importing ObjRing). ObjAlloc.v -- the REAL try_allocate_object, geo_remove_child,
+       geo_add_child walked: gfx_at (= ow_gfx) is kept by every graph store (gfx_store),
+       grc_ok / gac_ok, try_alloc_ok, and try_alloc_real on the linked program: premises are
+       exactly ow_rings / ow_free / ow_part's NoDup / ow_gfx; result: empty list -> NULL and
+       memory unchanged, else head k appended to ring i, free list popped, gfx kept, only
+       link cells changed (AKEEP). Wired via BhvStep's Require; consumed by the spawn rows next.
+       NOTE (phantom forall): ObjSpawn.spawn_fr quantifies over every SI/GV memory, so as
+       stated it is FALSE (a free-list head in P gets its fields written); its discharge must
+       add the obj_w premise (the free list is disjoint from P) -- now provable from
+       try_alloc_real + ow_part. ObjSpawn is a root that nothing consumes.
+       Traps: an `ltac:(..)` argument is elaborated BEFORE later arguments unify, so put the
+       hypothesis that fixes the evars first (or pass the index explicitly); `injection` of
+       `Some (Vptr ..) = Some (Vptr ..)` already splits both fields; Archi.ptr64 is opaque
+       (destruct the `if` or use a Local Transparent section).
+       Next: allocate_object (35 field stores + the rawData loop + mtxf_identity; empty
+       free list -> find_unimportant_object / unload_object, Hseg's direction), create_object
+       (snap_object_to_floor), spawn_object_at_origin, then rows 28 / 55 and the ~50 residual
+       natives; then the 6 value-contract natives, then 30 / 40;
        the pre-/post-loop code of cur_obj_update; the loop INV = obj_w minus the current
        slot's ow_vm; then narrow Hobj_step_rest.
        DONE 2026-11-03 (ObjWorld 3e): obj_w gains ow_mact (Mario ACTIVE + in bhvMario),

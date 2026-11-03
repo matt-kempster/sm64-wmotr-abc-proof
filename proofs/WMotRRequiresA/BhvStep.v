@@ -60,7 +60,7 @@ From SM64.Proofs Require Import SymbolicLinking LinkedTwelve RealFrameLinked.
 From SM64.Proofs.WMotRRequiresA Require Import BhvVM BehaviorScripts.
 From SM64.Proofs.MarioModel Require SpawnBodies.
 From SM64.Proofs.WMotRRequiresA Require RenderAnim ObjWorld ObjPhase ObjLoop ObjCensus PlatformWalk BoxCensus
-  ObjSelf ObjFrame FpuFloor.
+  ObjSelf ObjFrame FpuFloor ObjAlloc.
 Import ListNotations.
 Local Open Scope Z_scope.
 
