@@ -82,17 +82,18 @@
 (*  - Hcam_phi (update_camera keeps PhiW): GOAL 1 needs floor_safe and   *)
 (*    lvl_w after the camera (the painting call's guard and the next     *)
 (*    frame's); the camera's own mem_ok carry is PROVED.                 *)
-(*  - Hcam_ow_fp (update_camera leaves obj_w's blocks and Mario's five   *)
-(*    object-pointer cells unchanged; the obj_w carry is proved from it):*)
-(*    needed only because the object rows are stated over a Pobj that    *)
-(*    contains obj_w.                                                     *)
+(*  - Hcam_ow_res (update_camera leaves Mario's five object-pointer     *)
+(*    cells unchanged and keeps the surface clause): the residual of the *)
+(*    camera's object-world footprint.  The object-world globals' half   *)
+(*    is PROVED since 2026-11-02 (CamRows.cam_ow_globals, from           *)
+(*    CamFootInst.update_camera_foot, which now carries AudioInv on the  *)
+(*    scoped ls_frame_ai).  Needed only because the object rows are      *)
+(*    stated over a Pobj that contains obj_w.                             *)
 (*    Both camera rows are TRUE AS STATED since 2026-11-02 (pinned):     *)
 (*    PhiW's lvl_w now carries FfWorld.cam_w's pins (gCamera,            *)
 (*    sMarioCamState / sLuigiCamState, gSecondCameraFocus), R3 (the      *)
 (*    Camera apart from the surface pools) and aud_w.  Still labeled     *)
-(*    (TRUST 0.7): CamFootInst.update_camera_foot is evidence, not yet   *)
-(*    a derivation (its load_sequence leaf needs the walk to carry       *)
-(*    AudioInv).                                                          *)
+(*    (TRUST 0.7).                                                        *)
 (*  - Hls, Hdma_floor, Hdma_anim, Hsqrtf, Hsqrtf_float: GOAL 1's own     *)
 (*    model-boundary rows (audio load_sequence, the OS DMA floor, sqrtf).*)
 (*    Hls's footprint half is SCOPED since 2026-11-02:                   *)
@@ -186,13 +187,12 @@ Section NoAImpliesNoFlyFrame.
     Mem.store Mint32 m b 0 (Vint c) = Some m' -> Pobjl m'.
   Hypothesis Hobj_unload : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._unload_deactivated_objects.
   Hypothesis Hobj_mplat : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._update_mario_platform.
-  (* the camera statement's object-world footprint (HeightFrame.Hcam_ow_fp;
-     the obj_w carry is proved from it) *)
-  Hypothesis Hcam_ow_fp : forall m m', LevelFlank.cam_step lp m m' ->
+  (* the camera statement's object-world footprint, its residual half
+     (HeightFrame.Hcam_ow_res; the object-world globals' half is PROVED,
+     CamRows.cam_ow_globals, and the obj_w carry from both) *)
+  Hypothesis Hcam_ow_res : forall m m', LevelFlank.cam_step lp m m' ->
     mem_ok_lp bm MWF m -> Phi m ->
-    (forall id b, In id PollKeep.ow_ids -> Genv.find_symbol (lp_ge lp) id = Some b ->
-       forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
-    /\ (forall z, z = 136 \/ In z [120; 124; 128; 132] ->
+    (forall z, z = 136 \/ In z [120; 124; 128; 132] ->
        Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z)
     (* 2026-11-02: the surface clause of obj_w (ObjWorld.surf_obj_ok: the
        partitions' lists and their surfaces' objects) is kept *)
@@ -213,7 +213,7 @@ Section NoAImpliesNoFlyFrame.
                     Hcam_phi Hobj_blind Hobj_fresh Hobj_noref Hobj_stores Hobj_counter Hobj_debug
                     Hobj_surfaces Hobj_collisions Hobj_step_act_terrain Hobj_step_rest_terrain
                     Hobj_step_act_nonterrain Hobj_step_rest_nonterrain Hobj_ctr
-                    Hobj_unload Hobj_mplat Hcam_ow_fp
+                    Hobj_unload Hobj_mplat Hcam_ow_res
                     init is m Hok Hphi Hst How HA Hr)).
   Qed.
 End NoAImpliesNoFlyFrame.

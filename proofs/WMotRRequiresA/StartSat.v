@@ -2659,13 +2659,13 @@ Section Witness.
       split; [ exact C1 | split ].
       - intros ga bad o Sg Lg. rewrite Hca in Sg. injection Sg as <-.
         rewrite L_ca in Lg. injection Lg as <- <-.
-        exists cb, co. change (Ptrofs.unsigned (Ptrofs.repr 60) + 36) with 96. split; [ exact L96 | ].
+        exists cb, co. change (Ptrofs.unsigned (Ptrofs.add (Ptrofs.repr 60) (Ptrofs.repr 36))) with 96. split; [ exact L96 | ].
         split; [ exact Pg | ]. split; [ exact Ab | ]. split; [ exact C2 | ].
         split; [ exact Psz | exact Ppool ].
       - split; [ | split; [ exact Pms | exact Psf ] ].
         intros b Hb bb oo L. destruct (Pgc b Hb bb oo L) as (-> & ->).
         exists bca, bgad, (Ptrofs.repr 60). split; [ exact Hca | split; [ exact L_ca | ] ].
-        change (Ptrofs.unsigned (Ptrofs.repr 60) + 36) with 96. exact L96.
+        change (Ptrofs.unsigned (Ptrofs.add (Ptrofs.repr 60) (Ptrofs.repr 36))) with 96. exact L96.
     Qed.
 
     (* ---- gEnvironmentRegions (FfWorld.env_w, 2026-10-26): the real

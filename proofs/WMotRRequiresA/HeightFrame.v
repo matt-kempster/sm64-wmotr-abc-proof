@@ -76,7 +76,7 @@ From SM64.Proofs.WMotRRequiresA Require Import ProRows NaSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
 From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT LsContract AudioInv.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
-From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep PollKeep MidKeep.
+From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep PollKeep MidKeep CamRows.
 From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop ObjStepSplit.
 From SM64.Generated Require object_list_processor area platform_displacement.
 From SM64.Proofs Require OsDmaFloor LptBody ObjExtBodies UpdateCameraBody.
@@ -1306,22 +1306,24 @@ Section HeightLinked12.
          non-pointers, or go through load_sequence's scoped contract).
        Over those states nothing the row ranges over is unreachable: each
        pin, R3 and aud_w holds at boot and is kept by every phase.
-     EVIDENCE (not proof) that it is true:
-       CamFootInst.update_camera_foot, the proved footprint of the real
-       update_camera from every state, bounds its writes to the
-       CamFootTable.cf_FP globals and the Camera.  None of Mario's three
-       cells is written there except through set_mario_npc_dialog (dead
-       under cam_w); the cf_FP globals PhiW reads (sObjectCutscene, the
-       audio blocks) are written within cam_w's / aud_w's classes in the
-       game (cut_census_wmotr; AudioWire).  update_camera_foot stays OFF
-       the spine for now: it assumes the unscoped LsContract.ls_frame
-       (false as stated).
-     NAMED NEXT STEP (a): extend the CamFoot walker to carry AudioInv
-       (an invariant plus a per-store check), move it onto
-       AudioInv.ls_frame_ai, and DERIVE this row from it.  What remains
-       after (a) is a residual naming the camera's out-of-class stores:
-       Mario's state (set_mario_npc_dialog, dead under cam_w),
-       gTimeStopState and gSecondCameraFocus. *)
+     STEP (a) DONE (2026-11-02): the CamFoot walker carries AudioInv on
+       the scoped AudioInv.ls_frame_ai (CamFootSound's carried invariant;
+       the audio globals are leaf-only, cf_XP, and the seven sequence-
+       player bodies that store into gSequencePlayers are leaves walked
+       by AudioWire), so CamRows.cam_foot_step, the camera statement's
+       footprint on cam_w states, is on the spine: it changes only the
+       cf_FP / cf_XP globals, the Camera's 108 bytes (past every global)
+       and the pins' cells, and keeps AudioInv (aud_w).  It discharges the
+       object-world globals' half of Hcam_ow_fp below.
+     WHAT THIS ROW STILL COVERS (not a footprint fact): PhiW READS cells
+       inside that footprint, whose values the camera changes in the
+       game: the Camera's own bytes (cam_w's cutscene byte), cf_FP
+       globals PhiW reads (sObjectCutscene, gMarioStates through the
+       set_mario_npc_dialog leaf -- dead under cam_w), and non-global
+       main-pool data PhiW reads beside the Camera (R3 bounds only the
+       surface pools).  Deriving it needs value facts about those writes
+       (cut_census_wmotr's) and a Camera-apartness clause for every
+       main-pool region PhiW reads. *)
   Hypothesis Hcam_phi : LevelKeep.cam_phi_row lp bm MWF.
 
   Lemma lvl_pre_linked12 :
@@ -1518,21 +1520,58 @@ Section HeightLinked12.
      state's pointers on audio blocks (no ow_ids block among them).
      These hold at boot and are kept by every phase, so the row ranges
      over no unreachable state.
-     EVIDENCE (not proof): CamFootInst.update_camera_foot bounds the
-     camera's writes to the CamFootTable.cf_FP globals and the Camera;
-     cf_FP has no ow_ids global, and its one Mario-state writer
-     (set_mario_npc_dialog) is dead under cam_w.
-     It stays off the spine until the named next step (a), the CamFoot
-     walker carrying AudioInv on ls_frame_ai, which would DERIVE this row. *)
-  Hypothesis Hcam_ow_fp : forall m m', LevelFlank.cam_step lp m m' ->
+     SPLIT (step (a), 2026-11-02): the object-world GLOBALS' half is
+     PROVED (Hcam_ow_fp below, CamRows.cam_ow_globals): the CamFoot
+     walker now carries AudioInv on the scoped ls_frame_ai, so
+     CamFootInst.update_camera_foot is on the spine, and its footprint
+     (the cf_FP / cf_XP globals, the Camera's 108 bytes past every global,
+     the camera pins' cells) holds no ow_ids global.  What stays labeled is
+     this residual:
+     - Mario's five object-pointer cells: gMarioStates is a cf_FP global
+       ONLY because of set_mario_npc_dialog (a leaf: no walked camera body
+       stores into Mario's block, probe 2026-11-02), which stores usedObj
+       (offset 128); dead under cam_w (the dialog cutscenes are outside
+       CamCutCensus.uc_wmotr).  A value fact, not a footprint one.
+     - surf_keep: FOUND FALSE AS STATED (phantom forall, 2026-11-02): the
+       Camera may share the main-pool block with the surface lists, R3
+       keeps its bytes off the two pools' ranges, but ObjWorld's surface
+       clause (surf_obj_ok) lets a partition list's nodes lie anywhere in
+       a dynamic block -- so over Phi states whose list nodes sit inside
+       the Camera's bytes the camera's own stores break the walk.  In the
+       game every node is a sSurfaceNodePool slot.  NAMED FIX: bound the
+       list nodes and surfaces to the pools' ranges in surf_obj_ok (or
+       spool_ok); with R3 the conjunct then follows from the footprint. *)
+  Hypothesis Hcam_ow_res : forall m m', LevelFlank.cam_step lp m m' ->
+    mem_ok_lp bm MWF m -> Phi m ->
+    (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
+       Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z)
+    (* 2026-11-02: the surface clause of obj_w (ObjWorld.surf_obj_ok: the
+       partitions' lists and their surfaces' objects) is kept *)
+    /\ PollKeep.surf_keep m m' (lp_ge lp).
+
+  (* PROVED (step (a), 2026-11-02): the camera statement's object-world
+     footprint -- the ow_ids globals' half from the real update_camera's
+     footprint (CamRows), the rest the residual row above *)
+  Lemma Hcam_ow_fp : forall m m', LevelFlank.cam_step lp m m' ->
     mem_ok_lp bm MWF m -> Phi m ->
     (forall id b, In id PollKeep.ow_ids -> Genv.find_symbol (lp_ge lp) id = Some b ->
        forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
     /\ (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
        Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z)
-    (* 2026-11-02: the surface clause of obj_w (ObjWorld.surf_obj_ok: the
-       partitions' lists and their surfaces' objects) is kept *)
     /\ PollKeep.surf_keep m m' (lp_ge lp).
+  Proof.
+    intros m m' Hc Hok Hphi.
+    destruct (Hcam_ow_res m m' Hc Hok Hphi) as (Kbm & KS).
+    split; [ | exact (conj Kbm KS) ].
+    pose proof Hphi as (_ & _ & _ & _ & (Hgn & _) & _ & _ & Hlw).
+    apply (CamRows.cam_ow_globals lp m m'); [ | exact Hgn ].
+    refine (CamRows.cam_foot_step lp H12 Hsqrtf (proj2 Hls) Hdma_floor m m' Hc
+              (lvl_w_cam _ _ Hlw) (proj1 (AudioInv.aud_w_eq _ _) (lvl_w_aud _ _ Hlw)) Hgn _).
+    intros gb b o Hgb Hl.
+    pose proof Hok as (_ & _ & HM).
+    destruct (mwf_real_pgms lp bm bc oc0 SafeB m gb b o HM Hgb Hl) as (-> & _).
+    exists level_update._gMarioStates. split; [ vm_compute; reflexivity | exact Hbm_sym ].
+  Qed.
 
   Lemma Hcam_ow : forall m m', LevelFlank.cam_step lp m m' ->
     mem_ok_lp bm MWF m -> Phi m -> OWl m -> OWl m'.
