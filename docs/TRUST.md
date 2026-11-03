@@ -1305,19 +1305,29 @@ without pressing A".*
   instantiation from global_addresses_distinct.
   PARENT_BIT_CLEAR (51) is PROVED from `par51_ok` + `pbc_keep`: ONE store of old & ~mask
   into the PARENT's field 22 (oActiveParticleFlags, which obj_w does not read). `par51_ok`
-  is a phantom check, pinned to the real parentObj load at reachable 0x33 words: the parent
-  is a pool slot disjoint from the current slot's script stack. Computed
-  (`BhvVM.pbc_states`): the 0x33 states are twelve particle-spawner scripts, each spawned by
-  Mario's own code with parentObj = gMarioObject; a NULL parent makes the handler stuck.
-  Discharge: an obj_w clause "a particle-spawner slot's parentObj is Mario's slot", from the
-  spawn rows. ANIMATE_TEXTURE (52) is PROVED from `atex_keep` (ONE store old + 1, or no
+  is POSITIVE (a stuck NULL deref would silently drop a run): at reachable 0x33 words the
+  real parentObj load IS a pool slot disjoint from the current slot's script stack.
+  Computed (`BhvVM.pbc_states`): the 0x33 states are twelve particle spawners. Checked
+  against the C: every spawn path for them is spawn_object_at_origin(parent =
+  gCurrentObject) -- spawn_particle (Mario's table), spawn_object in bubba / mips,
+  SPAWN_CHILD (bhvWhitePuff1 from bhvMistParticleSpawner) -- and none of the 20 parentObj
+  writers targets them. Discharge needs two obj_w clauses: (1) every slot's parentObj is
+  NULL or a slot (red_coin.inc.c may store NULL, so "always a slot" is false); (2) a slot
+  running a pbc behavior has a slot parent. ANIMATE_TEXTURE (52) is PROVED from `atex_keep` (ONE store old + 1, or no
   store; the timer branch is not analysed). Computed (`BhvVM.atex_states`): its only
   reachable state is bhvKoopaShellFlame's (field 26, rate 2, nonzero), outside
   `wmotr_closure_b`, so the premise is vacuous once SCRIPT is narrowed.
   **FOUND (2026-11-03), fixed:** BhvStep's section hypothesis bounded the current slot's
   offset at `0 <= oc <= 40960`, i.e. only the first 68 of the 240 pool slots (608 bytes
   each) -- undischargeable for any object in a later slot. Widened to `oc <= 145312`
-  (slot 239); every lemma re-proved. The pinned premises are bundled as `row_keeps`.
+  (slot 239); every lemma re-proved.
+  BILLBOARD (33) / DISABLE_RENDERING (53) are PROVED from `bb_keep` / `dr_keep`: ONE s16
+  store of flags | 4 / flags & ~1 into the current slot's header.gfx.node.flags (@2), which
+  obj_w does not read (ow_gfx reads the node links @4/@8/@12). SET_HITBOX (35) /
+  SET_HITBOX_WITH_OFFSET (43) from `hb_keep` / `hbo_keep`: the f32 stores of the script's
+  real s16 halves into hitboxRadius / Height / DownOffset (@504/@508/@520), not read by
+  obj_w. SET_HOME (45) from `home_keep`: the three real pos -> home copies (fields 6-8 ->
+  55-57), home not read by obj_w. The pinned premises are bundled as `row_keeps`.
   Wiring it in needs the loop's INV to be obj_w minus the current slot's `ow_vm`.
   **`ow_scr` (2026-11-03): `scr_ok` is an obj_w clause.** `ObjWorld.scr_ok` (moved from
   BhvStep, which keeps its names as notations) is obj_w's 21st clause; the boot witness
