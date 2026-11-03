@@ -645,9 +645,16 @@ all in `Unwired/`, and the theorem moved nowhere. See
     (Hobj_unload groundwork 2026-11-03, `ObjUnload.v`, kept, no spine consumer yet: the
     real deallocate_object walked -- dealloc_rings (ObjRing surgery: l1++k::l2 -> l1++l2,
     fs -> k::fs), dealloc_ok (Clight body, only ObjAlloc.RCELL cells change), dealloc_real
-    (linked, from ow_rings / ow_free / ow_part NoDup; gfx_ok rides through). Still open
-    for the row: the unload_deactivated_objects loop, set_object_respawn_info_bits,
-    unload_object's sound stop + geo_remove_child, and the obj_w re-establish)
+    (linked, from ow_rings / ow_free / ow_part NoDup; gfx_ok rides through).
+    `UnloadObj.v` (kept): the real unload_object -- unload_ok (fx stores, the sound
+    call, grc_ok / gac_ok, the flag RMWs, dealloc_ok: k to the free list, gfx_at kept,
+    activeFlags 0, footprint UK = slot k's non-link bytes + graph/list link cells +
+    the sound blocks) and unload_real on the link; the sound leaf is PROVED by
+    AudioWire's walk (uai_ssfs: stop_sounds_from_source / update_background_music_
+    after_sound / cai_bbmf, footprint ws_u, AudioInv kept), no new premise. Still open
+    for the row: the two list loops, set_object_respawn_info_bits, and re-establishing
+    Pobj (mem_ok via AudioBodies.sp_stop_sounds_from_source, PhiW past the respawn OR
+    into P, obj_w with the ring change))
     (Hobj_stores PROVED 2026-11-03: obj_stores_linked12 / ObjStores.stores_safe, every
     update_objects store block classified by vm (uo_sok); rests on Hobj_blind for the stack
     stores. Reusable: ClearKeep.gstore_core_p takes a pointer to a SafeB-if-bg-is global;
