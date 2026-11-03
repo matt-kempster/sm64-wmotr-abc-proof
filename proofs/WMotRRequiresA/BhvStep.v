@@ -127,6 +127,88 @@ Section Cells.
                             (oc + OW.O_STK + 4 * (Z.of_nat (List.length (v_k st)) - 1 - Z.of_nat n))).
 End Cells.
 
+(* ---- 2b. scr_ok as a checkable clause (the planned obj_w clause SCRIPTS;
+   held until the next StartTerrain rebuild): the scripts the VM can
+   reach, each cell against its initializer ---- *)
+Fixpoint sdedup (l : list ident) : list ident :=
+  match l with
+  | [] => []
+  | x :: l' => let t := sdedup l' in if existsb (Pos.eqb x) t then t else x :: t
+  end.
+Lemma sdedup_in : forall x l, In x l -> In x (sdedup l).
+Proof.
+  intros x l. induction l as [| y l IH]; intros H; [ destruct H | ].
+  cbn [sdedup]. destruct (existsb (Pos.eqb y) (sdedup l)) eqn:E.
+  - destruct H as [<- | H]; [ | exact (IH H) ].
+    apply existsb_exists in E as (z & Hz & Ez). apply Pos.eqb_eq in Ez. subst z. exact Hz.
+  - destruct H as [<- | H]; [ left; reflexivity | right; exact (IH H) ].
+Qed.
+
+
+Section ScrCheck.
+  Variable G : genv.
+
+  Definition cell_b (m : mem) (b : block) (i : nat) (d : init_data) : bool :=
+    match d with
+    | Init_int32 n =>
+        match Mem.load Mint32 m b (4 * Z.of_nat i) with Some (Vint n') => Int.eq n n' | _ => false end
+    | Init_addrof t o =>
+        match Genv.find_symbol G t, Mem.load Mint32 m b (4 * Z.of_nat i) with
+        | Some bt, Some (Vptr b' o') => Pos.eqb bt b' && Ptrofs.eq o o'
+        | _, _ => false
+        end
+    | _ => match Mem.load Mint32 m b (4 * Z.of_nat i) with Some _ => true | None => false end
+    end.
+
+  Fixpoint cells_b (m : mem) (b : block) (i : nat) (l : list init_data) : bool :=
+    match l with [] => true | d :: l' => cell_b m b i d && cells_b m b (S i) l' end.
+
+  (* the check over a symbol list l; used with l := sdedup (map v_s vm_tab),
+     written out (PERF TRAP: never name that list as a constant -- the
+     kernel's Qed then unfolds vm_tab when converting it) *)
+  Definition scr_b_l (l : list ident) (m : mem) : bool :=
+    forallb (fun s => match Genv.find_symbol G s with
+                      | Some b => cells_b m b 0 (words s) | None => false end) l.
+
+  Lemma cell_b_sound : forall m b i d, cell_b m b i d = true ->
+    exists v, Mem.load Mint32 m b (4 * Z.of_nat i) = Some v /\ init_val G d v.
+  Proof.
+    intros m b i d H. unfold cell_b in H. revert H.
+    generalize (4 * Z.of_nat i) as z. intros z H. destruct d;
+      try (destruct (Mem.load Mint32 m b z) as [v|]; [ exists v; split; [ reflexivity | exact I ] | discriminate H ]).
+    - destruct (Mem.load Mint32 m b z) as [[]|]; try discriminate H.
+      apply Int.same_if_eq in H. subst. eexists; split; reflexivity.
+    - destruct (Genv.find_symbol G i0) as [bt|] eqn:Eb; [ | discriminate H ].
+      destruct (Mem.load Mint32 m b z) as [[]|]; try discriminate H.
+      apply andb_prop in H as [H1 H2]. apply Pos.eqb_eq in H1. apply Ptrofs.same_if_eq in H2.
+      subst. eexists; split; [ reflexivity | exists b0; auto ].
+  Qed.
+
+  Lemma cells_b_sound : forall m b l i, cells_b m b i l = true ->
+    forall k d, nth_error l k = Some d ->
+      exists v, Mem.load Mint32 m b (4 * Z.of_nat (i + k)) = Some v /\ init_val G d v.
+  Proof.
+    intros m b l. induction l as [| d0 l IH]; intros i H k d Hk; [ destruct k; discriminate Hk | ].
+    cbn [cells_b] in H. apply andb_prop in H as [H1 H2].
+    destruct k as [|k]; cbn in Hk.
+    - injection Hk as <-. rewrite Nat.add_0_r. exact (cell_b_sound _ _ _ _ H1).
+    - replace (i + S k)%nat with (S i + k)%nat by lia. exact (IH _ H2 k d Hk).
+  Qed.
+
+  Lemma scr_b_l_sound : forall l, (forall s, In s (map v_s vm_tab) -> In s l) ->
+    forall m, scr_b_l l m = true -> scr_ok G m.
+  Proof.
+    intros l Hl m H s bs i d Hs Hin Hd. unfold scr_b_l in H.
+    pose proof (proj1 (forallb_forall _ l) H s (Hl s Hin)) as H1. clear H.
+    cbv beta in H1. rewrite Hs in H1.
+    exact (cells_b_sound _ _ _ _ H1 i d Hd).
+  Qed.
+
+  (* SOUND: the deduplicated check over every script the VM can reach *)
+  Theorem scr_b_sound : forall m, scr_b_l (sdedup (map v_s vm_tab)) m = true -> scr_ok G m.
+  Proof. exact (scr_b_l_sound (sdedup (map v_s vm_tab)) (fun s => sdedup_in s (map v_s vm_tab))). Qed.
+End ScrCheck.
+
 (* ---- 3. function entry for a body without locals ---- *)
 Lemma fcall_inv : forall (G : genv) f m vargs t m' vr, fn_vars f = [] ->
   eval_funcall function_entry2 G m (Internal f) vargs t m' vr ->
@@ -367,6 +449,23 @@ Proof.
   intros st w Hst Hw. pose proof vm_op as A. rewrite forallb_forall in A. specialize (A st Hst).
   unfold opc, w0 in A. rewrite Hw in A. apply andb_prop in A as [A1 A2].
   apply Z.leb_le in A1. apply Z.ltb_lt in A2. lia.
+Qed.
+
+(* the opcodes the reachable VM actually executes (vm-checked over vm_tab):
+   39 of the 56; 11 (BREAK_UNUSED) and 16 others never occur *)
+Definition used_ops : list Z :=
+  [0; 1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 12; 13; 14; 15; 16; 17; 19; 20; 21; 28; 29;
+   30; 31; 33; 35; 37; 39; 40; 42; 43; 45; 47; 48; 50; 51; 52; 53; 55].
+
+Lemma vm_used : forallb (fun st => existsb (Z.eqb (opc st)) used_ops) vm_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma op_used : forall st w, In st vm_tab -> word_at (v_s st) (v_i st) = Some w ->
+  In (Z.shiftr w 24) used_ops.
+Proof.
+  intros st w Hst Hw. pose proof vm_used as A. rewrite forallb_forall in A. specialize (A st Hst).
+  unfold opc, w0 in A. rewrite Hw in A. apply existsb_exists in A as (x & Hx & Ex).
+  apply Z.eqb_eq in Ex. rewrite Ex. exact Hx.
 Qed.
 
 Lemma cmd_handlers_len : List.length ObjCensus.cmd_handlers = 56%nat.
@@ -1676,7 +1775,8 @@ Section Link.
     remember (4 * Z.of_nat (v_i st)) as I4 eqn:EI.
     apply RA.ev_temp in Ea. rewrite PTree.gss in Ea. injection Ea as <- <-.
     destruct (succs_word _ _ Hl) as (w & Hw). destruct (word_int _ _ _ Hw) as (n & Hn & Ewn).
-    assert (Hilt : (v_i st < List.length (words (v_s st)))%nat) by (apply nth_error_Some; congruence).
+    assert (Hilt : (v_i st < List.length (words (v_s st)))%nat)
+      by (apply nth_error_Some; rewrite Hn; discriminate).
     destruct (Hscr (v_s st) b (v_i st) _ Hsb (in_map _ _ _ Hst) Hn) as (vn & Hlv & Hiv).
     cbn in Hiv. subst vn.
     cbn [Mem.loadv] in Hlw. rewrite Ptrofs.unsigned_repr in Hlw by (rewrite maxu; lia). rewrite <- EI in Hlv.
@@ -1797,5 +1897,28 @@ Section Link.
   Proof.
     intros Hrest. apply dloop. intros op.
     destruct (in_dec Z.eq_dec op ctl_ops) as [Hin | Hn]; [ exact (ctl_rows op Hin) | exact (Hrest op Hn) ].
+  Qed.
+
+  (* a row for an opcode the reachable VM never executes holds vacuously *)
+  Lemma unused_row : forall op, ~ In op used_ops -> cmd_row_op op.
+  Proof.
+    intros op Hu m st w id hb fd t m' vr Hst _ _ Hw Ho. exfalso. apply Hu.
+    rewrite <- Ho. exact (op_used st w Hst Hw).
+  Qed.
+
+  (* so the loop's open premise is the 28 rows of the used non-control
+     opcodes: begin, call_native, the field arithmetic (13-17, 19-21, 31),
+     spawn_child, deactivate, drop_to_floor, billboard, set_hitbox,
+     delay_var, load_animations, animate, load_collision_data,
+     set_hitbox_with_offset, set_home, set_interact_type, set_obj_physics,
+     scale, parent_bit_clear, animate_texture, disable_rendering,
+     spawn_water_droplet *)
+  Theorem dloop_used : (forall op, In op used_ops -> ~ In op ctl_ops -> cmd_row_op op) ->
+    forall le m t le' m' out, exec_stmt function_entry2 G empty_env le m DLOOP t le' m' out ->
+    forall st, In st vm_tab -> V m st -> INV m ->
+    out = Out_normal /\ exists st', In st' vm_tab /\ V m' st' /\ INV m'.
+  Proof.
+    intros Hrest. apply dloop_ctl. intros op Hn.
+    destruct (in_dec Z.eq_dec op used_ops) as [Hu | Hu]; [ exact (Hrest op Hu Hn) | exact (unused_row op Hu) ].
   Qed.
 End Link.
