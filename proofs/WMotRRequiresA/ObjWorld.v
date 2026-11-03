@@ -407,8 +407,8 @@ Definition SP_CAP : Z := 2300.    (* sSurfacePoolSize = 2300, surface_load.c:522
 Definition NP_CAP : Z := 7000.    (* the node pool, surface_load.c:523 *)
 Definition NS : Z := 1352.        (* WMotR's static surfaces (WMotRLevel.static_counts) *)
 Definition NN : Z := 2908.   (* its static surface nodes (the boot run) *)
-Definition NP_OFF : Z := 2592.  (* sSurfaceNodePool's offset in the main-pool block (the boot run) *)
-Definition SP_OFF : Z := 58608.  (* sSurfacePool's offset (the boot run) *)
+Definition NP_OFF : Z := 2672.  (* sSurfaceNodePool's offset in the main-pool block (the boot run) *)
+Definition SP_OFF : Z := 58688.  (* sSurfacePool's offset (the boot run) *)
 Definition PCELLS : nat := 1536.  (* 16 * 16 * 3 SurfaceNode heads, 2 words each *)
 Definition SFUEL : nat := 8000.
 
@@ -441,7 +441,7 @@ Proof.
   intros z H. unfold in_np in H. apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
   apply Z.leb_le in H1. apply Z.ltb_lt in H2. apply Z.eqb_eq in H3.
   unfold NP_END, NP_OFF, NP_CAP, SNODE_SZ in *.
-  pose proof (Z_div_mod_eq_full (z - 2592) 8) as E. rewrite H3 in E. lia.
+  pose proof (Z_div_mod_eq_full (z - 2672) 8) as E. rewrite H3 in E. lia.
 Qed.
 
 Lemma in_sp_spec : forall z, in_sp z = true -> SP_OFF <= z /\ z + SURF_SZ <= SP_END.
@@ -449,7 +449,7 @@ Proof.
   intros z H. unfold in_sp in H. apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
   apply Z.leb_le in H1. apply Z.ltb_lt in H2. apply Z.eqb_eq in H3.
   unfold SP_END, SP_OFF, SP_CAP, SURF_SZ in *.
-  pose proof (Z_div_mod_eq_full (z - 58608) 48) as E. rewrite H3 in E. lia.
+  pose proof (Z_div_mod_eq_full (z - 58688) 48) as E. rewrite H3 in E. lia.
 Qed.
 
 Lemma sp_end_small : SP_END <= Ptrofs.max_unsigned.
@@ -843,8 +843,10 @@ Qed.
 (*   RESP  a listed slot's respawnInfoType is an int; type 1 aims at      *)
 (*         gPlayerSpawnInfos' behaviorArg (+16, Mario's) or at one of the *)
 (*         area's eight SpawnInfo behaviorArg cells in the main-pool block *)
-(*         (sSurfacePool's block, offsets 2336 .. 2560 step 32, under the *)
-(*         node pool at 2592); type 2 at a macro entry's params word      *)
+(*         (sSurfacePool's block, SI_OFFS: the level pool's eight          *)
+(*         SpawnInfos + 16, under the node pool at NP_OFF, as the real     *)
+(*         entry run lays them out, 2026-11-03); type 2 at a macro entry's *)
+(*         params word                                                     *)
 (*         (wmotr_seg7_macro_objs + 10 i + 8, i < 26).  TRUTH: the pair   *)
 (*         is written only by allocate_object (NULL, NULL;                *)
 (*         spawn_object.c:281), spawn_objects_from_info (type 1) and      *)
@@ -880,7 +882,7 @@ Definition mact_ok (ge : genv) (pool gmo : block) (m : mem) : Prop :=
               (exists o, Mem.load Mint32 m pool (k * OSZ + O_STK + 4 * n) = Some (Vptr b o))
               \/ (exists c, Mem.load Mint32 m pool (k * OSZ + O_STK + 4 * n) = Some (Vint c)))).
 
-Definition SI_OFFS : list Z := [2336; 2368; 2400; 2432; 2464; 2496; 2528; 2560].
+Definition SI_OFFS : list Z := [2364; 2444; 2476; 2508; 2540; 2572; 2604; 2636].
 Definition MAC_OFFS : list Z := map (fun i => 10 * Z.of_nat i + 8) (seq 0 26).
 
 Definition resp_ok (ge : genv) (pool : block) (m : mem) (k : Z) : Prop :=
@@ -916,8 +918,8 @@ Definition gfx_ok (ge : genv) (pool : block) (m : mem) : Prop :=
 (*   over memories Pobj allowed.  unload_deactivated_objects calls         *)
 (*   set_object_respawn_info_bits on a deactivated slot without            *)
 (*   OBJ_FLAG_PERSISTENT_RESPAWN; for respawnInfoType 1 it ORs 0xFF00 into  *)
-(*   a SpawnInfo behaviorArg cell of the main-pool block P (offsets 2336   *)
-(*   .. 2560, ow_resp).  Nothing pinned where m->wall / m->ceil / m->floor *)
+(*   a SpawnInfo behaviorArg cell of the main-pool block P (SI_OFFS,       *)
+(*   ow_resp).  Nothing pinned where m->wall / m->ceil / m->floor          *)
 (*   point (PhiW's ffw asks only a dynamic block off the frame's regions), *)
 (*   so a memory with m->floor = P + 2338, whose s16 "type" reads the low  *)
 (*   half of a behaviorArg (0, a WMotR type), met every premise, and the   *)
@@ -933,13 +935,13 @@ Definition gfx_ok (ge : genv) (pool : block) (m : mem) : Prop :=
 (*   alloc_surface takes every surface, static ones included               *)
 (*   (load_area_terrain), from sSurfacePool = P + SP_OFF (surface_load.c   *)
 (*   alloc_surface; the lists' surfaces are in_sp by surf_obj_ok): the     *)
-(*   in_sp arm.  The other arm is the boot witness's: StartTerrain.s_chain *)
-(*   gives m->floor the 48-byte stand-in block bs (type 0), not a          *)
-(*   find_floor result (the probe read wall = ceil = NULL, floor = bs+0),  *)
-(*   so the clause cannot ask in_sp of every pointer; it asks only "not   *)
-(*   loose in P", true of both.  Checked by vm on the boot witness         *)
-(*   (ow_chk, m11).  It reads three gMarioStates cells and sSurfacePool   *)
-(*   only: no slot.                                                        *)
+(*   in_sp arm.  Since 2026-11-03 the boot witness's cells are the real    *)
+(*   init_mario's (StartTerrain.entry: wall = ceil = NULL, floor = the     *)
+(*   find_floor hit P + 112592, in_sp), so the in_sp arm holds there too;  *)
+(*   the clause still asks only "not loose in P" (all unload needs; until  *)
+(*   then the witness's floor was a stand-in block off P).  Checked by vm  *)
+(*   on the boot witness (ow_chk, m11).  It reads three gMarioStates      *)
+(*   cells and sSurfacePool only: no slot.                                 *)
 (* ---------------------------------------------------------------------- *)
 Definition MSURF : list Z := [WALL_OFF; CEIL_OFF; FLOOR_OFF].
 

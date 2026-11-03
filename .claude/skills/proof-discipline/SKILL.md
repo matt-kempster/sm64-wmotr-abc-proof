@@ -321,6 +321,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
   footprint / pointer / list checks + `InterpFrame.ex_call_keep` re-prove `MWF_real` (SafeB + pool
   block), neutrality and `Wff` across the load; `goal2_start_sat` concludes `floor_data`,
   `static_agree`, 1352 surfaces and `terrain_loaded` (replaces `part_ready`).
+  2026-11-03 (Step C): the witness is what THE REAL ENTRY leaves (`StartTerrain.entry_g`:
+  sound_init, init_mario_from_save_file, WMotR's level script command by command through the
+  real `LevelScriptJumpTable` handlers, init_level, warp_level, init_mario_after_warp);
+  `terrain_loaded` says so block for block, Mario's cells are read off the result by vm
+  (`bm_cells`), floorHeight = find_floor's 1669.0 (`entry_cells ENTRY_FH`), floor = an in_sp
+  static surface, area = &gAreaData[1]. Stand-ins S1-S8 are listed once, in StartTerrain's
+  header (main_pool_init's post-state, gCurrCourseNum, the controller pad pointer, the anim
+  DMA shortcut, FREE_LEVEL_POOL's main_pool_free, the unrun LOAD_* / JUMP_LINK / geo
+  layout, the dispatcher). Every vm boot check passes on the new memory (no FOUND).
   2026-10-22, later: FOUND FALSE + repaired: the `sqrtf` antecedent `sqrtf_ieee` (and so both
   interpreter `world_ok`s) was refutable from CompCert's `ec_well_typed` (any-signature form,
   `FpuValue.sqrtf_any_sig_false`): `terrain_loaded` / `frame_runs` / `ifs_tether` /
@@ -532,7 +541,8 @@ all in `Unwired/`, and the theorem moved nowhere. See
     whoever discharges those rows must show op ∉ {0x17,0x18}; TRUST 0.7 lists who carries
     it per stage). Next:
     discharge `Hcam_phi` from the census (per-write PhiW keep). Since 2026-10-26 the witness
-    has a REAL Camera in gAreaData[1].camera (`StartTerrain.cam_chain`: the generated
+    has a REAL Camera in gAreaData[1].camera (since 2026-11-03 the one the real entry's
+    LOAD_AREA / init_mario_after_warp leave, `StartTerrain.entry_g`; before, `cam_chain`: the generated
     alloc_only_pool_init / init_graph_node_camera / create_camera / reset_camera; FOUND:
     alloc_only_pool_resize has no CompCert execution, pointer minus pointer in main_pool_free,
     so the level pool is made at its resized size, TRUST 3.6), and `StartSat.frame_runs` runs
@@ -593,7 +603,8 @@ all in `Unwired/`, and the theorem moved nowhere. See
       gSequenceChannelNone), `ls_frame_ai` (AudioInv m → Q2 off ls_ids ∧ AudioInv m'), and a
       decision procedure `aud_chk` (sound).
     - DONE: `AudioBoot.audio_inv_boot`, by vm on init_mem and on the start witness. The witness
-      is StartTerrain's chain, mirrored as `wit11`; re-point the one line `aud_wit`. Both
+      is StartTerrain's chain: `aud_wit` reads `StartTerrain.wit_chain` (2026-11-03; the
+      `wit11` mirror is gone). Both
       memories have NO audio pointers, and no global points into the audio set.
     - DONE: `AudioWire` (cap path `afi`, `ucf_frame_ai`) and `HitboxFrame.hitbox_hh_ai`, all
       from `ls_frame_ai` alone.
@@ -717,6 +728,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
        DONE 2026-11-02 (Step B): StartTerrain.wchk runs select_gfx_pool, lvl_objs (level pool,
        AREA/act stores, real level_cmd_place_object per OBJECT command), load_area_terrain
        with the macro list, area_spawn, Mario at MARIO_OFF = 20672 (slot 34); f_ids +10.
+       DONE 2026-11-03 (Step C): the pieces are replaced by the real entry
+       (`StartTerrain.entry_g`, see the GOAL 2 paragraph); `lvl_objs` / `area_spawn` /
+       `cam_chain` / `s_chain` are gone.
        StartSat.frame_runs now exhibits the WHOLE HeightFrame.play_frame_step from the
        witness (frame_w / frame_whole_of; no segment stuck), with obj_w + ctr_ok after the
        objects phase and at the frame's end.
@@ -779,8 +793,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
        the inclusion generically (forallb_existsb_incl) and instantiate.
        DONE 2026-11-03 (ObjWorld 3f / 3g): ow_msurf (Mario's wall / ceil / floor NULL, off
        the main pool P, or an in_sp slot of it; FOUND Hobj_unload false over the respawn OR
-       into P, REPAIRED; NOT in_sp-only: the boot witness's floor is s_chain's stand-in
-       block bs) and ow_par (parentObj NULL or a slot; the 12 pbc scripts' slots have a slot
+       into P, REPAIRED; NOT in_sp-only: the boot witness's floor was s_chain's stand-in
+       block bs; since 2026-11-03 it is find_floor's hit, an in_sp slot, so tightening
+       ow_msurf to in_sp / NULL is open) and ow_par (parentObj NULL or a slot; the 12 pbc scripts' slots have a slot
        parent, pbc_ids_ok). Kbm lists gained 96 / 100 / 104 (PollKeep, Hcam_ow_res).
        PROBE PATTERN: copy StartTerrain up to wchk_gen_true, turn wchk's tail into a tuple
        of the loads / sub-checks, `Eval vm_compute` (~9 min); `++` there is string append.
