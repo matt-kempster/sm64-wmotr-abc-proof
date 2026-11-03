@@ -1253,7 +1253,8 @@ without pressing A".*
   cannon pins for that slot. SET_FLOAT's row is PROVED likewise from `setf_keep`
   (`row_set_float`; its fields 10, 12, 18-21, 67 are none that obj_w reads). ADD_INT's row
   likewise from `addi_keep` (`row_add_int`: the old value read from the cell, ONE store of
-  old + s16_of w; fields 16, 19, 26). The pinned premises are bundled as `row_keeps`.
+  old + s16_of w; fields 16, 19, 26). OR_INT's likewise from `ori_keep` (`row_or_int`: ONE
+  store of old | u16_of w; fields 1 and 3). The pinned premises are bundled as `row_keeps`.
   Wiring it in needs the loop's INV to be obj_w minus the current slot's `ow_vm`.
   **`ow_scr` (2026-11-03): `scr_ok` is an obj_w clause.** `ObjWorld.scr_ok` (moved from
   BhvStep, which keeps its names as notations) is obj_w's 21st clause; the boot witness

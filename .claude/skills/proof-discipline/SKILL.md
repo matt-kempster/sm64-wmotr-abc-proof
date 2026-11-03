@@ -743,7 +743,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
        SET_FLOAT row DONE; premises bundled as row_keeps. set42: field 42 is written only
        by bhvPoleGrabbing (POLE) and bhvCannon (CANNON_BASE). PERF TRAP again: a named bool
        over vm_tab (chk42) hung set42's Qed -- state vm-checks inline.
-       ADD_INT row DONE (ev_raw_rd: the read kit). Next: the 24 used rows left (OR_INT /
+       ADD_INT, OR_INT rows DONE (ev_raw_rd: the read kit). Next: the 23 used rows left (
        ADD_FLOAT next);
        the pre-/post-loop code of cur_obj_update; the loop INV = obj_w minus the current
        slot's ow_vm; then narrow Hobj_step_rest.
