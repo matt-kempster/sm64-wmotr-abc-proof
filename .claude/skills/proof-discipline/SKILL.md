@@ -731,9 +731,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
        kernel converts it by evaluating vm_tab); write `sdedup (map v_s vm_tab)` out
        (BhvStep.scr_b_l). And `congruence` near words/vm_tab cost 300s (removed).
        dloop_used: only the 28 USED non-control opcodes' rows are open (vm_used);
-       scr_b_sound is the decidable scr_ok check (obj_w/wchk part held for StartTerrain).
-       Next: the non-control rows, the copy-in / copy-out around DLOOP, the scr_ok obj_w
-       clause (check at m11 outside StartTerrain/StartSat), then narrow Hobj_step_rest.
+       scr_b_sound is the decidable scr_ok check. DONE 2026-11-03: scr_ok is obj_w's
+       `ow_scr` (ObjWorld 3d; BhvStep's names are notations), vm-checked in ow_chk at boot;
+       keepers take "no script block changes" (scr_ok_ext; fx_obj_w / cam / plat / render).
+       Next: the non-control rows, the copy-in / copy-out around DLOOP, then narrow
+       Hobj_step_rest.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
     PROVED at the boot witness, which now runs the real init_graph_node_start + clear_objects
     and Mario's spawn_objects_from_info; one real area_update_objects runs from it

@@ -241,6 +241,18 @@ Definition ow_ids : list ident :=
    (* 3c, 2026-11-02: the surface counter and the two collision meshes *)
    surface_load._gSurfacesAllocated; OW.BOXM; OW.LIDM].
 
+(* the scripts (ow_scr, 2026-11-03): membership decided; gMarioStates is
+   no script *)
+Lemma not_in_of_existsb : forall x l, existsb (Pos.eqb x) l = false -> ~ In x l.
+Proof.
+  intros x l H Hin.
+  assert (E : existsb (Pos.eqb x) l = true)
+    by (apply existsb_exists; exists x; split; [ exact Hin | apply Pos.eqb_refl ]).
+  congruence.
+Qed.
+Lemma scr_not_ms : existsb (Pos.eqb level_update._gMarioStates) (map BhvVM.v_s BhvVM.vm_tab) = false.
+Proof. vm_compute. reflexivity. Qed.
+
 (* a slot offset is a slot index times the object size *)
 Lemma slot_of_eq : forall o k, OW.slot_of o = Some k -> o = k * OW.OSZ /\ 0 <= k < OW.NSLOT.
 Proof.
@@ -451,9 +463,12 @@ Section OWK.
     surf_keep ge ->
     (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
        Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z) ->
+    (* no store into a script block (ow_scr, 2026-11-03) *)
+    (forall s b, In s (map BhvVM.v_s BhvVM.vm_tab) -> Genv.find_symbol ge s = Some b ->
+       forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
     OW.obj_w ge bm m -> OW.obj_w ge bm m'.
   Proof.
-    intros ge bm K KP KS Kbm (pool & la & fl & gol & gmo & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
+    intros ge bm K KP KS Kbm KSc (pool & la & fl & gol & gmo & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
     assert (Kp := KP pool S1).
     assert (Kl := K object_list_processor._gObjectListArray la ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S2).
     assert (Kf := K object_list_processor._gFreeObjectList fl ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S3).
@@ -463,7 +478,7 @@ Section OWK.
     assert (Kd := K debug._gDebugInfo gdi ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S7).
     exists pool, la, fl, gol, gmo, sdp, gdi, rs, fs.
     refine (conj S1 (conj S2 (conj S3 (conj S4 (conj S5 (conj S6 (conj S7 _))))))).
-    destruct C as [Cg Cr Cf Cp Cfo Cm Cs Ca Crd Cdb Cst Co Cd12 Cct Cvm Csp Cso Cco Cctr Cter].
+    destruct C as [Cg Cr Cf Cp Cfo Cm Cs Ca Crd Cdb Cst Co Cd12 Cct Cvm Csp Cso Cco Cctr Cter Cscr].
     assert (KG : forall id, In id ow_ids -> id <> object_list_processor._gObjectPool ->
                forall b, Genv.find_symbol ge id = Some b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
       by (intros id Hin Hn b Hs; exact (K id b Hin Hn Hs)).
@@ -519,6 +534,7 @@ Section OWK.
       + intros k Hk. exact (coll_pin_eq ge pool Kp k (T4 k Hk)).
       + apply Kme; [ unfold ow_ids; cbn [In]; auto 30 | vm_compute; discriminate | exact T5 ].
       + apply Kme; [ unfold ow_ids; cbn [In]; auto 30 | vm_compute; discriminate | exact T6 ].
+    - exact (OW.scr_ok_ext ge m m' KSc Cscr).
   Qed.
 
   (* THE LEMMA, slot-field form: obj_w survives any change off its globals'
@@ -532,9 +548,12 @@ Section OWK.
     (forall b, Ple (Genv.genv_next ge) b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
     (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
        Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z) ->
+    (* no store into a script block (ow_scr, 2026-11-03) *)
+    (forall s b, In s (map BhvVM.v_s BhvVM.vm_tab) -> Genv.find_symbol ge s = Some b ->
+       forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
     OW.obj_w ge bm m -> OW.obj_w ge bm m'.
   Proof.
-    intros ge bm K KP KN Kbm. apply obj_w_slots_s; [ exact K | exact KP | | exact Kbm ].
+    intros ge bm K KP KN Kbm KSc. apply obj_w_slots_s; [ exact K | exact KP | | exact Kbm | exact KSc ].
     exact (surf_keep_of_KN ge K KP KN).
   Qed.
 
@@ -545,9 +564,12 @@ Section OWK.
     surf_keep ge ->
     (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
        Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z) ->
+    (* no store into a script block (ow_scr, 2026-11-03) *)
+    (forall s b, In s (map BhvVM.v_s BhvVM.vm_tab) -> Genv.find_symbol ge s = Some b ->
+       forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
     OW.obj_w ge bm m -> OW.obj_w ge bm m'.
   Proof.
-    intros ge bm K KS Kbm. apply obj_w_slots_s; [ | | exact KS | exact Kbm ].
+    intros ge bm K KS Kbm KSc. apply obj_w_slots_s; [ | | exact KS | exact Kbm | exact KSc ].
     - intros id b Hin _ Hs. exact (K id b Hin Hs).
     - intros pool Hs. apply SKp_full. apply (K object_list_processor._gObjectPool pool); [ unfold ow_ids; cbn [In]; auto 10 | exact Hs ].
   Qed.
@@ -560,9 +582,12 @@ Section OWK.
     (forall b, Ple (Genv.genv_next ge) b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
     (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
        Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z) ->
+    (* no store into a script block (ow_scr, 2026-11-03) *)
+    (forall s b, In s (map BhvVM.v_s BhvVM.vm_tab) -> Genv.find_symbol ge s = Some b ->
+       forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
     OW.obj_w ge bm m -> OW.obj_w ge bm m'.
   Proof.
-    intros ge bm K KN Kbm. apply obj_w_slots; [ | | exact KN | exact Kbm ].
+    intros ge bm K KN Kbm KSc. apply obj_w_slots; [ | | exact KN | exact Kbm | exact KSc ].
     - intros id b Hin _ Hs. exact (K id b Hin Hs).
     - intros pool Hs. apply SKp_full. apply (K object_list_processor._gObjectPool pool); [ unfold ow_ids; cbn [In]; auto 10 | exact Hs ].
   Qed.
@@ -721,9 +746,11 @@ Section LINK.
   Lemma fx_obj_w : forall Xs m m',
     (forall id, In id ow_ids -> existsb (Pos.eqb id) Xs = false) ->
     existsb (Pos.eqb level_update._gMarioStates) Xs = false ->
+    (* 2026-11-03: and no script block (ow_scr) *)
+    (forall id, In id (map BhvVM.v_s BhvVM.vm_tab) -> existsb (Pos.eqb id) Xs = false) ->
     fx lp bm Xs m m' -> OW.obj_w G bm m -> OW.obj_w G bm m'.
   Proof.
-    intros Xs m m' HX Hn Hfx. apply obj_w_unch.
+    intros Xs m m' HX Hn HS Hfx. apply obj_w_unch.
     - intros id b Hin Hs ch z. apply (fx_load lp bm Xs m m' ch b z Hfx).
       intros i _ [Hb | (-> & _)].
       + exact (LevelKeep.not_lvl lp Xs id b Hs (HX id Hin) Hb).
@@ -738,6 +765,11 @@ Section LINK.
       intros i Hi [Hb | (_ & Hc)].
       + exact (LevelKeep.not_lvl lp Xs _ bm Hbm_sym Hn Hb).
       + cbn [size_chunk] in Hi. unfold MARIOOBJ_OFF in Hz. cbn [In] in Hz. lia.
+    - intros id b Hin Hs ch z. apply (fx_load lp bm Xs m m' ch b z Hfx).
+      intros i _ [Hb | (-> & _)].
+      + exact (LevelKeep.not_lvl lp Xs id b Hs (HS id Hin) Hb).
+      + assert (E : id = level_update._gMarioStates) by (eapply Genv.genv_vars_inj; [ exact Hs | exact Hbm_sym ]).
+        subst id. exact (not_in_of_existsb _ _ scr_not_ms Hin).
   Qed.
   (* ---- THE ROWS ---- *)
   Ltac vmr := vm_compute; reflexivity.
@@ -760,7 +792,8 @@ Section LINK.
                (phiw_surf_apart lp bm srd_gvars m Hphi)).
       exact (lvl_w_fx0 srd_gvars m i (avoid_of srd_gvars lvl_rd_ids ltac:(vmr)) Hfx Hl).
     - exact (LevelKeep.fx_plat_still lp bm Hbm_sym srd_gvars m i ltac:(vmr) ltac:(vmr) Hfx).
-    - exact (fx_obj_w srd_gvars m i (avoid_of ow_ids srd_gvars ltac:(vmr)) ltac:(vmr) Hfx).
+    - exact (fx_obj_w srd_gvars m i (avoid_of ow_ids srd_gvars ltac:(vmr)) ltac:(vmr)
+               (avoid_of (map BhvVM.v_s BhvVM.vm_tab) srd_gvars ltac:(vmr)) Hfx).
   Qed.
 
   (* read_controller_inputs: GOAL 1's facts and A-freedom (PollFlank), and
@@ -795,6 +828,7 @@ Section LINK.
         (avoid_of PollFlank.rci_gvars cam_rd_ids ltac:(vm_compute; reflexivity))
         (avoid_of PollFlank.rci_gvars aud_ls_ids ltac:(vm_compute; reflexivity)) Hl Hfx Hcw').
     - exact (LevelKeep.fx_plat_still lp bm Hbm_sym PollFlank.rci_gvars i m0 ltac:(vmr) ltac:(vmr) Hfx).
-    - exact (fx_obj_w PollFlank.rci_gvars i m0 (avoid_of ow_ids PollFlank.rci_gvars ltac:(vmr)) ltac:(vmr) Hfx).
+    - exact (fx_obj_w PollFlank.rci_gvars i m0 (avoid_of ow_ids PollFlank.rci_gvars ltac:(vmr)) ltac:(vmr)
+               (avoid_of (map BhvVM.v_s BhvVM.vm_tab) PollFlank.rci_gvars ltac:(vmr)) Hfx).
   Qed.
 End LINK.

@@ -77,7 +77,7 @@ From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFlo
 From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT LsContract AudioInv.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
 From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep PollKeep MidKeep CamRows.
-From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop ObjStepSplit.
+From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop ObjStepSplit BhvVM.
 From SM64.Generated Require object_list_processor area platform_displacement.
 From SM64.Proofs Require OsDmaFloor LptBody ObjExtBodies UpdateCameraBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
@@ -1497,13 +1497,16 @@ Section HeightLinked12.
     intros m m' (Hok & _ & _ & Hst & _ & How) Hc.
     split; [ exact (PlatformKeep.plat_keeps_still lp H12 bm Hbm_sym bc oc0 SafeB m m' Hok Hc Hst) | ].
     destruct (PlatformKeep.plat_loads lp H12 bm Hbm_sym bc oc0 SafeB m m' Hok Hc Hst) as (LG & LM & LN).
-    apply (PollKeep.obj_w_unch m m' (lp_ge lp) bm); [ | exact LN | | exact How ].
+    apply (PollKeep.obj_w_unch m m' (lp_ge lp) bm); [ | exact LN | | | exact How ].
     - intros id b Hin Hs ch z. apply (LG id b Hs).
       + intro E. subst id. unfold PollKeep.ow_ids in Hin. cbn [In] in Hin.
         repeat (destruct Hin as [E | Hin]; [ vm_compute in E; discriminate E | ]). exact Hin.
       + intro E. subst id. unfold PollKeep.ow_ids in Hin. cbn [In] in Hin.
         repeat (destruct Hin as [E | Hin]; [ vm_compute in E; discriminate E | ]). exact Hin.
     - intros z Hz. apply LM. right. left. unfold MARIOOBJ_OFF in Hz. cbn [In] in Hz. lia.
+    - (* the scripts (ow_scr): neither written global is a script *)
+      intros s b Hin Hs ch z. apply (LG s b Hs);
+        intro E; subst s; refine (PollKeep.not_in_of_existsb _ _ _ Hin); vm_compute; reflexivity.
   Qed.
   (* OPEN, narrower than the level row (2026-10-26): update_camera's
      statement (LevelFlank.cam_step, the camera row's step), between mem_ok
@@ -1579,7 +1582,10 @@ Section HeightLinked12.
        forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
     /\ (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
        Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z)
-    /\ PollKeep.surf_keep m m' (lp_ge lp).
+    /\ PollKeep.surf_keep m m' (lp_ge lp)
+    (* 2026-11-03: the script blocks (ow_scr) *)
+    /\ (forall s b, In s (map BhvVM.v_s BhvVM.vm_tab) -> Genv.find_symbol (lp_ge lp) s = Some b ->
+       forall ch z, Mem.load ch m' b z = Mem.load ch m b z).
   Proof.
     intros m m' Hc Hok Hphi.
     pose proof (Hcam_ow_res m m' Hc Hok Hphi) as Kbm.
@@ -1592,15 +1598,15 @@ Section HeightLinked12.
       destruct (mwf_real_pgms lp bm bc oc0 SafeB m gb b o HM Hgb Hl) as (-> & _).
       exists level_update._gMarioStates. split; [ vm_compute; reflexivity | exact Hbm_sym ]. }
     exact (conj (CamRows.cam_ow_globals lp m m' Hfp Hgn)
-             (conj Kbm (CamRows.cam_surf_keep lp m m' Hfp Hgn))).
+             (conj Kbm (conj (CamRows.cam_surf_keep lp m m' Hfp Hgn) (CamRows.cam_scr_globals lp m m' Hfp Hgn)))).
   Qed.
 
   Lemma Hcam_ow : forall m m', LevelFlank.cam_step lp m m' ->
     mem_ok_lp bm MWF m -> Phi m -> OWl m -> OWl m'.
   Proof.
     intros m m' Hc Hok Hphi How.
-    destruct (Hcam_ow_fp m m' Hc Hok Hphi) as (K & Kbm & KS).
-    exact (PollKeep.obj_w_unch_s m m' (lp_ge lp) bm K KS Kbm How).
+    destruct (Hcam_ow_fp m m' Hc Hok Hphi) as (K & Kbm & KS & KSc).
+    exact (PollKeep.obj_w_unch_s m m' (lp_ge lp) bm K KS Kbm KSc How).
   Qed.
 
   (* PROVED (2026-10-26): the level slices keep the object world.  The PRE
@@ -1616,18 +1622,21 @@ Section HeightLinked12.
                   m m' Hc Hphi Hok) as (_ & Hfx & _).
       exact (PollKeep.fx_obj_w lp bm Hbm_sym LevelGvars.lvl_safe_gvars m m'
                (RenderKeep.avoid_of PollKeep.ow_ids LevelGvars.lvl_safe_gvars ltac:(vm_compute; reflexivity))
-               ltac:(vm_compute; reflexivity) Hfx How).
+               ltac:(vm_compute; reflexivity)
+               (RenderKeep.avoid_of (map BhvVM.v_s BhvVM.vm_tab) LevelGvars.lvl_safe_gvars ltac:(vm_compute; reflexivity)) Hfx How).
     - pose proof (RenderKeep.phiw_surf_apart lp bm LevelGvars.level_gvars m Hphi) as Hsa.
       destruct (LevelKeep.post_split lp H12 bm bc oc0 SafeB HSafeB_syms Hbm_sym Hbc_sym Hoc0 Hdma_floor
                   m m' update_camera_ok_linked12 Hcam_phi Hc Hsa Hok Hphi)
         as (_ & _ & m1 & m2 & F1 & Cs & Ok1 & Ph1 & F2).
       apply (PollKeep.fx_obj_w lp bm Hbm_sym LevelGvars.level_gvars m2 m'
                (RenderKeep.avoid_of PollKeep.ow_ids LevelGvars.level_gvars ltac:(vm_compute; reflexivity))
-               ltac:(vm_compute; reflexivity) F2).
+               ltac:(vm_compute; reflexivity)
+               (RenderKeep.avoid_of (map BhvVM.v_s BhvVM.vm_tab) LevelGvars.level_gvars ltac:(vm_compute; reflexivity)) F2).
       apply (Hcam_ow m1 m2 Cs Ok1 Ph1).
       exact (PollKeep.fx_obj_w lp bm Hbm_sym LevelGvars.lvl_safe_gvars m m1
                (RenderKeep.avoid_of PollKeep.ow_ids LevelGvars.lvl_safe_gvars ltac:(vm_compute; reflexivity))
-               ltac:(vm_compute; reflexivity) F1 How).
+               ltac:(vm_compute; reflexivity)
+               (RenderKeep.avoid_of (map BhvVM.v_s BhvVM.vm_tab) LevelGvars.lvl_safe_gvars ltac:(vm_compute; reflexivity)) F1 How).
   Qed.
   Notation Hlvl_ow := lvl_ow_linked12.
   (* PROVED (2026-10-26): Mario's render call keeps the object world.  By
@@ -1662,7 +1671,7 @@ Section HeightLinked12.
     { apply Ptrofs.unsigned_repr. unfold ObjWorld.OSZ, ObjWorld.NSLOT in *.
       change Ptrofs.max_unsigned with 4294967295. lia. }
     rewrite Uo in LD.
-    apply (PollKeep.obj_w_slots m m' (lp_ge lp) bm); [ | | | | exact How ].
+    apply (PollKeep.obj_w_slots m m' (lp_ge lp) bm); [ | | | | | exact How ].
     3: { intros b Hb ch z. apply LD.
          - intros (id & _ & Hs). pose proof (Genv.genv_symb_range _ _ Hs) as R. unfold Plt, Ple in *. lia.
          - left. intro E. subst b. pose proof (Genv.genv_symb_range _ _ S1) as R. unfold Plt, Ple in *. lia. }
@@ -1681,6 +1690,15 @@ Section HeightLinked12.
         assert (Ei : level_update._gMarioStates = object_list_processor._gObjectPool)
           by (eapply Genv.genv_vars_inj; [ exact Hbm_sym | rewrite E; exact S1 ]).
         vm_compute in Ei. discriminate Ei.
+    - (* the scripts (ow_scr): no render global, not the pool *)
+      intros s b Hin Hs ch z. apply LD.
+      + apply (render_sym_apart s b Hs).
+        exact (RenderKeep.avoid_of (map BhvVM.v_s BhvVM.vm_tab) RenderAnim.render_gvars
+                 ltac:(vm_compute; reflexivity) s Hin).
+      + left. intro E. subst b.
+        assert (Es : s = object_list_processor._gObjectPool)
+          by (eapply Genv.genv_vars_inj; [ exact Hs | exact S1 ]).
+        subst s. refine (PollKeep.not_in_of_existsb _ _ _ Hin); vm_compute; reflexivity.
   Qed.
   Notation Hrender_ow := render_ow_linked12.
 

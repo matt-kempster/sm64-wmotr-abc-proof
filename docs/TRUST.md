@@ -1235,6 +1235,17 @@ without pressing A".*
   check (`scr_b_sound`: each cell of each reachable script against its initializer),
   ready to become an obj_w clause checked at boot; that obj_w/wchk step is held for the
   next StartTerrain rebuild. No trust moves.
+  **`ow_scr` (2026-11-03): `scr_ok` is an obj_w clause.** `ObjWorld.scr_ok` (moved from
+  BhvStep, which keeps its names as notations) is obj_w's 21st clause; the boot witness
+  checks it by vm inside `ow_chk` (`scr_b_l` over the reachable scripts, at m3 / m4 / m11).
+  Every keeper re-proved: `PollKeep.obj_w_slots_s` (and `obj_w_slots` / `obj_w_unch` /
+  `obj_w_unch_s`) take "no script block changes" from the footprint (`OW.scr_ok_ext`);
+  `fx_obj_w` from the footprint list avoiding the scripts (vm, `avoid_of`); the camera from
+  `CamRows.cam_scr_globals` (no script is a cf_FP / cf_XP global or a pin, vm); the
+  platform and render calls from their global footprints. Phantom check: nothing in the
+  game stores through a script pointer (`RoCensus.ro_deep_no_store`), so the clause holds
+  on every reachable memory and adds no unreachable state. The labeled object rows
+  (`Hobj_*`) now also claim `scr_ok` after the step: TRUE, the same census. No trust moves.
   **Indexed handler arguments (2026-10-26, B3 iii-a, `BhvVM`).** These are vm-checked at
   every reachable state:
   - The field commands index `o->rawData.asU32[0x50]` (`vm_fields_in_rawdata`): every field

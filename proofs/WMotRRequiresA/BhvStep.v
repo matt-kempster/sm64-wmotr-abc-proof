@@ -25,7 +25,7 @@
 (* The premises are facts the object world carries or the link gives:     *)
 (*  - scr_ok: the reachable scripts' blocks hold their initializers.  The *)
 (*    scripts are writable globals in C, so this is a premise here; it is *)
-(*    the obj_w clause the dispatch theorem will need (OPEN);             *)
+(*    obj_w's clause ow_scr (ObjWorld 3d, 2026-11-03, boot vm check);  *)
 (*  - gCurrentObject = the slot; the slot pool is not a script block and  *)
 (*    not gCurBhvCommand (distinct symbols in the link).                  *)
 (* Every handler result is an existential over the VM's own successor     *)
@@ -49,7 +49,7 @@
 (* (dloop_ctl's premise).                                                 *)
 (* OPEN (the rest of B3 iii): the advancing commands (cmd += cmd_len),    *)
 (* DELAY_VAR, DEACTIVATE, CALL_NATIVE's callees; the dispatch           *)
-(* loop of cur_obj_update; the scr_ok obj_w clause; then narrowing        *)
+(* loop of cur_obj_update; then narrowing                               *)
 (* Hobj_step_rest by it.                                                  *)
 (* ======================================================================= *)
 From Coq Require Import ZArith Lia List Bool.
@@ -96,22 +96,13 @@ Proof.
   rewrite forallb_forall in C. exact (memv_in _ _ (C st' Hin)).
 Qed.
 
-(* ---- 2. the script content (a premise here: the script blocks hold their
-   initializers) and the VM cells ---- *)
+(* ---- 2. the script content (ObjWorld.scr_ok, obj_w's ow_scr since
+   2026-11-03: the script blocks hold their initializers) and the VM
+   cells ---- *)
+Notation init_val := OW.init_val (only parsing).
+Notation scr_ok := OW.scr_ok (only parsing).
 Section Cells.
   Variable G : genv.
-
-  Definition init_val (d : init_data) (v : val) : Prop :=
-    match d with
-    | Init_int32 n => v = Vint n
-    | Init_addrof t o => exists bt, Genv.find_symbol G t = Some bt /\ v = Vptr bt o
-    | _ => True
-    end.
-
-  Definition scr_ok (m : mem) : Prop :=
-    forall s bs i d, Genv.find_symbol G s = Some bs -> In s (map v_s vm_tab) ->
-      nth_error (words s) i = Some d ->
-      exists v, Mem.load Mint32 m bs (4 * Z.of_nat i) = Some v /\ init_val d v.
 
   Variables bc pool : block.
   Variable oc : Z.
@@ -127,87 +118,18 @@ Section Cells.
                             (oc + OW.O_STK + 4 * (Z.of_nat (List.length (v_k st)) - 1 - Z.of_nat n))).
 End Cells.
 
-(* ---- 2b. scr_ok as a checkable clause (the planned obj_w clause SCRIPTS;
-   held until the next StartTerrain rebuild): the scripts the VM can
-   reach, each cell against its initializer ---- *)
-Fixpoint sdedup (l : list ident) : list ident :=
-  match l with
-  | [] => []
-  | x :: l' => let t := sdedup l' in if existsb (Pos.eqb x) t then t else x :: t
-  end.
-Lemma sdedup_in : forall x l, In x l -> In x (sdedup l).
-Proof.
-  intros x l. induction l as [| y l IH]; intros H; [ destruct H | ].
-  cbn [sdedup]. destruct (existsb (Pos.eqb y) (sdedup l)) eqn:E.
-  - destruct H as [<- | H]; [ | exact (IH H) ].
-    apply existsb_exists in E as (z & Hz & Ez). apply Pos.eqb_eq in Ez. subst z. exact Hz.
-  - destruct H as [<- | H]; [ left; reflexivity | right; exact (IH H) ].
-Qed.
-
-
-Section ScrCheck.
-  Variable G : genv.
-
-  Definition cell_b (m : mem) (b : block) (i : nat) (d : init_data) : bool :=
-    match d with
-    | Init_int32 n =>
-        match Mem.load Mint32 m b (4 * Z.of_nat i) with Some (Vint n') => Int.eq n n' | _ => false end
-    | Init_addrof t o =>
-        match Genv.find_symbol G t, Mem.load Mint32 m b (4 * Z.of_nat i) with
-        | Some bt, Some (Vptr b' o') => Pos.eqb bt b' && Ptrofs.eq o o'
-        | _, _ => false
-        end
-    | _ => match Mem.load Mint32 m b (4 * Z.of_nat i) with Some _ => true | None => false end
-    end.
-
-  Fixpoint cells_b (m : mem) (b : block) (i : nat) (l : list init_data) : bool :=
-    match l with [] => true | d :: l' => cell_b m b i d && cells_b m b (S i) l' end.
-
-  (* the check over a symbol list l; used with l := sdedup (map v_s vm_tab),
-     written out (PERF TRAP: never name that list as a constant -- the
-     kernel's Qed then unfolds vm_tab when converting it) *)
-  Definition scr_b_l (l : list ident) (m : mem) : bool :=
-    forallb (fun s => match Genv.find_symbol G s with
-                      | Some b => cells_b m b 0 (words s) | None => false end) l.
-
-  Lemma cell_b_sound : forall m b i d, cell_b m b i d = true ->
-    exists v, Mem.load Mint32 m b (4 * Z.of_nat i) = Some v /\ init_val G d v.
-  Proof.
-    intros m b i d H. unfold cell_b in H. revert H.
-    generalize (4 * Z.of_nat i) as z. intros z H. destruct d;
-      try (destruct (Mem.load Mint32 m b z) as [v|]; [ exists v; split; [ reflexivity | exact I ] | discriminate H ]).
-    - destruct (Mem.load Mint32 m b z) as [[]|]; try discriminate H.
-      apply Int.same_if_eq in H. subst. eexists; split; reflexivity.
-    - destruct (Genv.find_symbol G i0) as [bt|] eqn:Eb; [ | discriminate H ].
-      destruct (Mem.load Mint32 m b z) as [[]|]; try discriminate H.
-      apply andb_prop in H as [H1 H2]. apply Pos.eqb_eq in H1. apply Ptrofs.same_if_eq in H2.
-      subst. eexists; split; [ reflexivity | exists b0; auto ].
-  Qed.
-
-  Lemma cells_b_sound : forall m b l i, cells_b m b i l = true ->
-    forall k d, nth_error l k = Some d ->
-      exists v, Mem.load Mint32 m b (4 * Z.of_nat (i + k)) = Some v /\ init_val G d v.
-  Proof.
-    intros m b l. induction l as [| d0 l IH]; intros i H k d Hk; [ destruct k; discriminate Hk | ].
-    cbn [cells_b] in H. apply andb_prop in H as [H1 H2].
-    destruct k as [|k]; cbn in Hk.
-    - injection Hk as <-. rewrite Nat.add_0_r. exact (cell_b_sound _ _ _ _ H1).
-    - replace (i + S k)%nat with (S i + k)%nat by lia. exact (IH _ H2 k d Hk).
-  Qed.
-
-  Lemma scr_b_l_sound : forall l, (forall s, In s (map v_s vm_tab) -> In s l) ->
-    forall m, scr_b_l l m = true -> scr_ok G m.
-  Proof.
-    intros l Hl m H s bs i d Hs Hin Hd. unfold scr_b_l in H.
-    pose proof (proj1 (forallb_forall _ l) H s (Hl s Hin)) as H1. clear H.
-    cbv beta in H1. rewrite Hs in H1.
-    exact (cells_b_sound _ _ _ _ H1 i d Hd).
-  Qed.
-
-  (* SOUND: the deduplicated check over every script the VM can reach *)
-  Theorem scr_b_sound : forall m, scr_b_l (sdedup (map v_s vm_tab)) m = true -> scr_ok G m.
-  Proof. exact (scr_b_l_sound (sdedup (map v_s vm_tab)) (fun s => sdedup_in s (map v_s vm_tab))). Qed.
-End ScrCheck.
+(* ---- 2b. scr_ok as a checkable clause: MOVED to ObjWorld (3d) on
+   2026-11-03, where it is obj_w's clause ow_scr, vm-checked at boot
+   inside ow_chk; the names here are kept as notations ---- *)
+Notation sdedup := OW.sdedup (only parsing).
+Notation sdedup_in := OW.sdedup_in (only parsing).
+Notation cell_b := OW.scell_b (only parsing).
+Notation cells_b := OW.scells_b (only parsing).
+Notation scr_b_l := OW.scr_b_l (only parsing).
+Notation cell_b_sound := OW.scell_b_sound (only parsing).
+Notation cells_b_sound := OW.scells_b_sound (only parsing).
+Notation scr_b_l_sound := OW.scr_b_l_sound (only parsing).
+Notation scr_b_sound := OW.scr_b_sound (only parsing).
 
 (* ---- 3. function entry for a body without locals ---- *)
 Lemma fcall_inv : forall (G : genv) f m vargs t m' vr, fn_vars f = [] ->
