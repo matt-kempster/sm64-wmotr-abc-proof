@@ -747,9 +747,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
        SET_FLOAT row DONE; premises bundled as row_keeps. set42: field 42 is written only
        by bhvPoleGrabbing (POLE) and bhvCannon (CANNON_BASE). PERF TRAP again: a named bool
        over vm_tab (chk42) hung set42's Qed -- state vm-checks inline.
-       ADD_INT, OR_INT, ADD_FLOAT rows DONE (ev_raw_rd / ev_raw_rdf: the read kit). Next: the
-       22 used rows left (SUM_FLOAT 31 writes pos 6/7/8; the random ones 19-21 call RandomU16;
-       SUM_FLOAT next);
+       ADD_INT, OR_INT, ADD_FLOAT rows DONE (ev_raw_rd / ev_raw_rdf: the read kit).
+       SUM_FLOAT, DEACTIVATE, SET_INTERACT_TYPE rows DONE. FOUND: bhvKoopaShellFlame
+       (INTERACT_FLAME) was in vm_tab; BoxCensus resolves the boxes' bparams and proves the
+       shell / flame outside WMotR's real spawn graph (sit_kind). Obligation for obj_w: the
+       SCRIPT domain narrowed to BoxCensus.wmotr_closure_b; Mario's slot stays in bhvMario.
+       PERF TRAPS: `tauto` near `In st vm_tab` (544s); `repeat rewrite PTree.gso` hung --
+       use counted `do N`. Next: the 19 used rows left (the random ones 19-21 call
+       random_u16; 51 PARENT_BIT_CLEAR needs a parent-is-a-slot obj_w fact; 52 divides by the
+       script's rate);
        the pre-/post-loop code of cur_obj_update; the loop INV = obj_w minus the current
        slot's ow_vm; then narrow Hobj_step_rest.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
