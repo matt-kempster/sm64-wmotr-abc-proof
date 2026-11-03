@@ -140,14 +140,36 @@ Ltac bmk_t := first
 (* the cells of Mario's object a flank may change (2026-11-03): the
    animation cells [64, 72) (the render step) and the platform field
    [532, 536) (update_mario_platform, MplatKeep).  PhiW reads neither. *)
-Definition owin (mo : ptrofs) (ch : memory_chunk) (z : Z) : Prop :=
+Definition owin0 (mo : ptrofs) (ch : memory_chunk) (z : Z) : Prop :=
   z + size_chunk ch <= Ptrofs.unsigned mo + 64
   \/ (Ptrofs.unsigned mo + 72 <= z /\ z + size_chunk ch <= Ptrofs.unsigned mo + 532)
   \/ Ptrofs.unsigned mo + 536 <= z.
 
+(* THE CELLS PhiW READS in the block of Mario's object (2026-11-03, for
+   the unload walk, which writes other slots' header and graph words and
+   Mario's own graph links [4, 12) and header links [96, 104)): Mario's
+   object at [12, 64), [72, 96) and [104, 532), and, of an object a whole
+   Object away, the fields from rawData (136) to 532.  A step need keep
+   only these (LD); owin0's flanks keep more (owin_sub). *)
+Definition owin (mo : ptrofs) (ch : memory_chunk) (z : Z) : Prop :=
+  (Ptrofs.unsigned mo + 12 <= z /\ z + size_chunk ch <= Ptrofs.unsigned mo + 64)
+  \/ (Ptrofs.unsigned mo + 72 <= z /\ z + size_chunk ch <= Ptrofs.unsigned mo + 96)
+  \/ (Ptrofs.unsigned mo + 104 <= z /\ z + size_chunk ch <= Ptrofs.unsigned mo + 532)
+  \/ (exists co, (Ptrofs.unsigned co + 608 <= Ptrofs.unsigned mo \/ Ptrofs.unsigned mo + 608 <= Ptrofs.unsigned co)
+        /\ Ptrofs.unsigned co + 136 <= z /\ z + size_chunk ch <= Ptrofs.unsigned co + 532).
+
+Lemma owin_sub : forall mo ch z, owin mo ch z -> owin0 mo ch z.
+Proof.
+  intros mo ch z H. unfold owin0. pose proof (size_chunk_pos ch).
+  destruct H as [H | [H | [H | (co & [F | F] & H1 & H2)]]]; lia.
+Qed.
+
 Lemma owin_old : forall mo ch z, owin mo ch z ->
   z + size_chunk ch <= Ptrofs.unsigned mo + 64 \/ Ptrofs.unsigned mo + 72 <= z.
-Proof. intros mo ch z [H | [(H & _) | H]]; [ left; exact H | right; exact H | right; lia ]. Qed.
+Proof.
+  intros mo ch z H. destruct (owin_sub mo ch z H) as [H1 | [(H1 & _) | H1]];
+    [ left; exact H1 | right; exact H1 | right; lia ].
+Qed.
 
 Lemma max_mod : Ptrofs.max_unsigned = Ptrofs.modulus - 1.
 Proof. reflexivity. Qed.
@@ -350,9 +372,13 @@ Section RK.
     Proof. exact LM. Qed.
 
     Lemma LHo : forall ch z,
-      z + size_chunk ch <= u mo + 64 \/ (u mo + 72 <= z /\ z + size_chunk ch <= u mo + 532) \/ u mo + 536 <= z ->
+      (u mo + 12 <= z /\ z + size_chunk ch <= u mo + 64) \/ (u mo + 72 <= z /\ z + size_chunk ch <= u mo + 96)
+      \/ (u mo + 104 <= z /\ z + size_chunk ch <= u mo + 532) ->
       Mem.load ch m' mb z = Mem.load ch m mb z.
-    Proof. intros ch z H. exact (LD ch mb z Nmb (fun E => Bmb (eq_sym E)) (or_intror H)). Qed.
+    Proof.
+      intros ch z H. apply (LD ch mb z Nmb (fun E => Bmb (eq_sym E))). right. unfold owin.
+      destruct H as [H | [H | H]]; [ left | right; left | right; right; left ]; exact H.
+    Qed.
 
     Lemma LHb : forall ch b z, b <> mb -> b <> bm -> ~ rgb b -> Mem.load ch m' b z = Mem.load ch m b z.
     Proof. intros ch b z H1 H0 H2. exact (LD ch b z H2 H0 (or_introl H1)). Qed.
@@ -363,10 +389,12 @@ Section RK.
 
     (* an object of Mario's block that is Mario's own or a whole Object away *)
     Lemma far_keep : forall co ch o', (co = mo \/ u co + 608 <= u mo \/ u mo + 608 <= u co) ->
-      72 <= o' -> o' + size_chunk ch <= 532 ->
+      136 <= o' -> o' + size_chunk ch <= 532 ->
       Mem.load ch m' mb (u co + o') = Mem.load ch m mb (u co + o').
     Proof.
-      intros co ch o' H H1 H2. apply LHo. destruct H as [-> | [H | H]]; lia.
+      intros co ch o' H H1 H2. destruct H as [-> | H]; [ apply LHo; lia | ].
+      apply (LD ch mb _ Nmb (fun E => Bmb (eq_sym E))). right. right. right. right.
+      exists co. split; [ exact H | lia ].
     Qed.
 
     Lemma obj_eq : forall bo oo, Mem.load Mint32 m bm 136 = Some (Vptr bo oo) -> bo = mb /\ oo = mo.
