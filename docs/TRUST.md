@@ -1380,6 +1380,26 @@ without pressing A".*
     No computed bound on live objects yet.
   - `sc_keep`: INV survives the post-state child_real proves.
   No new trust row; the link symbols come from the linked program (`sc_syms`).
+  **Row 55 SPAWN_WATER_DROPLET (2026-11-03): `row_spawn_water_droplet`, on the REAL
+  handler.** `ObjDroplet.wd_real` walks bhv_cmd_spawn_water_droplet -> spawn_water_droplet
+  -> spawn_object (the same create_object chain as row 28) and then the droplet tail,
+  covering every params flag branch. The seed callees random_u16 / random_float /
+  random_f32_around_zero / find_water_level change only gRandomSeed16. The slot callees
+  obj_scale / obj_translate_xz_random / obj_translate_xyz_random write only the new slot.
+  Four pinned premises are added to `row_keeps`:
+  - `wd_pre`, `wd_free` (POOL EXHAUSTION, NAMED) and `wd_keep`, as for row 28.
+  - `wd_dp`: both reachable params (gShallowWaterSplash/WaveDropletParams) hold
+    &bhvWaterDroplet at byte 4. The initializer says so (`dparams_init`) and no code
+    writes them. It is batched for the StartTerrain recheck, like `ow_anim`.
+  NOTE, believed unreachable in WMotR (not used by the proof): the only 0x37 scripts are
+  bhvShallowWaterSplash / bhvShallowWaterWave. Their only spawn path is sParticleTypes,
+  from Mario's particleFlags bits 8 / 12. Only play_sound_and_spawn_particles sets those
+  bits, and only under `terrainSoundAddend == SOUND_TERRAIN_WATER << 16`.
+  - WMotR's env regions are NULL (env_w, proved), so find_water_level is -11000.
+  - The guard therefore needs floorHeight < -11010, but WMotR static vertex y lies in
+    [-8191, 4542].
+  - The other way to meet it is an sTerrainSounds entry of 2, and there is none.
+  Proving the row on the real code instead makes it hold either way.
   **`ow_scr` (2026-11-03): `scr_ok` is an obj_w clause.** `ObjWorld.scr_ok` (moved from
   BhvStep, which keeps its names as notations) is obj_w's 21st clause; the boot witness
   checks it by vm inside `ow_chk` (`scr_b_l` over the reachable scripts, at m3 / m4 / m11).

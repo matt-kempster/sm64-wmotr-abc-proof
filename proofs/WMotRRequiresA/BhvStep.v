@@ -56,13 +56,13 @@ From Coq Require Import ZArith Lia List Bool.
 From compcert Require Import Coqlib Integers Floats Values AST Ctypes Cop Clight
   ClightBigstep Clightdefs Memory Maps Globalenvs Events Errors Linking.
 From SM64.Generated Require behavior_script memory behavior_data object_helpers
-  object_list_processor area.
+  object_list_processor area behavior_actions.
 From SM64.Proofs Require Import SymbolicLinking LinkedTwelve RealFrameLinked.
 From SM64.Proofs.WMotRRequiresA Require Import BhvVM BehaviorScripts.
 From SM64.Proofs.MarioModel Require SpawnBodies.
 From SM64.Proofs.WMotRRequiresA Require RenderAnim ObjWorld ObjPhase ObjLoop ObjCensus PlatformWalk BoxCensus
   ObjSelf ObjFrame FpuFloor ObjAlloc.
-From SM64.Proofs.WMotRRequiresA Require ObjCreate ObjMake ObjGeo ObjOrigin ObjCopy ObjChild.
+From SM64.Proofs.WMotRRequiresA Require ObjCreate ObjMake ObjGeo ObjOrigin ObjCopy ObjChild ObjDroplet.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -764,12 +764,92 @@ Proof.
   exists c, n. exact (conj eq_refl (conj Hc' (conj Ed (conj B13 (conj B4 (conj B5 B10)))))).
 Qed.
 
-Lemma nd_app_disj : forall (l1 l2 : list Z) x, NoDup (l1 ++ l2) -> In x l1 -> In x l2 -> False.
+Lemma padd_repr : forall a c, Ptrofs.add (Ptrofs.repr a) (Ptrofs.repr c) = Ptrofs.repr (a + c).
+Proof.
+  intros a c. rewrite Ptrofs.add_unsigned. apply Ptrofs.eqm_samerepr. apply Ptrofs.eqm_add;
+    apply Ptrofs.eqm_sym; apply Ptrofs.eqm_unsigned_repr.
+Qed.
+
+Lemma nd_app_disj :forall (l1 l2 : list Z) x, NoDup (l1 ++ l2) -> In x l1 -> In x l2 -> False.
 Proof.
   induction l1 as [| a l1 IH]; intros l2 x Hn H1 H2; [ destruct H1 | ].
   cbn in Hn. apply NoDup_cons_iff in Hn as (Ha & Hn).
   destruct H1 as [-> | H1]; [ apply Ha; apply in_or_app; right; exact H2 | exact (IH l2 x Hn H1 H2) ].
 Qed.
+
+(* SPAWN_WATER_DROPLET (opcode 0x37 = 55): two words; word 1 is &params,
+   one of the two reachable WaterDropletParams (bhvShallowWaterSplash /
+   bhvShallowWaterWave), and the droplet's script bhvWaterDroplet is a
+   reachable script whose list is below 13 and none of 4 / 5 / 10.
+   PERF TRAP: inline *)
+Lemma succs_wd : forall st w, word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 55 ->
+  succs st = if Nat.ltb (List.length (words (v_s st))) (v_i st + 2) then None else
+    Some [at_ st (v_s st) (v_i st + 2) (v_k st)].
+Proof. intros st w Hw Ho. unfold succs. cbv zeta. rewrite Hw, Ho. reflexivity. Qed.
+
+Definition dparams : list ident :=
+  [behavior_data._gShallowWaterSplashDropletParams; behavior_data._gShallowWaterWaveDropletParams].
+
+Lemma wd_w_ok :
+  forallb (fun st => if opc st =? 55 then
+                       match nth_error (words (v_s st)) (v_i st + 1) with
+                       | Some (Init_addrof p o) =>
+                           Z.eqb (Ptrofs.unsigned o) 0 && existsb (Pos.eqb p) dparams
+                       | _ => false end
+                     else true) vm_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma wd_w : forall st w, In st vm_tab -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 55 ->
+  exists p, nth_error (words (v_s st)) (v_i st + 1) = Some (Init_addrof p Ptrofs.zero) /\ In p dparams.
+Proof.
+  intros st w Hst Hw Ho. pose proof wd_w_ok as A.
+  rewrite forallb_forall in A. specialize (A st Hst). unfold opc, w0 in A. rewrite Hw in A.
+  cbv beta iota in A. rewrite Ho, Z.eqb_refl in A. cbv beta iota in A.
+  destruct (nth_error (words (v_s st)) (v_i st + 1)) as [d|] eqn:E2; [ | discriminate A ].
+  destruct d as [ x | x | x | x | x | x | x | p o ]; try discriminate A.
+  apply andb_prop in A as [A1 A2].
+  apply Z.eqb_eq in A1. apply existsb_exists in A2 as (p' & Hp' & Ep). apply Pos.eqb_eq in Ep. subst p'.
+  assert (Eo : o = Ptrofs.zero) by (rewrite <- (Ptrofs.repr_unsigned o), A1; reflexivity). subst o.
+  exists p. exact (conj eq_refl Hp').
+Qed.
+
+Lemma wd_child_ok :
+  existsb (Pos.eqb behavior_data._bhvWaterDroplet) (map v_s vm_tab)
+  && match nth_error (words behavior_data._bhvWaterDroplet) 0 with
+     | Some (Init_int32 n) =>
+         (ObjMake.bhv_list n <? 13) && negb (ObjMake.bhv_list n =? 4)
+         && negb (ObjMake.bhv_list n =? 5) && negb (ObjMake.bhv_list n =? 10)
+     | _ => false end = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma wd_child : exists n,
+  In behavior_data._bhvWaterDroplet (map v_s vm_tab)
+  /\ nth_error (words behavior_data._bhvWaterDroplet) 0 = Some (Init_int32 n)
+  /\ ObjMake.bhv_list n < 13 /\ ObjMake.bhv_list n <> 4 /\ ObjMake.bhv_list n <> 5
+  /\ ObjMake.bhv_list n <> 10.
+Proof.
+  pose proof wd_child_ok as A. apply andb_prop in A as [A1 A3].
+  apply existsb_exists in A1 as (c' & Hc' & Ec). apply Pos.eqb_eq in Ec. subst c'.
+  destruct (nth_error (words behavior_data._bhvWaterDroplet) 0) as [d|] eqn:Ed; [ | discriminate A3 ].
+  destruct d as [ x | x | n | x | x | x | x | x y ]; try discriminate A3.
+  apply andb_prop in A3 as [A3 B10]. apply andb_prop in A3 as [A3 B5]. apply andb_prop in A3 as [B13 B4].
+  apply Z.ltb_lt in B13. apply negb_true_iff, Z.eqb_neq in B4. apply negb_true_iff, Z.eqb_neq in B5.
+  apply negb_true_iff, Z.eqb_neq in B10.
+  exists n. exact (conj Hc' (conj eq_refl (conj B13 (conj B4 (conj B5 B10))))).
+Qed.
+
+(* the truth behind the dparams_ok pin (wd_dp below): both params'
+   initializers hold &bhvWaterDroplet at byte 4 (two s16 before it) *)
+Lemma dparams_init :
+  nth_error (gvar_init behavior_actions.v_gShallowWaterSplashDropletParams) 2
+    = Some (Init_addrof behavior_data._bhvWaterDroplet Ptrofs.zero)
+  /\ nth_error (gvar_init behavior_actions.v_gShallowWaterWaveDropletParams) 2
+    = Some (Init_addrof behavior_data._bhvWaterDroplet Ptrofs.zero)
+  /\ firstn 2 (gvar_init behavior_actions.v_gShallowWaterSplashDropletParams)
+    = [Init_int16 (Int.repr 34); Init_int16 (Int.repr 164)]
+  /\ firstn 2 (gvar_init behavior_actions.v_gShallowWaterWaveDropletParams)
+    = [Init_int16 (Int.repr 98); Init_int16 (Int.repr 164)].
+Proof. vm_compute. auto. Qed.
 
 (* their argument words are there at every reachable state.  PERF TRAP: inline *)
 Lemma hb_w_ok :
@@ -7113,9 +7193,9 @@ Section Link.
     assert (Hne : k <> kc).
     { intros ->. apply (nd_app_disj _ _ kc Hnd Hkc). left. reflexivity. }
     assert (Vc : Vcmd m' (v_s st) (v_i st + 3)).
-    { exists b. split; [ exact Hsb | rewrite Lbc ]. f_equal. f_equal. unfold Ptrofs.add.
-      rewrite (Ptrofs.unsigned_repr (4 * _)), (Ptrofs.unsigned_repr 12) by (rewrite maxu; lia).
-      f_equal. lia. }
+    { exists b. split; [ exact Hsb | rewrite Lbc, padd_repr ].
+      (* PERF TRAP: f_equal here took 13 min (it tries to compute) *)
+      replace (4 * Z.of_nat (v_i st) + 12) with (4 * Z.of_nat (v_i st + 3)) by lia. reflexivity. }
     assert (Hvp : Plt pool (Mem.nextblock m)) by (destruct HS as (Hsi & _); exact (valid_of_load _ _ _ _ _ Hsi)).
     assert (Hcell : forall z, oc + 460 <= z -> z + 4 <= oc + 500 -> Mem.load Mint32 m' pool z = Mem.load Mint32 m pool z).
     { intros z Hz1 Hz2. apply (Mem.load_unchanged_on_1 _ _ _ Mint32 pool z U Hvp).
@@ -7132,19 +7212,145 @@ Section Link.
       exact (Hk m st w la fl bpg c bsc n rs k fs' m' HI Hst Hw Ho Hla Hfl Hbpg Hc2 Hbsc Hn0 Hr Hf Hk' R' F' G' U HF Vc).
   Qed.
 
+  (* ---- SPAWN_WATER_DROPLET (opcode 0x37 = 55): the REAL
+     bhv_cmd_spawn_water_droplet -> spawn_water_droplet ----
+     The handler is walked whole in ObjDroplet.wd_real: spawn_object
+     (create_object / allocate_object / geo_obj_init /
+     obj_copy_pos_and_angle on the real linked bodies), then the droplet
+     tail -- every flag branch of the params (random_u16 / random_float /
+     random_f32_around_zero / find_water_level for the seeds; obj_scale /
+     obj_translate_xz_random / obj_translate_xyz_random on the slot).
+     ALTERNATIVE (route 1, not taken): the only reachable 0x37 states are
+     bhvShallowWaterSplash / bhvShallowWaterWave, spawned only through
+     sParticleTypes from Mario's particleFlags bits 8 / 12, which only
+     play_sound_and_spawn_particles sets, under terrainSoundAddend ==
+     SOUND_TERRAIN_WATER << 16; in WMotR env regions are NULL (env_w), so
+     find_water_level is -11000 and that needs floorHeight < -11010 (WMotR
+     static vertices have y in [-8191, 4542]) or an sTerrainSounds entry 2
+     (none).  So the row is believed unreachable in WMotR (docs/TRUST.md);
+     proving it from the real code instead makes the row hold either way.
+     Four pinned premises:
+     wd_pre / wd_free / wd_keep -- as sc_pre / sc_free / sc_keep for 0x1C
+       (wd_free is POOL EXHAUSTION, NAMED); wd_keep's facts are the droplet
+       tail's (dtail) over cpa_facts (origin_facts ..) of bhvWaterDroplet;
+     wd_dp -- the params' behavior field (byte 4) holds &bhvWaterDroplet:
+       the initializer says so (dparams_init); nothing in the game writes
+       these globals.  Pinned for the StartTerrain recheck, like ow_anim *)
+  Definition wd_pre : Prop := forall m st w la fl gol,
+    INV m -> In st vm_tab -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 55 ->
+    Genv.find_symbol G object_list_processor._gObjectListArray = Some la ->
+    Genv.find_symbol G object_list_processor._gFreeObjectList = Some fl ->
+    Genv.find_symbol G object_list_processor._gObjectLists = Some gol ->
+    exists rs fs kc, OW.rings m pool la = Some rs /\ OW.free_list m pool fl = Some fs
+      /\ NoDup (concat rs ++ fs) /\ OW.gfx_ok G pool m
+      /\ Mem.load Mint32 m gol 0 = Some (Vptr la Ptrofs.zero)
+      /\ oc = kc * OW.OSZ /\ In kc (concat rs).
+
+  Definition wd_free : Prop := forall m st w fl fs,
+    INV m -> In st vm_tab -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 55 ->
+    Genv.find_symbol G object_list_processor._gFreeObjectList = Some fl ->
+    OW.free_list m pool fl = Some fs -> fs <> [].
+
+  Definition wd_dp : Prop := forall m p bp,
+    INV m -> In p dparams -> Genv.find_symbol G p = Some bp ->
+    exists bwd, Genv.find_symbol G behavior_data._bhvWaterDroplet = Some bwd
+      /\ Mem.load Mint32 m bp 4 = Some (Vptr bwd Ptrofs.zero).
+
+  Definition wd_keep : Prop := forall m st w la fl bpg bwd n rs k fs' m',
+    INV m -> In st vm_tab -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 55 ->
+    Genv.find_symbol G object_list_processor._gObjectListArray = Some la ->
+    Genv.find_symbol G object_list_processor._gFreeObjectList = Some fl ->
+    Genv.find_symbol G area._gObjParentGraphNode = Some bpg ->
+    Genv.find_symbol G behavior_data._bhvWaterDroplet = Some bwd ->
+    nth_error (words behavior_data._bhvWaterDroplet) 0 = Some (Init_int32 n) ->
+    OW.rings m pool la = Some rs -> OW.free_list m pool fl = Some (k :: fs') -> 0 <= k < OW.NSLOT ->
+    OW.rings m' pool la
+      = Some (ObjRing.upd rs (Z.to_nat (ObjMake.bhv_list n)) (nth (Z.to_nat (ObjMake.bhv_list n)) rs [] ++ [k])) ->
+    OW.free_list m' pool fl = Some fs' -> OW.gfx_ok G pool m' ->
+    Mem.unchanged_on (fun b z => ObjAlloc.AKEEP pool la fl bpg b z /\ ObjCreate.KP pool (k * OW.OSZ) b z
+                                 /\ b <> bc /\ b <> sb) m m' ->
+    ObjCreate.facts m' pool (k * OW.OSZ) (OW.slot_v pool k)
+      (ObjDroplet.dtail (ObjCopy.cpa_facts (ObjOrigin.origin_facts (ObjMake.bhv_list n) (Vptr bwd Ptrofs.zero)
+                                                                   (Vptr pool (Ptrofs.repr oc))))) ->
+    Vcmd m' (v_s st) (v_i st + 2) -> INV m'.
+
+  Lemma row_spawn_water_droplet : wd_pre -> wd_free -> wd_dp -> wd_keep -> cmd_row_op 55.
+  Proof.
+    intros Hpre Hfr Hdp Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 55) = Some BS._bhv_cmd_spawn_water_droplet)
+      by (vm_compute; reflexivity).
+    rewrite E in Hid. injection Hid as <-.
+    assert (Hdm : (prog_defmap BS.prog) ! BS._bhv_cmd_spawn_water_droplet
+                  = Some (Gfun (Internal BS.f_bhv_cmd_spawn_water_droplet))) by (vm_compute; reflexivity).
+    rewrite (fun_bs _ _ Hdm _ _ Hhb Hfd) in Hev.
+    destruct sc_syms as (la & fl & bpg & gol & Hla & Hfl & Hbpg & Hgol).
+    assert (Hpl : pool <> la) by (apply (ObjAlloc.sym_ne lp _ _ _ _ Hpool Hla); RA.neq).
+    assert (Hpf : pool <> fl) by (apply (ObjAlloc.sym_ne lp _ _ _ _ Hpool Hfl); RA.neq).
+    assert (Hpb : pool <> bpg) by (apply (ObjAlloc.sym_ne lp _ _ _ _ Hpool Hbpg); RA.neq).
+    destruct (Hpre m st w la fl gol HI Hst Hw Ho Hla Hfl Hgol)
+      as (rs & fs & kc & Hr & Hf & Hnd & Hg & Hgl & Ekc & Hkc).
+    destruct (wd_w st w Hst Hw Ho) as (p & Hp1 & Hpin).
+    destruct wd_child as (n & Hcin & Hn0 & H13 & H4 & H5 & H10).
+    pose proof (proj1 (Hinv m HI)) as Hscr.
+    destruct (st_facts st Hst) as (Hlen & _ & Hdep & l & Hl & _).
+    pose proof (succs_wd st w Hw Ho) as Es. rewrite Hl in Es.
+    destruct (Nat.ltb _ _) eqn:Elt; [ discriminate Es | ]. apply Nat.ltb_ge in Elt.
+    injection Es as Es. subst l.
+    pose proof HV as HV0. apply V_iff in HV as ((b & Hsb & Hcm) & HS).
+    (* word 1: &params; params' byte 4: &bhvWaterDroplet; its first word *)
+    destruct (Hscr (v_s st) b (v_i st + 1)%nat _ Hsb (in_map _ _ _ Hst) Hp1) as (va & Hl1 & Hia).
+    cbn in Hia. destruct Hia as (bp & Hbq & ->).
+    destruct (Hdp m p bp HI Hpin Hbq) as (bwd & Hbwd & Hpb4).
+    destruct (Hscr _ bwd 0%nat _ Hbwd Hcin Hn0) as (vn & Hln & Hin0). cbn in Hin0. subst vn.
+    assert (L4 : Mem.loadv Mint32 m (Vptr b (Ptrofs.add (Ptrofs.repr (4 * Z.of_nat (v_i st))) (Ptrofs.repr 4)))
+                 = Some (Vptr bp Ptrofs.zero)).
+    { cbn [Mem.loadv]. unfold Ptrofs.add.
+      rewrite (Ptrofs.unsigned_repr (4 * _)), (Ptrofs.unsigned_repr 4), Ptrofs.unsigned_repr by (rewrite maxu; lia).
+      replace (4 * Z.of_nat (v_i st) + 4) with (4 * Z.of_nat (v_i st + 1)) by lia. exact Hl1. }
+    assert (P4 : Mem.loadv Mint32 m (Vptr bp (Ptrofs.add Ptrofs.zero (Ptrofs.repr 4)))
+                 = Some (Vptr bwd Ptrofs.zero)).
+    { cbn [Mem.loadv]. rewrite Ptrofs.add_zero_l, Ptrofs.unsigned_repr by (rewrite maxu; lia). exact Hpb4. }
+    destruct (ObjDroplet.wd_real lp H12 sb HsbR pool la fl bpg gol bc go Hpool Hla Hfl Hbpg Hgol Hbc Hgo
+                m rs fs b (Ptrofs.repr (4 * Z.of_nat (v_i st))) bp Ptrofs.zero bwd Ptrofs.zero n
+                (Vptr pool (Ptrofs.repr oc)) t m' vr
+                Hr Hf Hnd Hg Hgl Hcm (Hinv_cur m HI) L4 P4 Hln H13 H4 H5 H10 Hev)
+      as [E0 | (k & fs' & -> & Hk' & -> & Lbc & R' & F' & G' & U & HF)].
+    { exfalso. exact (Hfr m st w fl fs HI Hst Hw Ho Hfl Hf E0). }
+    assert (Hne : k <> kc).
+    { intros ->. apply (nd_app_disj _ _ kc Hnd Hkc). left. reflexivity. }
+    assert (Vc : Vcmd m' (v_s st) (v_i st + 2)).
+    { exists b. split; [ exact Hsb | rewrite Lbc, padd_repr ].
+      replace (4 * Z.of_nat (v_i st) + 8) with (4 * Z.of_nat (v_i st + 2)) by lia. reflexivity. }
+    assert (Hvp : Plt pool (Mem.nextblock m)) by (destruct HS as (Hsi & _); exact (valid_of_load _ _ _ _ _ Hsi)).
+    assert (Hcell : forall z, oc + 460 <= z -> z + 4 <= oc + 500 -> Mem.load Mint32 m' pool z = Mem.load Mint32 m pool z).
+    { intros z Hz1 Hz2. apply (Mem.load_unchanged_on_1 _ _ _ Mint32 pool z U Hvp).
+      intros i Hi. change (size_chunk Mint32) with 4 in Hi.
+      destruct (sc_cell la fl bpg k kc i Hpl Hpf Hpb Hk' Hne Ekc ltac:(lia)) as (C1 & C2 & C3).
+      exact (conj C1 (conj C2 (conj C3 Hsp))). }
+    assert (HS' : Vstk m' (v_k st)).
+    { destruct HS as (Hsi & Hkk). split.
+      - rewrite Hcell by (unfold OW.O_SIDX; lia). exact Hsi.
+      - intros n0 f Hn0'. assert (Hlt : (n0 < List.length (v_k st))%nat) by (apply nth_error_Some; rewrite Hn0'; discriminate).
+        rewrite Hcell by (unfold OW.O_STK; lia). exact (Hkk n0 f Hn0'). }
+    eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
+    - exact (V_mk m' st (v_s st) (v_i st + 2) (v_k st) Vc HS').
+    - split; [ | left; reflexivity ].
+      exact (Hk m st w la fl bpg bwd n rs k fs' m' HI Hst Hw Ho Hla Hfl Hbpg Hbwd Hn0 Hr Hf Hk' R' F' G' U HF Vc).
+  Qed.
+
   (* the pinned one-store premises of the field commands, together *)
   Definition row_keeps : Prop := set_keep /\ setf_keep /\ addi_keep /\ ori_keep /\ addf_keep /\ sumf_keep /\ deact_keep /\ sit_keep /\ srf_keep /\ sri_keep /\ sir_keep /\ par51_ok /\ pbc_keep /\ atex_keep /\ bb_keep /\ dr_keep /\ hb_keep /\ hbo_keep /\ home_keep /\ phys_keep /\ la_keep /\ lcd_keep /\ scale_keep /\ begin_ok /\ sfr_keep /\ native_res
-    /\ sc_pre /\ sc_free /\ sc_keep.
+    /\ sc_pre /\ sc_free /\ sc_keep /\ wd_pre /\ wd_free /\ wd_dp /\ wd_keep.
 
   (* the opcodes whose rows are proved: the control layer, DELAY_VAR, and
      SET_INT / SET_FLOAT / ADD_INT / OR_INT / ADD_FLOAT / SUM_FLOAT / DEACTIVATE / SET_INTERACT_TYPE / SET_RANDOM_FLOAT / SET_RANDOM_INT / SET_INT_RAND_RSHIFT / PARENT_BIT_CLEAR / ANIMATE_TEXTURE / BILLBOARD / DISABLE_RENDERING / SET_HITBOX(_WITH_OFFSET) / SET_HOME / SET_OBJ_PHYSICS / LOAD_ANIMATIONS / LOAD_COLLISION_DATA / SCALE / BEGIN / CALL_NATIVE / SPAWN_CHILD (from row_keeps) *)
-  Definition done_ops : list Z := 28 :: 12 :: 0 :: 50 :: 39 :: 42 :: 48 :: 45 :: 35 :: 43 :: 33 :: 53 :: 52 :: 51 :: 21 :: 19 :: 20 :: 47 :: 29 :: 31 :: 13 :: 17 :: 15 :: 14 :: 16 :: 37 :: ctl_ops.
+  Definition done_ops : list Z := 55 :: 28 :: 12 :: 0 :: 50 :: 39 :: 42 :: 48 :: 45 :: 35 :: 43 :: 33 :: 53 :: 52 :: 51 :: 21 :: 19 :: 20 :: 47 :: 29 :: 31 :: 13 :: 17 :: 15 :: 14 :: 16 :: 37 :: ctl_ops.
 
   Lemma done_rows : row_keeps -> forall op, In op done_ops -> cmd_row_op op.
   Proof.
-    intros (K16 & K14 & K15 & K17 & K13 & K31 & K29 & K47 & K20 & K21 & K19 & K51p & K51 & K52 & K33 & K53 & K35 & K43 & K45 & K48 & K39 & K42 & K50 & K0 & K12a & K12b & K28a & K28b & K28c) op
-      [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | H]]]]]]]]]]]]]]]]]]]]]]]]]];
-      [ exact (row_spawn_child K28a K28b K28c) | exact (row_call_native (native_keep_of K12a K12b)) | exact (row_begin K0) | exact (row_scale K50) | exact (row_load_animations K39) | exact (row_load_collision_data K42) | exact (row_set_obj_physics K48) | exact (row_set_home K45) | exact (row_set_hitbox K35) | exact (row_set_hitbox_with_offset K43) | exact (row_billboard K33) | exact (row_disable_rendering K53) | exact (row_animate_texture K52) | exact (row_parent_bit_clear K51p K51) | exact (row_set_random_int K21) | exact (row_set_int_rand_rshift K19) | exact (row_set_random_float K20) | exact (row_set_interact_type K47) | exact (row_deactivate K29) | exact (row_sum_float K31) | exact (row_add_float K13) | exact (row_or_int K17) | exact (row_add_int K15)
+    intros (K16 & K14 & K15 & K17 & K13 & K31 & K29 & K47 & K20 & K21 & K19 & K51p & K51 & K52 & K33 & K53 & K35 & K43 & K45 & K48 & K39 & K42 & K50 & K0 & K12a & K12b & K28a & K28b & K28c & K55a & K55b & K55c & K55d) op
+      [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | H]]]]]]]]]]]]]]]]]]]]]]]]]]];
+      [ exact (row_spawn_water_droplet K55a K55b K55c K55d) | exact (row_spawn_child K28a K28b K28c) | exact (row_call_native (native_keep_of K12a K12b)) | exact (row_begin K0) | exact (row_scale K50) | exact (row_load_animations K39) | exact (row_load_collision_data K42) | exact (row_set_obj_physics K48) | exact (row_set_home K45) | exact (row_set_hitbox K35) | exact (row_set_hitbox_with_offset K43) | exact (row_billboard K33) | exact (row_disable_rendering K53) | exact (row_animate_texture K52) | exact (row_parent_bit_clear K51p K51) | exact (row_set_random_int K21) | exact (row_set_int_rand_rshift K19) | exact (row_set_random_float K20) | exact (row_set_interact_type K47) | exact (row_deactivate K29) | exact (row_sum_float K31) | exact (row_add_float K13) | exact (row_or_int K17) | exact (row_add_int K15)
       | exact (row_set_float K14) | exact (row_set_int K16) | exact row_delay_var | exact (ctl_rows op H) ].
   Qed.
 
