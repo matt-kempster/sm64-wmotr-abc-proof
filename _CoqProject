@@ -363,6 +363,8 @@ proofs/WMotRRequiresA/ObjCreate.v
 proofs/WMotRRequiresA/ObjMake.v
 proofs/WMotRRequiresA/ObjGeo.v
 proofs/WMotRRequiresA/ObjOrigin.v
+proofs/WMotRRequiresA/ObjCopy.v
+proofs/WMotRRequiresA/ObjChild.v
 proofs/WMotRRequiresA/ObjPhase.v
 proofs/WMotRRequiresA/ObjLoop.v
 proofs/WMotRRequiresA/ObjStepSplit.v

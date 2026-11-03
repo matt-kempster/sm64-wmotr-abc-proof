@@ -847,8 +847,17 @@ all in `Unwired/`, and the theorem moved nowhere. See
        against `kill .. alloc_facts` made unification compute the walker; prove membership
        through a lemma generic in the list (cf_gen) and instantiate. `inv` on an eval of a
        temp substitutes the le equation away (subst it first, then gss).
-       Next: bhv_cmd_spawn_child / spawn_water_droplet (+ discharge bhv_list <> 4/5/10 for
-       their scripts); then rows 28 / 55 with a spawn_post carrying the ring / free-list /
+       DONE 2026-11-03 (spawn footprint, part 4): ObjCopy.v -- fcall_fx (a callee whose
+       body the slot walker accepts, first parameter = the slot) and cpa_ok
+       (obj_copy_pos_and_angle on a fresh slot). ObjChild.child_real -- the REAL
+       bhv_cmd_spawn_child: model / behavior read from gCurBhvCommand[1] / [2], origin_real,
+       cpa_ok, gCurBhvCommand += 3 (load gives cs, co + 12), returns 0; unchanged outside
+       link cells, slot k and gCurBhvCommand. Premises add the command pointer and its
+       word 2 = the child's script pointer. No new trust.
+       Next: discharge bhv_list <> 4/5/10 (and < 13) for SPAWN_CHILD's WMotR scripts; row 28
+       in BhvStep from child_real (needs INV to absorb a new ring member: spawn_post);
+       spawn_water_droplet (spawn_object + random_u16 / random_f32_around_zero + obj_scale);
+       then rows 28 / 55 with a spawn_post carrying the ring / free-list /
        slot changes into INV, and the ~50 residual natives; then the 6 value-contract
        natives, then 30 / 40;
        the pre-/post-loop code of cur_obj_update; the loop INV = obj_w minus the current
