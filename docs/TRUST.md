@@ -1224,6 +1224,12 @@ without pressing A".*
   (`scr_ok`) is an open obj_w clause (scripts are writable globals in C). The advancing
   commands, DELAY, CALL_NATIVE and the dispatch loop are still open, and no row depends on
   the theorem yet.
+  **DELAY and the dispatch loop (2026-11-02, `BhvStep.dloop_ctl`).** DELAY joins the control
+  layer (11 opcodes). `cur_obj_update`'s real dispatch loop (`dloop_is_real`) is PROVED to
+  end at a reachable VM state whose cells hold it, under an invariant carrying `scr_ok`
+  and obj_w's `cmdtab_ok`, given one row per opcode (`cmd_row_op`). The 11 control rows
+  are discharged (`ctl_rows`). The other opcodes' rows (advancing commands, DELAY_VAR,
+  DEACTIVATE, CALL_NATIVE) are the loop's open premise. Still no spine row depends on it.
   **Indexed handler arguments (2026-10-26, B3 iii-a, `BhvVM`).** These are vm-checked at
   every reachable state:
   - The field commands index `o->rawData.asU32[0x50]` (`vm_fields_in_rawdata`): every field
