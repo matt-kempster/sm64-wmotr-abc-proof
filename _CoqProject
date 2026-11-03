@@ -355,6 +355,7 @@ proofs/WMotRRequiresA/ObjLoop.v
 proofs/WMotRRequiresA/ObjStepSplit.v
 proofs/WMotRRequiresA/ObjCensus.v
 proofs/WMotRRequiresA/BhvVM.v
+proofs/WMotRRequiresA/BhvStep.v
 proofs/WMotRRequiresA/RoCensus.v
 proofs/WMotRRequiresA/CamPinCensus.v
 proofs/WMotRRequiresA/CamFootKit.v
