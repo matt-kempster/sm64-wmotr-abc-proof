@@ -1042,7 +1042,7 @@ without pressing A".*
   **PROVED 2026-10-26** (was the row `Hrender_ow`): Mario's render call keeps the object world
   (`HeightLinked12.render_ow_linked12`): by `RenderKeep.render_eff` it changes loads only in
   the six render globals and the bytes [64, 72) of Mario's object, and every `obj_w` clause
-  reads the pool only at a slot's fields from offset 96 on (`PollKeep.obj_w_slots`).
+  reads the pool only at a slot's fields from offset 96 on and its graph words [4, 16) (`PollKeep.obj_w_slots`).
   **PROVED 2026-10-26** (was the row `Hplat_keep`): the platform call keeps
   `plat_still` and the object world (`HeightLinked12.plat_keep_linked12`, from
   `PlatformKeep.plat_keeps_still` / `plat_loads`: by `plat_step_eff` the call changes loads only
@@ -1322,6 +1322,35 @@ without pressing A".*
   game stores through a script pointer (`RoCensus.ro_deep_no_store`), so the clause holds
   on every reachable memory and adds no unreachable state. The labeled object rows
   (`Hobj_*`) now also claim `scr_ok` after the step: TRUE, the same census. No trust moves.
+  **FOUND + REPAIRED (2026-11-03, `ObjWorld` 3e): `Hobj_unload` was FALSE over memories
+  obj_w allowed** (phantom ∀; both capstones assumed it). The real
+  `unload_deactivated_objects_in_list` frees any listed slot whose ACTIVE bit is clear, ORs
+  0xFF00 through a type-1 / type-2 slot's `respawnInfo`, and relinks graph nodes through
+  `prev->next`, `next->prev`, `parent->children` (graph_node.c:525-577). obj_w allowed
+  (a) Mario's slot with ACTIVE clear (freed: MARIO and PhiW break), (b) a respawnInfo aimed
+  anywhere (gMarioStates, a list head), (c) graph links aimed anywhere. Three new obj_w
+  clauses, each vm-checked on the real boot memory (m11, `StartTerrain`; the probe read
+  Mario = slot 34, activeFlags 257, all 240 nodes in one ring under gObjParentGraphNode):
+  **MACT** (`ow_mact`): Mario's slot has ACTIVE and runs bhvMario (curBhvCommand and every
+  pushed bhvStack cell in bhvMario's block; TRUTH: the clearers are DEACTIVATE, in no
+  bhvMario command, and obj_mark_for_deletion, on no WMotR path to Mario's object);
+  **RESP** (`ow_resp`): a listed slot's respawnInfoType is an int, type 1 aims at
+  gPlayerSpawnInfos+16 or one of the area's 8 SpawnInfo behaviorArg cells in the main pool,
+  type 2 at a WMotR macro entry's params word (TRUTH: written only by allocate_object (NULL),
+  spawn_objects_from_info and spawn_macro_objects, the last two at area load);
+  **GFX** (`ow_gfx`): all 240 slot nodes (free ones too) have parent &gObjParentGraphNode and
+  slot-node prev / next, the parent's children NULL or a slot node (TRUTH: clear_objects
+  sets it; the in-play relinkers try_allocate_object / unload_object remove then re-add
+  under gObjParentGraphNode, keeping the shape; geo_make_first_child and gMirrorMario's
+  links run only at spawn / area load). Keepers: `PollKeep.SKp` now also covers slot words
+  [4, 16) (every prover re-checked: mplat's hole [532,536), render's [64,72) are apart), and
+  `ow_ids` gains gObjParentGraphNode (every avoid_of / footprint check re-run by vm).
+  Grep check: no PhiW / ffw / mobj_apart / anim_apart clause reads Mario's object at [4, 16)
+  (the owin carve-out unload will need). **SCRIPT narrowed (FOUND, the objects agent):**
+  `live_bhvs` is now `reached_bhvs` minus the 13 behaviors `BoxCensus.wmotr_closure_b` never
+  reaches (koopa shell, its flame, the caps etc.; `live_in_closure_b` / `cut_not_closure_b`
+  / `flame_not_live`, vm), so a live slot never runs bhvKoopaShellFlame (INTERACT_FLAME,
+  outside `wmotr_interact_types`). No trust moves: stronger invariant, boot-checked.
   **Indexed handler arguments (2026-10-26, B3 iii-a, `BhvVM`).** These are vm-checked at
   every reachable state:
   - The field commands index `o->rawData.asU32[0x50]` (`vm_fields_in_rawdata`): every field

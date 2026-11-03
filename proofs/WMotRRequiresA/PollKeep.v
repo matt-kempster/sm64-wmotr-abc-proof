@@ -30,7 +30,7 @@ From SM64.Proofs Require MtxfBody SaveDoSaveBody.
 From SM64.Proofs Require Import Generic.PermWalk.
 From SM64.Proofs Require Interp.CMem.
 From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
-From SM64.Generated Require save_file mario level_update platform_displacement surface_load.
+From SM64.Generated Require save_file mario level_update platform_displacement surface_load area.
 From SM64.Proofs Require Import ActionValueFrame MWFReal SpawnInit MathBodies AGates.
 From SM64.Proofs Require NoAImpliesNoFlyTwelve.
 From SM64.Proofs.WMotRRequiresA Require Import FpuFloor WMotRWorld FfWorld RenderKeep LevelWalk.
@@ -239,7 +239,9 @@ Definition ow_ids : list ident :=
    surface_load._gNumStaticSurfaces; surface_load._gNumStaticSurfaceNodes;
    surface_load._gStaticSurfacePartition; surface_load._gDynamicSurfacePartition;
    (* 3c, 2026-11-02: the surface counter and the two collision meshes *)
-   surface_load._gSurfacesAllocated; OW.BOXM; OW.LIDM].
+   surface_load._gSurfacesAllocated; OW.BOXM; OW.LIDM;
+   (* 3e, 2026-11-03: the object graph nodes' parent (ow_gfx) *)
+   area._gObjParentGraphNode].
 
 (* the scripts (ow_scr, 2026-11-03): membership decided; gMarioStates is
    no script *)
@@ -285,10 +287,12 @@ Section OWK.
   (* the pool unchanged at every slot's fields from offset 96 on (the list
      node, the flags, the script VM, rawData, the hitbox, the behavior),
      except the platform field (offset 532, 2026-11-03: written by
-     update_mario_platform, read by no obj_w clause): what every obj_w
-     clause reads of it *)
+     update_mario_platform, read by no obj_w clause), and at the graph
+     node's prev / next / parent words [4, 16) (ow_gfx, 2026-11-03): what
+     every obj_w clause reads of it *)
   Definition SKp (pool : block) : Prop :=
-    forall ch k off, 96 <= off -> off + size_chunk ch <= OW.OSZ -> (off + size_chunk ch <= 532 \/ 536 <= off) ->
+    forall ch k off, (96 <= off \/ (4 <= off /\ off + size_chunk ch <= 16)) -> off + size_chunk ch <= OW.OSZ ->
+      (off + size_chunk ch <= 532 \/ 536 <= off) ->
       Mem.load ch m' pool (k * OW.OSZ + off) = Mem.load ch m pool (k * OW.OSZ + off).
 
   Lemma SKp_full : forall pool, (forall ch z, Mem.load ch m' pool z = Mem.load ch m pool z) -> SKp pool.
@@ -296,12 +300,12 @@ Section OWK.
 
   Ltac sk_side := unfold OW.O_BHV, OW.O_CMD, OW.O_SIDX, OW.O_STK, OW.O_ACTION, OW.O_HSCOUNT,
     OW.O_FLAGS, OW.O_NEXT, OW.O_PREV, OW.OSZ, O_INTERACT_TYPE, O_POSX, O_POSY, O_POSZ, HITBOX_DOWN_OFF,
-    HITBOX_H_OFF, RAW_OFF in *; cbn [size_chunk]; lia.
+    HITBOX_H_OFF, RAW_OFF, OW.O_RTYPE, OW.O_RINFO, OW.G_PREV, OW.G_NEXT, OW.G_PAR in *; cbn [size_chunk]; lia.
 
   Lemma ld32_sk : forall pool, SKp pool -> forall k off, 96 <= off -> off + 4 <= OW.OSZ ->
     (off + 4 <= 532 \/ 536 <= off) ->
     OW.ld32 m' pool (k * OW.OSZ + off) = OW.ld32 m pool (k * OW.OSZ + off).
-  Proof. intros pool SK k off H1 H2 H3. unfold OW.ld32. rewrite !CM.load_eq. apply SK; [ exact H1 | exact H2 | exact H3 ]. Qed.
+  Proof. intros pool SK k off H1 H2 H3. unfold OW.ld32. rewrite !CM.load_eq. apply SK; [ left; exact H1 | exact H2 | exact H3 ]. Qed.
 
   Lemma ring_from_eq : forall pool hb, SKp pool ->
     (forall z, OW.ld32 m' hb z = OW.ld32 m hb z) ->
@@ -384,7 +388,7 @@ Section OWK.
     Qed.
 
     Lemma kind_eq : forall k, OW.kind_ok pool m k -> OW.kind_ok pool m' k.
-    Proof. exact (OW.kind_ok_eq pool m m' Kp). Qed.
+    Proof. exact (OW.kind_ok_eq pool m m' (fun ch k off H1 => Kp ch k off (or_introl H1))). Qed.
 
     Lemma red_eq : forall k, OW.red_ok ge pool m k -> OW.red_ok ge pool m' k.
     Proof.
@@ -481,7 +485,7 @@ Section OWK.
     assert (Kd := K debug._gDebugInfo gdi ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S7).
     exists pool, la, fl, gol, gmo, sdp, gdi, rs, fs.
     refine (conj S1 (conj S2 (conj S3 (conj S4 (conj S5 (conj S6 (conj S7 _))))))).
-    destruct C as [Cg Cr Cf Cp Cfo Cm Cs Ca Crd Cdb Cst Co Cd12 Cct Cvm Csp Cso Cco Cctr Cter Cscr].
+    destruct C as [Cg Cr Cf Cp Cfo Cm Cs Ca Crd Cdb Cst Co Cd12 Cct Cvm Csp Cso Cco Cctr Cter Cscr Cmact Cresp Cgfx].
     assert (KG : forall id, In id ow_ids -> id <> object_list_processor._gObjectPool ->
                forall b, Genv.find_symbol ge id = Some b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
       by (intros id Hin Hn b Hs; exact (K id b Hin Hn Hs)).
@@ -538,6 +542,31 @@ Section OWK.
       + apply Kme; [ unfold ow_ids; cbn [In]; auto 30 | vm_compute; discriminate | exact T5 ].
       + apply Kme; [ unfold ow_ids; cbn [In]; auto 30 | vm_compute; discriminate | exact T6 ].
     - exact (OW.scr_ok_ext ge m m' KSc Cscr).
+    - (* 3e: Mario's flags, command and stack: slot fields past 96 *)
+      intros k Hk Lg. rewrite Km in Lg.
+      destruct (Cmact k Hk Lg) as ((f & Lf & Ef) & (b & Sb & (o & Lc) & Lst)).
+      split; [ exists f; rewrite Kp by sk_side; exact (conj Lf Ef) | exists b; split; [ exact Sb | split ] ].
+      + exists o. rewrite Kp by sk_side. exact Lc.
+      + intros d n Ld Hn. rewrite Kp in Ld by sk_side.
+        pose proof (Lst d n Ld Hn) as Hs. rewrite <- !Z.add_assoc in Hs |- *.
+        rewrite !Kp by sk_side. exact Hs.
+    - (* 3e: respawn targets: slot fields past 96, the main-pool cell *)
+      intros j Hj. destruct (Cresp j Hj) as (t & Lt & R1 & R2). exists t.
+      split; [ rewrite Kp by sk_side; exact Lt | split ].
+      + intros Et. destruct (R1 Et) as (b & o & Lr & Hor). exists b, o.
+        split; [ rewrite Kp by sk_side; exact Lr | ].
+        destruct Hor as [Hor | (Hg & Hin)]; [ left; exact Hor | right; split; [ | exact Hin ] ].
+        apply gcell_K; [ | exact Hg ].
+        apply (KG surface_load._sSurfacePool); [ unfold ow_ids; cbn [In]; auto 30 | vm_compute; discriminate ].
+      + intros Et. destruct (R2 Et) as (b & o & Lr & Hor). exists b, o.
+        rewrite Kp by sk_side. exact (conj Lr Hor).
+    - (* 3e: the graph links: slot words [4, 16) and the parent's children *)
+      intros bpg Hbpg. destruct (Cgfx bpg Hbpg) as (G1 & G2).
+      assert (Kb := KG area._gObjParentGraphNode ltac:(unfold ow_ids; cbn [In]; auto 30) ltac:(vm_compute; discriminate) bpg Hbpg).
+      split.
+      + intros k Hk. destruct (G1 k Hk) as (P1 & P2 & P3).
+        unfold OW.G_PAR, OW.G_PREV, OW.G_NEXT in *. rewrite !Kp by sk_side. exact (conj P1 (conj P2 P3)).
+      + rewrite !Kb. exact G2.
   Qed.
 
   (* THE LEMMA, slot-field form: obj_w survives any change off its globals'

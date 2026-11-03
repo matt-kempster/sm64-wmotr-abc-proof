@@ -1644,7 +1644,7 @@ Section HeightLinked12.
      RenderKeep.render_eff it changes loads only in the six render globals
      and in the bytes [64, 72) of Mario's object (its animFrame / animTimer /
      accelAssist header), and every obj_w clause reads the pool only at a
-     slot's fields from offset 96 on (PollKeep.obj_w_slots) *)
+     slot's fields from offset 96 on and its graph words [4, 16) (PollKeep.obj_w_slots) *)
   Lemma render_sym_apart : forall id b, Genv.find_symbol (lp_ge lp) id = Some b ->
     existsb (Pos.eqb id) RenderAnim.render_gvars = false -> ~ RenderKeep.rgb lp RenderAnim.render_gvars b.
   Proof.
@@ -1684,7 +1684,7 @@ Section HeightLinked12.
       intros ch k' off H1 H2 _. apply LD.
       + exact (render_sym_apart _ _ S1 ltac:(vm_compute; reflexivity)).
       + right. unfold ObjWorld.OSZ in *.
-        destruct (Z_lt_le_dec k' k); [ left; nia | right; nia ].
+        destruct (Z.lt_trichotomy k' k) as [Hlt | [-> | Hgt]]; [ left; nia | lia | right; nia ].
     - intros z Hz. apply LD.
       + exact (render_sym_apart _ _ Hbm_sym ltac:(vm_compute; reflexivity)).
       + left. intro E.
