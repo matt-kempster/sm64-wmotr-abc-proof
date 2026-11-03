@@ -545,6 +545,38 @@ Fixpoint first_loop (s : statement) : option statement :=
 Lemma dloop_is_real : first_loop (fn_body BS.f_cur_obj_update) = Some DLOOP.
 Proof. vm_compute. reflexivity. Qed.
 
+(* the copy-in / copy-out around it:
+     gCurBhvCommand = gCurrentObject->curBhvCommand;   (before the loop)
+     gCurrentObject->curBhvCommand = gCurBhvCommand;   (after it) *)
+Notation tobj := (tptr (Tstruct BS._Object noattr)).
+Definition COPYIN : statement :=
+  Ssequence (Sset BS._t'52 (Evar BS._gCurrentObject tobj))
+    (Ssequence
+      (Sset BS._t'53 (Efield (Ederef (Etempvar BS._t'52 tobj) (Tstruct BS._Object noattr))
+                        BS._curBhvCommand (tptr tuint)))
+      (Sassign (Evar BS._gCurBhvCommand (tptr tuint)) (Etempvar BS._t'53 (tptr tuint)))).
+Definition COPYOUT : statement :=
+  Ssequence (Sset BS._t'48 (Evar BS._gCurrentObject tobj))
+    (Ssequence
+      (Sset BS._t'49 (Evar BS._gCurBhvCommand (tptr tuint)))
+      (Sassign (Efield (Ederef (Etempvar BS._t'48 tobj) (Tstruct BS._Object noattr))
+                  BS._curBhvCommand (tptr tuint)) (Etempvar BS._t'49 (tptr tuint)))).
+
+(* the segment Ssequence CI (Ssequence LOOP (Ssequence CO _)) of a body *)
+Fixpoint find_seg (s : statement) : option (statement * statement * statement) :=
+  match s with
+  | Ssequence a b =>
+      match b with
+      | Ssequence (Sloop x y) (Ssequence co _) => Some (a, Sloop x y, co)
+      | _ => match find_seg a with Some r => Some r | None => find_seg b end
+      end
+  | Sifthenelse _ a b => match find_seg a with Some r => Some r | None => find_seg b end
+  | Slabel _ a => find_seg a
+  | _ => None
+  end.
+Lemma seg_is_real : find_seg (fn_body BS.f_cur_obj_update) = Some (COPYIN, DLOOP, COPYOUT).
+Proof. vm_compute. reflexivity. Qed.
+
 Section Link.
   Variable lp : Clight.program.
   Hypothesis H12 : linked12 lp.
@@ -565,6 +597,9 @@ Section Link.
   (* bhvDelayTimer (s16), right after bhvStack[8] *)
   Lemma fo_dt : forall co, (genv_cenv G) ! BS._Object = Some co ->
     field_offset G BS._bhvDelayTimer (co_members co) = OK (OW.O_STK + 32, Full).
+  Proof. apply (RA.fo_ok_lift (prog_comp_env BS.prog)); [ vm_compute; reflexivity | exact bs_cenv ]. Qed.
+  Lemma fo_cmd : forall co, (genv_cenv G) ! BS._Object = Some co ->
+    field_offset G BS._curBhvCommand (co_members co) = OK (OW.O_CMD, Full).
   Proof. apply (RA.fo_ok_lift (prog_comp_env BS.prog)); [ vm_compute; reflexivity | exact bs_cenv ]. Qed.
 
   Lemma fun_bs : forall id f, (prog_defmap BS.prog) ! id = Some (Gfun (Internal f)) ->
@@ -856,10 +891,10 @@ Section Link.
 
   Notation V := (vmc G bc pool oc).
 
-  (* what a control handler may write: the command pointer, and the slot's
-     stack index and stack *)
+  (* what the VM may write: the command pointer gCurBhvCommand, and the
+     slot's VM cells (curBhvCommand, stack index, stack, delay timer) *)
   Definition Pfr (b : block) (z : Z) : Prop :=
-    b <> bc /\ ~ (b = pool /\ oc + OW.O_SIDX <= z < oc + OW.O_STK + 34).
+    b <> bc /\ ~ (b = pool /\ oc + OW.O_CMD <= z < oc + OW.O_STK + 34).
 
   Lemma ld_cmd : forall le m t le' m' out x v,
     exec_stmt function_entry2 G empty_env le m (Sset x (Evar BS._gCurBhvCommand (tptr tuint))) t le' m' out ->
@@ -948,7 +983,8 @@ Section Link.
     - exact (cur_store _ _ _ _ _ Hs).
     - apply (Mem.load_store_other _ _ _ _ _ _ Hs). left. exact Hbp.
     - apply (Mem.store_unchanged_on _ _ _ _ _ _ _ Hs). intros i Hi [_ Hn]. apply Hn.
-      split; [ reflexivity | ]. change (size_chunk Mint32) with 4 in Hi. lia.
+      split; [ reflexivity | ]. change (size_chunk Mint32) with 4 in Hi.
+      unfold OW.O_CMD, OW.O_SIDX, OW.O_STK in *. lia.
   Qed.
 
   Lemma Vcmd_pool : forall m s i z v m', Vcmd m s i -> Mem.store Mint32 m pool z v = Some m' -> Vcmd m' s i.
@@ -1599,7 +1635,7 @@ Section Link.
     - exact (cur_store _ _ _ _ _ Hs).
     - apply (Mem.load_store_other _ _ _ _ _ _ Hs). left. exact Hbp.
     - apply (Mem.store_unchanged_on _ _ _ _ _ _ _ Hs). intros i Hi [_ Hn]. apply Hn.
-      split; [ reflexivity | ]. change (size_chunk Mint16signed) with 2 in Hi. unfold OW.O_SIDX, OW.O_STK in *. lia.
+      split; [ reflexivity | ]. change (size_chunk Mint16signed) with 2 in Hi. unfold OW.O_CMD, OW.O_SIDX, OW.O_STK in *. lia.
     - intros k (Hsi & Hk) Hl. split.
       + rewrite (Mem.load_store_other _ _ _ _ _ _ Hs); [ exact Hsi | ].
         right. left. change (size_chunk Mint32) with 4. unfold OW.O_SIDX, OW.O_STK. lia.
@@ -1920,5 +1956,101 @@ Section Link.
   Proof.
     intros Hrest. apply dloop_ctl. intros op Hn.
     destruct (in_dec Z.eq_dec op used_ops) as [Hu | Hu]; [ exact (Hrest op Hu Hn) | exact (unused_row op Hu) ].
+  Qed.
+
+  (* ---- the segment: copy-in, the loop, copy-out ---- *)
+  (* the VM state st in the SLOT's own cells (between frames): the same
+     shape as obj_w's ow_vm clause (vm_ok_Vo / Vo_vm_ok) *)
+  Definition Vo (m : mem) (st : vst) : Prop :=
+    (exists b, Genv.find_symbol G (v_s st) = Some b
+       /\ Mem.load Mint32 m pool (oc + OW.O_CMD) = Some (Vptr b (Ptrofs.repr (4 * Z.of_nat (v_i st)))))
+    /\ Vstk m (v_k st).
+
+  Lemma vm_ok_Vo : forall m k, oc = k * OW.OSZ -> OW.vm_ok G pool m k ->
+    exists st, In st vm_tab /\ Vo m st.
+  Proof.
+    intros m k Ek (st & Hst & Hc & Hsi & Hk). exists st. split; [ exact Hst | ].
+    unfold OW.stk_cell in Hk. unfold Vo, Vstk. rewrite Ek.
+    split; [ exact Hc | split; [ exact Hsi | exact Hk ] ].
+  Qed.
+
+  Lemma Vo_vm_ok : forall m k st, oc = k * OW.OSZ -> In st vm_tab -> Vo m st -> OW.vm_ok G pool m k.
+  Proof.
+    intros m k st Ek Hst (Hc & Hsi & Hk). rewrite Ek in Hc, Hsi, Hk.
+    exists st. split; [ exact Hst | split; [ exact Hc | split; [ exact Hsi | ] ] ].
+    unfold OW.stk_cell. exact Hk.
+  Qed.
+
+  Lemma copyin : forall le m t le' m' out st,
+    exec_stmt function_entry2 G empty_env le m COPYIN t le' m' out -> cur m -> Vo m st ->
+    out = Out_normal /\ V m' st /\ Mem.unchanged_on Pfr m m'.
+  Proof.
+    intros le m t le' m' out st H Hc ((b & Hb & Hl) & Hk). unfold COPYIN in H.
+    apply RA.seq_inv in H as [(t1 & le1 & m1 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
+    apply ld_cur in X1 as (-> & -> & _); [ | exact Hc ].
+    apply RA.seq_inv in X2 as [(t3 & le3 & m3 & t4 & X3 & X4) | (X3 & Xn)]; [ | kill_sq X3 Xn ].
+    apply RA.set_inv in X3 as (v & Ev & -> & -> & _).
+    destruct (RA.ev_fld G empty_env m _ _ _ _ (tptr tuint) v Mint32 OW.O_CMD fo_cmd eq_refl Ev)
+      as (b0 & o & Hb0 & Hl').
+    rewrite PTree.gss in Hb0. injection Hb0 as <- <-. cbn [Mem.loadv] in Hl'.
+    rewrite uadd in Hl' by (unfold OW.O_CMD; try rewrite maxu; lia). rewrite Hl in Hl'. injection Hl' as <-.
+    apply st_cmd in X4 as (v2 & v & Ev2 & Hcast & Hs & -> & ->).
+    apply RA.ev_temp in Ev2. rewrite PTree.gss in Ev2. injection Ev2 as <-.
+    cbn [typeof] in Hcast. rewrite cast_pp in Hcast. injection Hcast as <-.
+    destruct (bc_store _ _ _ Hs) as (_ & _ & U).
+    split; [ reflexivity | split; [ apply V_iff; split | exact U ] ].
+    - exact (Vcmd_bc _ _ _ _ _ Hs Hb).
+    - exact (Vstk_bc _ _ _ _ Hk Hs).
+  Qed.
+
+  Lemma copyout : forall le m t le' m' out st,
+    exec_stmt function_entry2 G empty_env le m COPYOUT t le' m' out -> cur m -> V m st ->
+    out = Out_normal /\ Vo m' st /\ Mem.unchanged_on Pfr m m'.
+  Proof.
+    intros le m t le' m' out st H Hc HV. apply V_iff in HV as ((b & Hb & Hl) & (Hsi & Hk)).
+    unfold COPYOUT in H.
+    apply RA.seq_inv in H as [(t1 & le1 & m1 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
+    apply ld_cur in X1 as (-> & -> & _); [ | exact Hc ].
+    apply RA.seq_inv in X2 as [(t3 & le3 & m3 & t4 & X3 & X4) | (X3 & Xn)]; [ | kill_sq X3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ X3 Hl) as (-> & -> & _).
+    apply RA.assign_inv in X4 as (b2 & o2 & bf2 & w2 & w3 & Hlv & Ew & Hcast & Has & -> & ->).
+    destruct (RA.lv_fld G empty_env m _ _ _ _ _ _ _ _ _ fo_cmd Hlv) as (o1 & Ho1 & -> & ->).
+    rewrite PTree.gso, PTree.gss in Ho1 by (vm_compute; discriminate). injection Ho1 as <- <-.
+    apply RA.ev_temp in Ew. rewrite PTree.gss in Ew. injection Ew as <-.
+    cbn [typeof] in Hcast. rewrite cast_pp in Hcast. injection Hcast as <-.
+    pose proof (RA.store_by_value _ (tptr tuint) _ _ _ _ _ _ Mint32 eq_refl eq_refl Has) as Hs.
+    rewrite uadd in Hs by (unfold OW.O_CMD; try rewrite maxu; lia).
+    split; [ reflexivity | split; [ split; [ | split ] | ] ].
+    - exists b. split; [ exact Hb | ]. rewrite (Mem.load_store_same _ _ _ _ _ _ Hs). reflexivity.
+    - rewrite (Mem.load_store_other _ _ _ _ _ _ Hs); [ exact Hsi | ].
+      right. right. change (size_chunk Mint32) with 4. unfold OW.O_CMD, OW.O_SIDX. lia.
+    - intros n f Hn.
+      assert (Hnl : (n < List.length (v_k st))%nat) by (apply nth_error_Some; rewrite Hn; discriminate).
+      rewrite (Mem.load_store_other _ _ _ _ _ _ Hs); [ exact (Hk n f Hn) | ].
+      right. right. change (size_chunk Mint32) with 4. unfold OW.O_CMD, OW.O_STK. lia.
+    - apply (Mem.store_unchanged_on _ _ _ _ _ _ _ Hs). intros i Hi [_ Hn]. apply Hn.
+      split; [ reflexivity | ]. change (size_chunk Mint32) with 4 in Hi.
+      unfold OW.O_CMD, OW.O_STK in *. lia.
+  Qed.
+
+  (* THE SEGMENT: from a slot whose own cells hold a reachable state, the
+     real copy-in, dispatch loop and copy-out leave the slot's cells
+     holding a reachable state, keeping INV -- given the used rows *)
+  Theorem seg : (forall op, In op used_ops -> ~ In op ctl_ops -> cmd_row_op op) ->
+    forall le0 m0 t1 le1 m1 out1 t2 le2 m2 out2 t3 le3 m3 out3 st,
+    In st vm_tab -> Vo m0 st -> INV m0 ->
+    exec_stmt function_entry2 G empty_env le0 m0 COPYIN t1 le1 m1 out1 ->
+    exec_stmt function_entry2 G empty_env le1 m1 DLOOP t2 le2 m2 out2 ->
+    exec_stmt function_entry2 G empty_env le2 m2 COPYOUT t3 le3 m3 out3 ->
+    out1 = Out_normal /\ out2 = Out_normal /\ out3 = Out_normal
+    /\ exists st', In st' vm_tab /\ Vo m3 st' /\ INV m3.
+  Proof.
+    intros Hrows le0 m0 t1 le1 m1 out1 t2 le2 m2 out2 t3 le3 m3 out3 st Hst HV HI X1 X2 X3.
+    destruct (copyin _ _ _ _ _ _ _ X1 (Hinv_cur _ HI) HV) as (-> & HV1 & U1).
+    pose proof (Hinv_frame _ _ HI U1) as HI1.
+    destruct (dloop_used Hrows _ _ _ _ _ _ X2 st Hst HV1 HI1) as (-> & st2 & Hst2 & HV2 & HI2).
+    destruct (copyout _ _ _ _ _ _ _ X3 (Hinv_cur _ HI2) HV2) as (-> & HV3 & U3).
+    split; [ reflexivity | split; [ reflexivity | split; [ reflexivity | ] ] ].
+    exact (ex_intro _ st2 (conj Hst2 (conj HV3 (Hinv_frame _ _ HI2 U3)))).
   Qed.
 End Link.

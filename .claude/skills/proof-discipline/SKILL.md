@@ -731,6 +731,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
        (BhvStep.scr_b_l). And `congruence` near words/vm_tab cost 300s (removed).
        dloop_used: only the 28 USED non-control opcodes' rows are open (vm_used);
        scr_b_sound is the decidable scr_ok check (obj_w/wchk part held for StartTerrain).
+       VM segment DONE (BhvStep.seg: copy-in + DLOOP + copy-out, seg_is_real; Vo = ow_vm's
+       shape). Next: the 28 used rows; the pre-/post-loop code of cur_obj_update; the
+       loop INV = obj_w minus the current slot's ow_vm; then narrow Hobj_step_rest.
        Next: the non-control rows, the copy-in / copy-out around DLOOP, the scr_ok obj_w
        clause (check at m11 outside StartTerrain/StartSat), then narrow Hobj_step_rest.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is

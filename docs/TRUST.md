@@ -1235,6 +1235,13 @@ without pressing A".*
   check (`scr_b_sound`: each cell of each reachable script against its initializer),
   ready to become an obj_w clause checked at boot; that obj_w/wchk step is held for the
   next StartTerrain rebuild. No trust moves.
+  **The VM segment (2026-11-02, `BhvStep.seg`).** The copy-in
+  (`gCurBhvCommand = o->curBhvCommand`), the loop and the copy-out are the
+  generated code (`seg_is_real`, vm-checked). From a slot whose own cells hold a
+  reachable state (`Vo`, the shape of obj_w's `ow_vm`: `vm_ok_Vo` / `Vo_vm_ok`), the
+  three end with the slot's cells holding a reachable state and INV kept, given the 28
+  used rows. Pfr now includes `o->curBhvCommand`. Still no spine row depends on it.
+  Wiring it in needs the loop's INV to be obj_w minus the current slot's `ow_vm`.
   **Indexed handler arguments (2026-10-26, B3 iii-a, `BhvVM`).** These are vm-checked at
   every reachable state:
   - The field commands index `o->rawData.asU32[0x50]` (`vm_fields_in_rawdata`): every field
