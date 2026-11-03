@@ -53,6 +53,7 @@ From SM64.Proofs.WMotRRequiresA Require Import HeightInvariant NoAActions WMotRW
   FloorList FloorHeight FloorExec AirMatch FfWorld FrameSplit HeightFrame WMotREntry
   EntryWarp WMotRLevel.
 From SM64.Proofs Require Import Interp.ClightInterp Interp.MemBuild Interp.InterpFrame.
+From SM64.Proofs Require Generic.MaxPerm.
 From SM64.Proofs.WMotRRequiresA Require Import FpuFloor FpuValue TerrainRun StartTerrain.
 From SM64.Proofs.WMotRRequiresA Require CourseRun AnimData AnimWorld PlatformKeep ObjWorld ObjPhase
   MidKeep PollFlank LevelFlank.
@@ -1866,6 +1867,23 @@ Section Witness.
       intros b z k p H. exact (proj2 (perm_0_11 b z k p (Mem.perm_valid_block _ _ _ _ _ H)) H).
     Qed.
 
+    (* every memory a Clight run reaches from m11 reads a partition only in
+       its 1536 cells (ObjWorld.part_cells): the partition is the definer's
+       6144 bytes (part_bound) and no run grows a Max permission
+       (Generic.MaxPerm) *)
+    Lemma part_cells_of : forall m, MaxPerm.MP m11 m -> ObjWorld.part_cells (lp_ge lp) m.
+    Proof.
+      intros m (_ & PMx) id bp z hd Hin Hs L.
+      destruct (Mem.load_valid_access _ _ _ _ _ L) as (RP & _).
+      assert (Pz : Mem.perm m bp z Cur Readable) by (apply RP; cbn [size_chunk]; lia).
+      apply Mem.perm_cur_max in Pz.
+      assert (V11 : Mem.valid_block m11 bp) by exact (sym_lt _ _ Hs).
+      pose proof (PMx bp z Readable V11 Pz) as Q11.
+      pose proof (proj1 (perm_0_11 bp z Max Readable (sym_old _ _ Hs)) Q11) as Q0.
+      pose proof (part_bound lp H12 m0 Hinit id bp Hin Hs z Max Readable Q0) as B.
+      change (Z.of_nat ObjWorld.PCELLS) with 1536. lia.
+    Qed.
+
     (* every partition word is a list the walk accepted *)
     Lemma wf_head : forall hd, part_head (lp_ge lp) m11 hd -> walk2 WFUEL m11 bpl hd = true.
     Proof.
@@ -2883,8 +2901,16 @@ Section Witness.
         + left; reflexivity.
         + exact (Rest MWF Phi OW).
         + exact (in_wmotr_b_sound lp fm4 Hw).
-      - split; [ exact (ObjWorld.ow_chk_sound _ _ _ O3) | split; [ exact (ObjWorld.ctr_b_sound _ _ C3) | ] ].
-        split; [ exact (ObjWorld.ow_chk_sound _ _ _ O4) | exact (ObjWorld.ctr_b_sound _ _ C4) ].
+      - assert (M3 : MaxPerm.MP m11 fm3).
+        { eapply MaxPerm.MP_trans; [ exact (MaxPerm.funcall_maxperm _ _ _ _ _ _ _ Ea) | ].
+          eapply MaxPerm.MP_trans; [ exact (MaxPerm.funcall_maxperm _ _ _ _ _ _ _ Es) | ].
+          eapply MaxPerm.MP_trans; [ exact (MaxPerm.funcall_maxperm _ _ _ _ _ _ _ Er) | ].
+          eapply MaxPerm.MP_trans; [ exact (MaxPerm.stmt_maxperm _ _ _ _ _ _ _ _ _ Ep) | ].
+          exact (MaxPerm.funcall_maxperm _ _ _ _ _ _ _ Eo). }
+        assert (M4 : MaxPerm.MP m11 fm4)
+          by exact (MaxPerm.MP_trans _ _ _ M3 (MaxPerm.stmt_maxperm _ _ _ _ _ _ _ _ _ Eq)).
+        split; [ exact (ObjWorld.ow_chk_sound _ _ _ (part_cells_of _ M3) O3) | split; [ exact (ObjWorld.ctr_b_sound _ _ C3) | ] ].
+        split; [ exact (ObjWorld.ow_chk_sound _ _ _ (part_cells_of _ M4) O4) | exact (ObjWorld.ctr_b_sound _ _ C4) ].
     Qed.
 
     Theorem witness11 :
@@ -2916,7 +2942,7 @@ Section Witness.
         split; [ exact plat11 | ].
         split; [ exact read_c0 | split; [ exact in_wmotr11 | ] ].
         split; [ exact floor_data11 | split; [ exact static_agree11 | split; [ exact nsurf11 | ] ] ].
-        split; [ exact (ObjWorld.ow_chk_sound _ _ _ OWc) | split; [ exact objs11 | ] ].
+        split; [ exact (ObjWorld.ow_chk_sound _ _ _ (part_cells_of _ (MaxPerm.MP_refl _)) OWc) | split; [ exact objs11 | ] ].
         destruct entry_runs as (R1 & R2).
         exists bL, e5, e6, (PTree.set level_update._t'2 (Vint (Int.repr LEVEL_WMOTR)) (PTree.empty val)). split; [ exact HbL | split; [ exact R1 | split; [ exact (R2 _) | ] ] ].
         split; [ rewrite L_lvl, (Mem.load_store_same _ _ _ _ _ _ E6); reflexivity | ].

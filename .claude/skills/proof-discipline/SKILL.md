@@ -630,7 +630,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `area_update_objects` call (`ObjPhase.objects_call`), with `execute_mario_action` as the
     hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
     rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref, Hobj_stores /
-    Hobj_counter, Hobj_debug, Hobj_surfaces, Hobj_collisions, Hobj_unload, Hobj_mplat;
+    Hobj_counter, Hobj_debug, Hobj_surfaces, Hobj_collisions, Hobj_unload
+    (Hobj_mplat PROVED 2026-11-03: HeightFrame.obj_mplat_linked12 / MplatKeep, the real
+    update_mario_platform; FOUND + REPAIRED on the way: ow_surf_obj covered partition cells
+    j < 1536 only, find_floor names heads by any offset; now every word, boot-proved by
+    StartSat.part_cells_of + Generic.MaxPerm);
     Hcam_ow_res (2026-11-02, step (a): Hcam_ow_fp is a LEMMA, its ow_ids globals PROVED by CamRows.cam_ow_globals; the residual row keeps Mario's 5 object cells only; surf_keep FOUND FALSE as stated 2026-11-02 (list nodes unbounded), REPAIRED + PROVED 2026-11-03 (CamRows.cam_surf_keep), see the level rows; Hcam_ow PROVED by obj_w_unch). PROVED 2026-10-26:
     Hplat_keep (plat_keep_linked12), Hlvl_ow (lvl_ow_linked12: pre_eff / post_split footprints
     + Hcam_ow), Hrender_ow (render_ow_linked12: render_eff + PollKeep.obj_w_slots). Proved: the walk of update_objects' body, the clock

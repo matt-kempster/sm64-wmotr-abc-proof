@@ -283,22 +283,25 @@ Section OWK.
   Proof. intros b K z. unfold OW.ld32. rewrite !CM.load_eq. apply K. Qed.
 
   (* the pool unchanged at every slot's fields from offset 96 on (the list
-     node, the flags, the script VM, rawData, the hitbox, the behavior):
-     what every obj_w clause reads of it *)
+     node, the flags, the script VM, rawData, the hitbox, the behavior),
+     except the platform field (offset 532, 2026-11-03: written by
+     update_mario_platform, read by no obj_w clause): what every obj_w
+     clause reads of it *)
   Definition SKp (pool : block) : Prop :=
-    forall ch k off, 96 <= off -> off + size_chunk ch <= OW.OSZ ->
+    forall ch k off, 96 <= off -> off + size_chunk ch <= OW.OSZ -> (off + size_chunk ch <= 532 \/ 536 <= off) ->
       Mem.load ch m' pool (k * OW.OSZ + off) = Mem.load ch m pool (k * OW.OSZ + off).
 
   Lemma SKp_full : forall pool, (forall ch z, Mem.load ch m' pool z = Mem.load ch m pool z) -> SKp pool.
-  Proof. intros pool K ch k off _ _. apply K. Qed.
+  Proof. intros pool K ch k off _ _ _. apply K. Qed.
 
   Ltac sk_side := unfold OW.O_BHV, OW.O_CMD, OW.O_SIDX, OW.O_STK, OW.O_ACTION, OW.O_HSCOUNT,
     OW.O_FLAGS, OW.O_NEXT, OW.O_PREV, OW.OSZ, O_INTERACT_TYPE, O_POSX, O_POSY, O_POSZ, HITBOX_DOWN_OFF,
     HITBOX_H_OFF, RAW_OFF in *; cbn [size_chunk]; lia.
 
   Lemma ld32_sk : forall pool, SKp pool -> forall k off, 96 <= off -> off + 4 <= OW.OSZ ->
+    (off + 4 <= 532 \/ 536 <= off) ->
     OW.ld32 m' pool (k * OW.OSZ + off) = OW.ld32 m pool (k * OW.OSZ + off).
-  Proof. intros pool SK k off H1 H2. unfold OW.ld32. rewrite !CM.load_eq. apply SK; [ exact H1 | exact H2 ]. Qed.
+  Proof. intros pool SK k off H1 H2 H3. unfold OW.ld32. rewrite !CM.load_eq. apply SK; [ exact H1 | exact H2 | exact H3 ]. Qed.
 
   Lemma ring_from_eq : forall pool hb, SKp pool ->
     (forall z, OW.ld32 m' hb z = OW.ld32 m hb z) ->
