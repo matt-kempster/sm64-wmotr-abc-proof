@@ -773,8 +773,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
        near `In st vm_tab` hangs (use or_introl / explicit splits); `eq_refl` for a
        `typeof ?a = ...` premise must come AFTER the hypothesis fixing ?a; `pkill -f X`
        kills its own shell (exit 144) -- kill by PID.
-       Next: rows 0 (BEGIN: cur_obj_has_behavior x3), 12, 28, 30 (find_floor), 39 (field 38
-       pointer), 40, 42 (collisionData, read by obj_w), 48, 50, 55;
+       48 (physics; ev_wk / ev_wkv: script word k), 39 (lv_rawvp: asVoidPtr[field]) and 42
+       (collisionData via s2v_call; coll_pin reads it) DONE. Trap: `repeat (rewrite
+       PTree.gso by ..)` under an evar goal hung -- use counted `do N`.
+       Next: rows 0 (BEGIN: cur_obj_has_behavior x3), 12, 28, 30 (find_floor), 40
+       (geo_obj_init_animation), 50 (cur_obj_scale), 55;
        the pre-/post-loop code of cur_obj_update; the loop INV = obj_w minus the current
        slot's ow_vm; then narrow Hobj_step_rest.
        DONE 2026-11-03 (ObjWorld 3e): obj_w gains ow_mact (Mario ACTIVE + in bhvMario),
