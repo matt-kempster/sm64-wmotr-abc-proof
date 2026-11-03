@@ -642,6 +642,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
     hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
     rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref,
     Hobj_debug, Hobj_collisions, Hobj_unload
+    (Hobj_unload groundwork 2026-11-03, `ObjUnload.v`, kept, no spine consumer yet: the
+    real deallocate_object walked -- dealloc_rings (ObjRing surgery: l1++k::l2 -> l1++l2,
+    fs -> k::fs), dealloc_ok (Clight body, only ObjAlloc.RCELL cells change), dealloc_real
+    (linked, from ow_rings / ow_free / ow_part NoDup; gfx_ok rides through). Still open
+    for the row: the unload_deactivated_objects loop, set_object_respawn_info_bits,
+    unload_object's sound stop + geo_remove_child, and the obj_w re-establish)
     (Hobj_stores PROVED 2026-11-03: obj_stores_linked12 / ObjStores.stores_safe, every
     update_objects store block classified by vm (uo_sok); rests on Hobj_blind for the stack
     stores. Reusable: ClearKeep.gstore_core_p takes a pointer to a SafeB-if-bg-is global;
