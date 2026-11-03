@@ -1287,7 +1287,32 @@ without pressing A".*
   (`script47_value`), and its five C writers (`writers47_value`) write a new child's byte or
   the cannon's own (argued per writer, not proved per target); (b) no level-script OBJECT
   places a box (`box_not_scripted`); (c) the debug spawner stays gated. Using it needs
-  obj_w's SCRIPT domain narrowed to `wmotr_closure_b`. The pinned premises are bundled as `row_keeps`.
+  obj_w's SCRIPT domain narrowed to `wmotr_closure_b`.
+  The RANDOM setters (2026-11-03): SET_INT_RAND_RSHIFT (19), SET_RANDOM_FLOAT (20),
+  SET_RANDOM_INT (21) are PROVED from `sir_keep` / `srf_keep` / `sri_keep`. Each calls the
+  real random_u16 / random_float; the generic walker (`SpawnBodies.sw_walk`) proves the call
+  changes nothing but gRandomSeed16 (`ru16_call`, `rf_call`: `Mem.unchanged_on Psd`), and
+  returns a 16-bit u (random_float's value is `rf_of u`, the real formula). Then ONE store of
+  the real computed value (`(u >> rshift) + min`, `range * rf_of u + min`,
+  `(s32)(range * rf_of u) + min`). Fields: 19:{16} 20:{10,27-29} 21:{27}; 27 is the HSCOUNT
+  cell obj_w reads for bhvHiddenRedCoinStar slots, so the premise is pinned to the value.
+  New section hypothesis `Hsp : pool <> gRandomSeed16's block`, discharged at
+  instantiation from global_addresses_distinct.
+  PARENT_BIT_CLEAR (51) is PROVED from `par51_ok` + `pbc_keep`: ONE store of old & ~mask
+  into the PARENT's field 22 (oActiveParticleFlags, which obj_w does not read). `par51_ok`
+  is a phantom check, pinned to the real parentObj load at reachable 0x33 words: the parent
+  is a pool slot disjoint from the current slot's script stack. Computed
+  (`BhvVM.pbc_states`): the 0x33 states are twelve particle-spawner scripts, each spawned by
+  Mario's own code with parentObj = gMarioObject; a NULL parent makes the handler stuck.
+  Discharge: an obj_w clause "a particle-spawner slot's parentObj is Mario's slot", from the
+  spawn rows. ANIMATE_TEXTURE (52) is PROVED from `atex_keep` (ONE store old + 1, or no
+  store; the timer branch is not analysed). Computed (`BhvVM.atex_states`): its only
+  reachable state is bhvKoopaShellFlame's (field 26, rate 2, nonzero), outside
+  `wmotr_closure_b`, so the premise is vacuous once SCRIPT is narrowed.
+  **FOUND (2026-11-03), fixed:** BhvStep's section hypothesis bounded the current slot's
+  offset at `0 <= oc <= 40960`, i.e. only the first 68 of the 240 pool slots (608 bytes
+  each) -- undischargeable for any object in a later slot. Widened to `oc <= 145312`
+  (slot 239); every lemma re-proved. The pinned premises are bundled as `row_keeps`.
   Wiring it in needs the loop's INV to be obj_w minus the current slot's `ow_vm`.
   **`ow_scr` (2026-11-03): `scr_ok` is an obj_w clause.** `ObjWorld.scr_ok` (moved from
   BhvStep, which keeps its names as notations) is obj_w's 21st clause; the boot witness

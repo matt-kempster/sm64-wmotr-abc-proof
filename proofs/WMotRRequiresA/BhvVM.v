@@ -325,3 +325,22 @@ Lemma vm_data_args_linked :
                      (match ptr_at st 1 with Some _ => true | None => false end
                       && forallb defined_nonempty (data_args st))) vm_tab = true.
 Proof. vm_compute. reflexivity. Qed.
+
+(* the PARENT_BIT_CLEAR states, computed: field 22 (oActiveParticleFlags)
+   of twelve particle-spawner scripts, every one of which Mario's own code
+   spawns with parentObj = gMarioObject *)
+Lemma pbc_states :
+  map (fun st => (string_of_ident (v_s st), byte2 (w0 st))) (filter (fun st => opc st =? 51) vm_tab) =
+  [ ("bhvTriangleParticleSpawner", 22); ("bhvHorStarParticleSpawner", 22); ("bhvPlungeBubble", 22);
+    ("bhvBubbleParticleSpawner", 22); ("bhvVertStarParticleSpawner", 22); ("bhvSparkleParticleSpawner", 22);
+    ("bhvShallowWaterSplash", 22); ("bhvShallowWaterWave", 22); ("bhvWhitePuff1", 22);
+    ("bhvWaveTrail", 22); ("bhvWaterSplash", 22); ("bhvMistParticleSpawner", 22) ]%string.
+Proof. vm_compute. reflexivity. Qed.
+
+(* the ANIMATE_TEXTURE states, computed: one, bhvKoopaShellFlame's
+   ANIMATE_TEXTURE(oAnimState, 2) -- field 26, rate 2 (nonzero) *)
+Lemma atex_states :
+  map (fun st => (string_of_ident (v_s st), byte2 (w0 st), Z.land (w0 st) 65535))
+      (filter (fun st => opc st =? 52) vm_tab) =
+  [ ("bhvKoopaShellFlame", 26, 2) ]%string.
+Proof. vm_compute. reflexivity. Qed.
