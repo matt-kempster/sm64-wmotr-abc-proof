@@ -202,7 +202,7 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
       <li><span><b>So Mario never gets above 2796,</b> and there is no floor between 2424 and 3046 to climb onto next.</span></li>
       <li><span><b>Coin #2 needs 2980.</b> It floats at 3140, and Mario’s body is 160 tall. That leaves 184 units to spare.</span></li>
     </ol>
-    <div class="meta"><span>Updated 2026-11-02</span><span>master 36d14dc3</span><span>Rocq 8.19 · CompCert 3.15</span><span>53 real C files linked</span></div>
+    <div class="meta"><span>Updated 2026-11-02</span><span>master 02242543</span><span>Rocq 8.19 · CompCert 3.15</span><span>53 real C files linked</span></div>
   </div>
 
   <figure class="gauge-card" aria-labelledby="gauge-cap" style="margin:0">
@@ -267,11 +267,11 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
         </dl></div>
       </details>
       <details class="part">
-        <summary><span class="part-title"><span class="name">The world invariant</span><span class="coq">lvl_w · obj_w</span></span><span class="lamp l-open">proved · one hole open</span></summary>
+        <summary><span class="part-title"><span class="name">The world invariant</span><span class="coq">lvl_w · obj_w</span></span><span class="lamp l-proved">proved</span></summary>
         <div class="part-body"><dl>
           <dt>Says</dt><dd>Next to the height budget, every phase keeps a “the world is sane” invariant: area and warp facts, the camera’s pointers pinned to their real targets, the Camera’s bytes clear of the surface pools, an audio invariant, the object pool and its surface counters. It is checked by computation on the start memory and proved kept by each phase.</dd>
           <dt>Why it matters</dt><dd>A row quantified over states the game never produces makes a theorem vacuous. Every such hole found so far was a clause missing from this invariant, and each was fixed by adding it, never by a new assumption.</dd>
-          <dt>Open</dt><dd>Surface-list nodes are not yet confined to their pools, so a made-up state could put them inside the Camera (found 2026-11-02, fix in progress).</dd>
+          <dt>Latest repair</dt><dd>Surface-list nodes could sit anywhere in a memory block, even inside the Camera (found 2026-11-02). They are now confined to the slots the game’s own allocators hand out, checked at the start.</dd>
         </dl></div>
       </details>
     </div>
@@ -406,7 +406,7 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
     <p>A proof that only ever confirms is suspicious. These are claims that looked right until the proof, or tethering it to the real game, said otherwise.</p>
   </div>
   <div class="catches">
-    <div class="catch"><span class="date">2026-11-02</span><p><b>Surface lists could sit inside the Camera.</b> The invariant let surface-list nodes lie anywhere in a memory block, so a made-up state could have the camera’s own writes scramble them. That reopened vacuity a few hours after it was declared closed. Fix in progress: confine nodes to their real pools.</p></div>
+    <div class="catch"><span class="date">2026-11-02</span><p><b>Surface lists could sit inside the Camera.</b> The invariant let surface-list nodes lie anywhere in a memory block, so a made-up state could have the camera’s own writes scramble them. That reopened vacuity a few hours after it was declared closed. Repaired 2026-11-03: nodes are confined to their real pools.</p></div>
     <div class="catch"><span class="date">2026-11-02</span><p><b>The camera’s pointer to Mario’s camera state was never pinned.</b> The camera writes through it at 68 sites, so a phantom state could aim it at the objects. A census proves its initializer is its only writer; it is now pinned at the start and kept.</p></div>
     <div class="catch"><span class="date">2026-11-02</span><p><b>The graphics-pool setup had no execution.</b> It masks a pointer, which CompCert can’t run, so every frame got stuck before the objects phase. Fixed with an approved identity shim for segment addresses (TRUST 2.2), and the whole frame now runs.</p></div>
     <div class="catch"><span class="date">2026-11-02</span><p><b>Time-stop frames skip the surface reset.</b> The ledger said the counters reset every frame. They don’t during time stop, but loading is skipped too, so the bound still holds.</p></div>
@@ -662,10 +662,10 @@ footer{margin-top:64px; padding-top:16px; border-top:1px solid var(--rule); font
     ['Mario’s remaining per-frame calls (7 rows)', 'open', 'Input update, special floors, interactions, four action-group dispatchers'],
     ['Controller poll, platform, level phase, render', 'proved', 'Real code; level conditions now carried in the world invariant'],
     ['A real WMotR start, with a whole frame running from it', 'proved', 'Level script places the objects in real order; one start, not every entry'],
-    ['World invariant has no phantom states', 'open', 'Surface-list nodes still need confining to their pools (found 2026-11-02)'],
+    ['World invariant has no known phantom states', 'proved', 'Latest hole (surface lists inside the Camera) repaired 2026-11-03'],
     ['Camera leaves the object world alone', 'proved', 'From the proved write footprint of the real <code>update_camera</code>'],
     ['Camera’s effect on the budget', 'spec', 'One labeled camera row, <code>Hcam_phi</code>, true over real states'],
-    ['Mario stays over a floor (height ≥ −8192)', 'open', 'Out-of-bounds guard proved; carrying “x/z inside the death plane” is next'],
+    ['Mario’s height stays in the 16-bit range the floor search uses', 'proved', 'At least −11000; the out-of-bounds guard is proved, and the box is on the wrapped coordinates, so parallel universes are covered'],
     ['Other objects', 'open', 'List loops and surface-object step proved; script interpreter in progress; action and platform rows open'],
     ['Audio load and DMA', 'trusted', 'Labeled hardware/audio floors (TRUST 3.5, 4.1)'],
     ['Below 2980 ⇒ the real collision check never registers coin #2', 'proved', '<code>mario_coin2_no_contact</code>'],
