@@ -630,7 +630,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `area_update_objects` call (`ObjPhase.objects_call`), with `execute_mario_action` as the
     hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
     rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref, Hobj_stores /
-    Hobj_counter, Hobj_debug, Hobj_surfaces, Hobj_collisions, Hobj_unload
+    Hobj_counter, Hobj_debug, Hobj_collisions, Hobj_unload
+    (Hobj_surfaces PROVED 2026-11-03: HeightFrame.obj_surfaces_linked12 / ClearRun + ClearKeep,
+    the real clear_dynamic_surfaces; gone from both capstones. Reusable: ClearKeep.gstore_core =
+    a store into a global outside gs_bad keeps every Pobjl clause but obj_w -- the tool for
+    Hobj_ctr / Hobj_counter; PollKeep.obj_w_slots_g takes the counter / partition keeps apart)
     (Hobj_mplat PROVED 2026-11-03: HeightFrame.obj_mplat_linked12 / MplatKeep, the real
     update_mario_platform; FOUND + REPAIRED on the way: ow_surf_obj covered partition cells
     j < 1536 only, find_floor names heads by any offset; now every word, boot-proved by

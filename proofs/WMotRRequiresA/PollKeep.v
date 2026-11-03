@@ -243,6 +243,12 @@ Definition ow_ids : list ident :=
    (* 3e, 2026-11-03: the object graph nodes' parent (ow_gfx) *)
    area._gObjParentGraphNode].
 
+(* the globals a writer of obj_w's surface cells changes (2026-11-03,
+   ClearKeep: the clear writes the counter and the dynamic partition) *)
+Definition ow_xc : list ident :=
+  [object_list_processor._gObjectPool; surface_load._gSurfacesAllocated;
+   surface_load._gDynamicSurfacePartition].
+
 (* the scripts (ow_scr, 2026-11-03): membership decided; gMarioStates is
    no script *)
 Lemma not_in_of_existsb : forall x l, existsb (Pos.eqb x) l = false -> ~ In x l.
@@ -463,11 +469,13 @@ Section OWK.
     - intros P HP _ _ ch z _. exact (KN P HP ch z).
   Qed.
 
-  Theorem obj_w_slots_s : forall (ge : genv) bm,
-    (forall id b, In id ow_ids -> id <> object_list_processor._gObjectPool -> Genv.find_symbol ge id = Some b ->
+  Theorem obj_w_slots_g : forall (ge : genv) bm,
+    (forall id b, In id ow_ids -> existsb (Pos.eqb id) ow_xc = false -> Genv.find_symbol ge id = Some b ->
        forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
     (forall pool, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool -> SKp pool) ->
     surf_keep ge ->
+    (* the surface counter (ow_ctr): kept, or re-made by the writer *)
+    (OW.ctr_s_ok ge m -> OW.ctr_s_ok ge m') ->
     (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
        Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z) ->
     (* no store into a script block (ow_scr, 2026-11-03) *)
@@ -475,18 +483,18 @@ Section OWK.
        forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
     OW.obj_w ge bm m -> OW.obj_w ge bm m'.
   Proof.
-    intros ge bm K KP KS Kbm KSc (pool & la & fl & gol & gmo & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
+    intros ge bm K KP KS KC Kbm KSc (pool & la & fl & gol & gmo & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
     assert (Kp := KP pool S1).
-    assert (Kl := K object_list_processor._gObjectListArray la ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S2).
-    assert (Kf := K object_list_processor._gFreeObjectList fl ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S3).
-    assert (Kg := K object_list_processor._gObjectLists gol ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S4).
-    assert (Km := K object_list_processor._gMarioObject gmo ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S5).
-    assert (Ks := K debug._sDebugPage sdp ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S6).
-    assert (Kd := K debug._gDebugInfo gdi ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) S7).
+    assert (Kl := K object_list_processor._gObjectListArray la ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; reflexivity) S2).
+    assert (Kf := K object_list_processor._gFreeObjectList fl ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; reflexivity) S3).
+    assert (Kg := K object_list_processor._gObjectLists gol ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; reflexivity) S4).
+    assert (Km := K object_list_processor._gMarioObject gmo ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; reflexivity) S5).
+    assert (Ks := K debug._sDebugPage sdp ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; reflexivity) S6).
+    assert (Kd := K debug._gDebugInfo gdi ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; reflexivity) S7).
     exists pool, la, fl, gol, gmo, sdp, gdi, rs, fs.
     refine (conj S1 (conj S2 (conj S3 (conj S4 (conj S5 (conj S6 (conj S7 _))))))).
     destruct C as [Cg Cr Cf Cp Cfo Cm Cs Ca Crd Cdb Cst Co Cd12 Cct Cvm Csp Cso Cco Cctr Cter Cscr Cmact Cresp Cgfx].
-    assert (KG : forall id, In id ow_ids -> id <> object_list_processor._gObjectPool ->
+    assert (KG : forall id, In id ow_ids -> existsb (Pos.eqb id) ow_xc = false ->
                forall b, Genv.find_symbol ge id = Some b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
       by (intros id Hin Hn b Hs; exact (K id b Hin Hn Hs)).
     constructor.
@@ -507,17 +515,17 @@ Section OWK.
     - rewrite Ks, Kd. exact Cdb.
     - intros z Hz. rewrite (Kbm z (or_intror Hz)). exact (Cst z Hz).
     - destruct Co as (b & Sb & L). exists b. split; [ exact Sb | ].
-      intros j Hj. rewrite (K object_list_processor._sObjectListUpdateOrder b ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) Sb). exact (L j Hj).
+      intros j Hj. rewrite (K object_list_processor._sObjectListUpdateOrder b ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; reflexivity) Sb). exact (L j Hj).
     - intros k Hk. exact (script12_eq ge pool Kp k (Cd12 k Hk)).
     - destruct Cct as (b & Sb & L). exists b. split; [ exact Sb | ].
-      intros j id Hj. rewrite (K behavior_script._BehaviorCmdTable b ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; discriminate) Sb). exact (L j id Hj).
+      intros j id Hj. rewrite (K behavior_script._BehaviorCmdTable b ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; reflexivity) Sb). exact (L j id Hj).
     - intros k Hk. exact (vm_eq ge pool Kp k (Cvm k Hk)).
     - destruct Csp as (P & HP & G1 & G2 & G3 & G4 & G5). exists P. split; [ exact HP | ].
-      assert (Kc : forall id, In id ow_ids -> id <> object_list_processor._gObjectPool ->
+      assert (Kc : forall id, In id ow_ids -> existsb (Pos.eqb id) ow_xc = false ->
                  forall ch v, OW.gcell ge id ch v m -> OW.gcell ge id ch v m')
         by (intros id Hin Hn ch v; apply gcell_K; exact (KG id Hin Hn)).
       split; [ | split; [ | split; [ | split ] ] ];
-        (apply Kc; [ unfold ow_ids; cbn [In]; auto 20 | vm_compute; discriminate | assumption ]).
+        (apply Kc; [ unfold ow_ids; cbn [In]; auto 20 | vm_compute; reflexivity | assumption ]).
     - exact (KS pool S1 Cso).
     - destruct Cco as (C1 & C2 & C3).
       assert (Ef : forall id, filter (OW.is_bhv_b ge pool m' id) (concat rs) = filter (OW.is_bhv_b ge pool m id) (concat rs))
@@ -526,11 +534,9 @@ Section OWK.
       intros k Hk Hb. rewrite (is_bhv_b_eq ge pool _ k Kp) in Hb.
       destruct (C3 k Hk Hb) as (x & y & z & Hin & L1 & L2 & L3).
       unfold OW.box_pos_ok. exists x, y, z. rewrite !Kp by sk_side. exact (conj Hin (conj L1 (conj L2 L3))).
-    - destruct Cctr as (a & Hg & Hb). exists a. split; [ | exact Hb ].
-      apply gcell_K; [ | exact Hg ].
-      apply (KG surface_load._gSurfacesAllocated); [ unfold ow_ids; cbn [In]; auto 30 | vm_compute; discriminate ].
+    - exact (KC Cctr).
     - destruct Cter as (T1 & T2 & T3 & T4 & T5 & T6).
-      assert (Kme : forall id l, In id ow_ids -> id <> object_list_processor._gObjectPool ->
+      assert (Kme : forall id l, In id ow_ids -> existsb (Pos.eqb id) ow_xc = false ->
                  OW.mesh_ok ge id l m -> OW.mesh_ok ge id l m').
       { intros id l Hin Hn (b & Hs & L). exists b. split; [ exact Hs | ].
         intros j x Hj. rewrite (KG id Hin Hn b Hs). exact (L j x Hj). }
@@ -539,8 +545,8 @@ Section OWK.
       + intros i k Hi Hk. rewrite !(runs_eq ge pool Kp). exact (T2 i k Hi Hk).
       + rewrite (map_ext _ _ (sdyn_eq ge pool Kp)). exact T3.
       + intros k Hk. exact (coll_pin_eq ge pool Kp k (T4 k Hk)).
-      + apply Kme; [ unfold ow_ids; cbn [In]; auto 30 | vm_compute; discriminate | exact T5 ].
-      + apply Kme; [ unfold ow_ids; cbn [In]; auto 30 | vm_compute; discriminate | exact T6 ].
+      + apply Kme; [ unfold ow_ids; cbn [In]; auto 30 | vm_compute; reflexivity | exact T5 ].
+      + apply Kme; [ unfold ow_ids; cbn [In]; auto 30 | vm_compute; reflexivity | exact T6 ].
     - exact (OW.scr_ok_ext ge m m' KSc Cscr).
     - (* 3e: Mario's flags, command and stack: slot fields past 96 *)
       intros k Hk Lg. rewrite Km in Lg.
@@ -557,16 +563,38 @@ Section OWK.
         split; [ rewrite Kp by sk_side; exact Lr | ].
         destruct Hor as [Hor | (Hg & Hin)]; [ left; exact Hor | right; split; [ | exact Hin ] ].
         apply gcell_K; [ | exact Hg ].
-        apply (KG surface_load._sSurfacePool); [ unfold ow_ids; cbn [In]; auto 30 | vm_compute; discriminate ].
+        apply (KG surface_load._sSurfacePool); [ unfold ow_ids; cbn [In]; auto 30 | vm_compute; reflexivity ].
       + intros Et. destruct (R2 Et) as (b & o & Lr & Hor). exists b, o.
         rewrite Kp by sk_side. exact (conj Lr Hor).
     - (* 3e: the graph links: slot words [4, 16) and the parent's children *)
       intros bpg Hbpg. destruct (Cgfx bpg Hbpg) as (G1 & G2).
-      assert (Kb := KG area._gObjParentGraphNode ltac:(unfold ow_ids; cbn [In]; auto 30) ltac:(vm_compute; discriminate) bpg Hbpg).
+      assert (Kb := KG area._gObjParentGraphNode ltac:(unfold ow_ids; cbn [In]; auto 30) ltac:(vm_compute; reflexivity) bpg Hbpg).
       split.
       + intros k Hk. destruct (G1 k Hk) as (P1 & P2 & P3).
         unfold OW.G_PAR, OW.G_PREV, OW.G_NEXT in *. rewrite !Kp by sk_side. exact (conj P1 (conj P2 P3)).
       + rewrite !Kb. exact G2.
+  Qed.
+
+  (* THE LEMMA, slot-field form: obj_w survives any change off its globals'
+     blocks (the pool: off every slot's fields from offset 96 on) and off
+     Mario's five object-pointer cells, with the surface clause's keep *)
+  Theorem obj_w_slots_s : forall (ge : genv) bm,
+    (forall id b, In id ow_ids -> id <> object_list_processor._gObjectPool -> Genv.find_symbol ge id = Some b ->
+       forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+    (forall pool, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool -> SKp pool) ->
+    surf_keep ge ->
+    (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
+       Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z) ->
+    (* no store into a script block (ow_scr, 2026-11-03) *)
+    (forall s b, In s (map BhvVM.v_s BhvVM.vm_tab) -> Genv.find_symbol ge s = Some b ->
+       forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+    OW.obj_w ge bm m -> OW.obj_w ge bm m'.
+  Proof.
+    intros ge bm K KP KS Kbm KSc. apply obj_w_slots_g; [ | exact KP | exact KS | | exact Kbm | exact KSc ].
+    - intros id b Hin Hn Hs. apply (K id b Hin); [ | exact Hs ]. intros ->. vm_compute in Hn. discriminate Hn.
+    - intros (a & Hg & Hb). exists a. split; [ | exact Hb ]. apply gcell_K; [ | exact Hg ].
+      intros b Hs. apply (K surface_load._gSurfacesAllocated b); [ unfold ow_ids; cbn [In]; auto 30 | | exact Hs ].
+      vm_compute. discriminate.
   Qed.
 
   (* THE LEMMA, slot-field form: obj_w survives any change off its globals'
