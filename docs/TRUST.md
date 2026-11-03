@@ -1243,6 +1243,10 @@ without pressing A".*
   used rows. Pfr now includes `o->curBhvCommand`. Still no spine row depends on it.
   DELAY_VAR's row is PROVED (`row_delay_var`; `done_ops` lists the proved rows, and `seg`
   needs only the 27 used rows outside it).
+  SET_INT's row is PROVED from `set_keep` (`row_set_int`): the generated handler makes ONE
+  store, of the script's value (`s16_of w`) to the script's field (`byte2 w` < 0x50), then
+  advances. `set_keep` (INV survives exactly that store, at reachable SET_INT words) is
+  pinned, not a phantom: obj_w reads field 42 (the interact type), which SET_INT writes.
   Wiring it in needs the loop's INV to be obj_w minus the current slot's `ow_vm`.
   **Indexed handler arguments (2026-10-26, B3 iii-a, `BhvVM`).** These are vm-checked at
   every reachable state:
