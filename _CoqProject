@@ -360,6 +360,9 @@ proofs/WMotRRequiresA/ObjWorld.v
 proofs/WMotRRequiresA/ObjRing.v
 proofs/WMotRRequiresA/ObjAlloc.v
 proofs/WMotRRequiresA/ObjCreate.v
+proofs/WMotRRequiresA/ObjUnload.v
+proofs/WMotRRequiresA/UnloadObj.v
+proofs/WMotRRequiresA/UnloadLoop.v
 proofs/WMotRRequiresA/ObjMake.v
 proofs/WMotRRequiresA/ObjGeo.v
 proofs/WMotRRequiresA/ObjOrigin.v
