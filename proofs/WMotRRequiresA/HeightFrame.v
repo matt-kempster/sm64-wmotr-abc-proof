@@ -76,7 +76,7 @@ From SM64.Proofs.WMotRRequiresA Require Import ProRows NaSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFloor ExtInert.
 From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT LsContract AudioInv.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
-From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep PollKeep MidKeep CamRows MplatKeep ClearKeep.
+From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep PollKeep MidKeep CamRows MplatKeep ClearKeep ObjStores.
 From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop ObjStepSplit BhvVM.
 From SM64.Generated Require object_list_processor area platform_displacement.
 From SM64.Proofs Require OsDmaFloor LptBody ObjExtBodies UpdateCameraBody.
@@ -1393,10 +1393,8 @@ Section HeightLinked12.
     Ple (Genv.genv_next (lp_ge lp)) b /\ ObjPhase.noref b m1.
   Hypothesis Hobj_noref : forall b f, In f ObjPhase.uo_callees -> Ple (Genv.genv_next (lp_ge lp)) b ->
     ObjPhase.call_keeps (lp_ge lp) (ObjPhase.noref b) f.
-  (* OPEN, the phase's own stores *)
-  Hypothesis Hobj_stores : forall b s, In (FrameCalls.OBlk s) ObjPhase.uo_list ->
-    Ple (Genv.genv_next (lp_ge lp)) b ->
-    ObjPhase.safeE (lp_ge lp) (fun m => Pobjl m /\ ObjPhase.noref b m) (ObjPhase.uo_env b) s.
+  (* (Hobj_stores, the phase's own stores: PROVED 2026-11-03,
+     obj_stores_linked12 below, ObjStores) *)
   (* Pobjl is ClearKeep's Pc plus the surface premise PhiW gives *)
   Lemma pc_of_pobj : forall m, Pobjl m -> ClearKeep.Pc lp bm bc oc0 SafeB m.
   Proof. intros m (Hok & Hphi & HD & Hst & _ & How). exact (conj Hok (conj Hphi (conj HD (conj Hst How)))). Qed.
@@ -1416,6 +1414,32 @@ Section HeightLinked12.
   Proof.
     intros le m t le' m' out HP Hx. apply pobj_of_pc.
     exact (ClearKeep.counter_keeps lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 le m t le' m' out Hx (pc_of_pobj m HP)).
+  Qed.
+  (* PROVED (2026-11-03, was the row Hobj_stores): update_objects' own
+     store blocks (ObjStores.stores_safe; every block's shape decided by vm
+     on the generated body, uo_sok): cycleCounts[i] = .. writes only the
+     frame block b (so Hobj_blind carries Pobjl, and b's noref stays);
+     g = <an int> into a global no invariant reads (gTimeStopState, the
+     room counters, the camera-collision flag, gPrevFrameObjectCount:
+     ClearKeep.gstore_keep); gObjectLists = gObjectListArray stores the
+     pointer the cell already holds (obj_w's ow_gol), so no load changes
+     (ObjStores.gol_keep).  PHANTOM CHECK: no premise beyond Pobjl and the
+     frame block's noref, which the phase carries; the row now rests on
+     Hobj_blind (still open) for the stack stores. *)
+  Lemma obj_stores_linked12 : forall b s, In (FrameCalls.OBlk s) ObjPhase.uo_list ->
+    Ple (Genv.genv_next (lp_ge lp)) b ->
+    ObjPhase.safeE (lp_ge lp) (fun m => Pobjl m /\ ObjPhase.noref b m) (ObjPhase.uo_env b) s.
+  Proof.
+    intros b s Hin Hp. apply (ObjStores.stores_safe (lp_ge lp) b Pobjl); [ | | | | exact Hin ].
+    - intros id bg Hs E. subst bg. pose proof (Genv.genv_symb_range _ _ Hs) as Hr.
+      exact (Plt_strict _ (Plt_Ple_trans _ _ _ Hr Hp)).
+    - intros id bg ch z i m m2 Hs Hok Hw Hsc St HP. apply pobj_of_pc.
+      exact (ClearKeep.gstore_keep lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 id bg ch z i m m2
+               Hs Hok Hw Hsc St (pc_of_pobj m HP)).
+    - intros gol la m m2 Hg Hl St HP. apply pobj_of_pc.
+      exact (ObjStores.gol_keep lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 gol la m m2 Hg Hl St
+               (pc_of_pobj m HP)).
+    - intros m m2 HP Hn U. exact (Hobj_blind b m m2 Hp HP Hn U).
   Qed.
   (* OPEN, the stage rows (see the HeightFrame section for each) *)
   Hypothesis Hobj_debug :
@@ -1845,7 +1869,7 @@ Section HeightLinked12.
     exact (proj2 (noA_run_height_bound lp bm MWF Phi OWl PHI_YMAX
                     frame_action_linked12 render_ok_linked12 render_phi_linked12
                     obj_clock_linked12 obj_auo_linked12
-                    Hobj_blind (Hobj_fresh 240) Hobj_noref Hobj_stores obj_counter_linked12
+                    Hobj_blind (Hobj_fresh 240) Hobj_noref obj_stores_linked12 obj_counter_linked12
                     Hobj_debug (ObjWorld.post_clear (lp_ge lp)) obj_R_store_linked12
                     obj_surfaces_linked12 obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
                     Hobj_unload obj_mplat_linked12 obj_platform_linked12 Hlvl_ow Hrender_ow
@@ -1868,7 +1892,7 @@ Section HeightLinked12.
     exact ((noA_run_height_bound lp bm MWF Phi OWl PHI_YMAX
                     frame_action_linked12 render_ok_linked12 render_phi_linked12
                     obj_clock_linked12 obj_auo_linked12
-                    Hobj_blind (Hobj_fresh 240) Hobj_noref Hobj_stores obj_counter_linked12
+                    Hobj_blind (Hobj_fresh 240) Hobj_noref obj_stores_linked12 obj_counter_linked12
                     Hobj_debug (ObjWorld.post_clear (lp_ge lp)) obj_R_store_linked12
                     obj_surfaces_linked12 obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
                     Hobj_unload obj_mplat_linked12 obj_platform_linked12 Hlvl_ow Hrender_ow

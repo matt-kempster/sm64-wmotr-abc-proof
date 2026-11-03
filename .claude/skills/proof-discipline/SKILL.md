@@ -629,8 +629,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
     OBJECTS (2026-10-26, `ObjPhase.v` / `ObjWorld.v`): the objects segment is ONE real
     `area_update_objects` call (`ObjPhase.objects_call`), with `execute_mario_action` as the
     hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
-    rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref, Hobj_stores,
+    rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref,
     Hobj_debug, Hobj_collisions, Hobj_unload
+    (Hobj_stores PROVED 2026-11-03: obj_stores_linked12 / ObjStores.stores_safe, every
+    update_objects store block classified by vm (uo_sok); rests on Hobj_blind for the stack
+    stores. Reusable: ClearKeep.gstore_core_p takes a pointer to a SafeB-if-bg-is global;
+    ObjStores.store_same_ptr, noref_store_in / noref_store_out)
     (Hobj_counter / Hobj_ctr PROVED 2026-11-03: obj_counter_linked12 / obj_ctr_linked12,
     ClearKeep.gstore_keep; gone from both capstones)
     (Hobj_surfaces PROVED 2026-11-03: HeightFrame.obj_surfaces_linked12 / ClearRun + ClearKeep,
