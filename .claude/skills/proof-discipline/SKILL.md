@@ -868,9 +868,13 @@ all in `Unwired/`, and the theorem moved nowhere. See
        cpa_ok, gCurBhvCommand += 3 (load gives cs, co + 12), returns 0; unchanged outside
        link cells, slot k and gCurBhvCommand. Premises add the command pointer and its
        word 2 = the child's script pointer. No new trust.
-       Next: discharge bhv_list <> 4/5/10 (and < 13) for SPAWN_CHILD's WMotR scripts; row 28
-       in BhvStep from child_real (needs INV to absorb a new ring member: spawn_post);
-       spawn_water_droplet (spawn_object + random_u16 / random_f32_around_zero + obj_scale);
+       DONE 2026-11-03 (row 28): BhvStep.row_spawn_child -- cmd_row_op 28 from
+       child_real; sc_w computes the child scripts (lists 6 / 8 / 12) by vm; child_real now
+       pins parentObj = gCurrentObject (no forall pv). Premises sc_pre / sc_free (pool
+       exhaustion, NAMED) / sc_keep joined row_keeps; 28 is in done_ops.
+       Traps: `auto` on a goal with `In c (map v_s vm_tab)` hangs (unfolds vm_tab) -- use
+       explicit conj; destruct of a non-dependent subterm rewrites the goal, so use eq_refl.
+       Next: spawn_water_droplet (spawn_object + random_u16 / random_f32_around_zero + obj_scale);
        then rows 28 / 55 with a spawn_post carrying the ring / free-list /
        slot changes into INV, and the ~50 residual natives; then the 6 value-contract
        natives, then 30 / 40;

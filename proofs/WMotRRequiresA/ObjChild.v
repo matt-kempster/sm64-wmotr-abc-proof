@@ -138,34 +138,37 @@ Section LINKED.
 
   (* SPAWN_CHILD ON THE REAL PROGRAM.  Premises: origin_real's, the command
      pointer (cs, co) in gCurBhvCommand, its word 2 = the child's script
-     pointer (bs, o), whose first word is w. *)
-  Theorem child_real : forall pool la fl bpg gol bc,
+     pointer (bs, o), whose first word is w; gCurrentObject = vgo, the
+     child's parentObj. *)
+  Theorem child_real : forall pool la fl bpg gol bc go,
     Genv.find_symbol G object_list_processor._gObjectPool = Some pool ->
     Genv.find_symbol G object_list_processor._gObjectListArray = Some la ->
     Genv.find_symbol G object_list_processor._gFreeObjectList = Some fl ->
     Genv.find_symbol G area._gObjParentGraphNode = Some bpg ->
     Genv.find_symbol G object_list_processor._gObjectLists = Some gol ->
     Genv.find_symbol G BS._gCurBhvCommand = Some bc ->
-    forall m rs fs cs co bs o w t m' vr,
+    Genv.find_symbol G BS._gCurrentObject = Some go ->
+    forall m rs fs cs co bs o w vgo t m' vr,
     rings m pool la = Some rs -> free_list m pool fl = Some fs -> NoDup (concat rs ++ fs) ->
     gfx_ok G pool m -> Mem.load Mint32 m gol 0 = Some (Vptr la Ptrofs.zero) ->
     Mem.load Mint32 m bc 0 = Some (Vptr cs co) ->
+    Mem.load Mint32 m go 0 = Some vgo ->
     Mem.loadv Mint32 m (Vptr cs (Ptrofs.add co (Ptrofs.repr 8))) = Some (Vptr bs o) ->
     Mem.load Mint32 m bs (Ptrofs.unsigned o) = Some (Vint w) ->
     bhv_list w < 13 -> bhv_list w <> 4 -> bhv_list w <> 5 -> bhv_list w <> 10 ->
     eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_spawn_child) [] t m' vr ->
     (* EMPTY FREE LIST: named, as in alloc_real *)
     fs = []
-    \/ (exists k fs' pv, fs = k :: fs' /\ 0 <= k < NSLOT /\ vr = Vint (Int.repr 0)
+    \/ (exists k fs', fs = k :: fs' /\ 0 <= k < NSLOT /\ vr = Vint (Int.repr 0)
         /\ Mem.load Mint32 m' bc 0 = Some (Vptr cs (Ptrofs.add co (Ptrofs.repr 12)))
         /\ rings m' pool la = Some (upd rs (Z.to_nat (bhv_list w)) (nth (Z.to_nat (bhv_list w)) rs [] ++ [k]))
         /\ free_list m' pool fl = Some fs'
         /\ gfx_ok G pool m'
         /\ Mem.unchanged_on (fun b z => AKEEP pool la fl bpg b z /\ KP pool (k * OSZ) b z /\ b <> bc) m m'
-        /\ facts m' pool (k * OSZ) (slot_v pool k) (cpa_facts (origin_facts (bhv_list w) (Vptr bs o) pv))).
+        /\ facts m' pool (k * OSZ) (slot_v pool k) (cpa_facts (origin_facts (bhv_list w) (Vptr bs o) vgo))).
   Proof.
-    intros pool la fl bpg gol bc Hp Hl Hf Hb Hgl Hbc m rs fs cs co bs o w t m' vr
-      Hr Hfl Hnd Hg Hgo Hc0 Hw8 Hw Hi13 Hi4 Hi5 Hi10 H.
+    intros pool la fl bpg gol bc go Hp Hl Hf Hb Hgl Hbc Hgc m rs fs cs co bs o w vgo t m' vr
+      Hr Hfl Hnd Hg Hgo Hc0 Hcu Hw8 Hw Hi13 Hi4 Hi5 Hi10 H.
     assert (Hpl : pool <> la) by (apply (sym_ne lp _ _ _ _ Hp Hl); RA.neq).
     assert (Hpf : pool <> fl) by (apply (sym_ne lp _ _ _ _ Hp Hf); RA.neq).
     assert (Hlf : la <> fl) by (apply (sym_ne lp _ _ _ _ Hl Hf); RA.neq).
@@ -218,7 +221,10 @@ Section LINKED.
       [ | exfalso; apply Hne; exact (nb_normal _ _ _ _ _ _ _ _ _ A5 eq_refl) ].
     apply RA.seq_inv in A5 as [(tg & leg & mg & th & A7 & A8) | (A7 & Hne)];
       [ | apply RA.set_inv in A7 as (_ & _ & _ & _ & E); contradiction ].
-    apply RA.set_inv in A7 as (v4 & _ & -> & -> & _).
+    apply RA.set_inv in A7 as (v4 & E4 & -> & -> & _).
+    destruct (RA.ev_gvar G empty_env _ _ _ (tptr OTB) v4 Mint32 (PTree.gempty _ _) eq_refl E4) as (b4 & Hb4 & Hl4).
+    rewrite Hgc in Hb4. injection Hb4 as <-. cbn [Mem.loadv] in Hl4. rewrite Ptrofs.unsigned_zero, Hcu in Hl4.
+    injection Hl4 as <-. clear E4.
     unfold SPC in A8.
     apply RA.call_inv in A8 as (tyargs & tyres & cc & vf & vargs & fd & vres & Hcf & Evf & Eal & Hff & _ & Hcl & -> & _).
     cbn in Hcf. injection Hcf as <- <- <-.
@@ -226,15 +232,17 @@ Section LINKED.
       destruct (RA.ev_fun G empty_env _ _ _ ty vf (PTree.gempty _ _) eq_refl Evf) as (bf & Hsf & ->) end.
     rewrite (fun_res lp _ _ _ (linked12_LO_object_helpers lp H12) dm_soo bf fd Hsf Hff) in Hcl.
     destruct (exl4f _ _ _ _ _ _ _ _ _ _ Eal)
-      as (t1' & t2' & t3' & t4' & u1 & u2 & u3 & u4 & w1 & w2 & w3 & w4 & Ety & -> & _ & _ & _ & _ & _ & _ & Eu4 & Cu4).
+      as (t1' & t2' & t3' & t4' & u1 & u2 & u3 & u4 & w1 & w2 & w3 & w4 & Ety & -> & Eu1 & Cu1 & _ & _ & _ & _ & Eu4 & Cu4).
     injection Ety as <- <- <- <-.
     apply RA.ev_temp in Eu4. rewrite PTree.gso in Eu4 by RA.neq. rewrite Hbh in Eu4. injection Eu4 as <-.
     cbn [typeof] in Cu4. apply RA.cast_ptr_id in Cu4. subst w4.
-    destruct (origin_real lp H12 pool la fl bpg gol Hp Hl Hf Hb Hgl m rs fs w1 w2 w3 bs o w _ _ _
+    apply RA.ev_temp in Eu1. rewrite PTree.gss in Eu1. injection Eu1 as <-.
+    cbn [typeof] in Cu1. apply RA.cast_ptr_id in Cu1. subst w1.
+    destruct (origin_real lp H12 pool la fl bpg gol Hp Hl Hf Hb Hgl m rs fs vgo w2 w3 bs o w _ _ _
                 Hr Hfl Hnd Hg Hgo Hw Hi13 Hi4 Hi5 Hi10 Hcl)
       as [E | (k & fs' & E & Hk & Ev & R & F & Gx & U & HF)].
     { left. exact E. }
-    right. exists k, fs', w1. subst vres.
+    right. exists k, fs'. subst vres.
     apply RA.set_inv in A6 as (v & Hv & -> & -> & _).
     apply RA.ev_temp in Hv. cbn [set_opttemp] in Hv. rewrite PTree.gss in Hv. injection Hv as <-.
     set (le6 := PTree.set BS._child (slot_v pool k) _) in X6.
