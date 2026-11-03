@@ -61,7 +61,7 @@ From SM64.Proofs.WMotRRequiresA Require Import BhvVM BehaviorScripts.
 From SM64.Proofs.MarioModel Require SpawnBodies.
 From SM64.Proofs.WMotRRequiresA Require RenderAnim ObjWorld ObjPhase ObjLoop ObjCensus PlatformWalk BoxCensus
   ObjSelf ObjFrame FpuFloor ObjAlloc.
-From SM64.Proofs.WMotRRequiresA Require ObjCreate.
+From SM64.Proofs.WMotRRequiresA Require ObjCreate ObjMake ObjGeo ObjOrigin.
 Import ListNotations.
 Local Open Scope Z_scope.
 
