@@ -35,7 +35,7 @@ From Coq Require Import ZArith List Lia Bool String.
 From compcert Require Import Coqlib Maps AST Integers Values Events Memory
   Globalenvs Ctypes Cop Clightdefs Clight ClightBigstep Linking.
 From SM64.Generated Require mario audio_external math_util mario_actions_cutscene camera level_update
-  object_helpers obj_behaviors.
+  object_helpers obj_behaviors behavior_script surface_collision.
 From SM64.Proofs Require Import SymbolicLinking ActionValueFrame Taint
   RealFrameLinked AGates CensusV2 MWFReal SpawnInit MathBodies LinkedTwelve
   UcKit FpuFloor.
@@ -703,24 +703,25 @@ Lemma s_tab_of_split : forall l f ks, st_find f (s_tab_of l) = Some ks ->
     (exists i, In (f, i, ks) l) \/ st_find f s_leaves = Some ks.
 Proof. intros l f ks H. exact (st_find_split l s_leaves f ks H). Qed.
 
-Definition s_ent_ok (tab : stab) (c : s_cand) : bool :=
+(* XA / XB: ObjSelf's precise-frame parameters (None, [] = plain kSelf) *)
+Definition s_ent_ok (XA : option (list ident)) (XB : list (Z * Z)) (tab : stab) (c : s_cand) : bool :=
   let '(fid, i, ks) := c in
-  match s_body fid i with Some (ce, f) => s_fun ce OSZ tab ks f | None => false end.
+  match s_body fid i with Some (ce, f) => s_fun XA XB ce OSZ tab ks f | None => false end.
 
-Definition s_round (st : list s_cand) : list s_cand :=
+Definition s_round (XA : option (list ident)) (XB : list (Z * Z)) (st : list s_cand) : list s_cand :=
   let tab := s_tab_of st in
   flat_map (fun c => let '(fid, i, _) := c in
     match s_body fid i with
     | Some (ce, f) =>
         let k1 := smart_kinds object_helpers._Object tab f in
         let k2 := typed_kinds object_helpers._Object f in
-        if s_fun ce OSZ tab k1 f then [(fid, i, k1)]
-        else if s_fun ce OSZ tab k2 f then [(fid, i, k2)] else []
+        if s_fun XA XB ce OSZ tab k1 f then [(fid, i, k1)]
+        else if s_fun XA XB ce OSZ tab k2 f then [(fid, i, k2)] else []
     | None => []
     end) st.
 
-Fixpoint s_rounds (n : nat) (st : list s_cand) : list s_cand :=
-  match n with O => st | S n' => s_rounds n' (s_round st) end.
+Fixpoint s_rounds XA XB (n : nat) (st : list s_cand) : list s_cand :=
+  match n with O => st | S n' => s_rounds XA XB n' (s_round XA XB st) end.
 
 Definition s_ps : ident * nat := (audio_external._play_sound, 39%nat).
 Definition s_start : list s_cand :=
@@ -728,10 +729,10 @@ Definition s_start : list s_cand :=
     match s_body fid i with Some (_, f) => [(fid, i, any_kinds f)] | None => [] end)
     (map (fun e => let '(fid, i, _) := e in (fid, i)) xotab ++ [s_ps]).
 
-Definition self_tab : list s_cand := s_rounds 40 s_start.
+Definition self_tab : list s_cand := s_rounds None [] 40 s_start.
 
 (* THE WALK: every entry is self-clean against the final table *)
-Lemma self_walk_ok : forallb (s_ent_ok (s_tab_of self_tab)) self_tab = true.
+Lemma self_walk_ok : forallb (s_ent_ok None [] (s_tab_of self_tab)) self_tab = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Section SELF.
@@ -744,6 +745,12 @@ Section SELF.
   Hypothesis Hpool : Genv.find_symbol ge POOL = Some pool.
   Hypothesis HgB : Genv.find_symbol ge GCO = Some gB.
   Hypothesis Hoc : Ptrofs.unsigned oc + OSZ <= Ptrofs.max_unsigned.
+  (* the frame parameters and a table walked under them *)
+  Variable XA : option (list ident).
+  Variable XB : list (Z * Z).
+  Variable nb0 : block.
+  Variable T : list s_cand.
+  Hypothesis HW : forallb (s_ent_ok XA XB (s_tab_of T)) T = true.
 
   Definition sLeafS (fd : Clight.fundef) (ks : list skind) : Prop :=
     exists b, Genv.find_symbol ge math_util._sqrtf = Some b /\
@@ -751,21 +758,21 @@ Section SELF.
 
   Lemma s_leaf_ok : forall fd ks, sLeafS fd ks ->
       forall m vargs t m' vres, eval_funcall function_entry2 ge m fd vargs t m' vres ->
-      Forall2 (karg pool gB oc OSZ) ks vargs -> SI pool gB oc m -> GV pool gB m ->
-      SFR pool gB oc OSZ m m'.
+      Forall2 (karg XA XB ge nb0 pool gB oc OSZ) ks vargs -> SI pool gB oc m -> GV XA ge nb0 pool gB m ->
+      SFR XA XB ge nb0 pool gB oc OSZ m m'.
   Proof.
     intros fd ks (b & Hs & Hff & _) m vargs t m' vres Hev _ _ _.
     rewrite (MtxfBody.sqrtf_memid lp H12 Hsq b fd m vargs t m' vres Hs Hff Hev).
     apply Mem.unchanged_on_refl.
   Qed.
 
-  Lemma s_in_good : forall f i ks, In (f, i, ks) self_tab ->
+  Lemma s_in_good : forall f i ks, In (f, i, ks) T ->
       forall b fd, Genv.find_symbol ge f = Some b ->
       Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
-      sGood ge OSZ (s_tab_of self_tab) sLeafS fd ks.
+      sGood XA XB ge OSZ (s_tab_of T) sLeafS fd ks.
   Proof.
     intros f i ks Hin b fd Hs Hff.
-    pose proof (proj1 (forallb_forall _ _) self_walk_ok _ Hin) as Hc.
+    pose proof (proj1 (forallb_forall _ _) HW _ Hin) as Hc.
     unfold s_ent_ok, s_body in Hc.
     destruct (nth_error lprogs i) as [p|] eqn:Hn; [ | discriminate Hc ].
     destruct ((prog_defmap p) ! f) as [[[fn|ef]|v]|] eqn:Edm; try discriminate Hc.
@@ -776,13 +783,13 @@ Section SELF.
     - intros id co Hco. exact (linkorder_comp_env_extends lp p id co (oLO lp H12 i p Hn) Hco).
   Qed.
 
-  Lemma s_tab_good : forall f ks, st_find f (s_tab_of self_tab) = Some ks ->
+  Lemma s_tab_good : forall f ks, st_find f (s_tab_of T) = Some ks ->
       forall b fd, Genv.find_symbol ge f = Some b ->
       Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
-      sGood ge OSZ (s_tab_of self_tab) sLeafS fd ks.
+      sGood XA XB ge OSZ (s_tab_of T) sLeafS fd ks.
   Proof.
     intros f ks Hf b fd Hs Hff.
-    destruct (s_tab_of_split self_tab f ks Hf) as [(i & Hin) | Hl].
+    destruct (s_tab_of_split T f ks Hf) as [(i & Hin) | Hl].
     - exact (s_in_good f i ks Hin b fd Hs Hff).
     - right. unfold st_find, s_leaves in Hl. cbn in Hl.
       destruct (Pos.eqb math_util._sqrtf f) eqn:E; [ | discriminate Hl ].
@@ -794,19 +801,77 @@ Section SELF.
      gCurrentObject = &pool[oc] and arguments of its kinds, changes the pool
      only inside [oc, oc + sizeof(struct Object)) and leaves
      gCurrentObject's cell alone *)
-  Theorem obj_body_self_frame : forall fid i ks b fd m vargs t m' vres,
-      In (fid, i, ks) self_tab ->
+  Theorem obj_body_frame_x : forall fid i ks b fd m vargs t m' vres,
+      In (fid, i, ks) T ->
       Genv.find_symbol ge fid = Some b -> Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
       eval_funcall function_entry2 ge m fd vargs t m' vres ->
-      Forall2 (karg pool gB oc OSZ) ks vargs -> SI pool gB oc m -> GV pool gB m ->
-      SFR pool gB oc OSZ m m'.
+      Forall2 (karg XA XB ge nb0 pool gB oc OSZ) ks vargs -> SI pool gB oc m -> GV XA ge nb0 pool gB m ->
+      SFR XA XB ge nb0 pool gB oc OSZ m m'.
   Proof.
     intros fid i ks b fd m vargs t m' vres Hin Hs Hff Hev Hva Hsi Hgv.
-    exact (s_fun_frame ge pool gB oc OSZ Hpool HgB Hoc (s_tab_of self_tab) sLeafS
+    exact (s_fun_frame XA XB ge nb0 pool gB oc OSZ Hpool HgB Hoc (s_tab_of T) sLeafS
              s_leaf_ok s_tab_good ks fd m vargs t m' vres
              (s_in_good fid i ks Hin b fd Hs Hff) Hev Hva Hsi Hgv).
   Qed.
 End SELF.
+
+(* the plain kSelf instance *)
+Theorem obj_body_self_frame : forall lp, linked12 lp -> sqrtf_spec ->
+    forall pool gB oc, Genv.find_symbol (lp_ge lp) POOL = Some pool ->
+    Genv.find_symbol (lp_ge lp) GCO = Some gB ->
+    Ptrofs.unsigned oc + OSZ <= Ptrofs.max_unsigned ->
+    forall fid i ks b fd m vargs t m' vres,
+      In (fid, i, ks) self_tab ->
+      Genv.find_symbol (lp_ge lp) fid = Some b -> Genv.find_funct (lp_ge lp) (Vptr b Ptrofs.zero) = Some fd ->
+      eval_funcall function_entry2 (lp_ge lp) m fd vargs t m' vres ->
+      Forall2 (karg None [] (lp_ge lp) xH pool gB oc OSZ) ks vargs -> SI pool gB oc m -> GV None (lp_ge lp) xH pool gB m ->
+      SFR None [] (lp_ge lp) xH pool gB oc OSZ m m'.
+Proof.
+  intros lp H12 Hsq pool gB oc Hpool HgB Hoc.
+  exact (obj_body_frame_x lp H12 Hsq pool gB oc Hpool HgB Hoc None [] xH self_tab self_walk_ok).
+Qed.
+
+(* ---------------------------------------------------------------------- *)
+(* 5b. THE PRECISE FRAME SFR' (for BhvStep's CALL_NATIVE row, 2026-11-03). *)
+(*     The same bodies walked with                                         *)
+(*       - XBn: the running slot's cells obj_w reads for a NON-SPECIAL     *)
+(*         slot (BhvStep.sp_bhvs are the special ones) plus the VM cells:  *)
+(*         gfx node links [4,20), header next/prev + parentObj [96,108),   *)
+(*         oInteractType [304,308), the VM cells curBhvCommand / stack     *)
+(*         index / stack [460,500), respawnInfoType [502,504), behavior   *)
+(*         [524,528), collisionData [536,540), respawnInfo [604,608).      *)
+(*         activeFlags is NOT protected (obj_mark_for_deletion clears it  *)
+(*         legitimately; only ow_mact reads it, for Mario's slot).         *)
+(*       - allow_n: the ONLY globals a store may land in (besides blocks  *)
+(*         allocated during the call): derived from the stores the walked *)
+(*         bodies make (play_sound's queue, random_u16's seed, find_floor *)
+(*         and find_wall's counters), each a global no INV / PhiW clause   *)
+(*         reads the contents of: sSoundRequests / sSoundRequestCount are *)
+(*         LevelGvars (the level phase writes them; ffw pins only their    *)
+(*         blocks), gRandomSeed16 is BhvStep's own random rows' cell, and  *)
+(*         the three find_floor / find_wall counters are ffw region        *)
+(*         blocks (identity only, ff_S1..ff_S3).                          *)
+(*     Every other block valid at entry -- every other global, Mario's    *)
+(*     state, the surface pools -- is unchanged; so is every pool byte    *)
+(*     outside the running slot and every XBn byte inside it.             *)
+(* ---------------------------------------------------------------------- *)
+
+Definition XBn : list (Z * Z) :=
+  [(4, 20); (96, 108); (304, 308); (460, 500); (502, 504); (524, 528); (536, 540); (604, 608)].
+
+Definition allow_n : list ident :=
+  [audio_external._sSoundRequests; audio_external._sSoundRequestCount; behavior_script._gRandomSeed16;
+   surface_collision._gFindFloorIncludeSurfaceIntangible; surface_collision._gNumFindFloorMisses;
+   surface_collision._gNumCalls].
+
+Definition self_tab_n : list s_cand := s_rounds (Some allow_n) XBn 40 s_start.
+
+(* THE WALK under SFR': every entry is clean against the final table *)
+Lemma self_walk_ok_n : forallb (s_ent_ok (Some allow_n) XBn (s_tab_of self_tab_n)) self_tab_n = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma self_tab_n_count : List.length self_tab_n = 134%nat.
+Proof. vm_compute. reflexivity. Qed.
 
 (* ---------------------------------------------------------------------- *)
 (* 6. THE kSelf CENSUS.                                                     *)

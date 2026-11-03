@@ -59,7 +59,8 @@ From SM64.Generated Require behavior_script memory behavior_data object_helpers.
 From SM64.Proofs Require Import SymbolicLinking LinkedTwelve RealFrameLinked.
 From SM64.Proofs.WMotRRequiresA Require Import BhvVM BehaviorScripts.
 From SM64.Proofs.MarioModel Require SpawnBodies.
-From SM64.Proofs.WMotRRequiresA Require RenderAnim ObjWorld ObjPhase ObjLoop ObjCensus PlatformWalk BoxCensus.
+From SM64.Proofs.WMotRRequiresA Require RenderAnim ObjWorld ObjPhase ObjLoop ObjCensus PlatformWalk BoxCensus
+  ObjSelf ObjFrame FpuFloor.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -268,6 +269,56 @@ Proof.
   refine (conj A1 (conj A2 (conj D (ex_intro _ l (conj eq_refl _))))).
   intros st' Hin. exact (vm_succ_in st l st' Hst Es Hin).
 Qed.
+
+(* ---- 5a. the CALL_NATIVE split (2026-11-03) ----
+   SPECIAL behaviors: the ones some obj_w clause reads MORE of the slot for
+   (act_ok's oAction: the jumping / exclamation boxes and the cannon;
+   red_ok's counter: the hidden red-coin star; kind_ok's pole / cannon pins
+   and the collision objects' angle velocities: the pole, the cannon and
+   its lid), and Mario's (his natives run on his own object).  sp_scripts:
+   every script a VM state reachable from a special behavior's entries
+   runs in.  A CALL_NATIVE at a state OUTSIDE sp_scripts whose callee is
+   in nat_bulk is discharged by the precise frame (ObjFrame 5b) plus one
+   keep (sfr_keep); every other one is the named residual (native_res). *)
+Definition sp_bhvs : list ident :=
+  [behavior_data._bhvPoleGrabbing; behavior_data._bhvCannon; behavior_data._bhvJumpingBox;
+   behavior_data._bhvExclamationBox; behavior_data._bhvCannonClosed;
+   behavior_data._bhvHiddenRedCoinStar; behavior_data._bhvMario].
+Definition sp_states : list vst := opt_list (explore 100000 (flat_map entries sp_bhvs) []).
+Definition sp_scripts : list ident := map v_s sp_states.
+
+Definition cn_st (st : vst) : list ident :=
+  if opc st =? 12 then
+    match nth_error (words (v_s st)) (v_i st + 1) with Some (Init_addrof t _) => [t] | _ => [] end
+  else [].
+Fixpoint idd (l : list ident) : list ident :=
+  match l with [] => [] | x :: l' => if existsb (Pos.eqb x) l' then idd l' else x :: idd l' end.
+
+(* the natives the generic states call, and the nullary SFR'-clean ones *)
+Definition cn_gen : list ident :=
+  idd (flat_map cn_st (filter (fun st => negb (existsb (Pos.eqb (v_s st)) sp_scripts)) vm_tab)).
+Definition cn_sp : list ident := idd (flat_map cn_st sp_states).
+Definition has_null (x : ident) (t : list ObjFrame.s_cand) : bool :=
+  existsb (fun c => let '(f, _, ks) := c in Pos.eqb f x && match ks with [] => true | _ => false end) t.
+Definition nat_bulk : list ident := filter (fun x => has_null x ObjFrame.self_tab_n) cn_gen.
+Definition nat_res_gen : list ident := filter (fun x => negb (has_null x ObjFrame.self_tab_n)) cn_gen.
+
+Lemma has_null_in : forall x t, has_null x t = true -> exists i, In (x, i, @nil ObjSelf.skind) t.
+Proof.
+  intros x t H. unfold has_null in H. apply existsb_exists in H as ([[f i] ks] & Hin & E).
+  apply andb_prop in E as [E1 E2]. apply Pos.eqb_eq in E1. subst f.
+  destruct ks; [ exists i; exact Hin | discriminate E2 ].
+Qed.
+
+(* the census: 107 live natives = 94 called from generic states (35 bulk,
+   59 residual) + 13 from special states (residual), disjoint *)
+Lemma cn_census : (List.length cn_gen, List.length nat_bulk, List.length nat_res_gen, List.length cn_sp,
+                   forallb (fun x => negb (existsb (Pos.eqb x) cn_sp)) cn_gen)
+                  = (94%nat, 35%nat, 59%nat, 13%nat, true).
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma bc_not_allow : existsb (Pos.eqb BS._gCurBhvCommand) ObjFrame.allow_n = false.
+Proof. vm_compute. reflexivity. Qed.
 
 Lemma tgt_ok : forall s i t j, target_at s i = Some (t, j) ->
   exists o, nth_error (words s) i = Some (Init_addrof t o) /\ o = Ptrofs.repr (4 * Z.of_nat j).
@@ -633,6 +684,34 @@ Lemma succs_begin : forall st w, word_at (v_s st) (v_i st) = Some w -> Z.shiftr 
   succs st = if Nat.ltb (List.length (words (v_s st))) (v_i st + 1) then None else
     Some [at_ st (v_s st) (v_i st + 1) (v_k st)].
 Proof. intros st w Hw Ho. unfold succs. cbv zeta. rewrite Hw, Ho. reflexivity. Qed.
+
+(* CALL_NATIVE (0x0C) moves the cursor by 2; its word 1 is the native's
+   address (computed: an Init_addrof at offset 0 in every reachable state) *)
+Lemma succs_cn : forall st w, word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 12 ->
+  succs st = if Nat.ltb (List.length (words (v_s st))) (v_i st + 2) then None else
+    Some [at_ st (v_s st) (v_i st + 2) (v_k st)].
+Proof. intros st w Hw Ho. unfold succs. cbv zeta. rewrite Hw, Ho. reflexivity. Qed.
+
+Lemma cn_w_ok :
+  forallb (fun st => if opc st =? 12 then
+                       match nth_error (words (v_s st)) (v_i st + 1) with
+                       | Some (Init_addrof _ o) => Z.eqb (Ptrofs.unsigned o) 0 | _ => false end
+                     else true) vm_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma cn_w : forall st w, In st vm_tab -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 12 ->
+  exists t, nth_error (words (v_s st)) (v_i st + 1) = Some (Init_addrof t Ptrofs.zero).
+Proof.
+  intros st w Hst Hw Ho. pose proof cn_w_ok as A.
+  rewrite forallb_forall in A. specialize (A st Hst). unfold opc, w0 in A. rewrite Hw, Ho in A.
+  cbv beta iota in A. cbn in A.
+  destruct (nth_error (words (v_s st)) (v_i st + 1)) as [d|]; [ | discriminate A ].
+  destruct d as [ x | x | x | x | x | x | x | t o ]; try discriminate A.
+  apply Z.eqb_eq in A. exists t.
+  assert (Eo : o = Ptrofs.zero)
+    by (rewrite <- (Ptrofs.repr_unsigned o), A; reflexivity).
+  rewrite Eo. reflexivity.
+Qed.
 
 (* their argument words are there at every reachable state.  PERF TRAP: inline *)
 Lemma hb_w_ok :
@@ -6662,18 +6741,200 @@ Section Link.
     - left. reflexivity.
   Qed.
 
+  (* ---- CALL_NATIVE: the bulk half, by the precise frame SFR' ---- *)
+  Hypothesis Hsq : FpuFloor.sqrtf_spec.
+  (* the slots live in gObjectPool (what gCurrentObject points into) *)
+  Hypothesis Hpool : Genv.find_symbol G ObjSelf.POOL = Some pool.
+
+  (* SFR' at entry memory m: every block valid in m stays, except the
+     running slot's non-XBn bytes, the allow_n globals, and blocks
+     allocated during the call *)
+  Definition SFPn (m : mem) : block -> Z -> Prop :=
+    ObjSelf.SFP (Some ObjFrame.allow_n) ObjFrame.XBn G (Mem.nextblock m) pool go (Ptrofs.repr oc) ObjFrame.OSZ.
+
+  (* THE KEEP (one premise for the whole bulk): INV survives any change
+     SFR' allows, at a generic slot (its state outside sp_scripts).  What
+     it asks of INV: for a generic slot, obj_w reads only XBn's cells of
+     the slot, no allow_n global's contents, and nothing allocated later.
+     (Phantom note: kind_ok's pole / cannon pins are keyed on the slot's
+     interactType and surf_obj_at's angle-velocity pins on surface
+     ownership, not on the script; the keep needs INV to tie both to the
+     special scripts -- see the SKILL open surface.) *)
+  Definition sfr_keep : Prop := forall m m1 st,
+    INV m -> V m st -> In st vm_tab -> existsb (Pos.eqb (v_s st)) sp_scripts = false ->
+    Mem.unchanged_on (SFPn m) m m1 -> INV m1.
+
+  (* THE RESIDUAL: a CALL_NATIVE at a special state (Mario's three
+     included), or of a callee with no nullary SFR'-clean entry (at a
+     generic state these are nat_res_gen) *)
+  Definition native_res : Prop := forall m st w fid bfn fd t m1 vres,
+    INV m -> V m st -> In st vm_tab ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 12 ->
+    nth_error (words (v_s st)) (v_i st + 1) = Some (Init_addrof fid Ptrofs.zero) ->
+    existsb (Pos.eqb (v_s st)) sp_scripts = true \/ has_null fid ObjFrame.self_tab_n = false ->
+    Genv.find_symbol G fid = Some bfn -> Genv.find_funct G (Vptr bfn Ptrofs.zero) = Some fd ->
+    eval_funcall function_entry2 G m fd [] t m1 vres -> INV m1 /\ V m1 st.
+
+  Lemma valid_of_load : forall ch m b z v, Mem.load ch m b z = Some v -> Plt b (Mem.nextblock m).
+  Proof.
+    intros ch m b z v H. apply (Mem.valid_access_valid_block m ch b z).
+    apply (Mem.valid_access_implies m ch b z Readable Nonempty);
+      [ exact (Mem.load_valid_access _ _ _ _ _ H) | constructor ].
+  Qed.
+
+  (* the VM cells are XBn cells / gCurBhvCommand: V survives SFR' *)
+  Lemma V_sfr : forall m m1 st, In st vm_tab -> V m st -> Mem.unchanged_on (SFPn m) m m1 -> V m1 st.
+  Proof.
+    intros m m1 st Hst HV U. destruct (st_facts st Hst) as (_ & _ & Hd & _).
+    apply V_iff in HV as ((b & Hsb & Hcm) & Hsi & Hk). apply V_iff.
+    assert (Hro : Ptrofs.unsigned (Ptrofs.repr oc) = oc) by (apply Ptrofs.unsigned_repr; rewrite maxu; lia).
+    assert (Hpool_c : forall z, oc + 460 <= z < oc + 500 -> SFPn m pool z).
+    { intros z Hz. left. split; [ reflexivity | right ].
+      exists (460, 500). split; [ unfold ObjFrame.XBn; cbn [In]; do 3 right; left; reflexivity
+                                | cbn [fst snd]; rewrite Hro; lia ]. }
+    split.
+    - exists b. split; [ exact Hsb | ].
+      rewrite (Mem.load_unchanged_on_1 _ _ _ Mint32 bc 0 U (valid_of_load _ _ _ _ _ Hcm)); [ exact Hcm | ].
+      intros i _. right. right. split; [ exact Hbp | split; [ exact (valid_of_load _ _ _ _ _ Hcm) | ] ].
+      intros (x & Hx & Hs). assert (Ex : x = BS._gCurBhvCommand) by (eapply Genv.genv_vars_inj; [ exact Hs | exact Hbc ]).
+      subst x. pose proof bc_not_allow as Hn.
+      assert (Ht : existsb (Pos.eqb BS._gCurBhvCommand) ObjFrame.allow_n = true)
+        by (apply existsb_exists; exists BS._gCurBhvCommand; split; [ exact Hx | apply Pos.eqb_refl ]).
+      rewrite Ht in Hn. discriminate Hn.
+    - split.
+      + rewrite (Mem.load_unchanged_on_1 _ _ _ Mint32 pool _ U (valid_of_load _ _ _ _ _ Hsi)); [ exact Hsi | ].
+        intros i Hi. apply Hpool_c. change (size_chunk Mint32) with 4 in Hi. unfold OW.O_SIDX in Hi. lia.
+      + intros n f Hn. pose proof (Hk n f Hn) as Hf.
+        assert (Hlt : (n < List.length (v_k st))%nat) by (apply nth_error_Some; rewrite Hn; discriminate).
+        destruct f as [s0 i0|].
+        * destruct Hf as (b0 & Hb0 & Hl0). exists b0. split; [ exact Hb0 | ].
+          rewrite (Mem.load_unchanged_on_1 _ _ _ Mint32 pool _ U (valid_of_load _ _ _ _ _ Hl0)); [ exact Hl0 | ].
+          intros i Hi. apply Hpool_c. change (size_chunk Mint32) with 4 in Hi. unfold OW.O_STK in Hi. lia.
+        * destruct Hf as (c & Hl0). exists c.
+          rewrite (Mem.load_unchanged_on_1 _ _ _ Mint32 pool _ U (valid_of_load _ _ _ _ _ Hl0)); [ exact Hl0 | ].
+          intros i Hi. apply Hpool_c. change (size_chunk Mint32) with 4 in Hi. unfold OW.O_STK in Hi. lia.
+  Qed.
+
+  (* THE BULK: a bulk native, called at a generic state, runs under SFR' *)
+  Lemma native_bulk : forall m st fid bfn fd t m1 vres,
+    INV m -> V m st -> has_null fid ObjFrame.self_tab_n = true ->
+    Genv.find_symbol G fid = Some bfn -> Genv.find_funct G (Vptr bfn Ptrofs.zero) = Some fd ->
+    eval_funcall function_entry2 G m fd [] t m1 vres -> Mem.unchanged_on (SFPn m) m m1.
+  Proof.
+    intros m st fid bfn fd t m1 vres HI HV Hb Hs Hff Hev.
+    destruct (has_null_in fid _ Hb) as (i & Hin).
+    pose proof (Hinv_cur m HI) as Hc.
+    assert (Hro : Ptrofs.unsigned (Ptrofs.repr oc) + ObjFrame.OSZ <= Ptrofs.max_unsigned)
+      by (rewrite Ptrofs.unsigned_repr by (rewrite maxu; lia); rewrite maxu; unfold ObjFrame.OSZ; lia).
+    apply V_iff in HV as (_ & Hsi & _).
+    refine (ObjFrame.obj_body_frame_x lp H12 Hsq pool go (Ptrofs.repr oc) Hpool Hgo Hro
+              (Some ObjFrame.allow_n) ObjFrame.XBn (Mem.nextblock m) ObjFrame.self_tab_n ObjFrame.self_walk_ok_n
+              fid i [] bfn fd m [] t m1 vres Hin Hs Hff Hev (Forall2_nil _) Hc _).
+    split; [ exact (valid_of_load _ _ _ _ _ Hsi) | ].
+    intros b [-> | (_ & Hlt & _)]; [ exact (valid_of_load _ _ _ _ _ Hc) | exact Hlt ].
+  Qed.
+
+  (* CALL_NATIVE's row (opcode 12).  The handler reads word 1 (the native's
+     address, cn_w), calls it, and moves the cursor by 2.  The premise is
+     pinned to the REAL callee's execution: for each reachable 0x0C state
+     (computed: ~110 natives, bhv_mario_update included), the linked
+     function at that address preserves INV and the VM cells of the
+     current state.  This is the per-native open surface (what
+     Hobj_step_act stood for), now naming each callee by the script word *)
+  Definition native_keep : Prop := forall m st w fid bfn fd t m1 vres,
+    INV m -> V m st -> In st vm_tab ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 12 ->
+    nth_error (words (v_s st)) (v_i st + 1) = Some (Init_addrof fid Ptrofs.zero) ->
+    Genv.find_symbol G fid = Some bfn -> Genv.find_funct G (Vptr bfn Ptrofs.zero) = Some fd ->
+    eval_funcall function_entry2 G m fd [] t m1 vres -> INV m1 /\ V m1 st.
+
+  (* the split discharges native_keep *)
+  Lemma native_keep_of : sfr_keep -> native_res -> native_keep.
+  Proof.
+    intros Hk Hr m st w fid bfn fd t m1 vres HI HV Hst Hw Ho Ha Hs Hff Hev.
+    destruct (existsb (Pos.eqb (v_s st)) sp_scripts) eqn:E1;
+      [ exact (Hr m st w fid bfn fd t m1 vres HI HV Hst Hw Ho Ha (or_introl E1) Hs Hff Hev) | ].
+    destruct (has_null fid ObjFrame.self_tab_n) eqn:E2;
+      [ | exact (Hr m st w fid bfn fd t m1 vres HI HV Hst Hw Ho Ha (or_intror E2) Hs Hff Hev) ].
+    pose proof (native_bulk m st fid bfn fd t m1 vres HI HV E2 Hs Hff Hev) as U.
+    split; [ exact (Hk m m1 st HI HV Hst E1 U) | exact (V_sfr m m1 st Hst HV U) ].
+  Qed.
+
+  Lemma row_call_native : native_keep -> cmd_row_op 12.
+  Proof.
+    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 12) = Some BS._bhv_cmd_call_native)
+      by (vm_compute; reflexivity).
+    rewrite E in Hid. injection Hid as <-.
+    assert (Hdm : (prog_defmap BS.prog) ! BS._bhv_cmd_call_native
+                  = Some (Gfun (Internal BS.f_bhv_cmd_call_native))) by (vm_compute; reflexivity).
+    rewrite (fun_bs _ _ Hdm _ _ Hhb Hfd) in Hev.
+    pose proof (proj1 (Hinv m HI)) as Hscr.
+    destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
+    pose proof (succs_cn st w Hw Ho) as Es. rewrite Hl in Es.
+    destruct (Nat.ltb _ _) eqn:Elt; [ discriminate Es | ]. apply Nat.ltb_ge in Elt.
+    injection Es as Es. subst l.
+    pose proof HV as HV0.
+    apply V_iff in HV as ((b & Hsb & Hcm) & HS).
+    destruct (cn_w st w Hst Hw Ho) as (fid & Ha).
+    destruct (Hscr (v_s st) b (v_i st + 1)%nat _ Hsb (in_map _ _ _ Hst) Ha) as (va & Hla & Hia).
+    cbn in Hia. destruct Hia as (bfn & Hbf & ->).
+    assert (Hilt : (v_i st + 1 < List.length (words (v_s st)))%nat)
+      by (apply nth_error_Some; rewrite Ha; discriminate).
+    remember (4 * Z.of_nat (v_i st)) as I4 eqn:EI.
+    try rewrite <- EI in Hcm.
+    replace (4 * Z.of_nat (v_i st + 1)) with (I4 + 4 * 1) in Hla by lia.
+    apply fcall_inv in Hev as (le1 & le2 & out1 & Hb & X & Hor); [ | reflexivity ].
+    cbn [fn_params BS.f_bhv_cmd_call_native bind_parameter_temps] in Hb. injection Hb as <-.
+    cbn [fn_body BS.f_bhv_cmd_call_native] in X.
+    apply RA.seq_inv in X as [(t1 & le1 & m1 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
+    apply RA.seq_inv in X1 as [(t3 & le3 & m3 & t4 & X3 & X4) | (X3 & Xn)]; [ | kill_sq X3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ X3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in X4 as [(t5 & le5 & m5 & t6 & X5 & X6) | (X5 & Xn)]; [ | kill_sq X5 Xn ].
+    apply RA.set_inv in X5 as (vq & Evq & -> & -> & _).
+    apply (ev_wkv _ _ _ b I4 1 _ _ ltac:(lia) (PTree.gss _ _ _) ltac:(lia) Hla) in Evq. subst vq.
+    apply RA.set_inv in X6 as (vf & Evf & -> & -> & _).
+    apply RA.ev_cast in Evf as (z1 & Ez1 & Cz). apply RA.ev_temp in Ez1. rewrite PTree.gss in Ez1.
+    injection Ez1 as <-. cbn in Cz. injection Cz as <-.
+    apply RA.seq_inv in X2 as [(u1 & ke1 & n1 & u2 & Y1 & Y2) | (Y1 & Xn)]; [ | kill_sq Y1 Xn ].
+    apply RA.call_inv in Y1 as (tya & tyr & cc & vfn & vargs & fd2 & vres & Hcf & Evf2 & Eal & Hff & _ & Hcl2 & -> & _).
+    cbn in Hcf. injection Hcf as <- <- <-.
+    apply RA.ev_temp in Evf2. rewrite PTree.gss in Evf2. injection Evf2 as <-.
+    assert (Ev0 : vargs = []) by (inversion Eal; reflexivity). subst vargs.
+    destruct (Hk m st w fid bfn fd2 _ n1 vres HI HV0 Hst Hw Ho Ha Hbf Hff Hcl2) as (HI1 & HV1).
+    apply V_iff in HV1 as ((b' & Hsb' & Hcm1) & HS1).
+    rewrite Hsb in Hsb'. injection Hsb' as <-.
+    try rewrite <- EI in Hcm1.
+    (* cmd = cmd + 2 *)
+    apply RA.seq_inv in Y2 as [(u11 & ke11 & n11 & u12 & Y11 & Y12) | (Y11 & Xn)]; [ | kill_sq Y11 Xn ].
+    apply RA.seq_inv in Y11 as [(u13 & ke13 & n13 & u14 & Y13 & Y14) | (Y13 & Xn)]; [ | kill_sq Y13 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Y13 Hcm1) as (-> & -> & _).
+    apply st_cmd in Y14 as (v4 & v5 & Ev4 & Hcast4 & Hs9 & -> & _).
+    apply RA.ev_binop in Ev4 as (q1 & q2 & Eq1 & Eq2 & Eadd).
+    apply RA.ev_temp in Eq1. rewrite PTree.gss in Eq1. injection Eq1 as <-.
+    apply RA.ev_const in Eq2. subst q2. cbn [typeof] in Eadd. rewrite add_pi in Eadd. injection Eadd as <-.
+    cbn [typeof] in Hcast4. rewrite cast_pp in Hcast4. injection Hcast4 as <-.
+    rewrite ptr_inc in Hs9 by lia. norm_off Hs9 (4 * Z.of_nat (v_i st + 2)).
+    destruct (bc_store _ _ _ Hs9) as (Hc9 & _ & U9).
+    apply RA.ret_inv in Y12 as (-> & rv & Erv & ->). apply RA.ev_const in Erv. subst rv.
+    cbn in Hor. destruct Hor as (_ & Hor). cbn in Hor. injection Hor as <-.
+    eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
+    - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs9 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs9) ].
+    - split; [ exact (Hinv_frame _ _ HI1 U9) | left; reflexivity ].
+  Qed.
+
   (* the pinned one-store premises of the field commands, together *)
-  Definition row_keeps : Prop := set_keep /\ setf_keep /\ addi_keep /\ ori_keep /\ addf_keep /\ sumf_keep /\ deact_keep /\ sit_keep /\ srf_keep /\ sri_keep /\ sir_keep /\ par51_ok /\ pbc_keep /\ atex_keep /\ bb_keep /\ dr_keep /\ hb_keep /\ hbo_keep /\ home_keep /\ phys_keep /\ la_keep /\ lcd_keep /\ scale_keep /\ begin_ok.
+  Definition row_keeps : Prop := set_keep /\ setf_keep /\ addi_keep /\ ori_keep /\ addf_keep /\ sumf_keep /\ deact_keep /\ sit_keep /\ srf_keep /\ sri_keep /\ sir_keep /\ par51_ok /\ pbc_keep /\ atex_keep /\ bb_keep /\ dr_keep /\ hb_keep /\ hbo_keep /\ home_keep /\ phys_keep /\ la_keep /\ lcd_keep /\ scale_keep /\ begin_ok /\ sfr_keep /\ native_res.
 
   (* the opcodes whose rows are proved: the control layer, DELAY_VAR, and
-     SET_INT / SET_FLOAT / ADD_INT / OR_INT / ADD_FLOAT / SUM_FLOAT / DEACTIVATE / SET_INTERACT_TYPE / SET_RANDOM_FLOAT / SET_RANDOM_INT / SET_INT_RAND_RSHIFT / PARENT_BIT_CLEAR / ANIMATE_TEXTURE / BILLBOARD / DISABLE_RENDERING / SET_HITBOX(_WITH_OFFSET) / SET_HOME / SET_OBJ_PHYSICS / LOAD_ANIMATIONS / LOAD_COLLISION_DATA / SCALE / BEGIN (from row_keeps) *)
-  Definition done_ops : list Z := 0 :: 50 :: 39 :: 42 :: 48 :: 45 :: 35 :: 43 :: 33 :: 53 :: 52 :: 51 :: 21 :: 19 :: 20 :: 47 :: 29 :: 31 :: 13 :: 17 :: 15 :: 14 :: 16 :: 37 :: ctl_ops.
+     SET_INT / SET_FLOAT / ADD_INT / OR_INT / ADD_FLOAT / SUM_FLOAT / DEACTIVATE / SET_INTERACT_TYPE / SET_RANDOM_FLOAT / SET_RANDOM_INT / SET_INT_RAND_RSHIFT / PARENT_BIT_CLEAR / ANIMATE_TEXTURE / BILLBOARD / DISABLE_RENDERING / SET_HITBOX(_WITH_OFFSET) / SET_HOME / SET_OBJ_PHYSICS / LOAD_ANIMATIONS / LOAD_COLLISION_DATA / SCALE / BEGIN / CALL_NATIVE (from row_keeps) *)
+  Definition done_ops : list Z := 12 :: 0 :: 50 :: 39 :: 42 :: 48 :: 45 :: 35 :: 43 :: 33 :: 53 :: 52 :: 51 :: 21 :: 19 :: 20 :: 47 :: 29 :: 31 :: 13 :: 17 :: 15 :: 14 :: 16 :: 37 :: ctl_ops.
 
   Lemma done_rows : row_keeps -> forall op, In op done_ops -> cmd_row_op op.
   Proof.
-    intros (K16 & K14 & K15 & K17 & K13 & K31 & K29 & K47 & K20 & K21 & K19 & K51p & K51 & K52 & K33 & K53 & K35 & K43 & K45 & K48 & K39 & K42 & K50 & K0) op
-      [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | H]]]]]]]]]]]]]]]]]]]]]]]];
-      [ exact (row_begin K0) | exact (row_scale K50) | exact (row_load_animations K39) | exact (row_load_collision_data K42) | exact (row_set_obj_physics K48) | exact (row_set_home K45) | exact (row_set_hitbox K35) | exact (row_set_hitbox_with_offset K43) | exact (row_billboard K33) | exact (row_disable_rendering K53) | exact (row_animate_texture K52) | exact (row_parent_bit_clear K51p K51) | exact (row_set_random_int K21) | exact (row_set_int_rand_rshift K19) | exact (row_set_random_float K20) | exact (row_set_interact_type K47) | exact (row_deactivate K29) | exact (row_sum_float K31) | exact (row_add_float K13) | exact (row_or_int K17) | exact (row_add_int K15)
+    intros (K16 & K14 & K15 & K17 & K13 & K31 & K29 & K47 & K20 & K21 & K19 & K51p & K51 & K52 & K33 & K53 & K35 & K43 & K45 & K48 & K39 & K42 & K50 & K0 & K12a & K12b) op
+      [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | H]]]]]]]]]]]]]]]]]]]]]]]]];
+      [ exact (row_call_native (native_keep_of K12a K12b)) | exact (row_begin K0) | exact (row_scale K50) | exact (row_load_animations K39) | exact (row_load_collision_data K42) | exact (row_set_obj_physics K48) | exact (row_set_home K45) | exact (row_set_hitbox K35) | exact (row_set_hitbox_with_offset K43) | exact (row_billboard K33) | exact (row_disable_rendering K53) | exact (row_animate_texture K52) | exact (row_parent_bit_clear K51p K51) | exact (row_set_random_int K21) | exact (row_set_int_rand_rshift K19) | exact (row_set_random_float K20) | exact (row_set_interact_type K47) | exact (row_deactivate K29) | exact (row_sum_float K31) | exact (row_add_float K13) | exact (row_or_int K17) | exact (row_add_int K15)
       | exact (row_set_float K14) | exact (row_set_int K16) | exact row_delay_var | exact (ctl_rows op H) ].
   Qed.
 

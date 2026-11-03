@@ -121,7 +121,7 @@ Definition to_fresh (ks : list skind) : list skind :=
 Definition p_ent_ok (tab : stab) (c : s_cand) : bool :=
   let '(fid, i, ks) := c in
   match s_body fid i with
-  | Some (ce, f) => s_fun3 ce OSZ tab spawn_rft (mem_i fid spawn_rft) ks f
+  | Some (ce, f) => s_fun3 None [] ce OSZ tab spawn_rft (mem_i fid spawn_rft) ks f
   | None => false
   end.
 
@@ -130,7 +130,7 @@ Definition p_round (st : list s_cand) : list s_cand :=
   flat_map (fun c => let '(fid, i, _) := c in
     match s_body fid i with
     | Some (ce, f) =>
-        let ok := fun ks => s_fun3 ce OSZ tab spawn_rft (mem_i fid spawn_rft) ks f in
+        let ok := fun ks => s_fun3 None [] ce OSZ tab spawn_rft (mem_i fid spawn_rft) ks f in
         let k1 := to_fresh (smart_kinds object_helpers._Object tab f) in
         let k2 := smart_kinds object_helpers._Object tab f in
         let k3 := to_fresh (typed_kinds object_helpers._Object f) in
@@ -173,8 +173,8 @@ Section SPAWNF.
       Genv.find_symbol ge SPAWN = Some b ->
       Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
       eval_funcall function_entry2 ge m fd vargs t m' vres ->
-      SI pool gB oc m -> GV pool gB m ->
-      PFR pool gB oc OSZ (Pc P) m m' /\ FVv pool oc OSZ (Pc P) vres.
+      SI pool gB oc m -> GV None ge xH pool gB m ->
+      PFR None [] ge xH pool gB oc OSZ (Pc P) m m' /\ FVv [] pool oc OSZ (Pc P) vres.
   Hypothesis Hspawn_fr : spawn_fr.
 
   Definition sLeafP (fd : Clight.fundef) (ks : list skind) (rf : bool) : Prop :=
@@ -185,8 +185,8 @@ Section SPAWNF.
 
   Lemma p_leaf_ok : forall fd ks rf, sLeafP fd ks rf ->
       forall m vargs t m' vres, eval_funcall function_entry2 ge m fd vargs t m' vres ->
-      Forall2 (karg3 pool gB oc OSZ (Pc P)) ks vargs -> SI pool gB oc m -> GV pool gB m ->
-      PFR pool gB oc OSZ (Pc P) m m' /\ (rf = true -> FVv pool oc OSZ (Pc P) vres).
+      Forall2 (karg3 None [] ge xH pool gB oc OSZ (Pc P)) ks vargs -> SI pool gB oc m -> GV None ge xH pool gB m ->
+      PFR None [] ge xH pool gB oc OSZ (Pc P) m m' /\ (rf = true -> FVv [] pool oc OSZ (Pc P) vres).
   Proof.
     intros fd ks rf [(b & Hs & Hff & _ & ->) | (b & Hs & Hff & ->)] m vargs t m' vres Hev _ Hsi Hgv.
     - rewrite (MtxfBody.sqrtf_memid lp H12 Hsq b fd m vargs t m' vres Hs Hff Hev).
@@ -198,7 +198,7 @@ Section SPAWNF.
   Lemma p_in_good : forall f i ks, In (f, i, ks) spawn_tab ->
       forall b fd, Genv.find_symbol ge f = Some b ->
       Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
-      sGood3 ge OSZ (p_tab_of spawn_tab) spawn_rft sLeafP fd ks (mem_i f spawn_rft).
+      sGood3 None [] ge OSZ (p_tab_of spawn_tab) spawn_rft sLeafP fd ks (mem_i f spawn_rft).
   Proof.
     intros f i ks Hin b fd Hs Hff.
     pose proof (proj1 (forallb_forall _ _) spawn_walk_ok _ Hin) as Hc.
@@ -220,7 +220,7 @@ Section SPAWNF.
   Lemma p_tab_good : forall f ks, st_find f (p_tab_of spawn_tab) = Some ks ->
       forall b fd, Genv.find_symbol ge f = Some b ->
       Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
-      sGood3 ge OSZ (p_tab_of spawn_tab) spawn_rft sLeafP fd ks (mem_i f spawn_rft).
+      sGood3 None [] ge OSZ (p_tab_of spawn_tab) spawn_rft sLeafP fd ks (mem_i f spawn_rft).
   Proof.
     intros f ks Hf b fd Hs Hff.
     destruct (p_tab_of_split spawn_tab f ks Hf) as [(i & Hin) | Hl].
@@ -243,11 +243,11 @@ Section SPAWNF.
       In (fid, i, ks) spawn_tab ->
       Genv.find_symbol ge fid = Some b -> Genv.find_funct ge (Vptr b Ptrofs.zero) = Some fd ->
       eval_funcall function_entry2 ge m fd vargs t m' vres ->
-      Forall2 (karg3 pool gB oc OSZ (Pc P)) ks vargs -> SI pool gB oc m -> GV pool gB m ->
-      PFR pool gB oc OSZ (Pc P) m m' /\ (mem_i fid spawn_rft = true -> FVv pool oc OSZ (Pc P) vres).
+      Forall2 (karg3 None [] ge xH pool gB oc OSZ (Pc P)) ks vargs -> SI pool gB oc m -> GV None ge xH pool gB m ->
+      PFR None [] ge xH pool gB oc OSZ (Pc P) m m' /\ (mem_i fid spawn_rft = true -> FVv [] pool oc OSZ (Pc P) vres).
   Proof.
     intros fid i ks b fd m vargs t m' vres Hin Hs Hff Hev Hva Hsi Hgv.
-    exact (s_fun_frame3 ge pool gB oc OSZ Hpool HgB Hoc (p_tab_of spawn_tab) (Pc P) spawn_rft sLeafP
+    exact (s_fun_frame3 None [] ge xH pool gB oc OSZ Hpool HgB Hoc (p_tab_of spawn_tab) (Pc P) spawn_rft sLeafP
              p_leaf_ok p_tab_good ks (mem_i fid spawn_rft) fd m vargs t m' vres
              (p_in_good fid i ks Hin b fd Hs Hff) Hev Hva Hsi Hgv).
   Qed.

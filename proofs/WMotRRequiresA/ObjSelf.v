@@ -61,7 +61,20 @@ Definition st_find (f : ident) (t : stab) : option (list skind) :=
   match find (fun p => Pos.eqb (fst p) f) t with Some (_, ks) => Some ks | None => None end.
 
 Definition mem_i (x : ident) (l : list ident) : bool := existsb (Pos.eqb x) l.
-Definition forbidden (x : ident) : bool := Pos.eqb x POOL || Pos.eqb x GCO.
+
+(* SFR' (the precise frame).  XA = Some al: an ALLOW-LIST al of globals --
+   an NP store may land only in an al global's block or in a block
+   allocated after entry (SW's nb0: nextblock at entry); every other block
+   valid at entry is protected.  XB: PROTECTED OWN CELLS (byte ranges of
+   the running slot no SELF / FRESH store may touch).  XA = None, XB = []
+   is the plain kSelf frame. *)
+Section XS.
+Variable XA : option (list ident).
+Variable XB : list (Z * Z).
+
+Definition forbidden (x : ident) : bool :=
+  Pos.eqb x POOL || Pos.eqb x GCO
+  || match XA with Some al => negb (mem_i x al) | None => false end.
 
 Definition nonptr_chunk (ch : memory_chunk) : bool :=
   match ch with
@@ -245,13 +258,22 @@ Definition self_store (ce : composite_env) (ss : list ident) (SZ : Z) (l : expr)
   | _, _ => false
   end.
 
+(* the store's bytes [d, d + size) miss every XB range *)
+Definition hits (d n : Z) : bool := existsb (fun r => (d <? snd r) && (fst r <? d + n)) XB.
+Definition own_ok (ce : composite_env) (ss : list ident) (l : expr) : bool :=
+  match access_mode (typeof l), lad ce ss l with
+  | By_value ch, Some d => negb (hits d (size_chunk ch))
+  | _, _ => true
+  end.
+
 (* sf: FRESH temps -- a pointer to a slot the frame does not protect (a
    just-spawned object: the result of a fresh-returning callee, rft) *)
 Definition st_set (ss sn sf lv : list ident) (id : ident) (a : expr) : bool :=
   (negb (mem_i id ss) || selfdef ss lv a) && (negb (mem_i id sn) || npv sn a)
   && (negb (mem_i id sf) || selfv sf a || selfv ss a).
 Definition st_store (ce : composite_env) (ss sn sf : list ident) (SZ : Z) (l r : expr) : bool :=
-  MtxfBody.is_byval (typeof l) && (npl sn l || self_store ce ss SZ l || self_store ce sf SZ l).
+  MtxfBody.is_byval (typeof l) && (npl sn l || (self_store ce ss SZ l && own_ok ce ss l)
+                                    || (self_store ce sf SZ l && own_ok ce sf l)).
 Definition st_call (ss sn sf lv : list ident) (tab : stab) (rft : list ident)
     (optid : option ident) (a : expr) (al : list expr) : bool :=
   match a with
@@ -435,6 +457,7 @@ Qed.
 
 Section SW.
   Variable ge : genv.
+  Variable nb0 : block.
   Variables pool gB : block.
   Variable oc : ptrofs.
   Variable SZ : Z.
@@ -450,25 +473,61 @@ Section SW.
     vm_compute. discriminate.
   Qed.
 
-  Lemma glob_np : forall x b, forbidden x = false -> Genv.find_symbol ge x = Some b ->
-      b <> pool /\ b <> gB.
+  (* the protected non-pool blocks: gCurrentObject's, and (allow-list mode)
+     every block valid at entry that is no allowed global's *)
+  Definition PB (b : block) : Prop :=
+    b = gB \/ match XA with
+              | Some al => b <> pool /\ Plt b nb0
+                                  /\ ~ (exists x, In x al /\ Genv.find_symbol ge x = Some b)
+              | None => False
+              end.
+
+  Lemma mem_i_false : forall x l, mem_i x l = false -> ~ In x l.
   Proof.
-    intros x b Hf Hs. unfold forbidden in Hf. apply orb_false_iff in Hf as [H1 H2].
-    apply Pos.eqb_neq in H1. apply Pos.eqb_neq in H2.
-    split; [ exact (Genv.global_addresses_distinct ge H1 Hs Hpool)
-           | exact (Genv.global_addresses_distinct ge H2 Hs HgB) ].
+    intros x l H Hin. assert (E : mem_i x l = true).
+    { unfold mem_i. apply existsb_exists. exists x. split; [ exact Hin | apply Pos.eqb_refl ]. }
+    congruence.
   Qed.
 
-  Definition NPv (v : val) : Prop := forall b o, v = Vptr b o -> b <> pool /\ b <> gB.
+  Lemma mem_i_true : forall x l, mem_i x l = true -> In x l.
+  Proof.
+    intros x l H. unfold mem_i in H. apply existsb_exists in H as (y & Hy & E).
+    apply Pos.eqb_eq in E. subst y. exact Hy.
+  Qed.
+
+  Lemma pool_not_PB : ~ PB pool.
+  Proof.
+    unfold PB. intros [E | H]; [ exact (pool_ne_gB E) | ].
+    destruct XA as [al|]; [ destruct H as (Hne & _); exact (Hne eq_refl) | exact H ].
+  Qed.
+
+  Lemma glob_np : forall x b, forbidden x = false -> Genv.find_symbol ge x = Some b ->
+      b <> pool /\ ~ PB b.
+  Proof.
+    intros x b Hf Hs. unfold forbidden in Hf. apply orb_false_iff in Hf as [Hf H3].
+    apply orb_false_iff in Hf as [H1 H2].
+    apply Pos.eqb_neq in H1. apply Pos.eqb_neq in H2.
+    split; [ exact (Genv.global_addresses_distinct ge H1 Hs Hpool) | ].
+    unfold PB. intros [E | H]; [ exact (Genv.global_addresses_distinct ge H2 Hs HgB E) | ].
+    destruct XA as [al|]; [ | exact H ].
+    destruct H as (_ & _ & Hn). apply Hn. exists x. split; [ | exact Hs ].
+    apply mem_i_true. apply negb_false_iff. exact H3.
+  Qed.
+
+  Definition NPv (v : val) : Prop := forall b o, v = Vptr b o -> b <> pool /\ ~ PB b.
   Definition SVv (v : val) : Prop := forall b o, v = Vptr b o -> b = pool /\ o = oc.
   Definition TI (ss sn : list ident) (le : temp_env) : Prop :=
     forall t v, le ! t = Some v -> (mem_i t ss = true -> SVv v) /\ (mem_i t sn = true -> NPv v).
   Definition EI (lv : list ident) (e : env) : Prop :=
-    forall x b ty, e ! x = Some (b, ty) -> b <> pool /\ b <> gB /\ mem_i x lv = true.
+    forall x b ty, e ! x = Some (b, ty) -> b <> pool /\ ~ PB b /\ mem_i x lv = true.
   Definition SI (m : mem) : Prop := Mem.load Mint32 m gB 0 = Some (Vptr pool oc).
-  Definition GV (m : mem) : Prop := Plt pool (Mem.nextblock m) /\ Plt gB (Mem.nextblock m).
+  Definition GV (m : mem) : Prop :=
+    Plt pool (Mem.nextblock m) /\ forall b, PB b -> Plt b (Mem.nextblock m).
   Definition own (ofs : Z) : Prop := Ptrofs.unsigned oc <= ofs < Ptrofs.unsigned oc + SZ.
-  Definition SFP (b : block) (ofs : Z) : Prop := (b = pool /\ ~ own ofs) \/ b = gB.
+  (* an XB cell of the running slot *)
+  Definition obad (ofs : Z) : Prop :=
+    exists r, In r XB /\ Ptrofs.unsigned oc + fst r <= ofs < Ptrofs.unsigned oc + snd r.
+  Definition SFP (b : block) (ofs : Z) : Prop := (b = pool /\ (~ own ofs \/ obad ofs)) \/ PB b.
   Definition SFR (m m' : mem) : Prop := Mem.unchanged_on SFP m m'.
   Definition cext (ce : composite_env) : Prop :=
     forall id co, ce ! id = Some co -> (genv_cenv ge) ! id = Some co.
@@ -481,14 +540,33 @@ Section SW.
   Lemma GV_SFR : forall m m', GV m -> SFR m m' -> GV m'.
   Proof.
     intros m m' (H1 & H2) HU. pose proof (Mem.unchanged_on_nextblock _ _ _ HU) as Hn.
-    split; eapply Plt_Ple_trans; eassumption.
+    split; [ eapply Plt_Ple_trans; eassumption | intros b Hb; exact (Plt_Ple_trans _ _ _ (H2 b Hb) Hn) ].
   Qed.
 
   Lemma SI_SFR : forall m m', SI m -> GV m -> SFR m m' -> SI m'.
   Proof.
     intros m m' Hs (_ & Hg) HU. unfold SI.
-    rewrite (Mem.load_unchanged_on_1 _ _ _ Mint32 gB 0 HU Hg (fun i _ => or_intror eq_refl)).
+    rewrite (Mem.load_unchanged_on_1 _ _ _ Mint32 gB 0 HU (Hg gB (or_introl eq_refl))
+               (fun i _ => or_intror (or_introl eq_refl))).
     exact Hs.
+  Qed.
+
+  Lemma hits_sound : forall d n r j, hits d n = false -> In r XB ->
+      fst r <= j < snd r -> d <= j < d + n -> False.
+  Proof.
+    intros d n r j H Hin H1 H2. unfold hits in H.
+    assert (E : existsb (fun r => (d <? snd r) && (fst r <? d + n)) XB = true).
+    { apply existsb_exists. exists r. split; [ exact Hin | ].
+      apply andb_true_iff. split; apply Z.ltb_lt; lia. }
+    congruence.
+  Qed.
+
+  Lemma own_ok_bad : forall o d ch i, hits d (size_chunk ch) = false ->
+      Ptrofs.unsigned o = Ptrofs.unsigned oc + d ->
+      Ptrofs.unsigned o <= i < Ptrofs.unsigned o + size_chunk ch -> ~ obad i.
+  Proof.
+    intros o d ch i H Ho Hi (r & Hr & Hb).
+    apply (hits_sound d (size_chunk ch) r (i - Ptrofs.unsigned oc) H Hr); lia.
   Qed.
 
   Lemma own_off : forall d, 0 <= d <= SZ ->
@@ -549,7 +627,7 @@ Section SW.
                b = pool /\ o = Ptrofs.add oc (Ptrofs.repr d))
          /\ (forall k, cint a = Some k -> v = Vint k))
       /\ (forall a b o bf, eval_lvalue ge e le m a b o bf ->
-         (npl sn a = true -> b <> pool /\ b <> gB)
+         (npl sn a = true -> b <> pool /\ ~ PB b)
          /\ (forall d, lad ce ss a = Some d -> b = pool /\ o = Ptrofs.add oc (Ptrofs.repr d) /\ bf = Full)
          /\ lshape a = true).
     Proof.
@@ -833,11 +911,12 @@ Section SW.
   Section GEN.
     Variable Pc : Z -> Prop.
 
-    Definition PFP (b : block) (ofs : Z) : Prop := b = gB \/ (b = pool /\ ~ own ofs /\ Pc ofs).
+    Definition PFP (b : block) (ofs : Z) : Prop :=
+      PB b \/ (b = pool /\ ~ own ofs /\ Pc ofs) \/ (b = pool /\ obad ofs).
     Definition PFR (m m' : mem) : Prop := Mem.unchanged_on PFP m m'.
     Definition FO (o : ptrofs) : Prop :=
       Ptrofs.unsigned o + SZ <= Ptrofs.max_unsigned
-      /\ forall d, 0 <= d < SZ -> ~ Pc (Ptrofs.unsigned o + d).
+      /\ forall d, 0 <= d < SZ -> ~ Pc (Ptrofs.unsigned o + d) /\ ~ obad (Ptrofs.unsigned o + d).
     (* a WRITABLE slot pointer: the running slot, or a slot with no protected byte *)
     Definition FVv (v : val) : Prop := forall b o, v = Vptr b o -> b = pool /\ (o = oc \/ FO o).
     Definition karg3 (k : skind) (v : val) : Prop :=
@@ -852,17 +931,19 @@ Section SW.
     Lemma SFR_PFR : forall m m', SFR m m' -> PFR m m'.
     Proof.
       intros m m' H. apply (Mem.unchanged_on_implies _ _ _ _ H).
-      intros b ofs [E | (E & Hn & _)] _; [ right; exact E | left; split; [ exact E | exact Hn ] ].
+      intros b ofs [E | [(E & Hn & _) | (E & Hb)]] _;
+        [ right; exact E | left; split; [ exact E | left; exact Hn ] | left; split; [ exact E | right; exact Hb ] ].
     Qed.
     Lemma GV_PFR : forall m m', GV m -> PFR m m' -> GV m'.
     Proof.
       intros m m' (H1 & H2) HU. pose proof (Mem.unchanged_on_nextblock _ _ _ HU) as Hn.
-      split; eapply Plt_Ple_trans; eassumption.
+      split; [ eapply Plt_Ple_trans; eassumption | intros b Hb; exact (Plt_Ple_trans _ _ _ (H2 b Hb) Hn) ].
     Qed.
     Lemma SI_PFR : forall m m', SI m -> GV m -> PFR m m' -> SI m'.
     Proof.
       intros m m' Hs (_ & Hg) HU. unfold SI.
-      rewrite (Mem.load_unchanged_on_1 _ _ _ Mint32 gB 0 HU Hg (fun i _ => or_introl eq_refl)).
+      rewrite (Mem.load_unchanged_on_1 _ _ _ Mint32 gB 0 HU (Hg gB (or_introl eq_refl))
+                 (fun i _ => or_introl (or_introl eq_refl))).
       exact Hs.
     Qed.
 
@@ -954,13 +1035,15 @@ Section SW.
         destruct (Hse _ _ _ _ Hlv) as (Hn & _ & _).
         destruct (Hn Hnp) as (Hq1 & Hq2).
         apply (ObjWalk.assign_loc_unch _ _ _ _ _ _ _ _ _ Hal).
-        intros i [E | (E & _)]; congruence.
+        intros i [E | [(E & _) | (E & _)]]; [ exact (Hq2 E) | congruence | congruence ].
       - pose proof (s_eval ce Hce ss sn e _ m HT lv HE) as Hse.
         destruct Hse as (_ & Hse).
         destruct (Hse _ _ _ _ Hlv) as (_ & Hp & _).
-        unfold self_store in Hself.
+        apply andb_prop in Hself as [Hself Hown].
+        unfold self_store in Hself. unfold own_ok in Hown.
         destruct (access_mode (typeof l)) eqn:Ea; try discriminate Hself.
         destruct (lad ce ss l) as [d|] eqn:Ed; [ | discriminate Hself ].
+        apply negb_true_iff in Hown.
         apply andb_prop in Hself as [H0 Hsz]. apply Z.leb_le in H0. apply Z.leb_le in Hsz.
         destruct (Hp d eq_refl) as (-> & -> & ->).
         pose proof (size_chunk_pos m0) as Hpos.
@@ -968,14 +1051,16 @@ Section SW.
         + match goal with Ha : access_mode _ = By_value _ |- _ => rewrite Ea in Ha; injection Ha as <- end.
           match goal with Hs : Mem.storev _ _ _ _ = Some _ |- _ => unfold Mem.storev in Hs end.
           eapply Mem.store_unchanged_on; [ eassumption | ].
-          rewrite own_off by lia.
-          intros i Hi [E | (_ & Hno & _)].
-          * exact (pool_ne_gB E).
-          * apply Hno. unfold own. lia.
+          intros i Hi [E | [(_ & Hno & _) | (_ & Hbd)]].
+          * exact (pool_not_PB E).
+          * apply Hno. rewrite own_off in Hi by lia. unfold own. lia.
+          * refine (own_ok_bad _ d _ i Hown _ Hi Hbd). apply own_off. lia.
         + match goal with Ha : access_mode _ = By_copy |- _ => rewrite Ea in Ha; discriminate Ha end.
-      - unfold self_store in Hfr.
+      - apply andb_prop in Hfr as [Hfr Hown].
+        unfold self_store in Hfr. unfold own_ok in Hown.
         destruct (access_mode (typeof l)) eqn:Ea; try discriminate Hfr.
         destruct (lad ce sf l) as [d|] eqn:Ed; [ | discriminate Hfr ].
+        apply negb_true_iff in Hown.
         apply andb_prop in Hfr as [H0 Hsz]. apply Z.leb_le in H0. apply Z.leb_le in Hsz.
         destruct (proj2 (pad_gen ce Hce ss sn e _ m HT lv HE sf (fun o => o = oc \/ FO o) HF) _ _ _ _ Hlv d Ed)
           as (-> & (o0 & Ho0 & ->) & ->).
@@ -985,13 +1070,17 @@ Section SW.
           match goal with Hs : Mem.storev _ _ _ _ = Some _ |- _ => unfold Mem.storev in Hs end.
           eapply Mem.store_unchanged_on; [ eassumption | ].
           destruct Ho0 as [-> | (Hmax & Hfo)].
-          * rewrite own_off by lia.
-            intros i Hi [E | (_ & Hno & _)]; [ exact (pool_ne_gB E) | apply Hno; unfold own; lia ].
+          * intros i Hi [E | [(_ & Hno & _) | (_ & Hbd)]].
+            -- exact (pool_not_PB E).
+            -- apply Hno. rewrite own_off in Hi by lia. unfold own; lia.
+            -- refine (own_ok_bad _ d _ i Hown _ Hi Hbd). apply own_off. lia.
           * rewrite ptr_off by lia.
-            intros i Hi [E | (_ & _ & Hpc)].
-            -- exact (pool_ne_gB E).
-            -- apply (Hfo (i - Ptrofs.unsigned o0)); [ lia | ].
+            intros i Hi [E | [(_ & _ & Hpc) | (_ & Hbd)]].
+            -- exact (pool_not_PB E).
+            -- apply (proj1 (Hfo (i - Ptrofs.unsigned o0) ltac:(lia))).
                replace (Ptrofs.unsigned o0 + (i - Ptrofs.unsigned o0)) with i by lia. exact Hpc.
+            -- apply (proj2 (Hfo (i - Ptrofs.unsigned o0) ltac:(lia))).
+               replace (Ptrofs.unsigned o0 + (i - Ptrofs.unsigned o0)) with i by lia. exact Hbd.
         + match goal with Ha : access_mode _ = By_copy |- _ => rewrite Ea in Ha; discriminate Ha end.
     Qed.
 
@@ -1162,7 +1251,7 @@ Section SW.
             [ rewrite PTree.gempty in Hq0; discriminate Hq0 | ].
           destruct Hgv as (G1 & G2).
           split; [ intros E; subst b; exact (Plt_strict _ (Plt_Ple_trans _ _ _ G1 Hp)) | ].
-          split; [ intros E; subst b; exact (Plt_strict _ (Plt_Ple_trans _ _ _ G2 Hp)) | ].
+          split; [ intros Hpb; exact (Plt_strict _ (Plt_Ple_trans _ _ _ (G2 b Hpb) Hp)) | ].
           exact (mem_i_in _ _ Hin). }
         assert (HTF : TI ss sn le1 /\ TIF sf le1).
         { assert (Hpt : forall t0 v, le1 ! t0 = Some v ->
@@ -1199,7 +1288,7 @@ Section SW.
           apply (ObjWalk.fl_unch _ _ _ _ Hfree). intros b lo hi Hin i _ Hp.
           destruct (ObjWalk.boe_in _ _ _ _ _ Hin) as (x & ty & Hx).
           destruct (HE _ _ _ Hx) as (Hq1 & Hq2 & _).
-          destruct Hp as [E | (E & _)]; congruence.
+          destruct Hp as [E | [(E & _) | (E & _)]]; [ exact (Hq2 E) | congruence | congruence ].
         + intros Hrf b o E. subst vres.
           destruct out as [ | | | [[v' t']|] ]; cbn in Hor;
             try (destruct (fn_return f); try contradiction; discriminate Hor).
@@ -1265,9 +1354,11 @@ Section SW.
     destruct (s_fun_frame3 (fun _ => True) [] (fun fd ks rf => sLeaf fd ks /\ rf = false) HL3 HT3
                 ks false fd m vargs t m' vres Hg3 Hev Hva Hsi Hgv) as (HP & _).
     apply (Mem.unchanged_on_implies _ _ _ _ HP).
-    intros b ofs [(E & Hn) | E] _; [ right; exact (conj E (conj Hn I)) | left; exact E ].
+    intros b ofs [(E & [Hn | Hb]) | E] _;
+      [ right; left; exact (conj E (conj Hn I)) | right; right; exact (conj E Hb) | left; exact E ].
   Qed.
 End SW.
+End XS.
 
 (* ---------------------------------------------------------------------- *)
 (* 4. Table lookup, and the kind GUESS for a table's fixpoint.            *)

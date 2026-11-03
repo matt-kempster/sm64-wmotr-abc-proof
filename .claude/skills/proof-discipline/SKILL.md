@@ -779,9 +779,19 @@ all in `Unwired/`, and the theorem moved nowhere. See
        50 (SCALE: real cur_obj_scale, fun_oh / lv_scale) and 0 (BEGIN: cohb_call, cmp_ne,
        positive begin_ok) DONE. Traps: `cbn in *` in a section with G hangs (use kill_r);
        a void callee's call_inv ends `-> & _`.
-       Next: rows 12 (CALL_NATIVE: ~110 callees, per-callee premise), 28 / 55 (allocate
-       path), 30 (find_floor_height), 40 (geo_obj_init_animation: needs an anim-table
-       initializer pin from Hseg);
+       12 (CALL_NATIVE) DONE as a SPLIT: ObjSelf generalized to SFR' (XA allow-list of
+       globals + nb0, XB protected own cells; None / [] = old kSelf); ObjFrame 5b walks
+       self_tab_n (134) under allow_n / XBn; BhvStep: bulk 35 natives at generic states by
+       native_bulk + ONE keep sfr_keep, residual native_res (59 generic + 13 special).
+       OPEN in sfr_keep (Hseg): INV must tie kind_ok's POLE / CANNON_BASE pins (keyed on
+       oInteractType) and surf_obj_at's ANGV pins (keyed on surface ownership) to the
+       special scripts, else a generic slot with such a type would make the keep false.
+       PERF TRAPS: `apply filter_In` / `exact` on a hypothesis about a COMPUTED list
+       (nat_bulk := filter .. cn_gen) hung (elaborator / kernel unfold the list); test
+       membership by the generic predicate (has_null fid self_tab_n) instead.
+       `congruence` with a computed list in context: 127 s (use rewrite; discriminate).
+       Next: the spawn / allocate footprint (Hspawn_fr; rows 28 / 55 and ~50 residual
+       natives), then the 6 value-contract natives, then 30 / 40;
        the pre-/post-loop code of cur_obj_update; the loop INV = obj_w minus the current
        slot's ow_vm; then narrow Hobj_step_rest.
        DONE 2026-11-03 (ObjWorld 3e): obj_w gains ow_mact (Mario ACTIVE + in bhvMario),

@@ -1347,7 +1347,23 @@ without pressing A".*
   runs his init chain (SET_INT, OR_INT x2, SET_HITBOX 37/160 into @504/508, inside PhiW's
   Mario window). Those keeps are discharged against bhvMario's real VM states (clause sent
   to Hseg: Mario's (cmd, stack) is one of bhvMario's ten vm_tab states), not phantom.
-  The pinned premises are bundled as `row_keeps`.
+  CALL_NATIVE (12, `row_call_native`): the handler is the generated body (word 1 is the
+  native's address). The callee's effect is split, not one premise per native.
+  BULK: at a state outside `sp_scripts` (the scripts reachable from the 7 special
+  behaviors: pole, cannon, cannon lid, jumping / exclamation box, hidden red-coin star,
+  Mario), a callee with a nullary entry in `ObjFrame.self_tab_n` runs under the PRECISE
+  frame SFR' (`native_bulk`, from `ObjFrame.obj_body_frame_x` / `ObjSelf.s_fun_frame`
+  with XA = `allow_n`, XB = `XBn`). Every block valid at entry is unchanged except the
+  running slot's non-XBn bytes, the 6 `allow_n` globals (play_sound's queue, random_u16's
+  seed, the find_floor / find_wall counters) and blocks allocated during the call. The
+  VM cells are XBn cells, so V survives (`V_sfr`), and INV survives by ONE keep
+  (`sfr_keep`). 35 of the 94 natives generic states call are bulk (`cn_census`).
+  RESIDUAL (`native_res`): the other 59 generic natives (cross-slot writers: spawn /
+  allocate, the 5 obj_set_hitbox interactType writers, red_coin_init's parent) and the
+  13 called from special states (Mario's three included). BhvStep now also takes
+  `Hsq` (sqrtf_spec, the FPU floor row already in the ledger) and `Hpool` (the current
+  slot lives in gObjectPool). No new trust row; ObjFrame's whole-walk frame (ls_frame)
+  is not used. The pinned premises are bundled as `row_keeps`.
   Wiring it in needs the loop's INV to be obj_w minus the current slot's `ow_vm`.
   **`ow_scr` (2026-11-03): `scr_ok` is an obj_w clause.** `ObjWorld.scr_ok` (moved from
   BhvStep, which keeps its names as notations) is obj_w's 21st clause; the boot witness
