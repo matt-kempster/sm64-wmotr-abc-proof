@@ -1336,7 +1336,18 @@ without pressing A".*
   store of word 1 (through the identity `segmented_to_virtual`, 2.2) into collisionData @536.
   obj_w DOES read @536 (`coll_pin`), and the only users are bhvCannonClosed /
   bhvExclamationBox, the LIDS / BOXS of coll_pin, so the discharge is the vm fact that their
-  word 1 is that mesh at offset 0. The pinned premises are bundled as `row_keeps`.
+  word 1 is that mesh at offset 0. SCALE (50) from `scale_keep`: the real cur_obj_scale
+  (object_helpers, linked) stores (s16)(w) / 100.0f into the current slot's
+  header.gfx.scale @44/48/52; obj_w reads only the node links @4/8/12 (users:
+  bhvRedCoinStarMarker, bhvRotatingExclamationMark -- not Mario). BEGIN (0) from `begin_ok`,
+  POSITIVE: the current slot's behavior @524 is a valid pointer, and bhvHauntedChair /
+  bhvMadPiano / bhvMessagePanel are linked, valid and in other blocks. The three real
+  cur_obj_has_behavior calls then return 0, and only the cursor moves (Pfr). Its 95 states
+  include bhvMario's head: at the start witness Mario is at bhvMario[0], so frame 1 really
+  runs his init chain (SET_INT, OR_INT x2, SET_HITBOX 37/160 into @504/508, inside PhiW's
+  Mario window). Those keeps are discharged against bhvMario's real VM states (clause sent
+  to Hseg: Mario's (cmd, stack) is one of bhvMario's ten vm_tab states), not phantom.
+  The pinned premises are bundled as `row_keeps`.
   Wiring it in needs the loop's INV to be obj_w minus the current slot's `ow_vm`.
   **`ow_scr` (2026-11-03): `scr_ok` is an obj_w clause.** `ObjWorld.scr_ok` (moved from
   BhvStep, which keeps its names as notations) is obj_w's 21st clause; the boot witness

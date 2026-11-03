@@ -776,8 +776,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
        48 (physics; ev_wk / ev_wkv: script word k), 39 (lv_rawvp: asVoidPtr[field]) and 42
        (collisionData via s2v_call; coll_pin reads it) DONE. Trap: `repeat (rewrite
        PTree.gso by ..)` under an evar goal hung -- use counted `do N`.
-       Next: rows 0 (BEGIN: cur_obj_has_behavior x3), 12, 28, 30 (find_floor), 40
-       (geo_obj_init_animation), 50 (cur_obj_scale), 55;
+       50 (SCALE: real cur_obj_scale, fun_oh / lv_scale) and 0 (BEGIN: cohb_call, cmp_ne,
+       positive begin_ok) DONE. Traps: `cbn in *` in a section with G hangs (use kill_r);
+       a void callee's call_inv ends `-> & _`.
+       Next: rows 12 (CALL_NATIVE: ~110 callees, per-callee premise), 28 / 55 (allocate
+       path), 30 (find_floor_height), 40 (geo_obj_init_animation: needs an anim-table
+       initializer pin from Hseg);
        the pre-/post-loop code of cur_obj_update; the loop INV = obj_w minus the current
        slot's ow_vm; then narrow Hobj_step_rest.
        DONE 2026-11-03 (ObjWorld 3e): obj_w gains ow_mact (Mario ACTIVE + in bhvMario),

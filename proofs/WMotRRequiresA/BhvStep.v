@@ -55,7 +55,7 @@
 From Coq Require Import ZArith Lia List Bool.
 From compcert Require Import Coqlib Integers Floats Values AST Ctypes Cop Clight
   ClightBigstep Clightdefs Memory Maps Globalenvs Events Errors Linking.
-From SM64.Generated Require behavior_script memory behavior_data.
+From SM64.Generated Require behavior_script memory behavior_data object_helpers.
 From SM64.Proofs Require Import SymbolicLinking LinkedTwelve RealFrameLinked.
 From SM64.Proofs.WMotRRequiresA Require Import BhvVM BehaviorScripts.
 From SM64.Proofs.MarioModel Require SpawnBodies.
@@ -66,6 +66,7 @@ Local Open Scope Z_scope.
 Module BS := SM64.Generated.behavior_script.
 Module OW := ObjWorld.
 Module RA := RenderAnim.
+Module OH := SM64.Generated.object_helpers.
 
 (* ---- 1. VM bookkeeping ---- *)
 Lemma frame_eqb_eq : forall a b, frame_eqb a b = true -> a = b.
@@ -621,6 +622,18 @@ Proof.
   exists t, o; reflexivity.
 Qed.
 
+(* SCALE (0x32) moves the cursor by 1 *)
+Lemma succs_scale : forall st w, word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 50 ->
+  succs st = if Nat.ltb (List.length (words (v_s st))) (v_i st + 1) then None else
+    Some [at_ st (v_s st) (v_i st + 1) (v_k st)].
+Proof. intros st w Hw Ho. unfold succs. cbv zeta. rewrite Hw, Ho. reflexivity. Qed.
+
+(* BEGIN (0x00) moves the cursor by 1 *)
+Lemma succs_begin : forall st w, word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 0 ->
+  succs st = if Nat.ltb (List.length (words (v_s st))) (v_i st + 1) then None else
+    Some [at_ st (v_s st) (v_i st + 1) (v_k st)].
+Proof. intros st w Hw Ho. unfold succs. cbv zeta. rewrite Hw, Ho. reflexivity. Qed.
+
 (* their argument words are there at every reachable state.  PERF TRAP: inline *)
 Lemma hb_w_ok :
   forallb (fun st => if (opc st =? 35) || (opc st =? 43) then
@@ -735,6 +748,19 @@ Lemma add_pi : forall (ce : composite_env) b o n m,
   sem_binary_operation ce Oadd (Vptr b o) (tptr tuint) (Vint n) tint m
   = Some (Vptr b (Ptrofs.add o (Ptrofs.mul (Ptrofs.repr 4) (Ptrofs.of_ints n)))).
 Proof. reflexivity. Qed.
+
+(* two valid pointers into different blocks compare unequal *)
+Lemma cmp_ne : forall (ce : composite_env) m bb ob bs, bb <> bs ->
+  Mem.valid_pointer m bb (Ptrofs.unsigned ob) = true -> Mem.valid_pointer m bs 0 = true ->
+  sem_binary_operation ce Oeq (Vptr bb ob) (tptr tuint) (Vptr bs Ptrofs.zero) (tptr tvoid) m
+  = Some (Vint Int.zero).
+Proof.
+  intros ce m bb ob bs Hne H1 H2.
+  unfold sem_binary_operation, sem_cmp. cbn.
+  unfold cmp_ptr, Val.cmpu_bool. cbn.
+  destruct (eq_block bb bs) as [E | _]; [ contradiction | ].
+  rewrite H1. cbn. rewrite ?Ptrofs.unsigned_zero. rewrite H2. reflexivity.
+Qed.
 
 (* pointer-to-pointer casts (and through u32: ILP32) keep the pointer *)
 Lemma cast_pp : forall b o t1 t2 m, sem_cast (Vptr b o) (tptr t1) (tptr t2) m = Some (Vptr b o).
@@ -962,6 +988,12 @@ Section Link.
   Proof. apply (RA.fo_ok_lift (prog_comp_env BS.prog)); [ vm_compute; reflexivity | exact bs_cenv ]. Qed.
   Lemma fo_coll : forall co, (genv_cenv G) ! BS._Object = Some co ->
     field_offset G BS._collisionData (co_members co) = OK (536, Full).
+  Proof. apply (RA.fo_ok_lift (prog_comp_env BS.prog)); [ vm_compute; reflexivity | exact bs_cenv ]. Qed.
+  Lemma fo_scale : forall co, (genv_cenv G) ! BS._GraphNodeObject = Some co ->
+    field_offset G BS._scale (co_members co) = OK (44, Full).
+  Proof. apply (RA.fo_ok_lift (prog_comp_env BS.prog)); [ vm_compute; reflexivity | exact bs_cenv ]. Qed.
+  Lemma fo_bhv : forall co, (genv_cenv G) ! BS._Object = Some co ->
+    field_offset G BS._behavior (co_members co) = OK (524, Full).
   Proof. apply (RA.fo_ok_lift (prog_comp_env BS.prog)); [ vm_compute; reflexivity | exact bs_cenv ]. Qed.
   Lemma fo_hbh : forall co, (genv_cenv G) ! BS._Object = Some co ->
     field_offset G BS._hitboxHeight (co_members co) = OK (508, Full).
@@ -1239,6 +1271,16 @@ Section Link.
     forall b fd, Genv.find_symbol G id = Some b ->
       Genv.find_funct G (Vptr b Ptrofs.zero) = Some fd -> fd = Internal f.
   Proof. intros id f. exact (ObjPhase.fun_of lp _ _ _ (linked12_LO_memory lp H12)). Qed.
+  Lemma fun_oh : forall id f, (prog_defmap OH.prog) ! id = Some (Gfun (Internal f)) ->
+    forall b fd, Genv.find_symbol G id = Some b ->
+      Genv.find_funct G (Vptr b Ptrofs.zero) = Some fd -> fd = Internal f.
+  Proof. intros id f. exact (ObjPhase.fun_of lp _ _ _ (linked12_LO_object_helpers lp H12)). Qed.
+  Lemma dm_scale : (prog_defmap OH.prog) ! BS._cur_obj_scale
+    = Some (Gfun (Internal OH.f_cur_obj_scale)).
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma dm_cohb : (prog_defmap OH.prog) ! BS._cur_obj_has_behavior
+    = Some (Gfun (Internal OH.f_cur_obj_has_behavior)).
+  Proof. vm_compute. reflexivity. Qed.
 
   Lemma dm_s2v : (prog_defmap memory.prog) ! BS._segmented_to_virtual
     = Some (Gfun (Internal memory.f_segmented_to_virtual)).
@@ -1273,6 +1315,41 @@ Section Link.
     injection Er0 as <-. cbn in Cr. injection Cr as <-.
     cbn in Hor. destruct Hor as (_ & Hor). cbn in Hor. injection Hor as <-.
     auto.
+  Qed.
+
+  (* the same with a pointer-typed argument (cur_obj_has_behavior) *)
+  Lemma s2v_call_p : forall le m t le' m' out tmp x b o,
+    exec_stmt function_entry2 G empty_env le m
+      (Scall (Some tmp) (Evar BS._segmented_to_virtual (Tfunction [tptr tvoid] (tptr tvoid) cc_default))
+         [Etempvar x (tptr tuint)]) t le' m' out ->
+    le ! x = Some (Vptr b o) -> m' = m /\ le' = PTree.set tmp (Vptr b o) le /\ out = Out_normal.
+  Proof.
+    intros le m t le' m' out tmp x b o H Hx.
+    apply RA.call_inv in H as (tya & tyr & cc & vf & vargs & fd & vres & Hcf & Evf & Eal & Hff & _ & Hc & -> & ->).
+    cbn in Hcf. injection Hcf as <- <- <-.
+    destruct (RA.ev_fun G empty_env m le _ (Tfunction [tptr tvoid] (tptr tvoid) cc_default) vf
+                (PTree.gempty _ _) eq_refl Evf) as (bf & Hs & ->).
+    rewrite (fun_mem _ _ dm_s2v bf fd Hs Hff) in Hc.
+    destruct (ObjLoop.exl1 _ _ _ _ _ _ _ Eal) as (ty1 & v1 & w1 & E1 & -> & Ev1 & C1). injection E1 as <-.
+    apply RA.ev_temp in Ev1. rewrite Hx in Ev1. injection Ev1 as <-.
+    cbn in C1. injection C1 as <-.
+    apply fcall_inv in Hc as (le1 & le2 & out1 & Hb & Hx2 & Hor); [ | reflexivity ].
+    cbn in Hb. injection Hb as <-. cbn [fn_body memory.f_segmented_to_virtual] in Hx2.
+    apply RA.ret_inv in Hx2 as (-> & rv & Erv & ->).
+    apply RA.ev_cast in Erv as (r0 & Er0 & Cr). apply RA.ev_temp in Er0. rewrite PTree.gss in Er0.
+    injection Er0 as <-. cbn in Cr. injection Cr as <-.
+    cbn in Hor. destruct Hor as (_ & Hor). cbn in Hor. injection Hor as <-.
+    auto.
+  Qed.
+
+  (* a global script array as a value: its address *)
+  Lemma ev_gscr : forall le m id bs v, Genv.find_symbol G id = Some bs ->
+    eval_expr G empty_env le m (Evar id (tarray tuint 0)) v -> v = Vptr bs Ptrofs.zero.
+  Proof.
+    intros le m id bs v Hs H. inv H.
+    match goal with Hl : eval_lvalue _ _ _ _ (Evar _ _) _ _ _ |- _ => inv Hl end.
+    - match goal with He : empty_env ! _ = Some _ |- _ => rewrite PTree.gempty in He; discriminate He end.
+    - match goal with Hd : deref_loc _ _ _ _ _ _ |- _ => inv Hd end; kill_r. congruence.
   Qed.
 
   Variables go pool : block.
@@ -1362,10 +1439,98 @@ Section Link.
     cbn [Mem.loadv] in Hl2. rewrite Ho in Hl2. exact Hl2.
   Qed.
 
+  (* o->header.gfx.scale[k] (f32 @ 44 + 4k) *)
+  Definition SCL (p : ident) : expr :=
+    Efield (Efield (Efield
+      (Ederef (Etempvar p (tptr (Tstruct BS._Object noattr))) (Tstruct BS._Object noattr))
+      BS._header (Tstruct BS._ObjectNode noattr)) BS._gfx (Tstruct BS._GraphNodeObject noattr))
+      BS._scale (tarray tfloat 3).
+
+  Lemma deref_scl : forall m b o bf v, deref_loc (tarray tfloat 3) m b o bf v -> v = Vptr b o /\ bf = Full.
+  Proof.
+    intros m b o bf v H. inv H; kill_r. split; reflexivity.
+  Qed.
+
+  Lemma lv_scale : forall m le p k b o bf, 0 <= k < 3 ->
+    le ! p = Some (Vptr pool (Ptrofs.repr oc)) ->
+    eval_lvalue G empty_env le m
+      (Ederef (Ebinop Oadd (SCL p) (Econst_int (Int.repr k) tint) (tptr tfloat)) tfloat) b o bf ->
+    b = pool /\ Ptrofs.unsigned o = oc + 44 + 4 * k /\ bf = Full.
+  Proof.
+    intros m le p k b o bf Hk Hp H. inv H.
+    match goal with Hb : eval_expr _ _ _ _ (Ebinop _ _ _ _) _ |- _ =>
+      apply RA.ev_binop in Hb; destruct Hb as (v1 & v2 & E1 & E2 & E3) end.
+    apply RA.ev_const in E2. subst v2.
+    unfold SCL in E1.
+    destruct (ev_lv_fld G empty_env m le _ _ _ _ E1) as (b1 & o1 & bf1 & L1 & D1).
+    destruct (deref_scl _ _ _ _ _ D1) as (-> & ->).
+    destruct (lv_sfld G empty_env m le _ _ _ _ _ _ _ _ L1 eq_refl fo_scale) as (o2 & E2' & -> & _).
+    destruct (ev_sfld G empty_env m le _ _ _ _ E2') as (b3 & o3 & Eq & L3). injection Eq as <- <-.
+    destruct (lv_sfld G empty_env m le _ _ _ _ _ _ _ _ L3 eq_refl fo_gfx) as (o4 & E4 & -> & _).
+    destruct (ev_sfld G empty_env m le _ _ _ _ E4) as (b5 & o5 & Eq & L5). injection Eq as <- <-.
+    destruct (RA.lv_fld G empty_env m le _ _ _ _ _ _ _ _ fo_header L5) as (o6 & Hp' & -> & _).
+    rewrite Hp in Hp'. injection Hp' as <- <-.
+    cbn in E3. injection E3 as <- <-.
+    split; [ reflexivity | split; [ | reflexivity ] ].
+    change (Ptrofs.repr 0) with Ptrofs.zero. rewrite !Ptrofs.add_zero.
+    unfold Ptrofs.of_ints. rewrite Int.signed_repr by (cbn; lia).
+    unfold Ptrofs.mul. rewrite (Ptrofs.unsigned_repr 4), (Ptrofs.unsigned_repr k) by (rewrite maxu; lia).
+    rewrite Ptrofs.add_unsigned. rewrite (uadd oc 44) by (try rewrite maxu; lia).
+    rewrite (Ptrofs.unsigned_repr (4 * k)) by (rewrite maxu; lia).
+    apply Ptrofs.unsigned_repr. rewrite maxu. lia.
+  Qed.
+
   Lemma cur_store : forall ch m z v m', Mem.store ch m pool z v = Some m' -> cur m -> cur m'.
   Proof.
     intros ch m z v m' Hs Hc. unfold cur. rewrite (Mem.load_store_other _ _ _ _ _ _ Hs); [ exact Hc | ].
     left. intro E. exact (Hpg (eq_sym E)).
+  Qed.
+
+  (* tmp = cur_obj_has_behavior(bhvX), the current slot's behavior a valid
+     pointer into another block: 0, no store *)
+  Lemma cohb_call : forall le m t le' m' out tmp id bs bb ob,
+    cur m -> Genv.find_symbol G id = Some bs ->
+    Mem.load Mint32 m pool (oc + 524) = Some (Vptr bb ob) -> bb <> bs ->
+    Mem.valid_pointer m bb (Ptrofs.unsigned ob) = true -> Mem.valid_pointer m bs 0 = true ->
+    exec_stmt function_entry2 G empty_env le m
+      (Scall (Some tmp) (Evar BS._cur_obj_has_behavior (Tfunction [tptr tuint] tint cc_default))
+         [Evar id (tarray tuint 0)]) t le' m' out ->
+    m' = m /\ le' = PTree.set tmp (Vint Int.zero) le /\ out = Out_normal.
+  Proof.
+    intros le m t le' m' out tmp id bs bb ob Hc Hs Hbh Hne Hv1 Hv2 H.
+    apply RA.call_inv in H as (tya & tyr & cc & vf & vargs & fd & vres & Hcf & Evf & Eal & Hff & _ & Hcl & -> & ->).
+    cbn in Hcf. injection Hcf as <- <- <-.
+    destruct (RA.ev_fun G empty_env m le _ (Tfunction [tptr tuint] tint cc_default) vf
+                (PTree.gempty _ _) eq_refl Evf) as (bf & Hsf & ->).
+    rewrite (fun_oh _ _ dm_cohb bf fd Hsf Hff) in Hcl.
+    destruct (ObjLoop.exl1 _ _ _ _ _ _ _ Eal) as (ty1 & v1 & w1 & E1 & -> & Ev1 & C1). injection E1 as <-.
+    apply (ev_gscr _ _ _ _ _ Hs) in Ev1. subst v1.
+    cbn in C1. injection C1 as <-.
+    apply fcall_inv in Hcl as (lf1 & lf2 & outf & Hbf & Xf & Horf); [ | reflexivity ].
+    cbn [fn_params OH.f_cur_obj_has_behavior bind_parameter_temps] in Hbf. injection Hbf as <-.
+    cbn [fn_body OH.f_cur_obj_has_behavior] in Xf.
+    apply RA.seq_inv in Xf as [(f1 & fe1 & fm1 & f2 & F1 & F2) | (F1 & Xn)]; [ | kill_sq F1 Xn ].
+    destruct (s2v_call_p _ _ _ _ _ _ _ _ bs Ptrofs.zero F1 (PTree.gss _ _ _)) as (-> & -> & _).
+    apply RA.seq_inv in F2 as [(f3 & fe3 & fm3 & f4 & F3 & F4) | (F3 & Xn)]; [ | kill_sq F3 Xn ].
+    apply ld_cur in F3 as (-> & -> & _); [ | exact Hc ].
+    apply RA.seq_inv in F4 as [(f5 & fe5 & fm5 & f6 & F5 & F6) | (F5 & Xn)]; [ | kill_sq F5 Xn ].
+    apply RA.set_inv in F5 as (vb & Evb & -> & -> & _).
+    destruct (ev_lv_fld G empty_env _ _ _ _ _ _ Evb) as (b1 & o1 & bf1 & L1 & D1).
+    destruct (RA.lv_fld G empty_env _ _ _ _ _ _ _ _ _ _ fo_bhv L1) as (o2 & Ho2 & -> & ->).
+    rewrite PTree.gss in Ho2. injection Ho2 as <- <-.
+    pose proof (deref_full _ (tptr tuint) _ _ _ Mint32 eq_refl D1) as Ld.
+    cbn [Mem.loadv] in Ld. rewrite uadd in Ld by (try rewrite maxu; lia). rewrite Hbh in Ld.
+    injection Ld as <-.
+    apply RA.if_inv in F6 as (vc & bq & Ec & Bq & Xi).
+    apply RA.ev_binop in Ec as (c1 & c2 & Ec1 & Ec2 & Ecmp).
+    apply RA.ev_temp in Ec1. rewrite PTree.gss in Ec1. injection Ec1 as <-.
+    apply RA.ev_temp in Ec2. do 2 rewrite PTree.gso in Ec2 by (vm_compute; discriminate).
+    rewrite PTree.gss in Ec2. injection Ec2 as <-.
+    cbn [typeof] in Ecmp. rewrite (cmp_ne _ _ _ _ _ Hne Hv1 Hv2) in Ecmp. injection Ecmp as <-.
+    cbn in Bq. injection Bq as <-. cbv iota in Xi.
+    apply RA.ret_inv in Xi as (-> & rv & Erv & ->). apply RA.ev_const in Erv. subst rv.
+    cbn in Horf. destruct Horf as (_ & Horf). cbn in Horf. injection Horf as <-.
+    split; [ reflexivity | split; reflexivity ].
   Qed.
 
   Lemma stk_addr : forall d, 0 <= d < 8 ->
@@ -5116,6 +5281,203 @@ Section Link.
       exists ta, oa, bt, mm1. split; [ exact Ha | split; [ exact Hbt | split; [ exact Hs1 | exact U2 ] ] ].
   Qed.
 
+  (* ---- SCALE (0x32): cur_obj_scale((s16)(w & 0xFFFF) / 100.0f), i.e. the
+     current slot's header.gfx.scale[0..2] (@44/48/52) ---- *)
+  Lemma hd_scale : forall m st w t m' vr,
+    In st vm_tab -> scr_ok G m -> V m st -> cur m ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 50 ->
+    eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_scale) [] t m' vr ->
+    exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
+      /\ exists m1 m2 m3,
+           Mem.store Mfloat32 m pool (oc + 44 + 4 * 0) (Vsingle (pdiv (s16_of w))) = Some m1
+         /\ Mem.store Mfloat32 m1 pool (oc + 44 + 4 * 1) (Vsingle (pdiv (s16_of w))) = Some m2
+         /\ Mem.store Mfloat32 m2 pool (oc + 44 + 4 * 2) (Vsingle (pdiv (s16_of w))) = Some m3
+         /\ Mem.unchanged_on Pfr m3 m'.
+  Proof.
+    intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
+    destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
+    pose proof (succs_scale st w Hw Ho) as Es. rewrite Hl in Es.
+    destruct (Nat.ltb _ _) eqn:Elt; [ discriminate Es | ]. apply Nat.ltb_ge in Elt.
+    injection Es as Es. subst l.
+    apply V_iff in HV as ((b & Hsb & Hcm) & HS).
+    destruct (word_int _ _ _ Hw) as (n & Hn & Ewn).
+    assert (Hilt : (v_i st < List.length (words (v_s st)))%nat)
+      by (apply nth_error_Some; rewrite Hn; discriminate).
+    destruct (Hscr (v_s st) b (v_i st) _ Hsb (in_map _ _ _ Hst) Hn) as (vn & Hlv & Hiv).
+    cbn in Hiv. subst vn.
+    remember (4 * Z.of_nat (v_i st)) as I4 eqn:EI.
+    try rewrite <- EI in Hlv. try rewrite <- EI in Hcm.
+    apply fcall_inv in H as (le1 & le2 & out1 & Hb & X & Hor); [ | reflexivity ].
+    cbn [fn_params BS.f_bhv_cmd_scale bind_parameter_temps] in Hb. injection Hb as <-.
+    cbn [fn_body BS.f_bhv_cmd_scale] in X.
+    apply RA.seq_inv in X as [(t1 & le1 & m1 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
+    (* unusedField *)
+    apply RA.seq_inv in X1 as [(t3 & le3 & m3 & t4 & X3 & X4) | (X3 & Xn)]; [ | kill_sq X3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ X3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in X4 as [(t5 & le5 & m5 & t6 & X5 & X6) | (X5 & Xn)]; [ | kill_sq X5 Xn ].
+    apply RA.set_inv in X5 as (vw & Evw & -> & -> & _).
+    apply (ev_w0 _ _ _ b I4 n _ (PTree.gss _ _ _) ltac:(lia) Hlv) in Evw. subst vw.
+    apply RA.set_inv in X6 as (vf & _ & -> & -> & _).
+    (* percent = (s16)( *cmd & 0xFFFF) *)
+    apply RA.seq_inv in X2 as [(u1 & ke1 & n1 & u2 & Y1 & Y2) | (Y1 & Xn)]; [ | kill_sq Y1 Xn ].
+    apply RA.seq_inv in Y1 as [(u3 & ke3 & n3 & u4 & Y3 & Y4) | (Y3 & Xn)]; [ | kill_sq Y3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Y3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in Y4 as [(u5 & ke5 & n5 & u6 & Y5 & Y6) | (Y5 & Xn)]; [ | kill_sq Y5 Xn ].
+    apply RA.set_inv in Y5 as (vw & Evw & -> & -> & _).
+    apply (ev_w0 _ _ _ b I4 n _ (PTree.gss _ _ _) ltac:(lia) Hlv) in Evw. subst vw.
+    apply RA.set_inv in Y6 as (vv & Evv & -> & -> & _).
+    apply RA.ev_cast in Evv as (y1 & Ey1 & D1). apply RA.ev_cast in Ey1 as (y2 & Ey2 & D2).
+    apply RA.ev_binop in Ey2 as (c1 & c2 & Ec1 & Ec2 & Eand2).
+    apply RA.ev_temp in Ec1. rewrite PTree.gss in Ec1. injection Ec1 as <-.
+    apply RA.ev_const in Ec2. subst c2.
+    cbn in Eand2. injection Eand2 as <-. cbn in D2. injection D2 as <-. cbn in D1. injection D1 as <-.
+    (* cur_obj_scale(percent / 100.0f) *)
+    apply RA.seq_inv in Y2 as [(u7 & ke7 & n7 & u8 & Y7 & Y8) | (Y7 & Xn)]; [ | kill_sq Y7 Xn ].
+    apply RA.call_inv in Y7 as (tya & tyr & cc & vfn & vargs & fd & vres & Hcf & Evf & Eal & Hff & _ & Hcl2 & -> & _).
+    cbn in Hcf. injection Hcf as <- <- <-.
+    destruct (RA.ev_fun G empty_env m _ _ (Tfunction [tfloat] tvoid cc_default) vfn
+                (PTree.gempty _ _) eq_refl Evf) as (bfn & Hsf & ->).
+    rewrite (fun_oh _ _ dm_scale bfn fd Hsf Hff) in Hcl2.
+    destruct (ObjLoop.exl1 _ _ _ _ _ _ _ Eal) as (ty1 & v1 & w1 & E1 & -> & Ev1 & C1). injection E1 as <-.
+    apply RA.ev_binop in Ev1 as (d1 & d2 & Ed1 & Ed2 & Ediv).
+    apply RA.ev_temp in Ed1. rewrite PTree.gss in Ed1. injection Ed1 as <-.
+    apply RA.ev_single in Ed2. subst d2.
+    cbn -[Float32.div Float32.of_int Float32.of_bits] in Ediv. injection Ediv as <-.
+    cbn -[Float32.div Float32.of_int Float32.of_bits] in C1. injection C1 as <-.
+    apply fcall_inv in Hcl2 as (lf1 & lf2 & outf & Hbf & Xf & _); [ | reflexivity ].
+    cbn [fn_params OH.f_cur_obj_scale bind_parameter_temps] in Hbf. injection Hbf as <-.
+    cbn [fn_body OH.f_cur_obj_scale] in Xf.
+    apply RA.seq_inv in Xf as [(g1 & ge1 & gm1 & g2 & Xa & Xb) | (Xa & Xn)]; [ | kill_sq Xa Xn ].
+    apply RA.seq_inv in Xa as [(c10 & ce10 & cm10 & c20 & W0 & R0) | (W0 & Xn)]; [ | kill_sq W0 Xn ].
+    apply ld_cur in W0 as (-> & -> & _); [ | exact Hc ].
+    apply RA.assign_inv in R0 as (b20 & o20 & bf20 & v20 & v30 & Hlx0 & Ev0 & Hcast0 & Has0 & -> & _).
+    destruct (lv_scale _ _ _ 0 _ _ _ ltac:(lia) (PTree.gss _ _ _) Hlx0) as (-> & Eo0 & ->).
+    apply RA.ev_temp in Ev0. rewrite PTree.gso in Ev0 by (vm_compute; discriminate).
+    rewrite PTree.gss in Ev0. injection Ev0 as <-.
+    cbn in Hcast0. injection Hcast0 as <-.
+    pose proof (RA.store_by_value _ tfloat _ _ _ _ _ _ Mfloat32 eq_refl eq_refl Has0) as Hs0.
+    rewrite Eo0 in Hs0.
+    pose proof (cur_store _ _ _ _ _ Hs0 Hc) as Hc0.
+    apply RA.seq_inv in Xb as [(g3 & ge3 & gm3 & g4 & Xc & Xd) | (Xc & Xn)]; [ | kill_sq Xc Xn ].
+    apply RA.seq_inv in Xc as [(c11 & ce11 & cm11 & c21 & W1 & R1) | (W1 & Xn)]; [ | kill_sq W1 Xn ].
+    apply ld_cur in W1 as (-> & -> & _); [ | exact Hc0 ].
+    apply RA.assign_inv in R1 as (b21 & o21 & bf21 & v21 & v31 & Hlx1 & Ev1 & Hcast1 & Has1 & -> & _).
+    destruct (lv_scale _ _ _ 1 _ _ _ ltac:(lia) (PTree.gss _ _ _) Hlx1) as (-> & Eo1 & ->).
+    apply RA.ev_temp in Ev1. do 1 rewrite PTree.gso in Ev1 by (vm_compute; discriminate). rewrite PTree.gso in Ev1 by (vm_compute; discriminate).
+    rewrite PTree.gss in Ev1. injection Ev1 as <-.
+    cbn in Hcast1. injection Hcast1 as <-.
+    pose proof (RA.store_by_value _ tfloat _ _ _ _ _ _ Mfloat32 eq_refl eq_refl Has1) as Hs1.
+    rewrite Eo1 in Hs1.
+    pose proof (cur_store _ _ _ _ _ Hs1 Hc0) as Hc1.
+    apply RA.seq_inv in Xd as [(c12 & ce12 & cm12 & c22 & W2 & R2) | (W2 & Xn)]; [ | kill_sq W2 Xn ].
+    apply ld_cur in W2 as (-> & -> & _); [ | exact Hc1 ].
+    apply RA.assign_inv in R2 as (b22 & o22 & bf22 & v22 & v32 & Hlx2 & Ev2 & Hcast2 & Has2 & -> & _).
+    destruct (lv_scale _ _ _ 2 _ _ _ ltac:(lia) (PTree.gss _ _ _) Hlx2) as (-> & Eo2 & ->).
+    apply RA.ev_temp in Ev2. do 2 rewrite PTree.gso in Ev2 by (vm_compute; discriminate). rewrite PTree.gso in Ev2 by (vm_compute; discriminate).
+    rewrite PTree.gss in Ev2. injection Ev2 as <-.
+    cbn in Hcast2. injection Hcast2 as <-.
+    pose proof (RA.store_by_value _ tfloat _ _ _ _ _ _ Mfloat32 eq_refl eq_refl Has2) as Hs2.
+    rewrite Eo2 in Hs2.
+    pose proof (cur_store _ _ _ _ _ Hs2 Hc1) as Hc2.
+    assert (Lc : Mem.load Mint32 n7 bc 0 = Some (Vptr b (Ptrofs.repr I4)))
+      by (rewrite (Mem.load_store_other _ _ _ _ _ _ Hs2) by (left; exact Hbp); rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1) by (left; exact Hbp); rewrite (Mem.load_store_other _ _ _ _ _ _ Hs0) by (left; exact Hbp); exact Hcm).
+    (* cmd = cmd + 1 *)
+    apply RA.seq_inv in Y8 as [(u11 & ke11 & n11 & u12 & Y11 & Y12) | (Y11 & Xn)]; [ | kill_sq Y11 Xn ].
+    apply RA.seq_inv in Y11 as [(u13 & ke13 & n13 & u14 & Y13 & Y14) | (Y13 & Xn)]; [ | kill_sq Y13 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Y13 Lc) as (-> & -> & _).
+    apply st_cmd in Y14 as (v4 & v5 & Ev4 & Hcast4 & Hs9 & -> & _).
+    apply RA.ev_binop in Ev4 as (q1 & q2 & Eq1 & Eq2 & Eadd).
+    apply RA.ev_temp in Eq1. rewrite PTree.gss in Eq1. injection Eq1 as <-.
+    apply RA.ev_const in Eq2. subst q2. cbn [typeof] in Eadd. rewrite add_pi in Eadd. injection Eadd as <-.
+    cbn [typeof] in Hcast4. rewrite cast_pp in Hcast4. injection Hcast4 as <-.
+    rewrite ptr_inc in Hs9 by lia. norm_off Hs9 (4 * Z.of_nat (v_i st + 1)).
+    destruct (bc_store _ _ _ Hs9) as (Hc9 & _ & U9).
+    apply RA.ret_inv in Y12 as (-> & rv & Erv & ->). apply RA.ev_const in Erv. subst rv.
+    cbn in Hor. destruct Hor as (_ & Hor). cbn in Hor. injection Hor as <-.
+    (* the scale cells lie below the VM cells *)
+    assert (HS1 : Vstk n7 (v_k st)).
+    { destruct HS as (Hsi & Hk). split.
+      - rewrite (Mem.load_store_other _ _ _ _ _ _ Hs2) by (right; right; cbn [size_chunk]; unfold OW.O_SIDX; lia). rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1) by (right; right; cbn [size_chunk]; unfold OW.O_SIDX; lia). rewrite (Mem.load_store_other _ _ _ _ _ _ Hs0) by (right; right; cbn [size_chunk]; unfold OW.O_SIDX; lia). exact Hsi.
+      - intros j f Hj.
+        assert (Hjl : (j < List.length (v_k st))%nat) by (apply nth_error_Some; rewrite Hj; discriminate).
+        rewrite (Mem.load_store_other _ _ _ _ _ _ Hs2) by (right; right; cbn [size_chunk]; unfold OW.O_STK; lia). rewrite (Mem.load_store_other _ _ _ _ _ _ Hs1) by (right; right; cbn [size_chunk]; unfold OW.O_STK; lia). rewrite (Mem.load_store_other _ _ _ _ _ _ Hs0) by (right; right; cbn [size_chunk]; unfold OW.O_STK; lia). exact (Hk j f Hj). }
+    assert (Ev : s16_of w = Int.sign_ext 16 (Int.and n (Int.repr 65535)))
+      by (unfold s16_of; rewrite Ewn, Int.repr_unsigned; reflexivity).
+    eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
+    - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs9 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs9) ].
+    - split; [ exact (Hc9 Hc2) | split; [ reflexivity | ] ].
+      exists gm1, gm3, n7. unfold pdiv. rewrite Ev.
+      rewrite Int.sign_ext_idem in Hs0, Hs1, Hs2 by lia.
+      split; [ exact Hs0 | split; [ exact Hs1 | split; [ exact Hs2 | exact U9 ] ] ].
+  Qed.
+
+  (* ---- BEGIN (0x00): three cur_obj_has_behavior tests (bhvHauntedChair,
+     bhvMadPiano -> bhv_init_room; bhvMessagePanel -> field 67 := 150.0f);
+     cmd += 1.  When the current slot's behavior is none of the three (a
+     valid pointer into another block), no store besides the cursor ---- *)
+  Lemma hd_begin : forall m st w t m' vr bb ob,
+    In st vm_tab -> V m st -> cur m ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 0 ->
+    Mem.load Mint32 m pool (oc + 524) = Some (Vptr bb ob) ->
+    Mem.valid_pointer m bb (Ptrofs.unsigned ob) = true ->
+    (forall id, In id [BS._bhvHauntedChair; BS._bhvMadPiano; BS._bhvMessagePanel] ->
+       exists bs, Genv.find_symbol G id = Some bs /\ bs <> bb /\ Mem.valid_pointer m bs 0 = true) ->
+    eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_begin) [] t m' vr ->
+    exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
+      /\ Mem.unchanged_on Pfr m m'.
+  Proof.
+    intros m st w t m' vr bb ob Hst HV Hc Hw Ho Hbh Hvb Hsy H.
+    destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
+    pose proof (succs_begin st w Hw Ho) as Es. rewrite Hl in Es.
+    destruct (Nat.ltb _ _) eqn:Elt; [ discriminate Es | ]. apply Nat.ltb_ge in Elt.
+    injection Es as Es. subst l.
+    apply V_iff in HV as ((b & Hsb & Hcm) & HS).
+    remember (4 * Z.of_nat (v_i st)) as I4 eqn:EI. try rewrite <- EI in Hcm.
+    destruct (Hsy BS._bhvHauntedChair ltac:(left; reflexivity)) as (bs1 & Hs1 & Hn1 & Hv1).
+    destruct (Hsy BS._bhvMadPiano ltac:(right; left; reflexivity)) as (bs2 & Hs2 & Hn2 & Hv2).
+    destruct (Hsy BS._bhvMessagePanel ltac:(right; right; left; reflexivity)) as (bs3 & Hs3 & Hn3 & Hv3).
+    apply fcall_inv in H as (le1 & le2 & out1 & Hb & X & Hor); [ | reflexivity ].
+    cbn [fn_params BS.f_bhv_cmd_begin bind_parameter_temps] in Hb. injection Hb as <-.
+    cbn [fn_body BS.f_bhv_cmd_begin] in X.
+    apply RA.seq_inv in X as [(t1 & le1 & m1 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
+    apply RA.seq_inv in X1 as [(a11 & ae11 & am11 & a21 & A1 & A2) | (A1 & Xn)]; [ | kill_sq A1 Xn ].
+    destruct (cohb_call _ _ _ _ _ _ _ _ _ _ _ Hc Hs1 Hbh (fun E => Hn1 (eq_sym E)) Hvb Hv1 A1) as (-> & -> & _).
+    apply RA.if_inv in A2 as (vc1 & bq1 & Ec1 & Bq1 & Xi1).
+    apply RA.ev_temp in Ec1. rewrite PTree.gss in Ec1. injection Ec1 as <-.
+    cbn in Bq1. injection Bq1 as <-. cbv iota in Xi1.
+    apply RA.skip_inv in Xi1 as (-> & -> & _).
+    apply RA.seq_inv in X2 as [(t3 & le3 & m3 & t4 & X3 & X4) | (X3 & Xn)]; [ | kill_sq X3 Xn ].
+    apply RA.seq_inv in X3 as [(a12 & ae12 & am12 & a22 & A3 & A4) | (A3 & Xn)]; [ | kill_sq A3 Xn ].
+    destruct (cohb_call _ _ _ _ _ _ _ _ _ _ _ Hc Hs2 Hbh (fun E => Hn2 (eq_sym E)) Hvb Hv2 A3) as (-> & -> & _).
+    apply RA.if_inv in A4 as (vc2 & bq2 & Ec2 & Bq2 & Xi2).
+    apply RA.ev_temp in Ec2. rewrite PTree.gss in Ec2. injection Ec2 as <-.
+    cbn in Bq2. injection Bq2 as <-. cbv iota in Xi2.
+    apply RA.skip_inv in Xi2 as (-> & -> & _).
+    apply RA.seq_inv in X4 as [(t5 & le5 & m5 & t6 & X5 & X6) | (X5 & Xn)]; [ | kill_sq X5 Xn ].
+    apply RA.seq_inv in X5 as [(a13 & ae13 & am13 & a23 & A5 & A6) | (A5 & Xn)]; [ | kill_sq A5 Xn ].
+    destruct (cohb_call _ _ _ _ _ _ _ _ _ _ _ Hc Hs3 Hbh (fun E => Hn3 (eq_sym E)) Hvb Hv3 A5) as (-> & -> & _).
+    apply RA.if_inv in A6 as (vc3 & bq3 & Ec3 & Bq3 & Xi3).
+    apply RA.ev_temp in Ec3. rewrite PTree.gss in Ec3. injection Ec3 as <-.
+    cbn in Bq3. injection Bq3 as <-. cbv iota in Xi3.
+    apply RA.skip_inv in Xi3 as (-> & -> & _).
+    (* cmd = cmd + 1 *)
+    apply RA.seq_inv in X6 as [(u11 & ke11 & n11 & u12 & Y11 & Y12) | (Y11 & Xn)]; [ | kill_sq Y11 Xn ].
+    apply RA.seq_inv in Y11 as [(u13 & ke13 & n13 & u14 & Y13 & Y14) | (Y13 & Xn)]; [ | kill_sq Y13 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Y13 Hcm) as (-> & -> & _).
+    apply st_cmd in Y14 as (v4 & v5 & Ev4 & Hcast4 & Hs9 & -> & _).
+    apply RA.ev_binop in Ev4 as (q1 & q2 & Eq1 & Eq2 & Eadd).
+    apply RA.ev_temp in Eq1. rewrite PTree.gss in Eq1. injection Eq1 as <-.
+    apply RA.ev_const in Eq2. subst q2. cbn [typeof] in Eadd. rewrite add_pi in Eadd. injection Eadd as <-.
+    cbn [typeof] in Hcast4. rewrite cast_pp in Hcast4. injection Hcast4 as <-.
+    rewrite ptr_inc in Hs9 by lia. norm_off Hs9 (4 * Z.of_nat (v_i st + 1)).
+    destruct (bc_store _ _ _ Hs9) as (Hc9 & _ & U9).
+    apply RA.ret_inv in Y12 as (-> & rv & Erv & ->). apply RA.ev_const in Erv. subst rv.
+    cbn in Hor. destruct Hor as (_ & Hor). cbn in Hor. injection Hor as <-.
+    eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
+    - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs9 Hsb) | exact (Vstk_bc _ _ _ _ HS Hs9) ].
+    - split; [ exact (Hc9 Hc) | split; [ reflexivity | exact U9 ] ].
+  Qed.
+
 
   (* ---- SUM_FLOAT (0x1F): o->rawData.asF32[byte2 w] =
           o->rawData.asF32[byte3 w] + o->rawData.asF32[byte4 w] ---- *)
@@ -6242,18 +6604,76 @@ Section Link.
     - left. reflexivity.
   Qed.
 
+  (* SCALE's row (opcode 50).  cur_obj_scale's three f32 stores into the
+     CURRENT slot's header.gfx.scale (@44/48/52): obj_w reads only the gfx
+     node links @4/8/12.  Computed reachable users (vm_tab):
+     bhvRedCoinStarMarker (150%), bhvRotatingExclamationMark (200%) -- not
+     Mario, whose scale PhiW's window [12,64) covers.  Pinned to the real
+     values *)
+  Definition scale_keep : Prop := forall m st w m1 m2 m3, INV m -> In st vm_tab ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 50 ->
+    Mem.store Mfloat32 m pool (oc + 44 + 4 * 0) (Vsingle (pdiv (s16_of w))) = Some m1 ->
+    Mem.store Mfloat32 m1 pool (oc + 44 + 4 * 1) (Vsingle (pdiv (s16_of w))) = Some m2 ->
+    Mem.store Mfloat32 m2 pool (oc + 44 + 4 * 2) (Vsingle (pdiv (s16_of w))) = Some m3 -> INV m3.
+
+  Lemma row_scale : scale_keep -> cmd_row_op 50.
+  Proof.
+    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 50) = Some BS._bhv_cmd_scale)
+      by (vm_compute; reflexivity).
+    rewrite E in Hid. injection Hid as <-.
+    assert (Hdm : (prog_defmap BS.prog) ! BS._bhv_cmd_scale
+                  = Some (Gfun (Internal BS.f_bhv_cmd_scale))) by (vm_compute; reflexivity).
+    rewrite (fun_bs _ _ Hdm _ _ Hhb Hfd) in Hev.
+    destruct (hd_scale _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
+      as (l & st' & Hl & Hin & HV' & _ & -> & m1 & m2 & m3 & S1 & S2 & S3 & U).
+    exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ HI Hst Hw Ho S1 S2 S3) U).
+    - left. reflexivity.
+  Qed.
+
+  (* BEGIN's row (opcode 0; 95 reachable states, every script's head,
+     Mario's included -- frame 1 really runs bhvMario's BEGIN).  POSITIVE
+     premise (a stuck compare would silently drop a run): the current
+     slot's behavior is a valid pointer, and bhvHauntedChair / bhvMadPiano /
+     bhvMessagePanel are linked, valid, and in other blocks -- none of the
+     three is a WMotR object.  Then no store besides the cursor (Pfr) *)
+  Definition begin_ok : Prop := forall m st w, INV m -> In st vm_tab ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 0 ->
+    exists bb ob, Mem.load Mint32 m pool (oc + 524) = Some (Vptr bb ob)
+      /\ Mem.valid_pointer m bb (Ptrofs.unsigned ob) = true
+      /\ forall id, In id [BS._bhvHauntedChair; BS._bhvMadPiano; BS._bhvMessagePanel] ->
+           exists bs, Genv.find_symbol G id = Some bs /\ bs <> bb /\ Mem.valid_pointer m bs 0 = true.
+
+  Lemma row_begin : begin_ok -> cmd_row_op 0.
+  Proof.
+    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 0) = Some BS._bhv_cmd_begin)
+      by (vm_compute; reflexivity).
+    rewrite E in Hid. injection Hid as <-.
+    assert (Hdm : (prog_defmap BS.prog) ! BS._bhv_cmd_begin
+                  = Some (Gfun (Internal BS.f_bhv_cmd_begin))) by (vm_compute; reflexivity).
+    rewrite (fun_bs _ _ Hdm _ _ Hhb Hfd) in Hev.
+    destruct (Hk m st w HI Hst Hw Ho) as (bb & ob & Hbh & Hvb & Hsy).
+    destruct (hd_begin _ _ _ _ _ _ _ _ Hst HV (Hinv_cur m HI) Hw Ho Hbh Hvb Hsy Hev)
+      as (l & st' & Hl & Hin & HV' & _ & -> & U).
+    exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
+    - exact (Hinv_frame _ _ HI U).
+    - left. reflexivity.
+  Qed.
+
   (* the pinned one-store premises of the field commands, together *)
-  Definition row_keeps : Prop := set_keep /\ setf_keep /\ addi_keep /\ ori_keep /\ addf_keep /\ sumf_keep /\ deact_keep /\ sit_keep /\ srf_keep /\ sri_keep /\ sir_keep /\ par51_ok /\ pbc_keep /\ atex_keep /\ bb_keep /\ dr_keep /\ hb_keep /\ hbo_keep /\ home_keep /\ phys_keep /\ la_keep /\ lcd_keep.
+  Definition row_keeps : Prop := set_keep /\ setf_keep /\ addi_keep /\ ori_keep /\ addf_keep /\ sumf_keep /\ deact_keep /\ sit_keep /\ srf_keep /\ sri_keep /\ sir_keep /\ par51_ok /\ pbc_keep /\ atex_keep /\ bb_keep /\ dr_keep /\ hb_keep /\ hbo_keep /\ home_keep /\ phys_keep /\ la_keep /\ lcd_keep /\ scale_keep /\ begin_ok.
 
   (* the opcodes whose rows are proved: the control layer, DELAY_VAR, and
-     SET_INT / SET_FLOAT / ADD_INT / OR_INT / ADD_FLOAT / SUM_FLOAT / DEACTIVATE / SET_INTERACT_TYPE / SET_RANDOM_FLOAT / SET_RANDOM_INT / SET_INT_RAND_RSHIFT / PARENT_BIT_CLEAR / ANIMATE_TEXTURE / BILLBOARD / DISABLE_RENDERING / SET_HITBOX(_WITH_OFFSET) / SET_HOME / SET_OBJ_PHYSICS / LOAD_ANIMATIONS / LOAD_COLLISION_DATA (from row_keeps) *)
-  Definition done_ops : list Z := 39 :: 42 :: 48 :: 45 :: 35 :: 43 :: 33 :: 53 :: 52 :: 51 :: 21 :: 19 :: 20 :: 47 :: 29 :: 31 :: 13 :: 17 :: 15 :: 14 :: 16 :: 37 :: ctl_ops.
+     SET_INT / SET_FLOAT / ADD_INT / OR_INT / ADD_FLOAT / SUM_FLOAT / DEACTIVATE / SET_INTERACT_TYPE / SET_RANDOM_FLOAT / SET_RANDOM_INT / SET_INT_RAND_RSHIFT / PARENT_BIT_CLEAR / ANIMATE_TEXTURE / BILLBOARD / DISABLE_RENDERING / SET_HITBOX(_WITH_OFFSET) / SET_HOME / SET_OBJ_PHYSICS / LOAD_ANIMATIONS / LOAD_COLLISION_DATA / SCALE / BEGIN (from row_keeps) *)
+  Definition done_ops : list Z := 0 :: 50 :: 39 :: 42 :: 48 :: 45 :: 35 :: 43 :: 33 :: 53 :: 52 :: 51 :: 21 :: 19 :: 20 :: 47 :: 29 :: 31 :: 13 :: 17 :: 15 :: 14 :: 16 :: 37 :: ctl_ops.
 
   Lemma done_rows : row_keeps -> forall op, In op done_ops -> cmd_row_op op.
   Proof.
-    intros (K16 & K14 & K15 & K17 & K13 & K31 & K29 & K47 & K20 & K21 & K19 & K51p & K51 & K52 & K33 & K53 & K35 & K43 & K45 & K48 & K39 & K42) op
-      [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | H]]]]]]]]]]]]]]]]]]]]]];
-      [ exact (row_load_animations K39) | exact (row_load_collision_data K42) | exact (row_set_obj_physics K48) | exact (row_set_home K45) | exact (row_set_hitbox K35) | exact (row_set_hitbox_with_offset K43) | exact (row_billboard K33) | exact (row_disable_rendering K53) | exact (row_animate_texture K52) | exact (row_parent_bit_clear K51p K51) | exact (row_set_random_int K21) | exact (row_set_int_rand_rshift K19) | exact (row_set_random_float K20) | exact (row_set_interact_type K47) | exact (row_deactivate K29) | exact (row_sum_float K31) | exact (row_add_float K13) | exact (row_or_int K17) | exact (row_add_int K15)
+    intros (K16 & K14 & K15 & K17 & K13 & K31 & K29 & K47 & K20 & K21 & K19 & K51p & K51 & K52 & K33 & K53 & K35 & K43 & K45 & K48 & K39 & K42 & K50 & K0) op
+      [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | H]]]]]]]]]]]]]]]]]]]]]]]];
+      [ exact (row_begin K0) | exact (row_scale K50) | exact (row_load_animations K39) | exact (row_load_collision_data K42) | exact (row_set_obj_physics K48) | exact (row_set_home K45) | exact (row_set_hitbox K35) | exact (row_set_hitbox_with_offset K43) | exact (row_billboard K33) | exact (row_disable_rendering K53) | exact (row_animate_texture K52) | exact (row_parent_bit_clear K51p K51) | exact (row_set_random_int K21) | exact (row_set_int_rand_rshift K19) | exact (row_set_random_float K20) | exact (row_set_interact_type K47) | exact (row_deactivate K29) | exact (row_sum_float K31) | exact (row_add_float K13) | exact (row_or_int K17) | exact (row_add_int K15)
       | exact (row_set_float K14) | exact (row_set_int K16) | exact row_delay_var | exact (ctl_rows op H) ].
   Qed.
 
