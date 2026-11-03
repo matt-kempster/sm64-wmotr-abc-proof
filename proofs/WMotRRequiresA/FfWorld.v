@@ -1244,13 +1244,16 @@ Definition env_w (G : genv) (m : mem) : Prop :=
    clear.  The Camera is gCurrentArea->camera (Area +0x24), a main-pool
    block: past every global, and not the animation buffer's block.
    StartSat proves it on the witness (StartTerrain.cam_frame_g's byte
-   checks). *)
+   checks).  The field address is the code's: &a->camera is the pointer
+   sum Ptrofs.add o 36 (2026-11-02; was the integer o + 36, which names a
+   different cell when o wraps, so the clause did not speak about the
+   cell update_camera's argument is read from -- CamRows needs that). *)
 Definition cut_ok (n : int) : Prop := Int.unsigned n <> 144 /\ Int.unsigned n <> 168.
 
 Definition cam_cb (G : genv) (m : mem) (cb : block) (co : ptrofs) : Prop :=
   exists ga bad o, Genv.find_symbol G level_update._gCurrentArea = Some ga
     /\ Mem.load Mint32 m ga 0 = Some (Vptr bad o)
-    /\ Mem.load Mint32 m bad (Ptrofs.unsigned o + 36) = Some (Vptr cb co).
+    /\ Mem.load Mint32 m bad (Ptrofs.unsigned (Ptrofs.add o (Ptrofs.repr 36))) = Some (Vptr cb co).
 
 (* THE CAMERA PINS (cam_pins, 2026-11-02): the pointer globals the real
    update_camera stores through or chases, pinned to what the game holds
@@ -1304,7 +1307,7 @@ Definition cam_w (G : genv) (m : mem) : Prop :=
      exists n, Mem.load Mint8unsigned m b 0 = Some (Vint n) /\ cut_ok n)
   /\ (forall ga bad o, Genv.find_symbol G level_update._gCurrentArea = Some ga ->
        Mem.load Mint32 m ga 0 = Some (Vptr bad o) ->
-       exists cb co, Mem.load Mint32 m bad (Ptrofs.unsigned o + 36) = Some (Vptr cb co)
+       exists cb co, Mem.load Mint32 m bad (Ptrofs.unsigned (Ptrofs.add o (Ptrofs.repr 36))) = Some (Vptr cb co)
          /\ Ple (Genv.genv_next G) cb
          /\ (forall ab bt ot, Genv.find_symbol G mario._gMarioAnimsBuf = Some ab ->
                Mem.load Mint32 m ab 8 = Some (Vptr bt ot) -> bt <> cb)
@@ -1366,7 +1369,7 @@ Proof. intros G m H. exact (proj2 (proj2 H)). Qed.
 Lemma cam_w_cb : forall (G : genv) m, cam_w G m ->
   forall ga bad o, Genv.find_symbol G level_update._gCurrentArea = Some ga ->
        Mem.load Mint32 m ga 0 = Some (Vptr bad o) ->
-       exists cb co, Mem.load Mint32 m bad (Ptrofs.unsigned o + 36) = Some (Vptr cb co)
+       exists cb co, Mem.load Mint32 m bad (Ptrofs.unsigned (Ptrofs.add o (Ptrofs.repr 36))) = Some (Vptr cb co)
          /\ Ple (Genv.genv_next G) cb
          /\ (forall ab bt ot, Genv.find_symbol G mario._gMarioAnimsBuf = Some ab ->
                Mem.load Mint32 m ab 8 = Some (Vptr bt ot) -> bt <> cb)

@@ -364,6 +364,7 @@ proofs/WMotRRequiresA/CamFootTable.v
 proofs/WMotRRequiresA/CamFootSave.v
 proofs/WMotRRequiresA/CamFootNpc.v
 proofs/WMotRRequiresA/CamFootInst.v
+proofs/WMotRRequiresA/CamRows.v
 proofs/WMotRRequiresA/AudioInv.v
 proofs/WMotRRequiresA/AudioBoot.v
 proofs/WMotRRequiresA/AudioWire.v

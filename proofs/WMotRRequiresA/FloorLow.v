@@ -1,5 +1,5 @@
-(* kept: chunk 3 (b), the y floor, consumes wmotr_floor_dp; held off the
-   spine until the objects agent's StartSat witness lands *)
+(* spine (via AirMove / HeightInvariant): chunk 3 (b), the y floor,
+   consumes wmotr_floor_dp *)
 (* ====================================================================== *)
 (* FloorLow (GOAL 2, chunk 3 (a)): every WMotR floor height is at or above *)
 (* the death plane.                                                         *)
