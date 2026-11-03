@@ -1397,8 +1397,26 @@ Section HeightLinked12.
   Hypothesis Hobj_stores : forall b s, In (FrameCalls.OBlk s) ObjPhase.uo_list ->
     Ple (Genv.genv_next (lp_ge lp)) b ->
     ObjPhase.safeE (lp_ge lp) (fun m => Pobjl m /\ ObjPhase.noref b m) (ObjPhase.uo_env b) s.
-  Hypothesis Hobj_counter : forall le m t le' m' out, Pobjl m ->
+  (* Pobjl is ClearKeep's Pc plus the surface premise PhiW gives *)
+  Lemma pc_of_pobj : forall m, Pobjl m -> ClearKeep.Pc lp bm bc oc0 SafeB m.
+  Proof. intros m (Hok & Hphi & HD & Hst & _ & How). exact (conj Hok (conj Hphi (conj HD (conj Hst How)))). Qed.
+  Lemma pobj_of_pc : forall m, ClearKeep.Pc lp bm bc oc0 SafeB m -> Pobjl m.
+  Proof.
+    intros m (Hok & Hphi & HD & Hst & How).
+    exact (conj Hok (conj Hphi (conj HD (conj Hst (conj (Hphi_sa_linked12 _ m Hphi) How))))).
+  Qed.
+  (* PROVED (2026-11-03, was the row Hobj_counter): gAreaUpdateCounter++ is
+     one u16 store of an int into a global no invariant reads
+     (ClearKeep.counter_keeps / gstore_keep: off RenderKeep's footprint,
+     MWF's globals, the controllers, gMarioPlatform, obj_w's globals and
+     the scripts, all decided by vm).  PHANTOM CHECK: no premise beyond
+     Pobjl. *)
+  Lemma obj_counter_linked12 : forall le m t le' m' out, Pobjl m ->
     exec_stmt function_entry2 (lp_ge lp) empty_env le m ObjPhase.auo_counter t le' m' out -> Pobjl m'.
+  Proof.
+    intros le m t le' m' out HP Hx. apply pobj_of_pc.
+    exact (ClearKeep.counter_keeps lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 le m t le' m' out Hx (pc_of_pobj m HP)).
+  Qed.
   (* OPEN, the stage rows (see the HeightFrame section for each) *)
   Hypothesis Hobj_debug :
     ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._reset_debug_objectinfo
@@ -1474,10 +1492,17 @@ Section HeightLinked12.
     exact (conj (ObjStepSplit.step_row_split _ _ _ _ _ A1 R1)
              (conj (ObjStepSplit.step_row_split _ _ _ _ _ A2 R2) (conj N1 N2))).
   Qed.
-  (* the walks' own store: gObjectCounter = <an int> *)
-  Hypothesis Hobj_ctr : forall m b c m', Pobjl m ->
+  (* the walks' own store: gObjectCounter = <an int>.  PROVED (2026-11-03,
+     was the row Hobj_ctr): a global no invariant reads
+     (ClearKeep.ctr_keeps / gstore_keep).  PHANTOM CHECK: no premise
+     beyond Pobjl. *)
+  Lemma obj_ctr_linked12 : forall m b c m', Pobjl m ->
     Genv.find_symbol (lp_ge lp) object_list_processor._gObjectCounter = Some b ->
     Mem.store Mint32 m b 0 (Vint c) = Some m' -> Pobjl m'.
+  Proof.
+    intros m b c m' HP Hs St. apply pobj_of_pc.
+    exact (ClearKeep.ctr_keeps lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 m b c m' Hs St (pc_of_pobj m HP)).
+  Qed.
   Hypothesis Hobj_unload : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._unload_deactivated_objects.
   (* (Hobj_mplat, update_mario_platform: PROVED 2026-11-03, obj_mplat_linked12
      below, from the real body, MplatKeep) *)
@@ -1791,7 +1816,7 @@ Section HeightLinked12.
       object_list_processor._update_terrain_objects.
   Proof.
     exact (ObjLoop.terrain_keeps_ix lp H12 bm Pobjl pobj_ow
-             (proj1 Hobj_step_terrain) (proj2 Hobj_step_terrain) Hobj_ctr).
+             (proj1 Hobj_step_terrain) (proj2 Hobj_step_terrain) obj_ctr_linked12).
   Qed.
 
   (* the window between the clear and the terrain walk keeps the post-clear
@@ -1805,7 +1830,7 @@ Section HeightLinked12.
     ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._update_non_terrain_objects.
   Proof.
     intros Hm. destruct (Hobj_step_nonterrain Hm) as (Hsa & Hts & Hsa_nr & Hts_nr).
-    exact (ObjLoop.nonterrain_keeps lp H12 bm Pobjl pobj_ow Hsa Hts Hsa_nr Hts_nr Hobj_ctr
+    exact (ObjLoop.nonterrain_keeps lp H12 bm Pobjl pobj_ow Hsa Hts Hsa_nr Hts_nr obj_ctr_linked12
              Hobj_blind (Hobj_fresh 4)).
   Qed.
 
@@ -1820,7 +1845,7 @@ Section HeightLinked12.
     exact (proj2 (noA_run_height_bound lp bm MWF Phi OWl PHI_YMAX
                     frame_action_linked12 render_ok_linked12 render_phi_linked12
                     obj_clock_linked12 obj_auo_linked12
-                    Hobj_blind (Hobj_fresh 240) Hobj_noref Hobj_stores Hobj_counter
+                    Hobj_blind (Hobj_fresh 240) Hobj_noref Hobj_stores obj_counter_linked12
                     Hobj_debug (ObjWorld.post_clear (lp_ge lp)) obj_R_store_linked12
                     obj_surfaces_linked12 obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
                     Hobj_unload obj_mplat_linked12 obj_platform_linked12 Hlvl_ow Hrender_ow
@@ -1843,7 +1868,7 @@ Section HeightLinked12.
     exact ((noA_run_height_bound lp bm MWF Phi OWl PHI_YMAX
                     frame_action_linked12 render_ok_linked12 render_phi_linked12
                     obj_clock_linked12 obj_auo_linked12
-                    Hobj_blind (Hobj_fresh 240) Hobj_noref Hobj_stores Hobj_counter
+                    Hobj_blind (Hobj_fresh 240) Hobj_noref Hobj_stores obj_counter_linked12
                     Hobj_debug (ObjWorld.post_clear (lp_ge lp)) obj_R_store_linked12
                     obj_surfaces_linked12 obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
                     Hobj_unload obj_mplat_linked12 obj_platform_linked12 Hlvl_ow Hrender_ow

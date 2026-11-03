@@ -25,7 +25,7 @@ From Coq Require Import ZArith Lia List Bool.
 From compcert Require Import Coqlib Integers Floats Values AST Ctypes Cop Clight
   ClightBigstep Clightdefs Memory Maps Globalenvs Events Errors Linking.
 From SM64.Generated Require surface_load surface_collision object_list_processor level_update mario
-  platform_displacement.
+  platform_displacement area.
 From SM64.Proofs Require Import SymbolicLinking RealFrameLinked LinkedTwelve CensusV2 MWFReal
   SpawnInit ActionValueFrame NoAImpliesNoFlyLinked AGates.
 From SM64.Proofs Require NoAImpliesNoFlyTwelve ObjExtBodies.
@@ -33,7 +33,7 @@ From SM64.Proofs Require Import Generic.ClosedMem.
 From SM64.Proofs Require Import HeightInvariant WMotRWorld FrameSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FloorList FloorHeight FloorExec AirMatch FfWorld AnimData AnimWorld
   RenderKeep ClearRun.
-From SM64.Proofs.WMotRRequiresA Require ObjWorld PollKeep PlatformKeep ObjPhase FfComplete BhvVM.
+From SM64.Proofs.WMotRRequiresA Require ObjWorld PollKeep PlatformKeep ObjPhase FfComplete BhvVM RenderAnim.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -731,5 +731,64 @@ Section CK.
       rewrite (Mem.load_store_other _ _ _ _ _ _ St) by (left; exact Nsd). exact L.
     - exact (conj (conj Ok2 (conj Hphi2 (conj HD2 (conj Hst2 How2)))) Lsa2).
     - split; [ exact Pm | right ]. unfold OW.ctrv. rewrite Ssa, Lsa. exact ns_signed.
+  Qed.
+  (* ---- a store of an int into a global no clause reads (2026-11-03:
+     the object phase's own counters, gObjectCounter and
+     gAreaUpdateCounter) ---- *)
+  Theorem gstore_keep : forall id bg ch z i m m2,
+    Genv.find_symbol G id = Some bg -> gs_ok id = true ->
+    existsb (Pos.eqb id) PollKeep.ow_ids = false ->
+    existsb (Pos.eqb id) (map BhvVM.v_s BhvVM.vm_tab) = false ->
+    Mem.store ch m bg z (Vint i) = Some m2 -> Pc m -> Pc m2.
+  Proof.
+    intros id bg ch z i m m2 Hs Hok Hw Hsc St (Ok & Hphi & HD & Hst & How).
+    destruct (gstore_core lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 id bg ch z _ m m2 Hs Hok (vint_np i) St
+                Ok Hphi HD Hst) as (Ok2 & Hphi2 & HD2 & Hst2 & LO).
+    destruct (gs_parts id Hok) as (Hc & _).
+    assert (NI : forall id' b, Genv.find_symbol G id' = Some b -> Pos.eqb id' id = false -> b <> bg)
+      by (intros id' b Hs' Hn; exact (symne_b G _ _ id' b Hs Hs' Hn)).
+    refine (conj Ok2 (conj Hphi2 (conj HD2 (conj Hst2 _)))).
+    apply (PollKeep.obj_w_unch m m2 G bm); [ | | | | exact How ].
+    - intros id' b Hin Hs' ch' z'. apply LO. apply (NI id' b Hs'). exact (eqb_of_notin id PollKeep.ow_ids id' Hw Hin).
+    - intros b Hb ch' z'. apply LO. exact (glob_ne_dyn G _ _ b Hs Hb).
+    - intros z' _. apply LO. apply (NI _ _ Hbm_sym).
+      apply (eqb_of_notin id core_ids _ Hc). apply In_of_ex. vm_compute. reflexivity.
+    - intros s b Hin Hs' ch' z'. apply LO. apply (NI s b Hs'). exact (eqb_of_notin id _ s Hsc Hin).
+  Qed.
+
+  (* area_update_objects' counter statement: gAreaUpdateCounter++ is ONE
+     u16 store of an int into gAreaUpdateCounter *)
+  Lemma auo_counter_store : forall le m t le' m' out,
+    exec_stmt function_entry2 G empty_env le m ObjPhase.auo_counter t le' m' out ->
+    exists b i, Genv.find_symbol G area._gAreaUpdateCounter = Some b
+      /\ Mem.store Mint16unsigned m b 0 (Vint i) = Some m'.
+  Proof.
+    intros le m t le' m' out Hx. unfold ObjPhase.auo_counter in Hx.
+    apply RenderAnim.seq_inv in Hx as [(t1 & le1 & m1 & t2 & H1 & H2) | (H1 & Hn)].
+    - apply RenderAnim.set_inv in H1 as (v & _ & -> & -> & _).
+      apply RenderAnim.assign_inv in H2 as (b & o & bf & v2 & v' & Hl & _ & Hc & Ha & _ & _).
+      apply RenderAnim.lv_gvar in Hl as (Hs & -> & ->); [ | apply PTree.gempty ].
+      cbn [typeof] in Hc, Ha.
+      apply (RenderAnim.store_by_value G tushort _ _ _ _ _ _ Mint16unsigned eq_refl eq_refl) in Ha.
+      destruct v2; cbn in Hc; try discriminate Hc. injection Hc as <-.
+      eexists; eexists. split; [ exact Hs | exact Ha ].
+    - apply RenderAnim.set_inv in H1 as (_ & _ & _ & _ & E). exfalso. exact (Hn E).
+  Qed.
+
+  Theorem counter_keeps : forall le m t le' m' out,
+    exec_stmt function_entry2 G empty_env le m ObjPhase.auo_counter t le' m' out -> Pc m -> Pc m'.
+  Proof.
+    intros le m t le' m' out Hx HP. destruct (auo_counter_store le m t le' m' out Hx) as (b & i & Hs & St).
+    exact (gstore_keep area._gAreaUpdateCounter b Mint16unsigned 0 i m m' Hs ltac:(vm_compute; reflexivity)
+             ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity) St HP).
+  Qed.
+
+  (* the walks' own store: gObjectCounter = <an int> *)
+  Theorem ctr_keeps : forall m b c m',
+    Genv.find_symbol G OLP._gObjectCounter = Some b -> Mem.store Mint32 m b 0 (Vint c) = Some m' -> Pc m -> Pc m'.
+  Proof.
+    intros m b c m' Hs St HP.
+    exact (gstore_keep OLP._gObjectCounter b Mint32 0 c m m' Hs ltac:(vm_compute; reflexivity)
+             ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity) St HP).
   Qed.
 End CK.
