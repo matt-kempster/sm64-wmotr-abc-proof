@@ -629,8 +629,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
     OBJECTS (2026-10-26, `ObjPhase.v` / `ObjWorld.v`): the objects segment is ONE real
     `area_update_objects` call (`ObjPhase.objects_call`), with `execute_mario_action` as the
     hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
-    rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref, Hobj_stores /
-    Hobj_counter, Hobj_debug, Hobj_collisions, Hobj_unload
+    rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref, Hobj_stores,
+    Hobj_debug, Hobj_collisions, Hobj_unload
+    (Hobj_counter / Hobj_ctr PROVED 2026-11-03: obj_counter_linked12 / obj_ctr_linked12,
+    ClearKeep.gstore_keep; gone from both capstones)
     (Hobj_surfaces PROVED 2026-11-03: HeightFrame.obj_surfaces_linked12 / ClearRun + ClearKeep,
     the real clear_dynamic_surfaces; gone from both capstones. Reusable: ClearKeep.gstore_core =
     a store into a global outside gs_bad keeps every Pobjl clause but obj_w -- the tool for
