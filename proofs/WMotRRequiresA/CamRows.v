@@ -32,7 +32,7 @@ From SM64.Proofs Require Import SymbolicLinking RealFrameLinked LinkedTwelve OsD
   MathGeomGated Generic.PermWalk.
 From SM64.Proofs.WMotRRequiresA Require Import CamFootKit CamFootSound CamFootTable CamFootInst
   RenderAnim.
-From SM64.Proofs.WMotRRequiresA Require FfWorld AudioInv LevelFlank PollKeep FpuFloor ObjWorld FloorList.
+From SM64.Proofs.WMotRRequiresA Require FfWorld AudioInv LevelFlank PollKeep FpuFloor ObjWorld FloorList BhvVM.
 From SM64.Generated Require surface_load object_list_processor.
 Import ListNotations.
 Import Clightdefs.ClightNotations.
@@ -69,6 +69,11 @@ Proof. vm_compute. reflexivity. Qed.
 (* no object-world global is a footprint global or a pin *)
 Lemma ow_not_fp : forallb (fun g => negb (mem_idf g cf_FP) && negb (mem_idf g cf_XP)
                                     && negb (mem_idf g (map fst cf_pins))) PollKeep.ow_ids = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* no script block (ObjWorld.scr_ok, ow_scr) is a footprint global or a pin *)
+Lemma scr_not_fp : forallb (fun g => negb (mem_idf g cf_FP) && negb (mem_idf g cf_XP)
+                                    && negb (mem_idf g (map fst cf_pins))) (map BhvVM.v_s BhvVM.vm_tab) = true.
 Proof. vm_compute. reflexivity. Qed.
 
 Section CR.
@@ -173,14 +178,18 @@ Section CR.
     exact (conj Hcbg (conj PKm (conj U (conj AI' R3)))).
   Qed.
 
-  (* THE OBJECT WORLD'S GLOBALS: their blocks are none of the footprint's *)
-  Theorem cam_ow_globals : forall m m', cam_fp m m' ->
+  (* a list of globals none of which is a footprint global or a pin: their
+     blocks are unchanged *)
+  Lemma cam_globals_of : forall L,
+      forallb (fun g => negb (mem_idf g cf_FP) && negb (mem_idf g cf_XP)
+                        && negb (mem_idf g (map fst cf_pins))) L = true ->
+      forall m m', cam_fp m m' ->
       Ple (Genv.genv_next G) (Mem.nextblock m) ->
-      forall id b, In id PollKeep.ow_ids -> Genv.find_symbol G id = Some b ->
+      forall id b, In id L -> Genv.find_symbol G id = Some b ->
       forall ch z, Mem.load ch m' b z = Mem.load ch m b z.
   Proof.
-    intros m m' [-> | (cb & co & Hcbg & _ & U & _ & _)] Hgn id b Hin Hs ch z; [ reflexivity | ].
-    pose proof (proj1 (forallb_forall _ _) ow_not_fp id Hin) as E. cbv beta in E.
+    intros L HL m m' [-> | (cb & co & Hcbg & _ & U & _ & _)] Hgn id b Hin Hs ch z; [ reflexivity | ].
+    pose proof (proj1 (forallb_forall _ _) HL id Hin) as E. cbv beta in E.
     apply andb_prop in E as [E E3]. apply andb_prop in E as [E1 E2].
     apply negb_true_iff in E1, E2, E3.
     assert (Hlt : Plt b (Genv.genv_next G)) by exact (Genv.genv_symb_range _ _ Hs).
@@ -193,6 +202,20 @@ Section CR.
       + assert (x = id) by (eapply Genv.genv_vars_inj; eassumption). subst x.
         rewrite (In_mem_idf _ _ (pin_of_in _ _ _ Hp)) in E3. discriminate E3.
   Qed.
+
+  (* THE OBJECT WORLD'S GLOBALS: their blocks are none of the footprint's *)
+  Theorem cam_ow_globals : forall m m', cam_fp m m' ->
+      Ple (Genv.genv_next G) (Mem.nextblock m) ->
+      forall id b, In id PollKeep.ow_ids -> Genv.find_symbol G id = Some b ->
+      forall ch z, Mem.load ch m' b z = Mem.load ch m b z.
+  Proof. exact (cam_globals_of PollKeep.ow_ids ow_not_fp). Qed.
+
+  (* THE SCRIPTS (ow_scr, 2026-11-03): no script block is written *)
+  Theorem cam_scr_globals : forall m m', cam_fp m m' ->
+      Ple (Genv.genv_next G) (Mem.nextblock m) ->
+      forall id b, In id (map BhvVM.v_s BhvVM.vm_tab) -> Genv.find_symbol G id = Some b ->
+      forall ch z, Mem.load ch m' b z = Mem.load ch m b z.
+  Proof. exact (cam_globals_of (map BhvVM.v_s BhvVM.vm_tab) scr_not_fp). Qed.
 
   (* a load off the changed cells is unchanged (an invalid block stays
      without permissions, PK) *)

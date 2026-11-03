@@ -731,16 +731,21 @@ all in `Unwired/`, and the theorem moved nowhere. See
        kernel converts it by evaluating vm_tab); write `sdedup (map v_s vm_tab)` out
        (BhvStep.scr_b_l). And `congruence` near words/vm_tab cost 300s (removed).
        dloop_used: only the 28 USED non-control opcodes' rows are open (vm_used);
-       scr_b_sound is the decidable scr_ok check (obj_w/wchk part held for StartTerrain).
+       scr_b_sound is the decidable scr_ok check. DONE 2026-11-03: scr_ok is obj_w's
+       `ow_scr` (ObjWorld 3d; BhvStep's names are notations), vm-checked in ow_chk at boot;
+       keepers take "no script block changes" (scr_ok_ext; fx_obj_w / cam / plat / render).
        VM segment DONE (BhvStep.seg: copy-in + DLOOP + copy-out, seg_is_real; Vo = ow_vm's
        shape). DELAY_VAR row DONE; SET_INT row DONE from the pinned set_keep (kit: lv_raw,
        ev_w0, fld_eq, raw_addr -- reuse for the other field commands). Written (op, field)
        pairs at reachable states: 13:{7} 14:{10,12,18-21,67} 15:{16,19,26} 16:{5,18-20,26,29,
        42,47,61} 17:{1,3} 19:{16} 20:{10,27-29} 21:{27} 31:{6,7,8} 51:{22, parent} 52:{26};
-       obj_w reads 6/7/8 (pos), 42 (interact type), 27 (HSCOUNT cell) -- pin values there. Next: the 27 used rows left; the pre-/post-loop code of cur_obj_update; the
-       loop INV = obj_w minus the current slot's ow_vm; then narrow Hobj_step_rest.
-       Next: the non-control rows, the copy-in / copy-out around DLOOP, the scr_ok obj_w
-       clause (check at m11 outside StartTerrain/StartSat), then narrow Hobj_step_rest.
+       obj_w reads 6/7/8 (pos), 42 (interact type), 27 (HSCOUNT cell) -- pin values there.
+       SET_FLOAT row DONE; premises bundled as row_keeps. set42: field 42 is written only
+       by bhvPoleGrabbing (POLE) and bhvCannon (CANNON_BASE). PERF TRAP again: a named bool
+       over vm_tab (chk42) hung set42's Qed -- state vm-checks inline.
+       Next: the 25 used rows left (ADD_INT / OR_INT / ADD_FLOAT next: read-modify-write);
+       the pre-/post-loop code of cur_obj_update; the loop INV = obj_w minus the current
+       slot's ow_vm; then narrow Hobj_step_rest.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
     PROVED at the boot witness, which now runs the real init_graph_node_start + clear_objects
     and Mario's spawn_objects_from_info; one real area_update_objects runs from it

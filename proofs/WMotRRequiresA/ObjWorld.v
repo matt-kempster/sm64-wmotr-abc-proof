@@ -714,6 +714,54 @@ Proof.
 Qed.
 
 (* ---------------------------------------------------------------------- *)
+(* 3d. Scripts (2026-11-03; designed in BhvStep, B3 iii).  SCR: every      *)
+(*     script the behavior VM can reach (the scripts of BhvVM.vm_tab's    *)
+(*     states) holds its initializer, word for word.  The scripts are      *)
+(*     writable globals in C, so this is a world fact, not a link fact.    *)
+(*     PHANTOM CHECK: nothing in the game stores through a script pointer *)
+(*     (RoCensus.ro_deep_no_store), so every reachable memory has the      *)
+(*     scripts as initialized; the boot witness checks it by vm (scr_b_l  *)
+(*     inside ow_chk at m11), and each keeper needs only "no store into a *)
+(*     script block" from its footprint.                                  *)
+(*     PERF TRAP: never name sdedup (map BhvVM.v_s BhvVM.vm_tab) as a      *)
+(*     constant; it is written out where used.                            *)
+(* ---------------------------------------------------------------------- *)
+Definition init_val (ge : genv) (d : init_data) (v : val) : Prop :=
+  match d with
+  | Init_int32 n => v = Vint n
+  | Init_addrof t o => exists bt, Genv.find_symbol ge t = Some bt /\ v = Vptr bt o
+  | _ => True
+  end.
+
+Definition scr_ok (ge : genv) (m : mem) : Prop :=
+  forall s bs i d, Genv.find_symbol ge s = Some bs -> In s (map BhvVM.v_s BhvVM.vm_tab) ->
+    nth_error (BhvVM.words s) i = Some d ->
+    exists v, Mem.load Mint32 m bs (4 * Z.of_nat i) = Some v /\ init_val ge d v.
+
+(* the keep: the clause reads only the script blocks *)
+Lemma scr_ok_ext : forall (ge : genv) m m',
+  (forall s b, In s (map BhvVM.v_s BhvVM.vm_tab) -> Genv.find_symbol ge s = Some b ->
+     forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+  scr_ok ge m -> scr_ok ge m'.
+Proof.
+  intros ge m m' K H s bs i d Hs Hin Hd. rewrite (K s bs Hin Hs). exact (H s bs i d Hs Hin Hd).
+Qed.
+
+Fixpoint sdedup (l : list ident) : list ident :=
+  match l with
+  | [] => []
+  | x :: l' => let t := sdedup l' in if existsb (Pos.eqb x) t then t else x :: t
+  end.
+Lemma sdedup_in : forall x l, In x l -> In x (sdedup l).
+Proof.
+  intros x l. induction l as [| y l IH]; intros H; [ destruct H | ].
+  cbn [sdedup]. destruct (existsb (Pos.eqb y) (sdedup l)) eqn:E.
+  - destruct H as [<- | H]; [ | exact (IH H) ].
+    apply existsb_exists in E as (z & Hz & Ez). apply Pos.eqb_eq in Ez. subst z. exact Hz.
+  - destruct H as [<- | H]; [ left; reflexivity | right; exact (IH H) ].
+Qed.
+
+(* ---------------------------------------------------------------------- *)
 (* 4. obj_w.                                                                *)
 (* ---------------------------------------------------------------------- *)
 Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
@@ -744,7 +792,9 @@ Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
   ow_coll : coll_ok ge pool m rs;
   (* 3c, 2026-11-02 *)
   ow_ctr : ctr_s_ok ge m;
-  ow_ter : ter_ok ge pool m rs
+  ow_ter : ter_ok ge pool m rs;
+  (* 3d, 2026-11-03 *)
+  ow_scr : scr_ok ge m
 }.
 
 Definition obj_w (ge : genv) (bm : block) (m : mem) : Prop :=
@@ -1427,6 +1477,73 @@ Proof.
   - exact (mesh_b_sound _ _ _ _ H6).
 Qed.
 
+(* the scripts' checker (3d): each cell of each listed script against its
+   initializer *)
+Section ScrCheck.
+  Variable G : genv.
+
+  Definition scell_b (m : mem) (b : block) (i : nat) (d : init_data) : bool :=
+    match d with
+    | Init_int32 n =>
+        match CM.load Mint32 m b (4 * Z.of_nat i) with Some (Vint n') => Int.eq n n' | _ => false end
+    | Init_addrof t o =>
+        match Genv.find_symbol G t, CM.load Mint32 m b (4 * Z.of_nat i) with
+        | Some bt, Some (Vptr b' o') => Pos.eqb bt b' && Ptrofs.eq o o'
+        | _, _ => false
+        end
+    | _ => match CM.load Mint32 m b (4 * Z.of_nat i) with Some _ => true | None => false end
+    end.
+
+  Fixpoint scells_b (m : mem) (b : block) (i : nat) (l : list init_data) : bool :=
+    match l with [] => true | d :: l' => scell_b m b i d && scells_b m b (S i) l' end.
+
+  (* the check over a symbol list l; used with l := sdedup (map v_s vm_tab),
+     written out (PERF TRAP) *)
+  Definition scr_b_l (l : list ident) (m : mem) : bool :=
+    forallb (fun s => match Genv.find_symbol G s with
+                      | Some b => scells_b m b 0 (BhvVM.words s) | None => false end) l.
+
+  Lemma scell_b_sound : forall m b i d, scell_b m b i d = true ->
+    exists v, Mem.load Mint32 m b (4 * Z.of_nat i) = Some v /\ init_val G d v.
+  Proof.
+    intros m b i d H. unfold scell_b in H. rewrite !CM.load_eq in H. revert H.
+    generalize (4 * Z.of_nat i) as z. intros z H. destruct d;
+      try (destruct (Mem.load Mint32 m b z) as [v|]; [ exists v; split; [ reflexivity | exact I ] | discriminate H ]).
+    - destruct (Mem.load Mint32 m b z) as [[]|]; try discriminate H.
+      apply Int.same_if_eq in H. subst. eexists; split; reflexivity.
+    - destruct (Genv.find_symbol G i0) as [bt|] eqn:Eb; [ | discriminate H ].
+      destruct (Mem.load Mint32 m b z) as [[]|]; try discriminate H.
+      apply andb_prop in H as [H1 H2]. apply Pos.eqb_eq in H1. apply Ptrofs.same_if_eq in H2.
+      subst. eexists; split; [ reflexivity | exists b0; auto ].
+  Qed.
+
+  Lemma scells_b_sound : forall m b l i, scells_b m b i l = true ->
+    forall k d, nth_error l k = Some d ->
+      exists v, Mem.load Mint32 m b (4 * Z.of_nat (i + k)) = Some v /\ init_val G d v.
+  Proof.
+    intros m b l. induction l as [| d0 l IH]; intros i H k d Hk; [ destruct k; discriminate Hk | ].
+    cbn [scells_b] in H. apply andb_prop in H as [H1 H2].
+    destruct k as [|k]; cbn in Hk.
+    - injection Hk as <-. rewrite Nat.add_0_r. exact (scell_b_sound _ _ _ _ H1).
+    - replace (i + S k)%nat with (S i + k)%nat by lia. exact (IH _ H2 k d Hk).
+  Qed.
+
+  Lemma scr_b_l_sound : forall l, (forall s, In s (map BhvVM.v_s BhvVM.vm_tab) -> In s l) ->
+    forall m, scr_b_l l m = true -> scr_ok G m.
+  Proof.
+    intros l Hl m H s bs i d Hs Hin Hd. unfold scr_b_l in H.
+    pose proof (proj1 (forallb_forall _ l) H s (Hl s Hin)) as H1. clear H.
+    cbv beta in H1. rewrite Hs in H1.
+    exact (scells_b_sound _ _ _ _ H1 i d Hd).
+  Qed.
+
+  (* SOUND: the deduplicated check over every script the VM can reach *)
+  Theorem scr_b_sound : forall m, scr_b_l (sdedup (map BhvVM.v_s BhvVM.vm_tab)) m = true -> scr_ok G m.
+  Proof.
+    exact (scr_b_l_sound (sdedup (map BhvVM.v_s BhvVM.vm_tab)) (fun s => sdedup_in s (map BhvVM.v_s BhvVM.vm_tab))).
+  Qed.
+End ScrCheck.
+
 Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem) : bool :=
   match rings m pool la, free_list m pool fl, ld32 m gmo 0 with
   | Some rs, Some fs, Some (Vptr pb po) =>
@@ -1450,6 +1567,7 @@ Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : 
       && forallb (fun k => existsb (st_b ge pool m k) BhvVM.vm_tab) (concat rs)
       && spool_b ge m && surf_b ge pool m && coll_b ge pool m rs
       && ctr_s_b ge m && ter_b ge pool m rs
+      && scr_b_l ge (sdedup (map BhvVM.v_s BhvVM.vm_tab)) m
       | None => false
       end
   | _, _, _ => false
@@ -1479,6 +1597,7 @@ Proof.
   destruct (ld32 m gmo 0) as [[| | | | | pb po]|] eqn:Hg;
     [ discriminate H .. | | discriminate H ].
   destruct (slot_of (Ptrofs.unsigned po)) as [k|] eqn:Hk; [ | discriminate H ].
+  apply andb_prop in H as [H Hscr].
   apply andb_prop in H as [H Hter]. apply andb_prop in H as [H Hctr].
   apply andb_prop in H as [H Hcoll]. apply andb_prop in H as [H Hsurf]. apply andb_prop in H as [H Hspool].
   apply andb_prop in H as [H Hvm].
@@ -1528,6 +1647,7 @@ Proof.
   - exact (coll_b_sound _ _ _ _ Hcoll).
   - exact (ctr_s_b_sound _ _ Hctr).
   - exact (ter_b_sound _ _ _ _ Hter).
+  - exact (scr_b_sound _ _ Hscr).
 Qed.
 
 Definition ow_chk (ge : genv) (bm : block) (m : mem) : bool :=
