@@ -1366,6 +1366,20 @@ without pressing A".*
   slot lives in gObjectPool). No new trust row; ObjFrame's whole-walk frame (ls_frame)
   is not used. The pinned premises are bundled as `row_keeps`.
   Wiring it in needs the loop's INV to be obj_w minus the current slot's `ow_vm`.
+  **Row 28 SPAWN_CHILD (2026-11-03): `row_spawn_child`, on the REAL handler.**
+  `ObjChild.child_real` walks bhv_cmd_spawn_child -> spawn_object_at_origin ->
+  create_object -> allocate_object / try_allocate_object, geo_obj_init and
+  obj_copy_pos_and_angle on the linked bodies. The child script and its list are computed
+  (`sc_w`: six reachable 0x1C states; children on lists 6 / 8 / 12, never the
+  floor-snapping 4 / 5 / 10). The parent is the running slot. Three pinned premises are
+  added to `row_keeps`:
+  - `sc_pre`: obj_w's rings / free list / ow_part / gfx links / list-array pointer, and
+    the running slot is a ring member.
+  - `sc_free`: POOL EXHAUSTION, a NAMED residual. The free list is nonempty at a 0x1C
+    state. With it empty, create_object returns NULL and the stores through it are stuck.
+    No computed bound on live objects yet.
+  - `sc_keep`: INV survives the post-state child_real proves.
+  No new trust row; the link symbols come from the linked program (`sc_syms`).
   **`ow_scr` (2026-11-03): `scr_ok` is an obj_w clause.** `ObjWorld.scr_ok` (moved from
   BhvStep, which keeps its names as notations) is obj_w's 21st clause; the boot witness
   checks it by vm inside `ow_chk` (`scr_b_l` over the reachable scripts, at m3 / m4 / m11).
