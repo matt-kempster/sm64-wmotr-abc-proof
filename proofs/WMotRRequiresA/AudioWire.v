@@ -1,6 +1,6 @@
-(* kept: AudioInv through load_sequence's consumers (2026-11-02).  The
-   spine switches Hls to AudioInv.ls_frame_ai in the deferred root rebuild
-   (FfWorld.lvl_w's aud_w); these are the carries it then consumes. *)
+(* spine (2026-11-02): AudioInv through load_sequence's consumers, on the
+   scoped AudioInv.ls_frame_ai (FfWorld.lvl_w's aud_w); LevelWalk consumes
+   the level carries, CamFootInst the camera's audio leaves (CamAud). *)
 (* ====================================================================== *)
 (* AudioWire.v -- the scoped load_sequence contract, wired through its    *)
 (* consumers: the cap music path (CapAudio) and update_and_return_cap_flags.*)
@@ -300,6 +300,74 @@ Section Cap.
       [AX._fadeout_background_music].
   Qed.
 End Cap.
+
+(* ---------------------------------------------------------------------- *)
+(* 3b. The camera's audio leaves (CamFootInst, 2026-11-02): the sequence-  *)
+(*     player bodies update_camera's tree reaches, walked again with the   *)
+(*     tighter footprint cam_aud_ids (the cap path's minus sCurrentCap-    *)
+(*     Music, which none of them writes), so it fits the camera's.         *)
+(* ---------------------------------------------------------------------- *)
+
+Definition cam_aud_ids : list ident :=
+  [AX._sBackgroundMusicQueueSize; AX._sBackgroundMusicQueue;
+   AX._sCurrentBackgroundMusicSeqId; AX._sBackgroundMusicForDynamics;
+   AX._sCurrentMusicDynamic; AX._sMusicDynamicDelay; AX._D_80360928] ++ ls_ids.
+
+Section CamAud.
+  Variable lp : Clight.program.
+  Hypothesis H12 : linked12 lp.
+  Hypothesis Hlsai : ls_frame_ai lp.
+
+  Let afic := afi lp cam_aud_ids.
+  Let LOx := linked12_LO_audio_external lp H12.
+
+  Ltac cids_ai :=
+    let g := fresh "g" in let Hg := fresh "Hg" in
+    intros g Hg; cbn [mem_id existsb] in Hg;
+    repeat (apply orb_true_iff in Hg as [Hg | Hg];
+            [ apply Pos.eqb_eq in Hg; subst g; assumption | ]);
+    discriminate Hg.
+
+  Ltac cai_sym q LO f gt ids :=
+    refine (afi_of_body lp cam_aud_ids q _ f LO _ _);
+    [ vm_compute; reflexivity
+    | apply (afi_body lp cam_aud_ids gt ids f); [ vm_compute; reflexivity | cids_ai ] ].
+
+  Lemma cai_ls : afic AX._load_sequence.
+  Proof.
+    intros b fd Hs Hfp m vargs t m' vres Hevf A.
+    assert (Hres : EngineV2Consumer.resolves_lp lp AX._load_sequence fd).
+    { exists b. split; [ exact Hs | rewrite Genv.find_funct_find_funct_ptr; exact Hfp ]. }
+    destruct (Hlsai fd m vargs t m' vres Hevf Hres A) as (Hq & A').
+    split; [ | exact A' ].
+    refine (Q2_mono _ _ m m' _ Hq).
+    intros b0 z Hk (g & Ig & Hg). apply Hk. exists g. split; [ | exact Hg ].
+    unfold cam_aud_ids. apply in_or_app. right. exact Ig.
+  Qed.
+
+  Lemma cai_fade_to_zero : afic AX._seq_player_fade_to_zero_volume.
+  Proof. cai_sym AX.prog LOx AX.f_seq_player_fade_to_zero_volume gt_sp (@nil ident). Qed.
+  Lemma cai_8031D690 : afic AX._func_8031D690.
+  Proof. cai_sym AX.prog LOx AX.f_func_8031D690 gt_sp (@nil ident). Qed.
+  Lemma cai_fade_to_normal : afic AX._seq_player_fade_to_normal_volume.
+  Proof. cai_sym AX.prog LOx AX.f_seq_player_fade_to_normal_volume gt_sp (@nil ident). Qed.
+  Lemma cai_fade_to_target : afic AX._seq_player_fade_to_target_volume.
+  Proof. cai_sym AX.prog LOx AX.f_seq_player_fade_to_target_volume gt_sp (@nil ident). Qed.
+  Lemma cai_fade_to_pct : afic AX._seq_player_fade_to_percentage_of_volume.
+  Proof. cai_sym AX.prog LOx AX.f_seq_player_fade_to_percentage_of_volume gt_sp (@nil ident). Qed.
+  Lemma cai_bbmf : afic AX._begin_background_music_fade.
+  Proof.
+    pose proof cai_fade_to_normal. pose proof cai_fade_to_target.
+    cai_sym AX.prog LOx AX.f_begin_background_music_fade (@nil (ident * ident))
+      [AX._seq_player_fade_to_normal_volume; AX._seq_player_fade_to_target_volume].
+  Qed.
+  Lemma cai_play_seq : afic AX._seq_player_play_sequence.
+  Proof.
+    pose proof cai_bbmf. pose proof cai_8031D690. pose proof cai_ls.
+    cai_sym AX.prog LOx AX.f_seq_player_play_sequence (@nil (ident * ident))
+      [AX._begin_background_music_fade; AX._func_8031D690; AX._load_sequence].
+  Qed.
+End CamAud.
 
 (* ---------------------------------------------------------------------- *)
 (* 4. Bodies that also store through their MarioState parameter (CapAudio *)

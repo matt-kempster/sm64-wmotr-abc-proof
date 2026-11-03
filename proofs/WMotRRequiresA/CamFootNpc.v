@@ -225,13 +225,20 @@ Section NPC.
   Hypothesis HG : forall g b, Genv.find_symbol ge g = Some b -> Plt b nl.
   Hypothesis HPfp : forall x c, pin_of x cf_pins = Some c -> mem_idf x cf_FP = false.
   Hypothesis HPcb : forall x c b, pin_of x cf_pins = Some c -> Genv.find_symbol ge x = Some b -> b <> cb.
+  (* the walk's leaf-only footprint and carried invariant (CamFootSound) *)
+  Variable XP : list ident.
+  Variable Inv : mem -> Prop.
+  Hypothesis HInv : forall m m', Ple nl (Mem.nextblock m) ->
+    Mem.unchanged_on (fun b z => ~ (FB0 ge cf_FP b \/ Ple nl b \/ (b = cb /\ co <= z < co + cf_SZ)) /\
+                                  ~ (exists x c, pin_of x cf_pins = Some c /\ Genv.find_symbol ge x = Some b /\ 0 <= z < 4))
+      m m' -> Inv m -> Inv m'.
 
-  Notation FR := (FR ge cf_FP cf_pins cb co cf_SZ nl).
-  Notation St := (St ge cf_FP cf_pins cb co cf_SZ nl).
+  Notation FR := (FR ge cf_FP cf_pins cb co cf_SZ nl XP).
+  Notation St := (St ge cf_FP cf_pins cb co cf_SZ nl Inv).
   Notation KTP := (KTP ge cf_FP cb co cf_SZ nl).
   Notation vokm := (vokm ge cf_FP cb co cf_SZ nl).
   Notation out_ok := (out_ok ge cf_FP cb co cf_SZ nl).
-  Notation fspec := (fspec ge cf_FP cf_pins cb co cf_SZ nl).
+  Notation fspec := (fspec ge cf_FP cf_pins cb co cf_SZ nl XP Inv).
 
   Definition Leaf0 (fd : Clight.fundef) (s : fsig) : Prop := False.
 
@@ -279,7 +286,7 @@ Section NPC.
   Lemma npc_it_good : ItGood ge cf_FP cf_pins npc_tab [] Leaf0.
   Proof. intros ty s Hf. discriminate Hf. Qed.
 
-  Let MUT := cf_mutual ge cf_FP cf_pins cb co cf_SZ nl HSZ HG HPfp HPcb npc_tab [] Leaf0 HLeaf0
+  Let MUT := cf_mutual ge cf_FP cf_pins cb co cf_SZ nl HSZ HG HPfp HPcb XP Inv HInv npc_tab [] Leaf0 HLeaf0
                npc_tab_good npc_it_good.
 
   (* set_mario_action(m, ACT_READING_NPC_DIALOG, arg): the cutscene arm *)
@@ -293,7 +300,7 @@ Section NPC.
     rewrite (resolve_fd mario.prog mario._set_mario_action mario.f_set_mario_action b fd (linked12_LO_mario lp H12)
                ltac:(vm_compute; reflexivity) Hs Hff) in Hev.
     pose proof (sma_prune ge _ _ _ _ _ _ Hev) as Hev'.
-    pose proof (cf_good_spec ge cf_FP cf_pins cb co cf_SZ nl HSZ HG HPfp HPcb npc_tab [] Leaf0 HLeaf0
+    pose proof (cf_good_spec ge cf_FP cf_pins cb co cf_SZ nl HSZ HG HPfp HPcb XP Inv HInv npc_tab [] Leaf0 HLeaf0
                   npc_tab_good npc_it_good (Internal f_sma') sig_sma
                   (or_introl (ex_intro _ f_sma' (ex_intro _ ce_m (conj eq_refl (conj CE_m chk_sma'))))))
       as Hsp.
@@ -323,20 +330,20 @@ Section NPC.
   Proof.
     intros e le m s t le' m' out Hx.
     induction Hx; intros Ee Hchk HP Hs; subst; cbn [SpawnBodies.sw_chk] in Hchk; try discriminate Hchk.
-    - (* Sskip *) exact (conj (FR_refl _ _ _ _ _ _ _ m) (conj Hs (conj HP I))).
+    - (* Sskip *) exact (conj (FR_refl _ _ _ _ _ _ _ _ m) (conj Hs (conj HP I))).
     - (* Sassign *)
       assert (Hx : exec_stmt function_entry2 ge empty_env le m (Sassign a1 a2) E0 le m' Out_normal)
         by (eapply exec_Sassign; eassumption).
-      destruct (cf_store ge cf_FP cf_pins cb co cf_SZ nl HSZ HG HPfp HPcb ce_c CE_c [] npc_tc empty_env
+      destruct (cf_store ge cf_FP cf_pins cb co cf_SZ nl HSZ HG HPfp HPcb XP Inv HInv ce_c CE_c [] npc_tc empty_env
                   _ _ _ _ _ _ _ _ Hchk (KEIL_empty m) HP Hs Hx) as (HF & Hs').
-      exact (conj HF (conj Hs' (conj (KTP_mono _ _ _ _ _ _ _ _ _ _ (FR_nb _ _ _ _ _ _ _ _ _ HF) HP) I))).
+      exact (conj HF (conj Hs' (conj (KTP_mono _ _ _ _ _ _ _ _ _ _ (FR_nb _ _ _ _ _ _ _ _ _ _ HF) HP) I))).
     - (* Sset *)
-      exact (conj (FR_refl _ _ _ _ _ _ _ m) (conj Hs (conj
-               (cf_set ge cf_FP cf_pins cb co cf_SZ nl HSZ ce_c CE_c [] npc_tc empty_env _ _ _ _ _
+      exact (conj (FR_refl _ _ _ _ _ _ _ _ m) (conj Hs (conj
+               (cf_set ge cf_FP cf_pins cb co cf_SZ nl HSZ Inv ce_c CE_c [] npc_tc empty_env _ _ _ _ _
                   Hchk (KEIL_empty m) HP Hs ltac:(eassumption)) I))).
     - (* Scall *)
       apply orb_true_iff in Hchk as [Hc | Hc].
-      + destruct (cf_call_ih ge cf_FP cf_pins cb co cf_SZ nl HSZ npc_tab [] Leaf0 npc_tab_good npc_it_good
+      + destruct (cf_call_ih ge cf_FP cf_pins cb co cf_SZ nl HSZ XP Inv npc_tab [] Leaf0 npc_tab_good npc_it_good
                     ce_c [] npc_tc empty_env optid a al le m tyargs tyres cconv vf vargs f t m' vres
                     CE_c (KEIL_empty m) Hc HP Hs ltac:(eassumption) ltac:(eassumption) ltac:(eassumption)
                     ltac:(eassumption) ltac:(eassumption) (proj2 MUT _ _ _ _ _ _ ltac:(eassumption)))
@@ -362,24 +369,24 @@ Section NPC.
             exact (fle_pc _ _ _ _ _ _ _ _ Hfl (HP _ _ ltac:(eassumption) bb oo eq_refl))
           | ] end.
         destruct (sma_spec lf f m _ _ t m' vres Hsy ltac:(eassumption) ltac:(eassumption) Hv5 Hs) as (HF & Hs').
-        exact (conj HF (conj Hs' (conj (KTP_mono _ _ _ _ _ _ _ _ _ _ (FR_nb _ _ _ _ _ _ _ _ _ HF) HP) I))).
+        exact (conj HF (conj Hs' (conj (KTP_mono _ _ _ _ _ _ _ _ _ _ (FR_nb _ _ _ _ _ _ _ _ _ _ HF) HP) I))).
     - (* Sseq_1 *)
       apply andb_prop in Hchk as [H1 H2].
       destruct (IHHx1 eq_refl H1 HP Hs) as (HF1 & Hs1 & HP1 & _).
       destruct (IHHx2 eq_refl H2 HP1 Hs1) as (HF2 & Hs2 & HP2 & Ho2).
-      exact (conj (FR_trans _ _ _ _ _ _ _ _ _ _ HF1 HF2) (conj Hs2 (conj HP2 Ho2))).
+      exact (conj (FR_trans _ _ _ _ _ _ _ _ _ _ _ HF1 HF2) (conj Hs2 (conj HP2 Ho2))).
     - (* Sseq_2 *)
       apply andb_prop in Hchk as [H1 _]. exact (IHHx eq_refl H1 HP Hs).
     - (* Sifthenelse *)
       apply andb_prop in Hchk as [H1 H2].
       apply IHHx; [ reflexivity | destruct b; assumption | exact HP | exact Hs ].
-    - (* Sreturn None *) exact (conj (FR_refl _ _ _ _ _ _ _ m) (conj Hs (conj HP I))).
+    - (* Sreturn None *) exact (conj (FR_refl _ _ _ _ _ _ _ _ m) (conj Hs (conj HP I))).
     - (* Sreturn Some *)
-      exact (conj (FR_refl _ _ _ _ _ _ _ m) (conj Hs (conj HP
-               (cf_ret ge cf_FP cf_pins cb co cf_SZ nl HSZ ce_c CE_c [] npc_tc empty_env fA _ _ _ _
+      exact (conj (FR_refl _ _ _ _ _ _ _ _ m) (conj Hs (conj HP
+               (cf_ret ge cf_FP cf_pins cb co cf_SZ nl HSZ Inv ce_c CE_c [] npc_tc empty_env fA _ _ _ _
                   Hchk (KEIL_empty m) HP Hs ltac:(eassumption))))).
-    - exact (conj (FR_refl _ _ _ _ _ _ _ m) (conj Hs (conj HP I))).
-    - exact (conj (FR_refl _ _ _ _ _ _ _ m) (conj Hs (conj HP I))).
+    - exact (conj (FR_refl _ _ _ _ _ _ _ _ m) (conj Hs (conj HP I))).
+    - exact (conj (FR_refl _ _ _ _ _ _ _ _ m) (conj Hs (conj HP I))).
     - (* Sloop_stop1 *)
       apply andb_prop in Hchk as [H1 _].
       destruct (IHHx eq_refl H1 HP Hs) as (HF1 & Hs1 & HP1 & Ho1).
@@ -389,14 +396,14 @@ Section NPC.
       apply andb_prop in Hchk as [H1 H2].
       destruct (IHHx1 eq_refl H1 HP Hs) as (HF1 & Hs1 & HP1 & _).
       destruct (IHHx2 eq_refl H2 HP1 Hs1) as (HF2 & Hs2 & HP2 & Ho2).
-      split; [ exact (FR_trans _ _ _ _ _ _ _ _ _ _ HF1 HF2) | split; [ exact Hs2 | split; [ exact HP2 | ] ] ].
+      split; [ exact (FR_trans _ _ _ _ _ _ _ _ _ _ _ HF1 HF2) | split; [ exact Hs2 | split; [ exact HP2 | ] ] ].
       match goal with Hb : out_break_or_return _ _ |- _ => inv Hb end; [ exact I | exact Ho2 ].
     - (* Sloop_loop *)
       pose proof Hchk as Hchk'. apply andb_prop in Hchk as [H1 H2].
       destruct (IHHx1 eq_refl H1 HP Hs) as (HF1 & Hs1 & HP1 & _).
       destruct (IHHx2 eq_refl H2 HP1 Hs1) as (HF2 & Hs2 & HP2 & _).
       destruct (IHHx3 eq_refl Hchk' HP2 Hs2) as (HF3 & Hs3 & HP3 & Ho3).
-      exact (conj (FR_trans _ _ _ _ _ _ _ _ _ _ HF1 (FR_trans _ _ _ _ _ _ _ _ _ _ HF2 HF3)) (conj Hs3 (conj HP3 Ho3))).
+      exact (conj (FR_trans _ _ _ _ _ _ _ _ _ _ _ HF1 (FR_trans _ _ _ _ _ _ _ _ _ _ _ HF2 HF3)) (conj Hs3 (conj HP3 Ho3))).
     - (* Sswitch *)
       destruct (IHHx eq_refl (SpawnBodies.sw_chk_select _ _ _ _ _ _ Hchk) HP Hs) as (HF & Hs1 & HP1 & Ho1).
       split; [ exact HF | split; [ exact Hs1 | split; [ exact HP1 | ] ] ].
@@ -420,7 +427,7 @@ Section NPC.
     match goal with Ho : outcome_result_value _ _ _ _ |- _ => rename Ho into Hor end.
     match goal with Hf : Mem.free_list _ _ = Some _ |- _ => rename Hf into Hfree end.
     match goal with Hb : exec_stmt _ _ _ _ _ _ _ _ _ _ |- _ => rename Hb into Hbody end.
-    refine (cf_wrap ge cf_FP cf_pins cb co cf_SZ nl HG HPfp HPcb _ _ _ _ _ _ _ _ _ _ _ Hentry Hor Hfree Hst _).
+    refine (cf_wrap ge cf_FP cf_pins cb co cf_SZ nl HG HPfp HPcb XP Inv HInv _ _ _ _ _ _ _ _ _ _ _ Hentry Hor Hfree Hst _).
     intros Hs1.
     pose proof Hentry as Hentry'. inv Hentry'.
     match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ => rename Ha into Hav end.

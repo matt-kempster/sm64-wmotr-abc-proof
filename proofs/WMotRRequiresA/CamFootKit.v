@@ -1,5 +1,5 @@
-(* kept: R1 (2026-11-02), the camera's byte-level footprint walker; the
-   camera rows are restated on it in the deferred cam_w pin rebuild. *)
+(* spine (via CamFootInst, 2026-11-02): the camera's byte-level footprint
+   walker (CamRows derives the camera rows' footprint half from it). *)
 (* ====================================================================== *)
 (* CamFootKit.v -- a FOOTPRINT class walker for recursive call trees with *)
 (* indirect calls (UcKit's shape), whose classes carry a BYTE range for   *)

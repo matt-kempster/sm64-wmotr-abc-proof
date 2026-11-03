@@ -1,4 +1,4 @@
-(* kept: R1 (2026-11-02), the soundness of CamFootKit's footprint walk. *)
+(* spine (via CamFootInst, 2026-11-02): the soundness of CamFootKit's footprint walk. *)
 (* ====================================================================== *)
 (* CamFootSound.v -- CamFootKit's walk is sound, for every state.         *)
 (*                                                                        *)
@@ -7,7 +7,10 @@
 (* arguments of its parameter classes,                                    *)
 (*   - changes memory only in the blocks of FP's globals, blocks born     *)
 (*     during the call, the byte range [co, co+SZ) of cb, and the pins'   *)
-(*     cells (Mem.unchanged_on over the rest);                            *)
+(*     cells (Mem.unchanged_on over the rest) -- and, through its LEAVES  *)
+(*     only, the blocks of the extra list XP;                             *)
+(*   - keeps the carried invariant Inv (which survives any change outside *)
+(*     the walk's own targets; the leaves keep it themselves);            *)
 (*   - keeps every old permission and leaves new blocks permissionless    *)
 (*     (PermWalk.PK);                                                      *)
 (*   - keeps the pins, and returns a value of its return class.           *)
@@ -428,13 +431,30 @@ Section WALK.
   Hypothesis HPfp : forall x c, pin_of x pins = Some c -> mem_idf x FP = false.
   Hypothesis HPcb : forall x c b, pin_of x pins = Some c -> Genv.find_symbol ge x = Some b -> b <> cb.
 
+  (* THE CARRIED INVARIANT and THE LEAVES' EXTRA FOOTPRINT (2026-11-02).
+     Inv is a memory predicate the walk keeps (CamFootInst: AudioInv); it
+     must survive every change outside the walk's own store targets (FP's
+     blocks, new blocks, the Camera's bytes, the pin cells) -- HInv.  The
+     walked bodies never store outside those targets; a LEAF may also
+     change the blocks of XP's globals (CamFootInst: the audio heap and
+     sequence-player globals, which only the audio leaves write), and must
+     keep Inv itself. *)
+  Variable XP : list ident.
+  Variable Inv : mem -> Prop.
+  Hypothesis HInv : forall m m', Ple nl (Mem.nextblock m) ->
+    Mem.unchanged_on (fun b z => ~ (FB0 ge FP b \/ Ple nl b \/ (b = cb /\ co <= z < co + SZ)) /\
+                                  ~ (exists x c, pin_of x pins = Some c /\ Genv.find_symbol ge x = Some b /\ 0 <= z < 4))
+      m m' -> Inv m -> Inv m'.
+
   Definition vokm (m : mem) := fvok (FBn ge FP nl (Mem.nextblock m)) cb co SZ.
   Definition pcm (m : mem) := fpc (FBn ge FP nl (Mem.nextblock m)) cb co SZ.
 
-  (* THE PINS: each pin global's cell holds a value of its class *)
-  Definition Pins (m : mem) : Prop :=
+  (* THE PINS: each pin global's cell holds a value of its class; and the
+     carried invariant *)
+  Definition PinsV (m : mem) : Prop :=
     forall x c b, pin_of x pins = Some c -> Genv.find_symbol ge x = Some b ->
       forall v, Mem.load Mint32 m b 0 = Some v -> vokm m c v.
+  Definition Pins (m : mem) : Prop := PinsV m /\ Inv m.
 
   (* THE FOOTPRINT: FP's blocks, blocks born since nl, the Camera's bytes;
      and the pins' cells *)
@@ -442,7 +462,7 @@ Section WALK.
     FB0 ge FP b \/ Ple nl b \/ (b = cb /\ co <= z < co + SZ).
   Definition PCell (b : block) (z : Z) : Prop :=
     exists x c, pin_of x pins = Some c /\ Genv.find_symbol ge x = Some b /\ 0 <= z < 4.
-  Definition Qf (b : block) (z : Z) : Prop := ~ A0 b z /\ ~ PCell b z.
+  Definition Qf (b : block) (z : Z) : Prop := ~ A0 b z /\ ~ PCell b z /\ ~ FB0 ge XP b.
 
   Definition FR (m m' : mem) : Prop := PK m m' /\ Mem.unchanged_on Qf m m'.
   Definition St (m : mem) : Prop := Pins m /\ Ple nl (Mem.nextblock m).
@@ -471,11 +491,25 @@ Section WALK.
   Lemma pins_unch : forall m m', Pins m -> Ple nl (Mem.nextblock m) ->
       Mem.unchanged_on (fun b z => ~ A0 b z) m m' -> Pins m'.
   Proof.
+    intros m m' (HP & HI) Hnl U. split.
+    - intros x c b Hp Hs v Hl.
+      assert (Hv : Mem.valid_block m b) by (unfold Mem.valid_block; exact (Plt_Ple_trans _ _ _ (HG _ _ Hs) Hnl)).
+      rewrite (Mem.load_unchanged_on_1 _ _ _ _ _ _ U Hv) in Hl.
+      + exact (fvok_mono _ _ _ _ _ _ _ _ _ _ (Mem.unchanged_on_nextblock _ _ _ U) (HP _ _ _ Hp Hs _ Hl)).
+      + intros i _. exact (pin_not_A0 _ _ _ _ Hp Hs).
+    - refine (HInv m m' Hnl _ HI).
+      eapply Mem.unchanged_on_implies; [ exact U | ]. intros b z (N & _) _. exact N.
+  Qed.
+
+  (* the pin half needs only the pin cells (a leaf that writes XP) *)
+  Lemma pinsV_unch : forall m m', PinsV m -> Ple nl (Mem.nextblock m) ->
+      Mem.unchanged_on PCell m m' -> PinsV m'.
+  Proof.
     intros m m' HP Hnl U x c b Hp Hs v Hl.
     assert (Hv : Mem.valid_block m b) by (unfold Mem.valid_block; exact (Plt_Ple_trans _ _ _ (HG _ _ Hs) Hnl)).
     rewrite (Mem.load_unchanged_on_1 _ _ _ _ _ _ U Hv) in Hl.
     - exact (fvok_mono _ _ _ _ _ _ _ _ _ _ (Mem.unchanged_on_nextblock _ _ _ U) (HP _ _ _ Hp Hs _ Hl)).
-    - intros i _. exact (pin_not_A0 _ _ _ _ Hp Hs).
+    - intros i Hi. exists x, c. cbn in Hi. split; [ exact Hp | split; [ exact Hs | lia ] ].
   Qed.
 
   Lemma store_A0 : forall ch m b z v m', Mem.store ch m b z v = Some m' ->
@@ -493,10 +527,10 @@ Section WALK.
   Lemma store_pin : forall x c bg m v m', pin_of x pins = Some c -> Genv.find_symbol ge x = Some bg ->
       Mem.store Mint32 m bg 0 v = Some m' -> vokm m c v -> St m -> FR m m' /\ St m'.
   Proof.
-    intros x c bg m v m' Hp Hs Hst Hv (HP & Hnl).
+    intros x c bg m v m' Hp Hs Hst Hv ((HP & HI) & Hnl).
     assert (Nb : Mem.nextblock m' = Mem.nextblock m) by exact (Mem.nextblock_store _ _ _ _ _ _ Hst).
-    split; [ split; [ exact (PK_store _ _ _ _ _ _ Hst) | ] | split ].
-    - eapply Mem.store_unchanged_on; [ exact Hst | ]. intros i Hi (_ & N). apply N.
+    split; [ split; [ exact (PK_store _ _ _ _ _ _ Hst) | ] | split; [ split | ] ].
+    - eapply Mem.store_unchanged_on; [ exact Hst | ]. intros i Hi (_ & N & _). apply N.
       exists x, c. cbn in Hi. split; [ exact Hp | split; [ exact Hs | lia ] ].
     - intros x' c' b' Hp' Hs' v' Hl. unfold vokm. rewrite Nb.
       destruct (peq b' bg) as [-> | Hne].
@@ -506,6 +540,9 @@ Section WALK.
         intros bb oo E. exact (Hv bb oo (load_result_vptr _ _ _ E)).
       + rewrite (Mem.load_store_other _ _ _ _ _ _ Hst) in Hl by (left; exact Hne).
         exact (HP _ _ _ Hp' Hs' _ Hl).
+    - refine (HInv m m' Hnl _ HI).
+      eapply Mem.store_unchanged_on; [ exact Hst | ]. intros i Hi (_ & N). apply N.
+      exists x, c. cbn in Hi. split; [ exact Hp | split; [ exact Hs | lia ] ].
     - rewrite Nb. exact Hnl.
   Qed.
 
@@ -769,7 +806,7 @@ Section WALK.
     (* the shadow store *)
     destruct (store_A0 _ _ _ _ _ _ Hst0 ltac:(intros i _; right; left; exact HnlL) Hs1) as (HFA & HsA).
     assert (HLA : Mem.load Mint32 mA L 0 = Some dv) by exact (Mem.load_store_same _ _ _ _ _ _ Hst0).
-    set (Inv := fun mm => FR m1 mm /\ St mm /\ Mem.load Mint32 mm L 0 = Some dv).
+    set (ShI := fun mm => FR m1 mm /\ St mm /\ Mem.load Mint32 mm L 0 = Some dv).
     set (P := fun le => forall x b o, mem_idf x ds = true -> le ! x = Some (Vptr b o) -> dv = Vptr b o).
     set (Q := fun v => v = Vptr L Ptrofs.zero).
     set (e := PTree.set d (L, ty) empty_env).
@@ -780,7 +817,7 @@ Section WALK.
           rewrite PTree.gss in Hx; injection Hx; intros; subst end.
         auto.
       - match goal with Hx : (PTree.set d _ _) ! d = None |- _ => rewrite PTree.gss in Hx; discriminate Hx end. }
-    assert (Hset : forall id a le mm v, sh_set d ds id a = true -> P le -> Inv mm ->
+    assert (Hset : forall id a le mm v, sh_set d ds id a = true -> P le -> ShI mm ->
               eval_expr ge e le mm a v -> P (PTree.set id v le)).
     { intros id a le mm v Hok HP0 (_ & _ & HL) Hev x b o Hxm Hg.
       destruct (peq x id) as [-> | Hne].
@@ -799,7 +836,7 @@ Section WALK.
             injection Hl as <-; reflexivity end.
       - rewrite PTree.gso in Hg by exact Hne. exact (HP0 _ _ _ Hxm Hg). }
     assert (Hstore : forall l r le mm t le' m' out, sh_store ds n l r = true -> P le ->
-              exec_stmt function_entry2 ge e le mm (Sassign l r) t le' m' out -> Inv mm -> Inv m').
+              exec_stmt function_entry2 ge e le mm (Sassign l r) t le' m' out -> ShI mm -> ShI m').
     { intros l r le mm t0 le0 m0 out0 Hok HP0 Hx0 (HF0 & Hs0 & HL0).
       destruct (sh_store_inv _ _ _ _ Hok) as (x & tx & k & tyb & ty' & kk & t' & sz & -> & Hxd & Ek & Et & Es & Hk0 & Hkn & Hbv).
       inv Hx0.
@@ -839,9 +876,9 @@ Section WALK.
       exact HL0. }
     assert (Hcall : forall optid a al le mm t le' m' out, (fun _ _ _ => false) optid a al = true -> P le ->
               exec_stmt function_entry2 ge e le mm (Scall optid a al) t le' m' out ->
-              Inv mm -> Inv m' /\ P le').
+              ShI mm -> ShI m' /\ P le').
     { intros. discriminate. }
-    assert (Hret : forall a le mm v, sh_ret d a = true -> P le -> Inv mm -> eval_expr ge e le mm a v -> Q v).
+    assert (Hret : forall a le mm v, sh_ret d a = true -> P le -> ShI mm -> eval_expr ge e le mm a v -> Q v).
     { intros a le mm v Hok _ _ Hev. unfold sh_ret in Hok.
       destruct a; try discriminate Hok. destruct a; try discriminate Hok.
       apply Pos.eqb_eq in Hok. subst i.
@@ -856,7 +893,7 @@ Section WALK.
       - exfalso. pose proof (proj1 (forallb_forall _ _) Hds x (inl_id_In _ _ Hxm)) as Hn.
         apply negb_true_iff in Hn. apply (inl_id_notin _ _ Hn).
         exact (nth_error_In _ _ Hi). }
-    destruct (SpawnBodies.sw_walk ge e Inv P Q (sh_set d ds) (sh_store ds n) (fun _ _ _ => false) (sh_ret d)
+    destruct (SpawnBodies.sw_walk ge e ShI P Q (sh_set d ds) (sh_store ds n) (fun _ _ _ => false) (sh_ret d)
                 Hset Hstore Hcall Hret e _ _ _ _ _ _ _ Hx2 eq_refl Hchk HP1
                 (conj HFA (conj HsA HLA))) as ((HF2 & Hs2 & _) & _ & Hout).
     split; [ exact HF2 | split; [ exact Hs2 | ] ].
@@ -914,7 +951,7 @@ Section WALK.
     Lemma cf_x : forall le m a v, KEIL m lv e -> KTP m tc le -> St m ->
         eval_expr ge e le m a v -> vokm m (fx ce FP pins lv tc a) v.
     Proof.
-      intros le m a v (He & He2) HP (Hpn & _) Hev.
+      intros le m a v (He & He2) HP ((Hpn & _) & _) Hev.
       exact (fx_sound ge e le m ce FP pins lv tc cb co SZ nl Hce HSZ HP He He2 Hpn a v Hev).
     Qed.
 
@@ -922,7 +959,7 @@ Section WALK.
         eval_lvalue ge e le m a b o bf ->
         pcm m (flv ce FP pins lv tc a) b o /\ (bf = Full \/ fblk (flv ce FP pins lv tc a) = flv ce FP pins lv tc a).
     Proof.
-      intros le m a b o bf (He & He2) HP (Hpn & _) Hev.
+      intros le m a b o bf (He & He2) HP ((Hpn & _) & _) Hev.
       exact (flv_sound ge e le m ce FP pins lv tc cb co SZ nl Hce HSZ HP He He2 Hpn a b o bf Hev).
     Qed.
 
@@ -1030,7 +1067,7 @@ Section WALK.
     unfold ffits in Hfit. apply andb_prop in Hfit as [Hpl Hrc].
     pose proof (IH _ Hgood) as IH'. cbv beta iota in IH'.
     pose proof (fargs_sound ge e le m ce FP pins lv tc cb co SZ nl Hce HSZ HP (proj1 HK) (proj2 HK)
-                  (proj1 Hs) _ _ _ Hel _ Hal) as Hargs.
+                  (proj1 (proj1 Hs)) _ _ _ Hel _ Hal) as Hargs.
     assert (Hargs' : Forall2 (vokm m) pcs' vargs).
     { refine (fle_l_forall2 (vokm m) _ _ _ _ Hpl Hargs).
       intros c d v H Hv. exact (fle_vok _ _ _ _ _ _ _ H Hv). }

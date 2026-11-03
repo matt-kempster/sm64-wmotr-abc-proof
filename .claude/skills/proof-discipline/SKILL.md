@@ -551,7 +551,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
     sMarioCamState / sLuigiCamState (and gSecondCameraFocus), and PhiW does not pin them.
     - In the game they are &gPlayerCameraState[0/1] and NULL. The initializer is the only
       writer, link-wide (`CamPinCensus`).
-    - (b) is DONE as R1 (`CamFootInst.update_camera_foot`, off-spine for now): for ALL states
+    - (b) is DONE as R1 (`CamFootInst.update_camera_foot`, on the spine since (a)): for ALL states
       with the 5 pins, the real update_camera changes only cf_FP's 115 globals' blocks, the
       Camera's 108 bytes and the pin cells, and keeps the pins.
       - The walk is all 503 bodies, with byte-level store classes (`CamFootKit` /
@@ -567,11 +567,25 @@ all in `Unwired/`, and the theorem moved nowhere. See
       `cut_chk`, at m11; `StartSat.pin11` / `cam11`), kept by every phase. Hcam_phi /
       Hcam_ow_fp keep their statements: TRUE as stated now, still labeled; their comments
       carry the phantom check (pins, R3, aud_w) and cite update_camera_foot as EVIDENCE.
-      update_camera_foot stays OFF the spine (it uses the unscoped ls_frame).
-    - NEXT (a): the CamFoot walker carries AudioInv (invariant + per-store check), its
-      load_sequence leaf moves to `ls_frame_ai`, update_camera_foot goes on the spine and
-      DERIVES both rows. Residual row: Mario's state / gTimeStopState / gSecondCameraFocus
-      (npc dead under cam_w; gTimeStopState = 0 at boot, `StartSat.ts11`).
+      (Until (a) update_camera_foot was off the spine: it used the unscoped ls_frame.)
+    - DONE (a) (2026-11-02): CamFootSound's walk carries an invariant `Inv` (kept by any
+      change off the walk's own targets) and lets LEAVES change an extra list `XP`;
+      CamFootInst: Inv = AudioInv, XP = cf_XP = ls_ids (out of cf_FP, 115 -> 110; no walked
+      body stores there). The 7 gSequencePlayers writers are leaves (`AudioWire.cai_*`,
+      footprint `cam_aud_ids`); load_sequence = `ls_frame_ai`. `CamRows.cam_foot_step` (the
+      camera statement's footprint on cam_w + AudioInv states) is ON THE SPINE;
+      `HeightFrame.Hcam_ow_fp` is a LEMMA (ow_ids globals PROVED, `cam_ow_globals`) over the
+      labeled residual `Hcam_ow_res` (Mario's 5 object cells: only the npc leaf writes
+      Mario's block; surf_keep). cam_w's Camera cell is now read at `Ptrofs.add o 36` (the
+      code's address; was integer o + 36).
+      **FOUND FALSE (phantom ∀):** `Hcam_ow_res`'s surf_keep conjunct: surf_obj_ok lets list
+      nodes lie anywhere in a dynamic block, so nodes inside the Camera's bytes break it.
+      Named fix (objects side): bound nodes / surfaces to the pools' ranges in surf_obj_ok;
+      R3 + cam_foot_step then give it.
+    - NEXT: `Hcam_phi` stays labeled. PhiW reads cells inside the camera footprint (the
+      Camera's cutscene byte, sObjectCutscene, Mario via the npc leaf, main-pool data beside
+      the Camera): needs value facts (cut_census_wmotr) + Camera apartness for each main-pool
+      region PhiW reads.
     **FOUND FALSE 2026-11-02 (unscoped):** `LsContract.ls_frame` (Hls's footprint half) is
     claimed for every memory. Fix, in stages:
     - DONE: `AudioInv.v` (pointers loaded from `ls_ids` blocks aim at `aud_ids` = ls_ids +
@@ -588,7 +602,8 @@ all in `Unwired/`, and the theorem moved nowhere. See
       `lv_store_ok`, `lfun = lfun_of /\ lfun_ai`, `lv_stmt_ai`); HoleX keeps the non-audio
       part and NaSplit takes AudioInv from `hitbox_hh_ai`. Boot: `aud_chk` inside
       `pin_chk` at m11. Both capstones' Hls is `AudioInv.ls_contract_ai`; no spine file uses
-      `ls_frame` (ObjFrame / ObjAct / CamFootInst are kept roots, off the capstones).
+      `ls_frame` (ObjFrame / ObjAct are kept roots, off the capstones; CamFootInst moved to
+      `ls_frame_ai` in (a) and is on the spine).
     - InRange's floor height is CONDITIONAL since the rebuild: `FLB h := h = -11000 \/
       -8192 <= h` (hits from `FloorLow.wmotr_floor_dp`); use `FLB_low` where -11000 is
       needed. pos / gfx stay at -11000.
@@ -615,7 +630,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
     hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
     rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref, Hobj_stores /
     Hobj_counter, Hobj_debug, Hobj_surfaces, Hobj_collisions, Hobj_unload, Hobj_mplat;
-    Hcam_ow_fp (2026-11-02: the camera statement leaves ow_ids blocks + Mario's 5 object cells unchanged; Hcam_ow PROVED from it by obj_w_unch; FALSE as stated, unpinned, see the level rows). PROVED 2026-10-26:
+    Hcam_ow_res (2026-11-02, step (a): Hcam_ow_fp is a LEMMA, its ow_ids globals PROVED by CamRows.cam_ow_globals; the residual row keeps Mario's 5 object cells + surf_keep, the latter FOUND FALSE as stated (list nodes unbounded), see the level rows; Hcam_ow PROVED by obj_w_unch). PROVED 2026-10-26:
     Hplat_keep (plat_keep_linked12), Hlvl_ow (lvl_ow_linked12: pre_eff / post_split footprints
     + Hcam_ow), Hrender_ow (render_ow_linked12: render_eff + PollKeep.obj_w_slots). Proved: the walk of update_objects' body, the clock
     calls, objects_keep, the platform call inside. B2 DONE (ObjLoop.v): update_terrain_objects

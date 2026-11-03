@@ -1,8 +1,9 @@
-(* kept: R1 (2026-11-02), the camera footprint walk's table (used by CamFootInst). *)
+(* spine (via CamFootInst, 2026-11-02): the camera footprint walk's table. *)
 (* ====================================================================== *)
 (* CamFootTable.v -- GENERATED (scratch gentab.py from the inference      *)
 (* probe): the footprint class signature of every body in update_camera's *)
-(* all-states call tree (503 bodies, no pruning), the walk's FP globals,  *)
+(* all-states call tree (496 walked bodies and the leaves, no pruning),   *)
+(* the walk's FP globals, the leaves' extra footprint cf_XP,              *)
 (* its pins and its leaves.  Nothing here is trusted: CamFootInst          *)
 (* re-checks every entry against the generated Clight (one vm sweep).     *)
 (* ====================================================================== *)
@@ -22,16 +23,15 @@ Definition cf_SZ : Z := 108.
    through a pointer the walk traces to it (the camera's own state, the
    cutscene / sound / music queues, the vec helpers' global destinations),
    gPlayerCameraState (sMarioCamState's target), gMarioStates (Mario's
-   state: set_mario_npc_dialog's), the audio globals load_sequence may
-   change (LsContract.ls_ids) and save_file_do_save's globals (the save
-   buffer and the EEPROM / SI driver state, CamFootSave) *)
+   state: set_mario_npc_dialog's) and save_file_do_save's globals (the save
+   buffer and the EEPROM / SI driver state, CamFootSave).  NOT the audio
+   globals (2026-11-02): those are cf_XP, changed only by the audio leaves. *)
 Definition cf_FP : list ident := [
   $"sCurrentBackgroundMusicSeqId";
   $"sBackgroundMusicForDynamics";
   $"sCurrentMusicDynamic";
   $"sMusicDynamicDelay";
   $"D_80360928";
-  $"gSequencePlayers";
   $"sBackgroundMusicQueueSize";
   $"sBackgroundMusicQueue";
   $"unusedSplinePitch";
@@ -125,10 +125,6 @@ Definition cf_FP : list ident := [
   $"sOldFocus";
   $"sPlayer2FocusOffset";
   $"gMarioStates";
-  $"gAudioLoadLock";
-  $"gSeqLoadedPool";
-  $"gBankLoadedPool";
-  $"gAudioHeap";
   $"gSaveBuffer";
   $"gSaveFileModified";
   (* save_file_do_save's whole tree (CamFootSave.sds_gvars): the menu dirty
@@ -146,6 +142,13 @@ Definition cf_FP : list ident := [
   $"__osEepromTimer"
 ].
 
+(* THE LEAVES' EXTRA FOOTPRINT: the audio globals (LsContract.ls_ids,
+   CamFootInst: cf_XP_eq).  No walked body stores to them; the audio leaves
+   below (load_sequence and the sequence-player bodies) may, and keep
+   AudioInv (AudioWire's walk). *)
+Definition cf_XP : list ident :=
+  [$"gAudioLoadLock"; $"gSequencePlayers"; $"gSeqLoadedPool"; $"gBankLoadedPool"; $"gAudioHeap"].
+
 (* THE PINS: the pointer globals whose cell the walk trusts (premise at the
    start, kept by the walk) *)
 Definition cf_pins : list (ident * fcls) :=
@@ -153,10 +156,19 @@ Definition cf_pins : list (ident * fcls) :=
    ($"gSecondCameraFocus", fN); ($"gMarioState", fF)].
 
 (* THE LEAVES: proved outside the walk (CamFootInst: sqrtf from the FPU floor,
-   load_sequence from the labeled audio premise, the vec helpers;
-   CamFootSave: save_file_do_save; CamFootNpc: set_mario_npc_dialog) *)
+   load_sequence from the scoped audio contract, the sequence-player bodies
+   that store into gSequencePlayers from their real bodies (AudioWire's
+   walk), the vec helpers; CamFootSave: save_file_do_save; CamFootNpc:
+   set_mario_npc_dialog) *)
 Definition cf_leaf : ftab :=
   [($"sqrtf", ([fA], fA)); ($"load_sequence", ([fA; fA; fA], fA));
+   ($"seq_player_fade_to_zero_volume", ([fA; fA], fA));
+   ($"func_8031D690", ([fA; fA], fA));
+   ($"seq_player_play_sequence", ([fA; fA; fA], fA));
+   ($"seq_player_fade_to_target_volume", ([fA; fA; fA], fA));
+   ($"seq_player_fade_to_normal_volume", ([fA; fA], fA));
+   ($"seq_player_fade_to_percentage_of_volume", ([fA; fA; fA], fA));
+   ($"begin_background_music_fade", ([fA], fA));
    ($"save_file_do_save", ([fA], fA));
    ($"set_mario_npc_dialog", ([fA], fA));
    ($"vec3f_copy", ([fFC 12; fA], fFC 12));
@@ -167,20 +179,13 @@ Definition cf_leaf : ftab :=
 
 (* the walked bodies: (function, index of its TU in ObjTable.lprogs, signature) *)
 Definition cf_walk : list (ident * nat * fsig) := [
-  ($"seq_player_fade_to_zero_volume", 39%nat, ([fN; fN], fN));
-  ($"func_8031D690", 39%nat, ([fN; fN], fN));
   ($"seq_player_fade_out", 39%nat, ([fN; fN], fN));
   ($"calc_hor_dist", 34%nat, ([fF; fC 92], fA));
   ($"find_wall_collisions_from_list", 12%nat, ([fA; fF], fN));
   ($"is_range_behind_surface", 34%nat, ([fFC 92; fFC 92; fA; fN; fN], fA));
   ($"is_behind_surface", 34%nat, ([fFC 92; fA], fN));
   ($"stop_background_music", 39%nat, ([fN], fN));
-  ($"seq_player_play_sequence", 39%nat, ([fN; fN; fN], fN));
-  ($"seq_player_fade_to_target_volume", 39%nat, ([fN; fN; fN], fN));
   ($"find_ceil_from_list", 12%nat, ([fA; fN; fN; fN; fF], fA));
-  ($"seq_player_fade_to_normal_volume", 39%nat, ([fN; fN], fN));
-  ($"seq_player_fade_to_percentage_of_volume", 39%nat, ([fN; fN; fN], fN));
-  ($"begin_background_music_fade", 39%nat, ([fN], fN));
   ($"calc_abs_dist", 34%nat, ([fFC 92; fFC 92], fA));
   ($"camera_approach_f32_symmetric_bool", 34%nat, ([fFC 84; fN; fA], fN));
   ($"rotate_in_xz", 34%nat, ([fFC 92; fFC 92; fA], fN));
