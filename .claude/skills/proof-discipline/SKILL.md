@@ -704,6 +704,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
     4. Collision census: DONE (CollisionCensus.v, 2026-11-02).
     5. B3 (iii) stepper; the Hobj_step_act route (census_value + per-step footprint +
        set_mario_action walk); the ow_act carry.
+       Control layer DONE (BhvStep.ctl_step, 2026-11-02): the 10 control opcodes vs their
+       generated handlers. Kit: push_call / pop_call (real stack push/pop), Vcmd / Vstk
+       (cells split), norm_off (the trap: cbn / injection expand 4 * Z.of_nat i into a
+       match, so `remember` the offset first). Next: advancing commands, DELAY, the
+       dispatch loop, the scr_ok obj_w clause.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
     PROVED at the boot witness, which now runs the real init_graph_node_start + clear_objects
     and Mario's spawn_objects_from_info; one real area_update_objects runs from it

@@ -1213,6 +1213,17 @@ without pressing A".*
   jumps are the macro layouts (`BehaviorScripts.cmd_len`). B3 (iii), the stepper, ties each
   one to its handler's generated body. Until then they are only the census's model, and no
   row depends on them.
+  **Control layer (2026-11-02, B3 iii, `BhvStep.ctl_step`).** The ten control opcodes
+  (CALL, RETURN, GOTO, BEGIN_REPEAT, END_REPEAT, END_REPEAT_CONTINUE, BEGIN_LOOP, END_LOOP,
+  BREAK, BREAK_UNUSED) are now PROVED against their generated handlers, run in the linked
+  program with the real `cur_obj_bhv_stack_push` / `_pop` and `segmented_to_virtual`.
+  From a reachable state whose cells hold it, each handler lands on one of `BhvVM.succs`'s
+  successors, returns its code, and writes only `gCurBhvCommand` and the slot's stack
+  cells. So for these opcodes the census's macro layouts are no longer only a model.
+  No trust moves. The theorem's premise that the script blocks hold their initializers
+  (`scr_ok`) is an open obj_w clause (scripts are writable globals in C). The advancing
+  commands, DELAY, CALL_NATIVE and the dispatch loop are still open, and no row depends on
+  the theorem yet.
   **Indexed handler arguments (2026-10-26, B3 iii-a, `BhvVM`).** These are vm-checked at
   every reachable state:
   - The field commands index `o->rawData.asU32[0x50]` (`vm_fields_in_rawdata`): every field
