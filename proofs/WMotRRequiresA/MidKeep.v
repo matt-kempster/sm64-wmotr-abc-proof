@@ -34,7 +34,7 @@ From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
 From SM64.Proofs Require Import ActionValueFrame MWFReal SpawnInit MathBodies AGates UcKit.
 From SM64.Proofs Require NoAImpliesNoFlyTwelve.
 From SM64.Proofs.WMotRRequiresA Require Import FpuFloor WMotRWorld FfWorld RenderKeep LevelWalk.
-From SM64.Proofs.WMotRRequiresA Require PollFlank ObjWorld FootWalk LevelKeep PlatformKeep PollKeep.
+From SM64.Proofs.WMotRRequiresA Require PollFlank ObjWorld FootWalk LevelKeep PlatformKeep PollKeep BhvVM.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -327,7 +327,8 @@ Section LINK.
                (phiw_surf_apart lp bm FP _ Hphi));
       exact (PollKeep.lvl_w_fx0 lp bm Hbm_sym FP _ _ (avoid_of FP lvl_rd_ids ltac:(vmr)) Hfx Hl)
     | exact (LevelKeep.fx_plat_still lp bm Hbm_sym FP _ _ ltac:(vmr) ltac:(vmr) Hfx)
-    | exact (PollKeep.fx_obj_w lp bm Hbm_sym FP _ _ (avoid_of PollKeep.ow_ids FP ltac:(vmr)) ltac:(vmr) Hfx) ].
+    | exact (PollKeep.fx_obj_w lp bm Hbm_sym FP _ _ (avoid_of PollKeep.ow_ids FP ltac:(vmr)) ltac:(vmr)
+               (avoid_of (map BhvVM.v_s BhvVM.vm_tab) FP ltac:(vmr)) Hfx) ].
 
   Theorem agt_keeps : forall m i, agt_call lp m i ->
     ow_facts bm MWF m -> phiw lp bm m ->
