@@ -61,20 +61,22 @@
 (*  - Hobj_collisions (detect_object_collisions): Mario's object's      *)
 (*    collided list, which the next Mario frame's interactions read,     *)
 (*    holds SafeB pool slots (MWF_real's chase).                          *)
-(*  - Hobj_surfaces (clear_dynamic_surfaces): Mario's floor / wall /    *)
-(*    ceiling pointers into the dynamic pool stay chase-safe after the   *)
-(*    pool counts drop back.  (2026-11-02: it also yields the post-clear *)
-(*    fact, ObjWorld.post_clear, the surface budget the terrain walk     *)
-(*    starts from; the terrain rest rows carry that budget, ter_row.)    *)
+(*  (Hobj_surfaces, clear_dynamic_surfaces with the post-clear fact,   *)
+(*    is PROVED since 2026-11-03: HeightFrame.obj_surfaces_linked12,     *)
+(*    from the real body, ClearRun / ClearKeep.)                         *)
 (*  - Hobj_unload (unload_deactivated_objects): an unloaded slot that    *)
 (*    Mario's usedObj / heldObj / riddenObj names is still a SafeB pool  *)
 (*    slot.                                                               *)
 (*  (Hobj_mplat, update_mario_platform, is PROVED since 2026-11-03:     *)
 (*    HeightFrame.obj_mplat_linked12, from the real body, MplatKeep.)    *)
-(*  - Hobj_debug, Hobj_blind / Hobj_fresh / Hobj_noref, Hobj_stores /    *)
-(*    Hobj_counter / Hobj_ctr: the debug calls (off) and the phase's own *)
-(*    stores (counters, gTimeStopState, the stack array) write no         *)
-(*    MarioState cell and no MWF_real cell.                               *)
+(*  - Hobj_debug, Hobj_blind / Hobj_fresh / Hobj_noref: the debug      *)
+(*    calls (off) and the stack array write no MarioState cell and no   *)
+(*    MWF_real cell.                                                      *)
+(*  (Hobj_stores, the phase's own stores, is PROVED since 2026-11-03:   *)
+(*    HeightFrame.obj_stores_linked12, ObjStores; it rests on Hobj_blind *)
+(*    for the stack stores.)                                             *)
+(*  (Hobj_counter / Hobj_ctr, the counters, are PROVED since 2026-11-03: *)
+(*    HeightFrame.obj_counter_linked12 / obj_ctr_linked12, ClearKeep.)   *)
 (*  - Hseg_na_open (Mario's frame, GOAL 2's per-call PhiW rows): GOAL 1  *)
 (*    needs only the world part (Mario's floor type, lvl_w, area_w, the  *)
 (*    frame world), not the height budget, but FrameSplit carries them   *)
@@ -150,17 +152,10 @@ Section NoAImpliesNoFlyFrame.
     Ple (Genv.genv_next (lp_ge lp)) b /\ ObjPhase.noref b m1.
   Hypothesis Hobj_noref : forall b f, In f ObjPhase.uo_callees -> Ple (Genv.genv_next (lp_ge lp)) b ->
     ObjPhase.call_keeps (lp_ge lp) (ObjPhase.noref b) f.
-  Hypothesis Hobj_stores : forall b s, In (FrameCalls.OBlk s) ObjPhase.uo_list ->
-    Ple (Genv.genv_next (lp_ge lp)) b ->
-    ObjPhase.safeE (lp_ge lp) (fun m => Pobjl m /\ ObjPhase.noref b m) (ObjPhase.uo_env b) s.
-  Hypothesis Hobj_counter : forall le m t le' m' out, Pobjl m ->
-    exec_stmt function_entry2 (lp_ge lp) empty_env le m ObjPhase.auo_counter t le' m' out -> Pobjl m'.
   Hypothesis Hobj_debug :
     ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._reset_debug_objectinfo
     /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._stub_debug_5
     /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._try_print_debug_mario_object_info.
-  Hypothesis Hobj_surfaces : ObjPhase.call_rel (lp_ge lp) Pobjl
-    (fun m => Pobjl m /\ ObjWorld.post_clear (lp_ge lp) m) object_list_processor._clear_dynamic_surfaces.
   Hypothesis Hobj_collisions : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._detect_object_collisions.
   Hypothesis Hobj_step_act_terrain :
     ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
@@ -185,9 +180,6 @@ Section NoAImpliesNoFlyFrame.
     /\ ObjLoop.step_nr_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_during_time_stop.
 
-  Hypothesis Hobj_ctr : forall m b c m', Pobjl m ->
-    Genv.find_symbol (lp_ge lp) object_list_processor._gObjectCounter = Some b ->
-    Mem.store Mint32 m b 0 (Vint c) = Some m' -> Pobjl m'.
   Hypothesis Hobj_unload : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._unload_deactivated_objects.
   (* the camera statement's object-world footprint, its residual part
      (HeightFrame.Hcam_ow_res: Mario's object-pointer cells; the
@@ -211,9 +203,9 @@ Section NoAImpliesNoFlyFrame.
     apply (mem_ok_not_flying_lp bm MWF m).
     exact (proj1 (HeightFrame.wmotr_noA_run_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms
                     Hbm_sym Hbc_sym Hoc0 Hls Hdma_floor Hseg_na_open Hdma_anim Hsqrtf Hsqrtf_float
-                    Hcam_phi Hobj_blind Hobj_fresh Hobj_noref Hobj_stores Hobj_counter Hobj_debug
-                    Hobj_surfaces Hobj_collisions Hobj_step_act_terrain Hobj_step_rest_terrain
-                    Hobj_step_act_nonterrain Hobj_step_rest_nonterrain Hobj_ctr
+                    Hcam_phi Hobj_blind Hobj_fresh Hobj_noref Hobj_debug
+                    Hobj_collisions Hobj_step_act_terrain Hobj_step_rest_terrain
+                    Hobj_step_act_nonterrain Hobj_step_rest_nonterrain
                     Hobj_unload Hcam_ow_res
                     init is m Hok Hphi Hst How HA Hr)).
   Qed.

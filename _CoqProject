@@ -327,6 +327,9 @@ proofs/WMotRRequiresA/PlatformWalk.v
 proofs/WMotRRequiresA/PlatformKeep.v
 proofs/WMotRRequiresA/MplatRun.v
 proofs/WMotRRequiresA/MplatKeep.v
+proofs/WMotRRequiresA/ClearRun.v
+proofs/WMotRRequiresA/ClearKeep.v
+proofs/WMotRRequiresA/ObjStores.v
 proofs/WMotRRequiresA/LevelFlank.v
 proofs/WMotRRequiresA/LevelWalk.v
 proofs/WMotRRequiresA/LevelWarp.v
