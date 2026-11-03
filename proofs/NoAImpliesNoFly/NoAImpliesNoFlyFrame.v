@@ -83,11 +83,14 @@
 (*    lvl_w after the camera (the painting call's guard and the next     *)
 (*    frame's); the camera's own mem_ok carry is PROVED.                 *)
 (*  - Hcam_ow_res (update_camera leaves Mario's five object-pointer     *)
-(*    cells unchanged and keeps the surface clause): the residual of the *)
-(*    camera's object-world footprint.  The object-world globals' half   *)
-(*    is PROVED since 2026-11-02 (CamRows.cam_ow_globals, from           *)
-(*    CamFootInst.update_camera_foot, which now carries AudioInv on the  *)
-(*    scoped ls_frame_ai).  Needed only because the object rows are      *)
+(*    cells unchanged): the residual of the camera's object-world        *)
+(*    footprint.  The object-world globals' half is PROVED since         *)
+(*    2026-11-02 (CamRows.cam_ow_globals, from CamFootInst.              *)
+(*    update_camera_foot, which now carries AudioInv on the scoped       *)
+(*    ls_frame_ai), and the surface clause since 2026-11-03              *)
+(*    (CamRows.cam_surf_keep; its surf_keep conjunct was FOUND FALSE AS  *)
+(*    STATED, repaired by bounding ObjWorld.surf_obj_ok to the pools).   *)
+(*    Needed only because the object rows are                           *)
 (*    stated over a Pobj that contains obj_w.                             *)
 (*    Both camera rows are TRUE AS STATED since 2026-11-02 (pinned):     *)
 (*    PhiW's lvl_w now carries FfWorld.cam_w's pins (gCamera,            *)
@@ -187,16 +190,15 @@ Section NoAImpliesNoFlyFrame.
     Mem.store Mint32 m b 0 (Vint c) = Some m' -> Pobjl m'.
   Hypothesis Hobj_unload : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._unload_deactivated_objects.
   Hypothesis Hobj_mplat : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._update_mario_platform.
-  (* the camera statement's object-world footprint, its residual half
-     (HeightFrame.Hcam_ow_res; the object-world globals' half is PROVED,
-     CamRows.cam_ow_globals, and the obj_w carry from both) *)
+  (* the camera statement's object-world footprint, its residual part
+     (HeightFrame.Hcam_ow_res: Mario's object-pointer cells; the
+     object-world globals and the surface clause are PROVED,
+     CamRows.cam_ow_globals / cam_surf_keep, and the obj_w carry from
+     them) *)
   Hypothesis Hcam_ow_res : forall m m', LevelFlank.cam_step lp m m' ->
     mem_ok_lp bm MWF m -> Phi m ->
-    (forall z, z = 136 \/ In z [120; 124; 128; 132] ->
-       Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z)
-    (* 2026-11-02: the surface clause of obj_w (ObjWorld.surf_obj_ok: the
-       partitions' lists and their surfaces' objects) is kept *)
-    /\ PollKeep.surf_keep m m' (lp_ge lp).
+    forall z, z = 136 \/ In z [120; 124; 128; 132] ->
+      Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z.
 
   (* THE CAPSTONE: GOAL 1 over GOAL 2's real frame *)
   Theorem noA_never_flying_frame_linked12 :

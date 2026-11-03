@@ -326,10 +326,22 @@ Definition cmdtab_ok (ge : genv) (m : mem) : Prop :=
 (*     saturation (a collision object stepping from a frame whose objects  *)
 (*     all loaded already); it is the frame-boundary fact ctr_ok below,    *)
 (*     and the step rows' walk-indexed bound is the planned fix.           *)
-(*     SURF_OBJ: every list from a partition cell walks through dynamic    *)
-(*     blocks to NULL, and each of its surfaces has object NULL or a pool  *)
+(*     SURF_OBJ: every list from a partition cell walks through            *)
+(*     sSurfaceNodePool slots (in the pools' block P, [NP_OFF, NP_END) at  *)
+(*     stride 8) to NULL, its surfaces are sSurfacePool slots ([SP_OFF,    *)
+(*     SP_END) at stride 48), and each has object NULL or a pool           *)
 (*     slot whose angle velocity (0x23..0x25) is 0 -- what                 *)
 (*     update_mario_platform's gMarioPlatform needs (PlatformKeep).        *)
+(*     FOUND (phantom forall, 2026-11-02) / REPAIRED (2026-11-03): SURF_OBJ *)
+(*     let the nodes and surfaces lie anywhere in any dynamic block, so    *)
+(*     the camera row's surf_keep (HeightFrame) ranged over states whose   *)
+(*     list nodes sit inside the Camera's bytes (the Camera shares the     *)
+(*     main-pool block) -- false there.  Now both are bounded to their     *)
+(*     pool's range at its stride; in the game alloc_surface_node /        *)
+(*     alloc_surface hand out exactly those slots (surface_load.c:41-71),  *)
+(*     and the boot witness checks it by vm (surf_b at m11).  PHANTOM      *)
+(*     CHECK: every partition list the game builds is pool nodes ->        *)
+(*     pool surfaces, so the bound excludes no reachable state.            *)
 (*     COLL: at most WMotR's placed exclamation boxes (each at a placed    *)
 (*     position) and cannon lids are listed -- the only collision-loading  *)
 (*     behaviors of the closure (BehaviorScripts.reached_bhvs).            *)
@@ -378,17 +390,51 @@ Lemma spool_layout :
   0 <= NP_OFF /\ NP_OFF + NP_CAP * SNODE_SZ <= SP_OFF /\ SP_OFF + SP_CAP * SURF_SZ <= 262144.
 Proof. vm_compute. repeat split; discriminate. Qed.
 
-(* a list from a partition head: dynamic nodes, ending in NULL *)
-Fixpoint swalk (ge : genv) (m : mem) (fuel : nat) (v : val) : option (list val) :=
+(* the pools' ranges in their block (spool_layout): a node / surface is a
+   pool slot -- in its pool's range, at its pool's stride *)
+Definition NP_END : Z := NP_OFF + NP_CAP * SNODE_SZ.
+Definition SP_END : Z := SP_OFF + SP_CAP * SURF_SZ.
+Definition in_np (z : Z) : bool := (NP_OFF <=? z) && (z <? NP_END) && ((z - NP_OFF) mod SNODE_SZ =? 0).
+Definition in_sp (z : Z) : bool := (SP_OFF <=? z) && (z <? SP_END) && ((z - SP_OFF) mod SURF_SZ =? 0).
+
+Lemma in_np_spec : forall z, in_np z = true -> NP_OFF <= z /\ z + SNODE_SZ <= NP_END.
+Proof.
+  intros z H. unfold in_np in H. apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
+  apply Z.leb_le in H1. apply Z.ltb_lt in H2. apply Z.eqb_eq in H3.
+  unfold NP_END, NP_OFF, NP_CAP, SNODE_SZ in *.
+  pose proof (Z_div_mod_eq_full (z - 2592) 8) as E. rewrite H3 in E. lia.
+Qed.
+
+Lemma in_sp_spec : forall z, in_sp z = true -> SP_OFF <= z /\ z + SURF_SZ <= SP_END.
+Proof.
+  intros z H. unfold in_sp in H. apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
+  apply Z.leb_le in H1. apply Z.ltb_lt in H2. apply Z.eqb_eq in H3.
+  unfold SP_END, SP_OFF, SP_CAP, SURF_SZ in *.
+  pose proof (Z_div_mod_eq_full (z - 58608) 48) as E. rewrite H3 in E. lia.
+Qed.
+
+Lemma sp_end_small : SP_END <= Ptrofs.max_unsigned.
+Proof. apply Z.leb_le. vm_compute. reflexivity. Qed.
+
+Lemma uadd_small : forall o d, 0 <= d -> Ptrofs.unsigned o + d <= Ptrofs.max_unsigned ->
+  Ptrofs.unsigned (Ptrofs.add o (Ptrofs.repr d)) = Ptrofs.unsigned o + d.
+Proof.
+  intros o d H0 H1. pose proof (Ptrofs.unsigned_range o) as R.
+  unfold Ptrofs.add. rewrite (Ptrofs.unsigned_repr d) by lia. apply Ptrofs.unsigned_repr. lia.
+Qed.
+
+(* a list from a partition head: sSurfaceNodePool slots of the pools'
+   block P, ending in NULL *)
+Fixpoint swalk (P : block) (m : mem) (fuel : nat) (v : val) : option (list val) :=
   match fuel with
   | O => None
   | S f =>
       match v with
       | Vptr b o =>
-          if Pos.leb (Genv.genv_next ge) b then
+          if Pos.eqb b P && in_np (Ptrofs.unsigned o) then
             match CM.load Mint32 m b (Ptrofs.unsigned (Ptrofs.add o (Ptrofs.repr FloorList.SN_SURF))),
                   CM.load Mint32 m b (Ptrofs.unsigned (Ptrofs.add o (Ptrofs.repr FloorList.SN_NEXT))) with
-            | Some s, Some nx => option_map (cons s) (swalk ge m f nx)
+            | Some s, Some nx => option_map (cons s) (swalk P m f nx)
             | _, _ => None
             end
           else None
@@ -397,35 +443,94 @@ Fixpoint swalk (ge : genv) (m : mem) (fuel : nat) (v : val) : option (list val) 
       end
   end.
 
-Lemma swalk_on_list : forall ge m hd s, FloorList.on_list m hd s ->
-  forall f l, swalk ge m f hd = Some l -> In s l.
+Lemma swalk_on_list : forall P m hd s, FloorList.on_list m hd s ->
+  forall f l, swalk P m f hd = Some l -> In s l.
 Proof.
-  intros ge m hd s H. induction H as [bn on s Hl | bn on nx s Hl Ho IH]; intros f l Hw;
+  intros P m hd s H. induction H as [bn on s Hl | bn on nx s Hl Ho IH]; intros f l Hw;
     (destruct f as [| f]; [ discriminate Hw | ]); cbn [swalk] in Hw;
-    (destruct (Pos.leb (Genv.genv_next ge) bn); [ | discriminate Hw ]);
+    (destruct (Pos.eqb bn P && in_np (Ptrofs.unsigned on)); [ | discriminate Hw ]);
     cbn [Mem.loadv] in Hl; rewrite !CM.load_eq in Hw.
   - rewrite Hl in Hw.
     destruct (Mem.load Mint32 m bn (Ptrofs.unsigned (Ptrofs.add on (Ptrofs.repr FloorList.SN_NEXT)))); [ | discriminate Hw ].
-    destruct (swalk ge m f _); [ | discriminate Hw ]. cbn in Hw. injection Hw as <-. left. reflexivity.
+    destruct (swalk P m f _); [ | discriminate Hw ]. cbn in Hw. injection Hw as <-. left. reflexivity.
   - rewrite Hl in Hw.
     destruct (Mem.load Mint32 m bn (Ptrofs.unsigned (Ptrofs.add on (Ptrofs.repr FloorList.SN_SURF)))); [ | discriminate Hw ].
-    destruct (swalk ge m f nx) as [l'|] eqn:Hw'; [ | discriminate Hw ]. cbn in Hw. injection Hw as <-.
+    destruct (swalk P m f nx) as [l'|] eqn:Hw'; [ | discriminate Hw ]. cbn in Hw. injection Hw as <-.
     right. exact (IH f l' Hw').
+Qed.
+
+(* the walk reads only the node pool's range of P *)
+Lemma swalk_ext : forall P m m',
+  (forall ch z, NP_OFF <= z -> z + size_chunk ch <= NP_END -> Mem.load ch m' P z = Mem.load ch m P z) ->
+  forall f v, swalk P m' f v = swalk P m f v.
+Proof.
+  intros P m m' K. induction f as [| f IH]; intros v; [ reflexivity | ]. cbn [swalk].
+  destruct v; try reflexivity.
+  destruct (Pos.eqb b P) eqn:E; [ | reflexivity ].
+  destruct (in_np (Ptrofs.unsigned i)) eqn:N; [ | reflexivity ]. cbn [andb].
+  apply Pos.eqb_eq in E. subst b. destruct (in_np_spec _ N) as (N1 & N2).
+  pose proof sp_end_small as Sm. pose proof (Ptrofs.unsigned_range i) as R.
+  unfold FloorList.SN_SURF, FloorList.SN_NEXT.
+  rewrite !uadd_small by (unfold NP_END, SP_END, NP_OFF, NP_CAP, SNODE_SZ, SP_OFF, SP_CAP, SURF_SZ in *; lia).
+  rewrite !CM.load_eq, !K by (cbn [size_chunk]; unfold SNODE_SZ in N2; lia).
+  destruct (Mem.load Mint32 m P (Ptrofs.unsigned i + 4)); [ | reflexivity ].
+  destruct (Mem.load Mint32 m P (Ptrofs.unsigned i + 0)); [ | reflexivity ].
+  rewrite IH. reflexivity.
 Qed.
 
 Definition ANGV : list Z := [35; 36; 37].   (* oAngleVelPitch / Yaw / Roll *)
 
-Definition surf_obj_at (ge : genv) (pool : block) (m : mem) (s : val) : Prop :=
-  exists b o, s = Vptr b o /\ Ple (Genv.genv_next ge) b
-    /\ (Mem.load Mint32 m b (Ptrofs.unsigned o + S_OBJ) = Some (Vint Int.zero)
+Definition surf_obj_at (P pool : block) (m : mem) (s : val) : Prop :=
+  exists o, s = Vptr P o /\ in_sp (Ptrofs.unsigned o) = true
+    /\ (Mem.load Mint32 m P (Ptrofs.unsigned o + S_OBJ) = Some (Vint Int.zero)
         \/ exists k, 0 <= k < NSLOT
-             /\ Mem.load Mint32 m b (Ptrofs.unsigned o + S_OBJ) = Some (slot_v pool k)
+             /\ Mem.load Mint32 m P (Ptrofs.unsigned o + S_OBJ) = Some (slot_v pool k)
              /\ forall j, In j ANGV -> Mem.load Mint32 m pool (k * OSZ + RAW_OFF + 4 * j) = Some (Vint Int.zero)).
 
+(* P is the pools' block (both pointers, as spool_ok pins them; stated
+   here too so the clause names the ranges it reads) *)
 Definition surf_obj_ok (ge : genv) (pool : block) (m : mem) : Prop :=
-  forall id bp j hd, In id FloorList.part_ids -> Genv.find_symbol ge id = Some bp -> (j < PCELLS)%nat ->
-    Mem.load Mint32 m bp (4 * Z.of_nat j) = Some hd ->
-    exists l, swalk ge m SFUEL hd = Some l /\ Forall (surf_obj_at ge pool m) l.
+  exists P, Ple (Genv.genv_next ge) P
+    /\ gcell ge surface_load._sSurfacePool Mint32 (Vptr P (Ptrofs.repr SP_OFF)) m
+    /\ gcell ge surface_load._sSurfaceNodePool Mint32 (Vptr P (Ptrofs.repr NP_OFF)) m
+    /\ forall id bp j hd, In id FloorList.part_ids -> Genv.find_symbol ge id = Some bp -> (j < PCELLS)%nat ->
+         Mem.load Mint32 m bp (4 * Z.of_nat j) = Some hd ->
+         exists l, swalk P m SFUEL hd = Some l /\ Forall (surf_obj_at P pool m) l.
+
+(* the globals the clause reads *)
+Definition surf_gids : list ident :=
+  surface_load._sSurfacePool :: surface_load._sSurfaceNodePool :: FloorList.part_ids.
+
+(* THE KEEP: the clause reads its globals, the two pools' ranges of P and
+   the listed slots' angle velocities -- nothing else *)
+Lemma surf_obj_ok_ext : forall (ge : genv) pool m m',
+  (forall id b, In id surf_gids -> Genv.find_symbol ge id = Some b ->
+     forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+  (forall P, Ple (Genv.genv_next ge) P ->
+     gcell ge surface_load._sSurfacePool Mint32 (Vptr P (Ptrofs.repr SP_OFF)) m ->
+     gcell ge surface_load._sSurfaceNodePool Mint32 (Vptr P (Ptrofs.repr NP_OFF)) m ->
+     forall ch z, (NP_OFF <= z /\ z + size_chunk ch <= NP_END) \/ (SP_OFF <= z /\ z + size_chunk ch <= SP_END) ->
+     Mem.load ch m' P z = Mem.load ch m P z) ->
+  (forall k j, 0 <= k < NSLOT -> In j ANGV ->
+     Mem.load Mint32 m' pool (k * OSZ + RAW_OFF + 4 * j) = Mem.load Mint32 m pool (k * OSZ + RAW_OFF + 4 * j)) ->
+  surf_obj_ok ge pool m -> surf_obj_ok ge pool m'.
+Proof.
+  intros ge pool m m' KG KP KA (P & HP & G1 & G2 & W).
+  assert (Kc : forall id ch v, In id surf_gids -> gcell ge id ch v m -> gcell ge id ch v m').
+  { intros id ch v Hin (b & Hs & L). exists b. rewrite (KG id b Hin Hs). exact (conj Hs L). }
+  pose proof (KP P HP G1 G2) as KR.
+  exists P. split; [ exact HP | split; [ apply Kc; [ cbn; auto | exact G1 ] | split; [ apply Kc; [ cbn; auto | exact G2 ] | ] ] ].
+  intros id bp j hd Hin Hs Hj L.
+  rewrite (KG id bp ltac:(cbn [surf_gids]; right; right; exact Hin) Hs) in L.
+  destruct (W id bp j hd Hin Hs Hj L) as (l & Hw & F).
+  exists l. rewrite (swalk_ext P m m' (fun ch z H1 H2 => KR ch z (or_introl (conj H1 H2)))). split; [ exact Hw | ].
+  refine (Forall_impl _ _ F). intros s (o & -> & N & H).
+  exists o. split; [ reflexivity | split; [ exact N | ] ].
+  destruct (in_sp_spec _ N) as (N1 & N2).
+  rewrite (KR Mint32 (Ptrofs.unsigned o + S_OBJ)) by (right; cbn [size_chunk]; unfold S_OBJ, SURF_SZ in *; lia).
+  destruct H as [H | (k & Hk & Lk & A)]; [ left; exact H | right ].
+  exists k. split; [ exact Hk | split; [ exact Lk | ] ]. intros j' Hj'. rewrite (KA k j' Hk Hj'). exact (A j' Hj').
+Qed.
 
 (* the placed collision objects (WMotRLevel's macro list) *)
 Definition placed (b : ident) : list (Z * Z * Z) :=
@@ -1082,10 +1187,10 @@ Proof.
           (conj (gcell_b_sound _ _ _ _ _ H3) (conj (gcell_b_sound _ _ _ _ _ H4) (gcell_b_sound _ _ _ _ _ H5))))).
 Qed.
 
-Definition surf_obj_at_b (ge : genv) (pool : block) (m : mem) (s : val) : bool :=
+Definition surf_obj_at_b (P pool : block) (m : mem) (s : val) : bool :=
   match s with
   | Vptr b o =>
-      Pos.leb (Genv.genv_next ge) b
+      Pos.eqb b P && in_sp (Ptrofs.unsigned o)
       && match CM.load Mint32 m b (Ptrofs.unsigned o + S_OBJ) with
          | Some (Vint i) => Int.eq i Int.zero
          | Some (Vptr pb po) =>
@@ -1099,12 +1204,13 @@ Definition surf_obj_at_b (ge : genv) (pool : block) (m : mem) (s : val) : bool :
   | _ => false
   end.
 
-Lemma surf_obj_at_b_sound : forall ge pool m s, surf_obj_at_b ge pool m s = true -> surf_obj_at ge pool m s.
+Lemma surf_obj_at_b_sound : forall P pool m s, surf_obj_at_b P pool m s = true -> surf_obj_at P pool m s.
 Proof.
-  intros ge pool m s H. destruct s as [| | | | | b o]; try discriminate H.
-  cbn [surf_obj_at_b] in H. apply andb_prop in H as [H0 H]. apply Pos.leb_le in H0.
-  exists b, o. split; [ reflexivity | split; [ exact H0 | ] ]. rewrite CM.load_eq in H.
-  destruct (Mem.load Mint32 m b (Ptrofs.unsigned o + S_OBJ)) as [[| i | | | | pb po]|] eqn:L; try discriminate H.
+  intros P pool m s H. destruct s as [| | | | | b o]; try discriminate H.
+  cbn [surf_obj_at_b] in H. apply andb_prop in H as [H0 H]. apply andb_prop in H0 as [Hb0 Hn].
+  apply Pos.eqb_eq in Hb0. subst b.
+  exists o. split; [ reflexivity | split; [ exact Hn | ] ]. rewrite CM.load_eq in H.
+  destruct (Mem.load Mint32 m P (Ptrofs.unsigned o + S_OBJ)) as [[| i | | | | pb po]|] eqn:L; try discriminate H.
   - left. apply Int.same_if_eq in H. subst i. reflexivity.
   - right. apply andb_prop in H as [Hb Hs]. destruct (eq_block pb pool) as [-> | _]; [ | discriminate Hb ].
     destruct (slot_of (Ptrofs.unsigned po)) as [k|] eqn:Hk; [ | discriminate Hs ].
@@ -1115,26 +1221,43 @@ Proof.
 Qed.
 
 Definition surf_b (ge : genv) (pool : block) (m : mem) : bool :=
-  forallb (fun id =>
-    match Genv.find_symbol ge id with
-    | Some bp =>
-        forallb (fun j => match CM.load Mint32 m bp (4 * Z.of_nat j) with
-                          | Some hd => match swalk ge m SFUEL hd with
-                                       | Some l => forallb (surf_obj_at_b ge pool m) l
-                                       | None => false end
-                          | None => true end) (seq 0 PCELLS)
-    | None => false
-    end) FloorList.part_ids.
+  match Genv.find_symbol ge surface_load._sSurfaceNodePool with
+  | Some nb =>
+      match CM.load Mint32 m nb 0 with
+      | Some (Vptr P _) =>
+          Pos.leb (Genv.genv_next ge) P
+          && gcell_b ge surface_load._sSurfacePool Mint32 (Vptr P (Ptrofs.repr SP_OFF)) m
+          && gcell_b ge surface_load._sSurfaceNodePool Mint32 (Vptr P (Ptrofs.repr NP_OFF)) m
+          && forallb (fun id =>
+               match Genv.find_symbol ge id with
+               | Some bp =>
+                   forallb (fun j => match CM.load Mint32 m bp (4 * Z.of_nat j) with
+                                     | Some hd => match swalk P m SFUEL hd with
+                                                  | Some l => forallb (surf_obj_at_b P pool m) l
+                                                  | None => false end
+                                     | None => true end) (seq 0 PCELLS)
+               | None => false
+               end) FloorList.part_ids
+      | _ => false
+      end
+  | None => false
+  end.
 
 Lemma surf_b_sound : forall ge pool m, surf_b ge pool m = true -> surf_obj_ok ge pool m.
 Proof.
-  intros ge pool m H id bp j hd Hin Hs Hj L.
-  pose proof (proj1 (forallb_forall _ _) H id Hin) as H1. cbv beta in H1. rewrite Hs in H1.
-  pose proof (proj1 (forallb_forall _ _) H1 j (proj2 (in_seq PCELLS 0 j) (conj (Nat.le_0_l j) Hj))) as H2.
-  cbv beta in H2. rewrite CM.load_eq, L in H2.
-  destruct (swalk ge m SFUEL hd) as [l|]; [ | discriminate H2 ].
+  intros ge pool m H. unfold surf_b in H.
+  destruct (Genv.find_symbol ge surface_load._sSurfaceNodePool) as [nb|]; [ | discriminate H ].
+  destruct (CM.load Mint32 m nb 0) as [[| | | | | P po]|]; try discriminate H.
+  apply andb_prop in H as [H H3]. apply andb_prop in H as [H H2]. apply andb_prop in H as [H0 H1].
+  exists P. split; [ apply Pos.leb_le in H0; exact H0 | ].
+  split; [ exact (gcell_b_sound _ _ _ _ _ H1) | split; [ exact (gcell_b_sound _ _ _ _ _ H2) | ] ].
+  intros id bp j hd Hin Hs Hj L.
+  pose proof (proj1 (forallb_forall _ _) H3 id Hin) as H4. cbv beta in H4. rewrite Hs in H4.
+  pose proof (proj1 (forallb_forall _ _) H4 j (proj2 (in_seq PCELLS 0 j) (conj (Nat.le_0_l j) Hj))) as H5.
+  cbv beta in H5. rewrite CM.load_eq, L in H5.
+  destruct (swalk P m SFUEL hd) as [l|]; [ | discriminate H5 ].
   exists l. split; [ reflexivity | ]. apply Forall_forall. intros s Hs'.
-  exact (surf_obj_at_b_sound _ _ _ _ (proj1 (forallb_forall _ _) H2 s Hs')).
+  exact (surf_obj_at_b_sound _ _ _ _ (proj1 (forallb_forall _ _) H5 s Hs')).
 Qed.
 
 Definition box_pos_b (pool : block) (m : mem) (k : Z) : bool :=

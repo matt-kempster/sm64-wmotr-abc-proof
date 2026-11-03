@@ -402,31 +402,15 @@ Section OWK.
     OW.gcell ge id ch v m -> OW.gcell ge id ch v m'.
   Proof. intros ge id ch v K (b & Hs & L). exists b. rewrite (K b Hs). exact (conj Hs L). Qed.
 
-  Section DYN.
-    Variable ge : genv.
-    Hypothesis KN : forall b, Ple (Genv.genv_next ge) b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z.
-
-    Lemma swalk_eq : forall f v, OW.swalk ge m' f v = OW.swalk ge m f v.
-    Proof.
-      induction f as [| f IH]; intros v; [ reflexivity | ]. cbn [OW.swalk].
-      destruct v; try reflexivity.
-      destruct (Pos.leb (Genv.genv_next ge) b) eqn:E; [ | reflexivity ].
-      apply Pos.leb_le in E. rewrite !CM.load_eq, !(KN b E).
-      destruct (Mem.load Mint32 m b _); [ | reflexivity ].
-      destruct (Mem.load Mint32 m b _); [ | reflexivity ].
-      rewrite IH. reflexivity.
-    Qed.
-
-    Lemma surf_obj_at_eq : forall pool s, SKp pool -> OW.surf_obj_at ge pool m s -> OW.surf_obj_at ge pool m' s.
-    Proof.
-      intros pool s Kp (b & o & -> & Hb & H). exists b, o. split; [ reflexivity | split; [ exact Hb | ] ].
-      rewrite (KN b Hb). destruct H as [H | (k & Hk & L & A)]; [ left; exact H | right ].
-      exists k. split; [ exact Hk | split; [ exact L | ] ]. intros j Hj.
-      pose proof (A j Hj) as Aj. unfold OW.ANGV in Hj. rewrite <- Z.add_assoc in *.
-      rewrite Kp; [ exact Aj | | ]; unfold OW.OSZ, RAW_OFF; cbn [size_chunk];
-        cbn [In] in Hj; destruct Hj as [<- | [<- | [<- | []]]]; lia.
-    Qed.
-  End DYN.
+  (* a listed slot's angle velocity (offsets 276..287) is a slot field
+     past 96 *)
+  Lemma angv_sk : forall pool, SKp pool -> forall k j, 0 <= k < OW.NSLOT -> In j OW.ANGV ->
+    Mem.load Mint32 m' pool (k * OW.OSZ + RAW_OFF + 4 * j) = Mem.load Mint32 m pool (k * OW.OSZ + RAW_OFF + 4 * j).
+  Proof.
+    intros pool Kp k j _ Hj. rewrite <- Z.add_assoc.
+    apply Kp; unfold OW.OSZ, RAW_OFF; cbn [size_chunk];
+      unfold OW.ANGV in Hj; cbn [In] in Hj; destruct Hj as [<- | [<- | [<- | []]]]; lia.
+  Qed.
 
   Lemma is_bhv_b_eq : forall ge pool id k, SKp pool ->
     OW.is_bhv_b ge pool m' id k = OW.is_bhv_b ge pool m id k.
@@ -451,15 +435,13 @@ Section OWK.
     surf_keep ge.
   Proof.
     intros ge KG KP KN pool S1 Cso. assert (Kp := KP pool S1).
-    intros id bp j hd Hin Hs Hj L.
-    assert (Kb : forall ch z, Mem.load ch m' bp z = Mem.load ch m bp z).
-    { apply (KG id); [ | | exact Hs ];
-        unfold FloorList.part_ids in Hin; cbn [In] in Hin; destruct Hin as [<- | [<- | []]];
+    apply (OW.surf_obj_ok_ext ge pool m m'); [ | | exact (angv_sk pool Kp) | exact Cso ].
+    - intros id b Hin Hs. apply (KG id b); [ | | exact Hs ];
+        unfold OW.surf_gids, FloorList.part_ids in Hin; cbn [In] in Hin;
+        destruct Hin as [<- | [<- | [<- | [<- | []]]]];
         first [ solve [ unfold ow_ids; cbn [In]; repeat (first [ left; reflexivity | right ]) ]
-              | vm_compute; discriminate ]. }
-    rewrite Kb in L. destruct (Cso id bp j hd Hin Hs Hj L) as (l & W & F).
-    exists l. rewrite (swalk_eq ge KN). split; [ exact W | ].
-    exact (Forall_impl _ (fun s => surf_obj_at_eq ge KN pool s Kp) F).
+              | vm_compute; discriminate ].
+    - intros P HP _ _ ch z _. exact (KN P HP ch z).
   Qed.
 
   Theorem obj_w_slots_s : forall (ge : genv) bm,
