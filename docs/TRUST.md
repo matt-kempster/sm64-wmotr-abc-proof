@@ -1327,7 +1327,16 @@ without pressing A".*
   SET_HITBOX_WITH_OFFSET (43) from `hb_keep` / `hbo_keep`: the f32 stores of the script's
   real s16 halves into hitboxRadius / Height / DownOffset (@504/@508/@520), not read by
   obj_w. SET_HOME (45) from `home_keep`: the three real pos -> home copies (fields 6-8 ->
-  55-57), home not read by obj_w. The pinned premises are bundled as `row_keeps`.
+  55-57), home not read by obj_w. SET_OBJ_PHYSICS (48) from `phys_keep`: six f32 stores of
+  the script's real s16 halves (field 40 = hi(w1); 23 / 52 / 41 / 58 / 59 = the next halves
+  / 100.0f) into the current slot; obj_w reads none (users: bhvJumpingBox, bhvKoopaShell,
+  bhvSingleCoinGetsSpawned). LOAD_ANIMATIONS (39) from `la_keep`: ONE pointer store of the
+  script's own word 1 (vm: an `Init_addrof`, the anim table) into field byte2 w (38,
+  oAnimations; five non-Mario users). LOAD_COLLISION_DATA (42) from `lcd_keep`: ONE pointer
+  store of word 1 (through the identity `segmented_to_virtual`, 2.2) into collisionData @536.
+  obj_w DOES read @536 (`coll_pin`), and the only users are bhvCannonClosed /
+  bhvExclamationBox, the LIDS / BOXS of coll_pin, so the discharge is the vm fact that their
+  word 1 is that mesh at offset 0. The pinned premises are bundled as `row_keeps`.
   Wiring it in needs the loop's INV to be obj_w minus the current slot's `ow_vm`.
   **`ow_scr` (2026-11-03): `scr_ok` is an obj_w clause.** `ObjWorld.scr_ok` (moved from
   BhvStep, which keeps its names as notations) is obj_w's 21st clause; the boot witness
