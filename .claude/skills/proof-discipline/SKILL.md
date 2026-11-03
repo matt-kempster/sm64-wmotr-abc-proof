@@ -758,7 +758,13 @@ all in `Unwired/`, and the theorem moved nowhere. See
        obj_w via the spawn rows); 52 DONE (only the flame reaches it). FOUND+fixed: Hoc
        bounded oc at 40960 (68 of 240 slots). Trap: `cbn` will not unfold sem_cast
        float->int when Float32.to_int is blocked -- state the cast as a local lemma.
-       Next: rows 0, 12, 28, 30, 33, 35, 39, 40, 42, 43, 45, 48, 50, 53, 55;
+       33/53 (gfx flags, GFL kit: lv_gflags / ev_gflags), 35/43 (hitbox), 45 (home;
+       lv_rawf_any / raw_cidx: asF32 at any index) DONE. Traps: `auto` / `ltac:(.. auto)`
+       near `In st vm_tab` hangs (use or_introl / explicit splits); `eq_refl` for a
+       `typeof ?a = ...` premise must come AFTER the hypothesis fixing ?a; `pkill -f X`
+       kills its own shell (exit 144) -- kill by PID.
+       Next: rows 0 (BEGIN: cur_obj_has_behavior x3), 12, 28, 30 (find_floor), 39 (field 38
+       pointer), 40, 42 (collisionData, read by obj_w), 48, 50, 55;
        the pre-/post-loop code of cur_obj_update; the loop INV = obj_w minus the current
        slot's ow_vm; then narrow Hobj_step_rest.
        DONE 2026-11-03 (ObjWorld 3e): obj_w gains ow_mact (Mario ACTIVE + in bhvMario),
