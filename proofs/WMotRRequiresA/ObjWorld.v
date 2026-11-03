@@ -911,6 +911,81 @@ Definition gfx_ok (ge : genv) (pool : block) (m : mem) : Prop :=
         \/ slot_node pool (Mem.load Mint32 m bpg G_CHILD)).
 
 (* ---------------------------------------------------------------------- *)
+(* 3f. Mario's surfaces are not loose in the main pool (2026-11-03).      *)
+(*   FOUND (phantom forall, 2026-11-03): the row Hobj_unload was FALSE     *)
+(*   over memories Pobj allowed.  unload_deactivated_objects calls         *)
+(*   set_object_respawn_info_bits on a deactivated slot without            *)
+(*   OBJ_FLAG_PERSISTENT_RESPAWN; for respawnInfoType 1 it ORs 0xFF00 into  *)
+(*   a SpawnInfo behaviorArg cell of the main-pool block P (offsets 2336   *)
+(*   .. 2560, ow_resp).  Nothing pinned where m->wall / m->ceil / m->floor *)
+(*   point (PhiW's ffw asks only a dynamic block off the frame's regions), *)
+(*   so a memory with m->floor = P + 2338, whose s16 "type" reads the low  *)
+(*   half of a behaviorArg (0, a WMotR type), met every premise, and the   *)
+(*   OR breaks wmotr_world's surface_ok.                                    *)
+(*   REPAIRED by MSURF: each of the three cells is NULL or points into a   *)
+(*   block other than P, or into P at a surface-pool slot                  *)
+(*   P + [SP_OFF, SP_END) at the pool's stride (in_sp).  Unload's only     *)
+(*   store into a dynamic block is the respawn OR into P off the surface   *)
+(*   pool, so this is what the repair needs.                               *)
+(*   TRUTH (in play): the cells are written only with find_floor /         *)
+(*   find_ceil / find_wall_collisions results or NULL, and every surface   *)
+(*   those return is on a partition list, static or dynamic;               *)
+(*   alloc_surface takes every surface, static ones included               *)
+(*   (load_area_terrain), from sSurfacePool = P + SP_OFF (surface_load.c   *)
+(*   alloc_surface; the lists' surfaces are in_sp by surf_obj_ok): the     *)
+(*   in_sp arm.  The other arm is the boot witness's: StartTerrain.s_chain *)
+(*   gives m->floor the 48-byte stand-in block bs (type 0), not a          *)
+(*   find_floor result (the probe read wall = ceil = NULL, floor = bs+0),  *)
+(*   so the clause cannot ask in_sp of every pointer; it asks only "not   *)
+(*   loose in P", true of both.  Checked by vm on the boot witness         *)
+(*   (ow_chk, m11).  It reads three gMarioStates cells and sSurfacePool   *)
+(*   only: no slot.                                                        *)
+(* ---------------------------------------------------------------------- *)
+Definition MSURF : list Z := [WALL_OFF; CEIL_OFF; FLOOR_OFF].
+
+Definition msurf_ok (ge : genv) (bm : block) (m : mem) : Prop :=
+  forall z v, In z MSURF -> Mem.load Mint32 m bm z = Some v ->
+    v = Vint Int.zero
+    \/ exists b o, v = Vptr b o
+         /\ forall P, gcell ge surface_load._sSurfacePool Mint32 (Vptr P (Ptrofs.repr SP_OFF)) m ->
+              b <> P \/ in_sp (Ptrofs.unsigned o) = true.
+
+(* ---------------------------------------------------------------------- *)
+(* 3g. Parents (2026-11-03, for BhvStep's PARENT_BIT_CLEAR row, row 51).   *)
+(*   PAR1  every slot's parentObj (offset 104) is NULL or a pool slot.     *)
+(*   PAR2  a listed slot running one of the twelve PARENT_BIT_CLEAR        *)
+(*         scripts (BhvVM.pbc_states; pbc_ids_ok) has a pool-slot parent.  *)
+(*   TRUTH: parentObj is written only by spawn_object / try_allocate's     *)
+(*   callers with the spawning object (a slot) and by clear_objects'       *)
+(*   reset (NULL); unload_object leaves it.  The twelve particle spawners  *)
+(*   are spawned only by Mario's own code with parent gMarioObject.        *)
+(*   Checked by vm on the boot witness (ow_chk, m11).  Slot fields from    *)
+(*   96 on, so every slot keeper (PollKeep.SKp) keeps them.                *)
+(* ---------------------------------------------------------------------- *)
+Definition O_PARENT : Z := 104.
+Lemma parent_pinned : fo object_helpers._Object object_helpers._parentObj = Some O_PARENT.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition pbc_ids : list ident :=
+  [behavior_data._bhvTriangleParticleSpawner; behavior_data._bhvHorStarParticleSpawner;
+   behavior_data._bhvPlungeBubble; behavior_data._bhvBubbleParticleSpawner;
+   behavior_data._bhvVertStarParticleSpawner; behavior_data._bhvSparkleParticleSpawner;
+   behavior_data._bhvShallowWaterSplash; behavior_data._bhvShallowWaterWave;
+   behavior_data._bhvWhitePuff1; behavior_data._bhvWaveTrail; behavior_data._bhvWaterSplash;
+   behavior_data._bhvMistParticleSpawner].
+
+(* the list is the VM table's PARENT_BIT_CLEAR states' scripts *)
+Lemma pbc_ids_ok : map BhvVM.v_s (filter (fun st => BhvVM.opc st =? 51) BhvVM.vm_tab) = pbc_ids.
+Proof. vm_compute. reflexivity. Qed.
+
+Definition par_ok (ge : genv) (pool : block) (m : mem) (rs : list (list Z)) : Prop :=
+  (forall k, 0 <= k < NSLOT ->
+     Mem.load Mint32 m pool (k * OSZ + O_PARENT) = Some (Vint Int.zero)
+     \/ slot_node pool (Mem.load Mint32 m pool (k * OSZ + O_PARENT)))
+  /\ (forall k id, In k (concat rs) -> In id pbc_ids -> runs ge pool m k id = true ->
+        slot_node pool (Mem.load Mint32 m pool (k * OSZ + O_PARENT))).
+
+(* ---------------------------------------------------------------------- *)
 (* 4. obj_w.                                                                *)
 (* ---------------------------------------------------------------------- *)
 Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
@@ -947,7 +1022,11 @@ Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
   (* 3e, 2026-11-03 *)
   ow_mact : mact_ok ge pool gmo m;
   ow_resp : forall k, In k (concat rs) -> resp_ok ge pool m k;
-  ow_gfx : gfx_ok ge pool m
+  ow_gfx : gfx_ok ge pool m;
+  (* 3f, 2026-11-03 *)
+  ow_msurf : msurf_ok ge bm m;
+  (* 3g, 2026-11-03 *)
+  ow_par : par_ok ge pool m rs
 }.
 
 Definition obj_w (ge : genv) (bm : block) (m : mem) : Prop :=
@@ -1872,6 +1951,58 @@ Proof.
     + right. exact (slot_node_b_sound _ _ H2).
 Qed.
 
+Definition msurf_b (ge : genv) (bm : block) (m : mem) : bool :=
+  forallb (fun z => match ld32 m bm z with
+                    | Some (Vint i) => Int.eq i Int.zero
+                    | Some (Vptr b o) =>
+                        match Genv.find_symbol ge surface_load._sSurfacePool with
+                        | Some s => match ld32 m s 0 with
+                                    | Some (Vptr P _) => negb (Pos.eqb b P) || in_sp (Ptrofs.unsigned o)
+                                    | _ => true
+                                    end
+                        | None => true
+                        end
+                    | _ => false
+                    end) MSURF.
+
+Lemma msurf_b_sound : forall ge bm m, msurf_b ge bm m = true -> msurf_ok ge bm m.
+Proof.
+  intros ge bm m H z v Hz L. pose proof (proj1 (forallb_forall _ _) H z Hz) as Hc. cbv beta in Hc.
+  unfold ld32 in Hc. rewrite CM.load_eq, L in Hc.
+  destruct v as [| i | | | | P o]; try discriminate Hc.
+  - left. apply Int.same_if_eq in Hc. subst i. reflexivity.
+  - right. exists P, o. split; [ reflexivity | ]. intros Q (s & Hs & Ls).
+    rewrite Hs in Hc. unfold ld32 in Hc. rewrite CM.load_eq, Ls in Hc.
+    apply orb_true_iff in Hc as [Hc | Hc]; [ left | right; exact Hc ].
+    intros E. subst Q. rewrite Pos.eqb_refl in Hc. discriminate Hc.
+Qed.
+
+Definition par_b (ge : genv) (pool : block) (m : mem) (rs : list (list Z)) : bool :=
+  forallb (fun k => match ld32 m pool (k * OSZ + O_PARENT) with
+                    | Some (Vint i) => Int.eq i Int.zero
+                    | ov => slot_node_b pool ov
+                    end) (map Z.of_nat (seq 0 240))
+  && forallb (fun k => forallb (fun id => negb (runs ge pool m k id)
+                                          || slot_node_b pool (ld32 m pool (k * OSZ + O_PARENT))) pbc_ids)
+       (concat rs).
+
+Lemma par_b_sound : forall ge pool m rs, par_b ge pool m rs = true -> par_ok ge pool m rs.
+Proof.
+  intros ge pool m rs H. unfold par_b in H. apply andb_prop in H as [H1 H2]. split.
+  - intros k Hk.
+    assert (Hin : In k (map Z.of_nat (seq 0 240))).
+    { apply in_map_iff. exists (Z.to_nat k). split; [ lia | apply in_seq; unfold NSLOT in Hk; lia ]. }
+    pose proof (proj1 (forallb_forall _ _) H1 k Hin) as Hc. cbv beta in Hc.
+    unfold ld32 in Hc. rewrite CM.load_eq in Hc.
+    destruct (Mem.load Mint32 m pool (k * OSZ + O_PARENT)) as [[| i | | | | b o]|] eqn:L;
+      try (right; exact (slot_node_b_sound _ _ Hc)).
+    left. cbv iota beta in Hc. apply Int.same_if_eq in Hc. subst i. reflexivity.
+  - intros k id Hk Hid Hr. pose proof (proj1 (forallb_forall _ _) H2 k Hk) as Hc. cbv beta in Hc.
+    pose proof (proj1 (forallb_forall _ _) Hc id Hid) as Hd. cbv beta in Hd.
+    rewrite Hr in Hd. cbn [negb orb] in Hd. unfold ld32 in Hd. rewrite CM.load_eq in Hd.
+    exact (slot_node_b_sound _ _ Hd).
+Qed.
+
 Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem) : bool :=
   match rings m pool la, free_list m pool fl, ld32 m gmo 0 with
   | Some rs, Some fs, Some (Vptr pb po) =>
@@ -1897,6 +2028,7 @@ Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : 
       && ctr_s_b ge m && ter_b ge pool m rs
       && scr_b_l ge (sdedup (map BhvVM.v_s BhvVM.vm_tab)) m
       && mact_b ge pool m k && forallb (resp_b ge pool m) (concat rs) && gfx_b ge pool m
+      && msurf_b ge bm m && par_b ge pool m rs
       | None => false
       end
   | _, _, _ => false
@@ -1927,6 +2059,7 @@ Proof.
   destruct (ld32 m gmo 0) as [[| | | | | pb po]|] eqn:Hg;
     [ discriminate H .. | | discriminate H ].
   destruct (slot_of (Ptrofs.unsigned po)) as [k|] eqn:Hk; [ | discriminate H ].
+  apply andb_prop in H as [H Hpar]. apply andb_prop in H as [H Hms].
   apply andb_prop in H as [H Hgfx]. apply andb_prop in H as [H Hresp]. apply andb_prop in H as [H Hmact].
   apply andb_prop in H as [H Hscr].
   apply andb_prop in H as [H Hter]. apply andb_prop in H as [H Hctr].
@@ -1983,6 +2116,8 @@ Proof.
     apply veqb_eq in Hpo. rewrite <- Hpo. unfold ld32 in Hg. rewrite CM.load_eq in Hg. exact Hg.
   - intros j Hj. exact (resp_b_sound _ _ _ _ (proj1 (forallb_forall _ _) Hresp j Hj)).
   - exact (gfx_b_sound _ _ _ Hgfx).
+  - exact (msurf_b_sound _ _ _ Hms).
+  - exact (par_b_sound _ _ _ _ Hpar).
 Qed.
 
 Definition ow_chk (ge : genv) (bm : block) (m : mem) : bool :=

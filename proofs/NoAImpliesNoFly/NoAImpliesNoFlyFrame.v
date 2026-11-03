@@ -182,13 +182,14 @@ Section NoAImpliesNoFlyFrame.
 
   Hypothesis Hobj_unload : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._unload_deactivated_objects.
   (* the camera statement's object-world footprint, its residual part
-     (HeightFrame.Hcam_ow_res: Mario's object-pointer cells; the
+     (HeightFrame.Hcam_ow_res: Mario's object-pointer cells and, since
+     2026-11-03, his wall / ceil / floor cells (obj_w's ow_msurf); the
      object-world globals and the surface clause are PROVED,
      CamRows.cam_ow_globals / cam_surf_keep, and the obj_w carry from
      them) *)
   Hypothesis Hcam_ow_res : forall m m', LevelFlank.cam_step lp m m' ->
     mem_ok_lp bm MWF m -> Phi m ->
-    forall z, z = 136 \/ In z [120; 124; 128; 132] ->
+    forall z, z = 136 \/ In z [120; 124; 128; 132; 96; 100; 104] ->
       Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z.
 
   (* THE CAPSTONE: GOAL 1 over GOAL 2's real frame *)

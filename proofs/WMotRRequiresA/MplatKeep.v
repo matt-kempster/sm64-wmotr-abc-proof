@@ -605,7 +605,7 @@ Section MK.
       { intros ch b z Nr _ H. apply E4.
         - intros (id & Hin & Hs). apply Nr. exists id. split; [ apply in_or_app; left; exact Hin | exact Hs ].
         - intros ->. apply Nr. exists PD._gMarioPlatform. split; [ apply in_or_app; right; left; reflexivity | exact Hgp ].
-        - destruct H as [H | H]; [ left; exact H | right ]. unfold owin in H. rewrite Uk in H. lia. }
+        - destruct H as [H | H]; [ left; exact H | right ]. apply owin_sub in H. unfold owin0 in H. rewrite Uk in H. lia. }
       assert (Nbm : ~ rgb lp mp_gvars bm) by exact (rgb_not lp mp_gvars HXs _ bm Hbm_sym ltac:(vm_compute; reflexivity)).
       assert (RGa : forall b, rgb lp mp_gvars b -> b <> pool /\ AnimWorld.tab_apart G m b).
       { intros b (id & Hin & Hs). split.

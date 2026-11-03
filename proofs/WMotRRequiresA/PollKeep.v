@@ -476,7 +476,7 @@ Section OWK.
     surf_keep ge ->
     (* the surface counter (ow_ctr): kept, or re-made by the writer *)
     (OW.ctr_s_ok ge m -> OW.ctr_s_ok ge m') ->
-    (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
+    (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132; 96; 100; 104] ->
        Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z) ->
     (* no store into a script block (ow_scr, 2026-11-03) *)
     (forall s b, In s (map BhvVM.v_s BhvVM.vm_tab) -> Genv.find_symbol ge s = Some b ->
@@ -493,7 +493,7 @@ Section OWK.
     assert (Kd := K debug._gDebugInfo gdi ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; reflexivity) S7).
     exists pool, la, fl, gol, gmo, sdp, gdi, rs, fs.
     refine (conj S1 (conj S2 (conj S3 (conj S4 (conj S5 (conj S6 (conj S7 _))))))).
-    destruct C as [Cg Cr Cf Cp Cfo Cm Cs Ca Crd Cdb Cst Co Cd12 Cct Cvm Csp Cso Cco Cctr Cter Cscr Cmact Cresp Cgfx].
+    destruct C as [Cg Cr Cf Cp Cfo Cm Cs Ca Crd Cdb Cst Co Cd12 Cct Cvm Csp Cso Cco Cctr Cter Cscr Cmact Cresp Cgfx Cmsurf Cpar].
     assert (KG : forall id, In id ow_ids -> existsb (Pos.eqb id) ow_xc = false ->
                forall b, Genv.find_symbol ge id = Some b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
       by (intros id Hin Hn b Hs; exact (K id b Hin Hn Hs)).
@@ -513,7 +513,8 @@ Section OWK.
     - intros k Hk. exact (act_eq ge pool Kp k (Ca k Hk)).
     - intros k Hk. exact (red_eq ge pool Kp k (Crd k Hk)).
     - rewrite Ks, Kd. exact Cdb.
-    - intros z Hz. rewrite (Kbm z (or_intror Hz)). exact (Cst z Hz).
+    - intros z Hz. assert (Hz' : In z [120; 124; 128; 132; 96; 100; 104]) by (cbn [In] in Hz |- *; tauto).
+      rewrite (Kbm z (or_intror Hz')). exact (Cst z Hz).
     - destruct Co as (b & Sb & L). exists b. split; [ exact Sb | ].
       intros j Hj. rewrite (K object_list_processor._sObjectListUpdateOrder b ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; reflexivity) Sb). exact (L j Hj).
     - intros k Hk. exact (script12_eq ge pool Kp k (Cd12 k Hk)).
@@ -573,6 +574,19 @@ Section OWK.
       + intros k Hk. destruct (G1 k Hk) as (P1 & P2 & P3).
         unfold OW.G_PAR, OW.G_PREV, OW.G_NEXT in *. rewrite !Kp by sk_side. exact (conj P1 (conj P2 P3)).
       + rewrite !Kb. exact G2.
+    - (* 3f: Mario's three surface cells and the pool pin *)
+      intros z v Hz L. assert (Hz' : In z [120; 124; 128; 132; 96; 100; 104])
+        by (unfold OW.MSURF, WALL_OFF, CEIL_OFF, FLOOR_OFF in Hz; cbn [In] in Hz |- *; tauto).
+      rewrite (Kbm z (or_intror Hz')) in L.
+      destruct (Cmsurf z v Hz L) as [E | (b & o & E & Hs)]; [ left; exact E | right ].
+      exists b, o. split; [ exact E | ]. intros P (s & Ss & Ls). apply Hs. exists s. split; [ exact Ss | ].
+      rewrite <- Ls. symmetry.
+      apply (KG surface_load._sSurfacePool); [ unfold ow_ids; cbn [In]; auto 30 | vm_compute; reflexivity | exact Ss ].
+    - (* 3g: the parents: slot word 104 *)
+      destruct Cpar as (P1 & P2). split.
+      + intros k Hk. unfold OW.O_PARENT in *. rewrite Kp by sk_side. exact (P1 k Hk).
+      + intros k id Hk Hid Hr. rewrite (runs_eq ge pool Kp) in Hr. unfold OW.O_PARENT in *. rewrite Kp by sk_side.
+        exact (P2 k id Hk Hid Hr).
   Qed.
 
   (* THE LEMMA, slot-field form: obj_w survives any change off its globals'
@@ -583,7 +597,7 @@ Section OWK.
        forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
     (forall pool, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool -> SKp pool) ->
     surf_keep ge ->
-    (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
+    (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132; 96; 100; 104] ->
        Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z) ->
     (* no store into a script block (ow_scr, 2026-11-03) *)
     (forall s b, In s (map BhvVM.v_s BhvVM.vm_tab) -> Genv.find_symbol ge s = Some b ->
@@ -606,7 +620,7 @@ Section OWK.
     (forall pool, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool -> SKp pool) ->
     (* no non-symbol block changes (the main pool: the surface pools) *)
     (forall b, Ple (Genv.genv_next ge) b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
-    (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
+    (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132; 96; 100; 104] ->
        Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z) ->
     (* no store into a script block (ow_scr, 2026-11-03) *)
     (forall s b, In s (map BhvVM.v_s BhvVM.vm_tab) -> Genv.find_symbol ge s = Some b ->
@@ -622,7 +636,7 @@ Section OWK.
     (forall id b, In id ow_ids -> Genv.find_symbol ge id = Some b ->
        forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
     surf_keep ge ->
-    (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
+    (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132; 96; 100; 104] ->
        Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z) ->
     (* no store into a script block (ow_scr, 2026-11-03) *)
     (forall s b, In s (map BhvVM.v_s BhvVM.vm_tab) -> Genv.find_symbol ge s = Some b ->
@@ -640,7 +654,7 @@ Section OWK.
     (forall id b, In id ow_ids -> Genv.find_symbol ge id = Some b ->
        forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
     (forall b, Ple (Genv.genv_next ge) b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
-    (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132] ->
+    (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132; 96; 100; 104] ->
        Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z) ->
     (* no store into a script block (ow_scr, 2026-11-03) *)
     (forall s b, In s (map BhvVM.v_s BhvVM.vm_tab) -> Genv.find_symbol ge s = Some b ->
