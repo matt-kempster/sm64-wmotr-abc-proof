@@ -737,7 +737,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
        ev_w0, fld_eq, raw_addr -- reuse for the other field commands). Written (op, field)
        pairs at reachable states: 13:{7} 14:{10,12,18-21,67} 15:{16,19,26} 16:{5,18-20,26,29,
        42,47,61} 17:{1,3} 19:{16} 20:{10,27-29} 21:{27} 31:{6,7,8} 51:{22, parent} 52:{26};
-       obj_w reads 6/7/8 (pos), 42 (interact type), 27 (HSCOUNT cell) -- pin values there. Next: the 27 used rows left; the pre-/post-loop code of cur_obj_update; the
+       obj_w reads 6/7/8 (pos), 42 (interact type), 27 (HSCOUNT cell) -- pin values there.
+       SET_FLOAT row DONE; premises bundled as row_keeps. set42: field 42 is written only
+       by bhvPoleGrabbing (POLE) and bhvCannon (CANNON_BASE). PERF TRAP again: a named bool
+       over vm_tab (chk42) hung set42's Qed -- state vm-checks inline. Next: the 27 used rows left; the pre-/post-loop code of cur_obj_update; the
        loop INV = obj_w minus the current slot's ow_vm; then narrow Hobj_step_rest.
        Next: the non-control rows, the copy-in / copy-out around DLOOP, the scr_ok obj_w
        clause (check at m11 outside StartTerrain/StartSat), then narrow Hobj_step_rest.

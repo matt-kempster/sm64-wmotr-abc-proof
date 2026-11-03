@@ -1247,6 +1247,11 @@ without pressing A".*
   store, of the script's value (`s16_of w`) to the script's field (`byte2 w` < 0x50), then
   advances. `set_keep` (INV survives exactly that store, at reachable SET_INT words) is
   pinned, not a phantom: obj_w reads field 42 (the interact type), which SET_INT writes.
+  Computed over that finite set (`set42`, vm-checked): the reachable SET_INTs to field 42
+  are bhvPoleGrabbing's INTERACT_POLE (64) and bhvCannon's INTERACT_CANNON_BASE (16384),
+  both in `wmotr_interact_types`; so at field 42 `set_keep` is exactly kind_ok's pole and
+  cannon pins for that slot. SET_FLOAT's row is PROVED likewise from `setf_keep`
+  (`row_set_float`; its fields 10, 12, 18-21, 67 are none that obj_w reads).
   Wiring it in needs the loop's INV to be obj_w minus the current slot's `ow_vm`.
   **Indexed handler arguments (2026-10-26, B3 iii-a, `BhvVM`).** These are vm-checked at
   every reachable state:
