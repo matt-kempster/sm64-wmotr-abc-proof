@@ -722,8 +722,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
        Control layer DONE (BhvStep.ctl_step, 2026-11-02): the 10 control opcodes vs their
        generated handlers. Kit: push_call / pop_call (real stack push/pop), Vcmd / Vstk
        (cells split), norm_off (the trap: cbn / injection expand 4 * Z.of_nat i into a
-       match, so `remember` the offset first). Next: advancing commands, DELAY, the
-       dispatch loop, the scr_ok obj_w clause.
+       match, so `remember` the offset first). DELAY + the dispatch loop DONE
+       (BhvStep.dloop_ctl: open premise = the non-control opcodes' cmd_row_op).
+       PERF TRAP: never `eauto`/`auto` (nor `destruct` of a term shared with) a goal or
+       context holding `In _ vm_tab` -- it unfolds vm_tab (hangs). Use explicit witnesses.
+       Next: the non-control rows, the copy-in / copy-out around DLOOP, the scr_ok obj_w
+       clause (check at m11 outside StartTerrain/StartSat), then narrow Hobj_step_rest.
     The object world `ObjWorld.obj_w` is in `fb_ok` (no phantom ∀ over object lists) and is
     PROVED at the boot witness, which now runs the real init_graph_node_start + clear_objects
     and Mario's spawn_objects_from_info; one real area_update_objects runs from it
