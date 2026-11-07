@@ -979,7 +979,16 @@ all in `Unwired/`, and the theorem moved nowhere. See
        skip VM cells [460,502); KEEP's PM; scripts SafeB via a GOAL-2-only premise
        HSafeB_scr DISCHARGED at the linked capstone from StartSat's SB1 + vm check
        (GOAL 1's safe_ptr_syms untouched, coordinator 2026-11-07); obj_w VM-swap
-       keeper by Qfam bits), the row keeps (ghost stores) and sfr_keep (nvals).
+       keeper by Qfam bits -- DONE: Unwired/ObjVmSwap.v obj_w_vm_swap, with
+       ObjFamily's Mario bit (Qfam s0 st: s0 = bhvMario -> v_s st = bhvMario;
+       own_chk vm-checked closure, mario_step / mario_frames)), the row keeps
+       (ghost stores) and sfr_keep (nvals).  IN PROGRESS: BhvStep's frame gains the
+       VALUE side (PfrN = unchanged_on Pfr /\ nvB scr_b, byte level); INV_k's clause
+       nvB (scr_b \/ SafeB) g m, ghost g = the frame-start memory, so R7 at exit
+       rests on R7 g, proved from boot (coordinator 2026-11-07: no fresh R7
+       hypothesis).  TRAP: `Hypothesis H : In st vm_tab` in a Section costs ~115s
+       per declaration (even List.In st BhvVM.vm_tab); `congruence` with such
+       hypotheses in scope can take minutes -- rewrite + discriminate.
        TRAP: `apply in_map_iff in H as ...` on a vm_tab map hung >1200s; use
        proj1 (in_map_iff ..) in a small lemma.  `congruence` on two existsb facts
        over map v_s vm_tab took 114s; rewrite + discriminate is instant.

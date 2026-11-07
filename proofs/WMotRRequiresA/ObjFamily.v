@@ -23,6 +23,7 @@ From Coq Require Import ZArith List Bool.
 From compcert Require Import Coqlib AST.
 From SM64.Proofs.WMotRRequiresA Require Import BhvVM.
 From SM64.Proofs.WMotRRequiresA Require ObjWorld ObjCensus.
+From SM64.Generated Require behavior_data.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -141,16 +142,69 @@ Notation CL s := (clsw OW.sp_scripts ObjCensus.live12 OW.live_bhvs OW.pbc_ids s)
 (* THE FAMILY of a start script s0: the states whose script has s0's class
    and is live (stated on clsw with the lists spelled out, so the kernel
    only ever compares them syntactically) *)
-Definition Qfam (s0 : ident) (st : vst) : Prop := CL (v_s st) = CL s0 /\ In (v_s st) OW.live_bhvs.
+(* MARIO's script (2026-11-07, for obj_w's ow_mvm / ow_mact at the step's
+   exit): a bhvMario state steps only to bhvMario states, and every frame
+   it holds is a repeat count or a bhvMario address (vm, over vm_tab) *)
+Definition MARIO : ident := behavior_data._bhvMario.
+
+Definition fr_in (s : ident) (f : frame) : bool :=
+  match f with FAddr t _ => Pos.eqb t s | FCount => true end.
+
+Definition own_chk (s : ident) (tab : list vst) : bool :=
+  forallb (fun st => negb (Pos.eqb (v_s st) s)
+                     || (forallb (fr_in s) (v_k st)
+                         && match succs st with
+                            | Some l => forallb (fun x => Pos.eqb (v_s x) s) l
+                            | None => true
+                            end)) tab.
+
+Lemma own_chk_ok : own_chk MARIO vm_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma own_chk_st : forall s tab st, own_chk s tab = true -> In st tab -> v_s st = s ->
+  forallb (fr_in s) (v_k st) = true
+  /\ match succs st with Some l => forallb (fun x => Pos.eqb (v_s x) s) l = true | None => True end.
+Proof.
+  intros s tab st F Hst Es. unfold own_chk in F. rewrite forallb_forall in F.
+  specialize (F st Hst). cbv beta in F. rewrite Es, Pos.eqb_refl in F. cbn [negb orb] in F.
+  apply andb_prop in F as [F1 F2]. split; [ exact F1 | ].
+  destruct (succs st); [ exact F2 | exact I ].
+Qed.
+
+Lemma mario_step : forall st l st', In st vm_tab -> v_s st = MARIO -> succs st = Some l -> In st' l ->
+  v_s st' = MARIO.
+Proof.
+  intros st l st' Hst Es Hs Hin. destruct (own_chk_st _ _ _ own_chk_ok Hst Es) as (_ & F).
+  rewrite Hs, forallb_forall in F. apply Pos.eqb_eq. exact (F st' Hin).
+Qed.
+
+Lemma mario_frames : forall st f, In st vm_tab -> v_s st = MARIO -> In f (v_k st) ->
+  f = FCount \/ exists i, f = FAddr MARIO i.
+Proof.
+  intros st f Hst Es Hf. destruct (own_chk_st _ _ _ own_chk_ok Hst Es) as (F & _).
+  rewrite forallb_forall in F. specialize (F f Hf).
+  destruct f as [t i |]; [ right | left; reflexivity ].
+  cbn [fr_in] in F. apply Pos.eqb_eq in F. subst t. exists i. reflexivity.
+Qed.
+
+Definition Qfam (s0 : ident) (st : vst) : Prop :=
+  CL (v_s st) = CL s0 /\ In (v_s st) OW.live_bhvs /\ (s0 = MARIO -> v_s st = MARIO).
 
 Theorem Qfam_closed : forall s0 st l st', In st vm_tab -> Qfam s0 st -> succs st = Some l -> In st' l ->
   Qfam s0 st'.
 Proof.
-  intros s0 st l st' Hst (Ec & Hl) Hs Hin.
+  intros s0 st l st' Hst (Ec & Hl & Hm) Hs Hin.
   pose proof (fam_chk_step _ _ _ _ _ fam_chk_ok st l st' Hst Hl Hs Hin) as E.
-  split; [ rewrite E; exact Ec
-         | exact (proj2 (g_lv OW.sp_scripts ObjCensus.live12 OW.live_bhvs OW.pbc_ids _ _ E) Hl) ].
+  split; [ rewrite E; exact Ec | split ].
+  - exact (proj2 (g_lv OW.sp_scripts ObjCensus.live12 OW.live_bhvs OW.pbc_ids _ _ E) Hl).
+  - intros E0. exact (mario_step st l st' Hst (Hm E0) Hs Hin).
 Qed.
+
+Lemma Qfam_mario : forall s0 st, Qfam s0 st -> s0 = MARIO -> v_s st = MARIO.
+Proof. intros s0 st (_ & _ & H) E. exact (H E). Qed.
+
+Lemma Qfam_live : forall s0 st, Qfam s0 st -> In (v_s st) OW.live_bhvs.
+Proof. intros s0 st (_ & H & _). exact H. Qed.
 
 (* what a family member shares with its start script *)
 Lemma Qfam_sp : forall s0 st, Qfam s0 st -> (In (v_s st) OW.sp_scripts <-> In s0 OW.sp_scripts).
@@ -167,4 +221,4 @@ Lemma Qfam_id : forall s0 st x, In x [OW.BOXS; OW.LIDS; OW.COINF] -> Qfam s0 st 
 Proof. intros s0 st x Hx (E & _). exact (g_id _ _ _ _ _ _ _ Hx E). Qed.
 
 Lemma Qfam_start : forall s0 st, v_s st = s0 -> In s0 OW.live_bhvs -> Qfam s0 st.
-Proof. intros s0 st <- H. split; [ reflexivity | exact H ]. Qed.
+Proof. intros s0 st <- H. split; [ reflexivity | split; [ exact H | intros E; exact E ] ]. Qed.
