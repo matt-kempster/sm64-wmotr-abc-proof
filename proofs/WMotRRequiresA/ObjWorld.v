@@ -1109,6 +1109,52 @@ Proof.
   destruct d; cbn [init_ld] in A |- *; rewrite ?(K t bt Ht Hs); exact A.
 Qed.
 
+(* 3i, 2026-11-03 (OBJECTS row 55, SPAWN_WATER_DROPLET): the two droplet
+   parameter structs name bhvWaterDroplet in their behavior field (byte 4,
+   after two s16s).  TRUTH: index 2 of both initializers is
+   Init_addrof _bhvWaterDroplet 0 (BhvStep.dparams_init); no code writes
+   these globals (they are read only through spawn_water_droplet's params
+   pointer).  Checked by vm on the boot witness (ow_chk). *)
+Definition dparams : list ident :=
+  [behavior_data._gShallowWaterSplashDropletParams; behavior_data._gShallowWaterWaveDropletParams].
+
+Definition dp_ok (ge : genv) (m : mem) : Prop :=
+  forall p bp, In p dparams -> Genv.find_symbol ge p = Some bp ->
+    exists bwd, Genv.find_symbol ge behavior_data._bhvWaterDroplet = Some bwd
+      /\ Mem.load Mint32 m bp 4 = Some (Vptr bwd Ptrofs.zero).
+
+(* the keep: the clause reads only the two structs' blocks *)
+Lemma dp_ok_ext : forall (ge : genv) m m',
+  (forall p b, In p dparams -> Genv.find_symbol ge p = Some b ->
+     forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+  dp_ok ge m -> dp_ok ge m'.
+Proof.
+  intros ge m m' K H p bp Hp Hs. destruct (H p bp Hp Hs) as (bwd & S & L).
+  exists bwd. split; [ exact S | rewrite (K p bp Hp Hs); exact L ].
+Qed.
+
+(* 3j, 2026-11-03 (detect_object_collisions, unload): every listed slot's
+   numCollidedObjs (s16 at 118) is in [0, 4], and Mario's collidedObjs[0..3]
+   (120..136) are NULL or slots.  TRUTH: numCollidedObjs is written by
+   allocate_object (0), clear_object_collision (0) and
+   detect_object_hitbox_overlap (++, only after the >= 4 tests);
+   collidedObjs[i] only by detect_object_hitbox_overlap, with an object of
+   a walked list (a slot), and the pool starts zeroed.  Checked by vm on the
+   boot witness (ow_chk).  No PhiW clause reads an object's
+   oIntangibleTimer (rawData word 5, offset 156), which
+   clear_object_collision decrements (grep, 2026-11-03). *)
+Definition O_NCOLL : Z := 118.
+Definition O_COLLS : Z := 120.
+
+Definition ncoll_ok (pool : block) (m : mem) (rs : list (list Z)) : Prop :=
+  forall k, In k (concat rs) -> exists n, Mem.load Mint16signed m pool (k * OSZ + O_NCOLL) = Some (Vint n)
+    /\ 0 <= Int.signed n <= 4.
+
+Definition mcoll_ok (pool gmo : block) (m : mem) : Prop :=
+  forall k, 0 <= k < NSLOT -> Mem.load Mint32 m gmo 0 = Some (slot_v pool k) ->
+    forall i, 0 <= i < 4 -> exists v, Mem.load Mint32 m pool (k * OSZ + O_COLLS + 4 * i) = Some v
+      /\ slot_ptr pool v.
+
 (* CLS *)
 Definition sp_bhvs : list ident :=
   [behavior_data._bhvPoleGrabbing; behavior_data._bhvCannon; behavior_data._bhvJumpingBox;
@@ -1212,7 +1258,12 @@ Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
   (* 3h, 2026-11-03 *)
   ow_mvm : mvm_ok ge pool gmo m;
   ow_anim : anim_ok ge m;
-  ow_cls : cls_ok ge pool m rs
+  ow_cls : cls_ok ge pool m rs;
+  (* 3i, 2026-11-03 *)
+  ow_dp : dp_ok ge m;
+  (* 3j, 2026-11-03 *)
+  ow_ncoll : ncoll_ok pool m rs;
+  ow_mcoll : mcoll_ok pool gmo m
 }.
 
 Definition obj_w (ge : genv) (bm : block) (m : mem) : Prop :=
@@ -2259,6 +2310,54 @@ Section Chk3h.
     exact (init_ld_b_sound _ _ _ (proj1 (forallb_forall _ _) H1 (z, d) Hi)).
   Qed.
 
+  Definition dp_b : bool :=
+    forallb (fun p => match Genv.find_symbol ge p with
+                      | Some bp => match Genv.find_symbol ge behavior_data._bhvWaterDroplet with
+                                   | Some bwd => veqb (match CM.load Mint32 m bp 4 with Some v => v | None => Vundef end)
+                                                      (Vptr bwd Ptrofs.zero)
+                                   | None => false end
+                      | None => true end) dparams.
+
+  Lemma dp_b_sound : dp_b = true -> dp_ok ge m.
+  Proof.
+    intros H p bp Hp Hs. unfold dp_b in H.
+    pose proof (proj1 (forallb_forall _ _) H p Hp) as H1. cbv beta in H1. rewrite Hs in H1.
+    destruct (Genv.find_symbol ge behavior_data._bhvWaterDroplet) as [bwd|]; [ | discriminate H1 ].
+    exists bwd. split; [ reflexivity | ].
+    apply veqb_eq in H1. rewrite CM.load_eq in H1.
+    destruct (Mem.load Mint32 m bp 4); [ congruence | discriminate H1 ].
+  Qed.
+
+  Definition ncoll_b (rs : list (list Z)) : bool :=
+    forallb (fun k => match CM.load Mint16signed m pool (k * OSZ + O_NCOLL) with
+                      | Some (Vint n) => (0 <=? Int.signed n) && (Int.signed n <=? 4)
+                      | _ => false end) (concat rs).
+
+  Lemma ncoll_b_sound : forall rs, ncoll_b rs = true -> ncoll_ok pool m rs.
+  Proof.
+    intros rs H k Hk. pose proof (proj1 (forallb_forall _ _) H k Hk) as H1. cbv beta in H1.
+    rewrite CM.load_eq in H1.
+    destruct (Mem.load Mint16signed m pool (k * OSZ + O_NCOLL)) as [[| n | | | |]|]; try discriminate H1.
+    apply andb_prop in H1 as [A B]. apply Z.leb_le in A. apply Z.leb_le in B.
+    exists n. split; [ reflexivity | lia ].
+  Qed.
+
+  Definition mcoll_b (k : Z) : bool :=
+    forallb (fun i => match CM.load Mint32 m pool (k * OSZ + O_COLLS + 4 * i) with
+                      | Some v => slot_ptr_b pool v | None => false end) [0; 1; 2; 3].
+
+  Lemma mcoll_b_sound : forall gmo k, 0 <= k < NSLOT -> Mem.load Mint32 m gmo 0 = Some (slot_v pool k) ->
+    mcoll_b k = true -> mcoll_ok pool gmo m.
+  Proof.
+    intros gmo k Hk Lg H k' Hk' Lg' i Hi.
+    rewrite Lg in Lg'. assert (Ek : slot_v pool k = slot_v pool k') by congruence.
+    apply (slot_v_inj pool k k' Hk Hk') in Ek. subst k'.
+    assert (Hin : In i [0; 1; 2; 3]) by (cbn; lia).
+    pose proof (proj1 (forallb_forall _ _) H i Hin) as H1. cbv beta in H1. rewrite CM.load_eq in H1.
+    destruct (Mem.load Mint32 m pool (k * OSZ + O_COLLS + 4 * i)) as [v|]; [ | discriminate H1 ].
+    exists v. split; [ reflexivity | exact (slot_ptr_b_sound pool v H1) ].
+  Qed.
+
   (* CLS *)
   Definition sp_b (vt : list BhvVM.vst) (sp : list ident) (k : Z) : bool :=
     existsb (fun st => existsb (Pos.eqb (BhvVM.v_s st)) sp && st_b ge pool m k st) vt.
@@ -2383,6 +2482,7 @@ Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : 
       && mact_b ge pool m k && forallb (resp_b ge pool m) (concat rs) && gfx_b ge pool m
       && msurf_b ge bm m && par_b ge pool m rs
       && mvm_b ge pool m BhvVM.vm_tab k && anim_b ge m && cls_b ge pool m BhvVM.vm_tab sp_scripts rs
+      && dp_b ge m && ncoll_b pool m rs && mcoll_b pool m k
       | None => false
       end
   | _, _, _ => false
@@ -2413,6 +2513,8 @@ Proof.
   destruct (ld32 m gmo 0) as [[| | | | | pb po]|] eqn:Hg;
     [ discriminate H .. | | discriminate H ].
   destruct (slot_of (Ptrofs.unsigned po)) as [k|] eqn:Hk; [ | discriminate H ].
+  apply andb_prop in H as [H Hmco]. apply andb_prop in H as [H Hnco].
+  apply andb_prop in H as [H Hdp].
   apply andb_prop in H as [H Hcls]. apply andb_prop in H as [H Hanim]. apply andb_prop in H as [H Hmvm].
   apply andb_prop in H as [H Hpar]. apply andb_prop in H as [H Hms].
   apply andb_prop in H as [H Hgfx]. apply andb_prop in H as [H Hresp]. apply andb_prop in H as [H Hmact].
@@ -2477,6 +2579,10 @@ Proof.
     apply veqb_eq in Hpo. rewrite <- Hpo. unfold ld32 in Hg. rewrite CM.load_eq in Hg. exact Hg.
   - exact (anim_b_sound _ _ Hanim).
   - exact (cls_b_sound _ _ _ _ PC Hcls).
+  - exact (dp_b_sound _ _ Hdp).
+  - exact (ncoll_b_sound _ _ _ Hnco).
+  - apply (mcoll_b_sound _ _ _ k (proj1 (slot_of_spec _ _ Hk))); [ | exact Hmco ].
+    apply veqb_eq in Hpo. rewrite <- Hpo. unfold ld32 in Hg. rewrite CM.load_eq in Hg. exact Hg.
 Qed.
 
 Definition ow_chk (ge : genv) (bm : block) (m : mem) : bool :=

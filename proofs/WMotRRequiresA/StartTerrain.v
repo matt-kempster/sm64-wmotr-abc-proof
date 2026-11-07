@@ -798,6 +798,12 @@ Definition apartb (cb : block) (co : ptrofs) (n : Z) (bp : block) (op : ptrofs) 
   negb (Pos.eqb bp cb) || (Ptrofs.unsigned op + n <=? Ptrofs.unsigned co)
   || (Ptrofs.unsigned co + CAM_SZ <=? Ptrofs.unsigned op).
 
+(* R3' (2026-11-03): the Camera's 108 bytes miss every spawn-info cell of
+   the surface pool's block (FfWorld.cam_si) *)
+Definition sib (cb : block) (co : ptrofs) (bp : block) (op : ptrofs) : bool :=
+  negb (Pos.eqb bp cb)
+  || forallb (fun s => (s + 4 <=? Ptrofs.unsigned co) || (Ptrofs.unsigned co + CAM_SZ <=? s)) CAM_SI.
+
 (* gTimeStopState = 0 (object_list_processor.c's boot zero) *)
 Definition ts_chk (ge : genv) (m : mem) : bool :=
   match Genv.find_symbol ge object_list_processor._gTimeStopState with
@@ -827,6 +833,7 @@ Definition pin_chk (ge : genv) (cam : val) (m : mem) : bool :=
       && (Ptrofs.unsigned co + CAM_SZ <=? Ptrofs.max_unsigned)
       && ptr_is (CM.load Mint32 m bsp 0) (apartb cb co 110400)
       && ptr_is (CM.load Mint32 m bnp 0) (apartb cb co 56000)
+      && ptr_is (CM.load Mint32 m bsp 0) (sib cb co)
       && AudioInv.aud_chk ge m
       && ObjWorld.ctr_b ge m && ts_chk ge m
   | _, _, _, _, _, _, _, _ => false
@@ -849,6 +856,7 @@ Lemma pin_chk_sound : forall ge cb co m, pin_chk ge (Vptr cb co) m = true ->
         Mem.load Mint32 m bs 0 = Some (Vptr bp op) ->
         bp <> cb \/ Ptrofs.unsigned op + n <= Ptrofs.unsigned co
         \/ Ptrofs.unsigned co + CAM_SZ <= Ptrofs.unsigned op)
+  /\ cam_si ge m cb co
   /\ AudioInv.AudioInv ge m
   /\ ObjWorld.ctr_ok ge m
   /\ (forall b, Genv.find_symbol ge object_list_processor._gTimeStopState = Some b ->
@@ -874,7 +882,7 @@ Proof.
   match goal with
   | A : ts_chk _ _ = true |- _ => pose proof (ts_chk_sound _ _ A) as TS
   end.
-  split; [ | split; [ | split; [ | split; [ | split; [ | split; [ | split ] ] ] ] ] ].
+  split; [ | split; [ | split; [ | split; [ | split; [ | split; [ | split; [ | split ] ] ] ] ] ] ].
   - intros b Hb bb oo L. try rewrite S1 in Hb. injection Hb as <-.
     pose proof (ptr_is_sound _ _ _ _ P1 L) as E. cbn beta in E.
     apply andb_prop in E as [E1 E2]. apply Pos.eqb_eq in E1.
@@ -907,6 +915,13 @@ Proof.
     destruct Hin as [E | [E | []]]; injection E as <- <-.
     + rewrite S6 in Hs. injection Hs as <-. apply K; assumption.
     + rewrite S7 in Hs. injection Hs as <-. apply K; assumption.
+  - intros bs bp op Hs L. rewrite S6 in Hs. injection Hs as <-.
+    match goal with Hq : ptr_is (Mem.load Mint32 m bsp 0) (sib cb co) = true |- _ =>
+      pose proof (ptr_is_sound _ _ _ _ Hq L) as E end.
+    unfold sib in E. apply orb_true_iff in E as [E | E].
+    + left. apply negb_true_iff, Pos.eqb_neq in E. exact E.
+    + right. intros z Hz. pose proof (proj1 (forallb_forall _ _) E z Hz) as Q. cbn beta in Q.
+      apply orb_true_iff in Q as [Q | Q]; apply Z.leb_le in Q; [ left | right ]; exact Q.
   - exact AI.
   - exact CT.
   - exact TS.

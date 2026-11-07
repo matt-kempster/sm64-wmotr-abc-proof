@@ -325,10 +325,10 @@ Section K3.
               cb = fw_bo d)
       by exact (ff_Co _ _ _ _ FWF).
     pose proof (phiw_surf_apart lp bm XD m Hphi) as RSA.
-    split; [ exact (k_hi lp bm XD m m2 _ _ Lmo LD LM Bmb RGa Hh) | ].
+    split; [ exact (k_hi lp bm XD m m2 _ _ (fun _ => True) Lmo (LD1 lp bm XD m m2 _ _ LD) LM Bmb RGa Hh) | ].
     split; [ exact (k_world lp bm XD m m2 _ _ Lmo LD LM Bmb RGa Hw Hmo RSA SNB Co) | ].
     split; [ exact (anim_apart_keep3 Hmb Han) | ].
-    split; [ exact (k_mobj lp bm XD m m2 _ _ Lmo LD LM Bmb RGa Hmo) | ].
+    split; [ exact (k_mobj lp bm XD m m2 _ _ (fun _ => True) Lmo (LD1 lp bm XD m m2 _ _ LD) LM Bmb RGa Hmo) | ].
     split; [ exact (ffw_keep3 Hf) | ].
     split; [ exact (k_used lp bm XD m m2 _ _ Lmo LD LM Bmb RGa Hu) | ].
     split; [ exact (anim_w_keep3 _ _ (ff_W _ _ _ _ FWF) Hmb Haw) | ].

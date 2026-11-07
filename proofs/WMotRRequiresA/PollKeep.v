@@ -31,7 +31,7 @@ From SM64.Proofs Require Import Generic.PermWalk.
 From SM64.Proofs Require Interp.CMem.
 From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
 From SM64.Generated Require save_file mario level_update platform_displacement surface_load area.
-From SM64.Generated Require wmotr_level_data.
+From SM64.Generated Require wmotr_level_data behavior_data.
 From SM64.Proofs Require Import ActionValueFrame MWFReal SpawnInit MathBodies AGates.
 From SM64.Proofs Require NoAImpliesNoFlyTwelve.
 From SM64.Proofs.WMotRRequiresA Require Import FpuFloor WMotRWorld FfWorld RenderKeep LevelWalk.
@@ -257,7 +257,9 @@ Definition ow_ids : list ident :=
    wmotr_level_data._peach_seg5_anim_0500FE84; wmotr_level_data._peach_seg5_anim_05011050;
    wmotr_level_data._peach_seg5_anim_05012F40; wmotr_level_data._peach_seg5_anim_05015468;
    wmotr_level_data._peach_seg5_anim_05016798; wmotr_level_data._peach_seg5_anim_05018664;
-   wmotr_level_data._peach_seg5_anim_0501B328; wmotr_level_data._peach_seg5_anim_0501C404].
+   wmotr_level_data._peach_seg5_anim_0501B328; wmotr_level_data._peach_seg5_anim_0501C404;
+   (* 3i, 2026-11-03: the droplet parameter structs (ow_dp, OW.dparams) *)
+   behavior_data._gShallowWaterSplashDropletParams; behavior_data._gShallowWaterWaveDropletParams].
 
 (* the globals a writer of obj_w's surface cells changes (2026-11-03,
    ClearKeep: the clear writes the counter and the dynamic partition) *)
@@ -547,7 +549,7 @@ Section OWK.
     exists pool, la, fl, gol, gmo, sdp, gdi, rs, fs.
     refine (conj S1 (conj S2 (conj S3 (conj S4 (conj S5 (conj S6 (conj S7 _))))))).
     destruct C as [Cg Cr Cf Cp Cfo Cm Cs Ca Crd Cdb Cst Co Cd12 Cct Cvm Csp Cso Cco Cctr Cter Cscr Cmact Cresp Cgfx Cmsurf Cpar
-                   Cmvm Canim Ccls].
+                   Cmvm Canim Ccls Cdp Cnco Cmco].
     assert (KG : forall id, In id ow_ids -> existsb (Pos.eqb id) ow_xc = false ->
                forall b, Genv.find_symbol ge id = Some b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
       by (intros id Hin Hn b Hs; exact (K id b Hin Hn Hs)).
@@ -654,6 +656,21 @@ Section OWK.
       + intros P id bp z hd l o k HP G1 G2 Hin Hs L Hw Ho N Hk Lo.
         apply (sp_vm_eq ge pool Kp k).
         exact (proj2 (KS pool S1) m T2 P id bp z hd l o k HP G1 G2 Hin Hs L Hw Ho N Hk Lo).
+    - (* 3i: the droplet parameter structs, listed in ow_ids *)
+      apply (OW.dp_ok_ext ge m m'); [ | exact Cdp ].
+      intros p b Hp Hs.
+      assert (A : forallb (fun t => existsb (Pos.eqb t) ow_ids && negb (existsb (Pos.eqb t) ow_xc)) OW.dparams = true)
+        by (vm_compute; reflexivity).
+      pose proof (proj1 (forallb_forall _ _) A p Hp) as E. apply andb_prop in E as [E1 E2].
+      apply existsb_exists in E1 as (x & Hx & Ex). apply Pos.eqb_eq in Ex. subst x.
+      exact (KG p Hx (proj1 (negb_true_iff _) E2) b Hs).
+    - (* 3j: numCollidedObjs, a slot field past 96 *)
+      intros k Hk. destruct (Cnco k Hk) as (n & Ln & Rn). exists n.
+      unfold OW.O_NCOLL in *. rewrite Kp by sk_side. exact (conj Ln Rn).
+    - (* 3j: Mario's collidedObjs, slot fields 120..136 *)
+      intros k Hk Lg i Hi. rewrite Km in Lg. destruct (Cmco k Hk Lg i Hi) as (v & Lv & Sv).
+      exists v. unfold OW.O_COLLS in *. rewrite <- !Z.add_assoc in Lv |- *.
+      rewrite Kp by (cbn [size_chunk]; unfold OW.OSZ; lia). exact (conj Lv Sv).
   Qed.
 
   (* THE LEMMA, slot-field form: obj_w survives any change off its globals'

@@ -2210,6 +2210,7 @@ Section Witness.
             Mem.load Mint32 m11 bs 0 = Some (Vptr bp op) ->
             bp <> cb \/ Ptrofs.unsigned op + n <= Ptrofs.unsigned co
             \/ Ptrofs.unsigned co + CAM_SZ <= Ptrofs.unsigned op)
+      /\ cam_si (lp_ge lp) m11 cb co
       /\ AudioInv.AudioInv (lp_ge lp) m11
       /\ ObjWorld.ctr_ok (lp_ge lp) m11
       /\ (forall b, Genv.find_symbol (lp_ge lp) object_list_processor._gTimeStopState = Some b ->
@@ -2223,23 +2224,23 @@ Section Witness.
 
     Lemma aud11 : aud_w (lp_ge lp) m11.
     Proof.
-      destruct pin11 as (cb & co & _ & _ & _ & _ & _ & _ & AI & _).
+      destruct pin11 as (cb & co & _ & _ & _ & _ & _ & _ & _ & AI & _).
       exact (proj2 (AudioInv.aud_w_eq _ _) AI).
     Qed.
 
     (* exported for the objects phase's carried ctr_ok (ObjWorld) and the
        camera's time-stop cell *)
     Lemma ctr11 : ObjWorld.ctr_ok (lp_ge lp) m11.
-    Proof. destruct pin11 as (cb & co & _ & _ & _ & _ & _ & _ & _ & C & _). exact C. Qed.
+    Proof. destruct pin11 as (cb & co & _ & _ & _ & _ & _ & _ & _ & _ & C & _). exact C. Qed.
 
     Lemma ts11 : forall b, Genv.find_symbol (lp_ge lp) object_list_processor._gTimeStopState = Some b ->
         Mem.load Mint32 m11 b 0 = Some (Vint Int.zero).
-    Proof. destruct pin11 as (cb & co & _ & _ & _ & _ & _ & _ & _ & _ & T). exact T. Qed.
+    Proof. destruct pin11 as (cb & co & _ & _ & _ & _ & _ & _ & _ & _ & _ & T). exact T. Qed.
 
     Lemma cam11 : cam_w (lp_ge lp) m11.
     Proof.
       destruct (cut_chk_sound _ _ _ (cam_frame_ok_cut _ _ _ _ CF)) as (cb & co & Ec & C1 & Pg & Ab & C2).
-      destruct pin11 as (cb' & co' & Ec' & Pgc & Pms & Psf & Psz & Ppool & _).
+      destruct pin11 as (cb' & co' & Ec' & Pgc & Pms & Psf & Psz & Ppool & Psi & _).
       rewrite Ec in Ec'. injection Ec' as <- <-.
       pose proof (cam_frame_ok_load _ _ _ _ CF) as L96. rewrite Ec in L96.
       split; [ exact C1 | split ].
@@ -2247,7 +2248,7 @@ Section Witness.
         rewrite L_ca in Lg. injection Lg as <- <-.
         exists cb, co. change (Ptrofs.unsigned (Ptrofs.add (Ptrofs.repr 60) (Ptrofs.repr 36))) with 96. split; [ exact L96 | ].
         split; [ exact Pg | ]. split; [ exact Ab | ]. split; [ exact C2 | ].
-        split; [ exact Psz | exact Ppool ].
+        split; [ exact Psz | split; [ exact Ppool | exact Psi ] ].
       - split; [ | split; [ exact Pms | exact Psf ] ].
         intros b Hb bb oo L. destruct (Pgc b Hb bb oo L) as (-> & ->).
         exists bca, bgad, (Ptrofs.repr 60). split; [ exact Hca | split; [ exact L_ca | ] ].

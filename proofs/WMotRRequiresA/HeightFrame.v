@@ -77,7 +77,7 @@ From SM64.Proofs.WMotRRequiresA Require Import FfWorld FfRow AhwRow KbRow FpuFlo
 From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT LsContract AudioInv.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
 From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep PollKeep MidKeep CamRows MplatKeep ClearKeep ObjStores.
-From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop ObjStepSplit BhvVM.
+From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop ObjStepSplit BhvVM UnloadKeep UnloadRows UnloadPc.
 From SM64.Generated Require object_list_processor area platform_displacement.
 From SM64.Proofs Require OsDmaFloor LptBody ObjExtBodies UpdateCameraBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
@@ -1386,7 +1386,23 @@ Section HeightLinked12.
     fd = Internal object_list_processor.f_update_objects.
   Proof. exact (ObjPhase.auo_fun lp H12). Qed.
 
-  (* OPEN, the frame block (update_objects' cycleCounts[30]) *)
+  (* OPEN, the frame block (update_objects' cycleCounts[30]; filler[4] of
+     the list walks and of unload_deactivated_objects).  What would
+     discharge each (2026-11-03):
+     - Hobj_blind: Pobjl is reach-local: it reads only globals' blocks and
+       blocks named by a pointer stored in a block it reads (the main pool
+       via sSurfacePool, the Camera via gAreaData, Mario's surfaces, the
+       object slots).  A block no stored pointer names (noref) is then
+       never read, so changes to it keep Pobjl.
+     - Hobj_fresh: the first half (b past genv_next) follows from mem_ok
+       (MWFReal.mwf_real_nextbound); the second needs "every stored pointer
+       names a valid block" (a closed memory, Generic.ClosedMem.closed_by
+       with the flat map), kept by every step, so the fresh block is named
+       by none.
+     - Hobj_noref: each callee runs the same under the memory injection
+       that drops b (Clight's evaluation is injection-compatible): a callee
+       not given b's address can only store pointers it loads, computes
+       from globals or allocates, never b. *)
   Hypothesis Hobj_blind : forall b m m', Ple (Genv.genv_next (lp_ge lp)) b -> Pobjl m ->
     ObjPhase.noref b m -> Mem.unchanged_on (fun b' _ => b' <> b) m m' -> Pobjl m'.
   Hypothesis Hobj_fresh : forall sz m m1 b, Pobjl m -> Mem.alloc m 0 sz = (m1, b) ->
@@ -1527,7 +1543,37 @@ Section HeightLinked12.
     intros m b c m' HP Hs St. apply pobj_of_pc.
     exact (ClearKeep.ctr_keeps lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 m b c m' Hs St (pc_of_pobj m HP)).
   Qed.
-  Hypothesis Hobj_unload : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._unload_deactivated_objects.
+  (* unload_deactivated_objects (2026-11-03): the real outer loop
+     (UnloadKeep.unload_outer) and the real in-list loop (UnloadLoop.inlist_ok)
+     are PROVED, with gTimeStopState &= ~1, gCurrentObject = obj and the
+     respawn OR into gPlayerSpawnInfos / a macro entry (UnloadRows); what
+     stays open are the two narrow rows below (was the whole-call row
+     Hobj_unload).  Hobj_unload_si: the respawn OR into a SpawnInfo
+     behaviorArg cell of the main pool block (UnloadRows.si_row).
+     Hobj_unload_plat: gMarioPlatform's fact across the real unload_object
+     on an inactive slot of a walked ring (UnloadPc.unl_plat_row); the
+     rest of that call (mem_ok, PhiW, the A-held bit, obj_w) is PROVED,
+     UnloadPc.unl_row_proved.  TRUTH at each row's definition. *)
+  Hypothesis Hobj_unload_si : UnloadRows.si_row lp bm bc oc0 SafeB.
+  Hypothesis Hobj_unload_plat : UnloadPc.unl_plat_row lp bm bc oc0 SafeB.
+  Lemma Hobj_unload_obj : UnloadRows.unl_row lp bm bc oc0 SafeB.
+  Proof.
+    exact (UnloadPc.unl_row_proved lp H12 bm Hbm_sym bc oc0 SafeB HSafeB_syms Hbc_sym Hoc0 Hobj_unload_plat).
+  Qed.
+  Lemma obj_unload_linked12 :
+    ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._unload_deactivated_objects.
+  Proof.
+    apply (UnloadKeep.unload_outer lp H12 bm Pobjl).
+    - intros m (_ & _ & _ & _ & _ & How). exact How.
+    - intros la idx m t m' vr Hidx Hl HP H. apply pobj_of_pc.
+      exact (UnloadRows.inlist_keeps lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 Hobj_unload_si Hobj_unload_obj
+               la idx m t m' vr Hidx Hl (pc_of_pobj m HP) H).
+    - intros m b c m' HP Hs St. apply pobj_of_pc.
+      exact (UnloadRows.ts_keeps lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 m b c m' (pc_of_pobj m HP) Hs St).
+    - exact Hobj_blind.
+    - exact (Hobj_fresh 4).
+    - intros b Hb. apply (Hobj_noref b); [ rewrite ObjPhase.uo_callees_eq; cbn [In]; tauto | exact Hb ].
+  Qed.
   (* (Hobj_mplat, update_mario_platform: PROVED 2026-11-03, obj_mplat_linked12
      below, from the real body, MplatKeep) *)
   (* PROVED (2026-10-26): the platform call (whose footprint is
@@ -1875,7 +1921,7 @@ Section HeightLinked12.
                     Hobj_blind (Hobj_fresh 240) Hobj_noref obj_stores_linked12 obj_counter_linked12
                     Hobj_debug (ObjWorld.post_clear (lp_ge lp)) obj_R_store_linked12
                     obj_surfaces_linked12 obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
-                    Hobj_unload obj_mplat_linked12 obj_platform_linked12 Hlvl_ow Hrender_ow
+                    obj_unload_linked12 obj_mplat_linked12 obj_platform_linked12 Hlvl_ow Hrender_ow
                     lvl_pre_linked12 lvl_post_linked12 seg_action_phi Hphi_y Hphi_sa_linked12
                     srd_ok_linked12 srd_keep_linked12 mid_keep_linked12 poll_ok_linked12
                     init is m Hok Hphi Hst How HA Hr)).
@@ -1898,7 +1944,7 @@ Section HeightLinked12.
                     Hobj_blind (Hobj_fresh 240) Hobj_noref obj_stores_linked12 obj_counter_linked12
                     Hobj_debug (ObjWorld.post_clear (lp_ge lp)) obj_R_store_linked12
                     obj_surfaces_linked12 obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
-                    Hobj_unload obj_mplat_linked12 obj_platform_linked12 Hlvl_ow Hrender_ow
+                    obj_unload_linked12 obj_mplat_linked12 obj_platform_linked12 Hlvl_ow Hrender_ow
                     lvl_pre_linked12 lvl_post_linked12 seg_action_phi Hphi_y Hphi_sa_linked12
                     srd_ok_linked12 srd_keep_linked12 mid_keep_linked12 poll_ok_linked12
                     init is m Hok Hphi Hst How HA Hr)).

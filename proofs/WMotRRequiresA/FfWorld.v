@@ -1302,6 +1302,21 @@ Definition CAM_SZ : Z := 108.
 Definition cam_pools : list (ident * Z) :=
   [(surface_load._sSurfacePool, 110400); (surface_load._sSurfaceNodePool, 56000)].
 
+(* R3' THE CAMERA IS APART FROM THE SPAWN-INFO CELLS (2026-11-03).  The
+   SpawnInfo behaviorArg cells (ObjWorld.SI_OFFS, the absolute offsets in the
+   main-pool block P that ObjWorld.resp_ok names as respawnInfo targets) are
+   level-pool allocations of their own, as is the Camera (create_camera's
+   alloc_only_pool_alloc); in the game they never overlap.  In the model
+   the main pool is one block, so nothing kept the Camera's 108 bytes off
+   those cells, and unload_deactivated_objects' respawn OR (|= 0xFF00 into
+   a cell) could rewrite a Camera field.  StartSat proves it on the witness
+   (StartTerrain.pin_chk). *)
+Definition CAM_SI : list Z := [2364; 2444; 2476; 2508; 2540; 2572; 2604; 2636].
+Definition cam_si (G : genv) (m : mem) (cb : block) (co : ptrofs) : Prop :=
+  forall bs bp op, Genv.find_symbol G surface_load._sSurfacePool = Some bs ->
+    Mem.load Mint32 m bs 0 = Some (Vptr bp op) ->
+    bp <> cb \/ forall s, In s CAM_SI -> s + 4 <= Ptrofs.unsigned co \/ Ptrofs.unsigned co + CAM_SZ <= s.
+
 Definition cam_w (G : genv) (m : mem) : Prop :=
   (forall b, Genv.find_symbol G camera._sObjectCutscene = Some b ->
      exists n, Mem.load Mint8unsigned m b 0 = Some (Vint n) /\ cut_ok n)
@@ -1317,7 +1332,8 @@ Definition cam_w (G : genv) (m : mem) : Prop :=
          /\ (forall id n bs bp op, In (id, n) cam_pools -> Genv.find_symbol G id = Some bs ->
                Mem.load Mint32 m bs 0 = Some (Vptr bp op) ->
                bp <> cb \/ Ptrofs.unsigned op + n <= Ptrofs.unsigned co
-               \/ Ptrofs.unsigned co + CAM_SZ <= Ptrofs.unsigned op))
+               \/ Ptrofs.unsigned co + CAM_SZ <= Ptrofs.unsigned op)
+         /\ cam_si G m cb co)
   /\ cam_pins G m.
 
 (* THE AUDIO STATE (aud_w = AudioInv.AudioInv, 2026-11-02): a pointer
@@ -1380,7 +1396,19 @@ Lemma cam_w_cb : forall (G : genv) m, cam_w G m ->
                Mem.load Mint32 m bs 0 = Some (Vptr bp op) ->
                bp <> cb \/ Ptrofs.unsigned op + n <= Ptrofs.unsigned co
                \/ Ptrofs.unsigned co + CAM_SZ <= Ptrofs.unsigned op).
-Proof. intros G m H. exact (proj1 (proj2 H)). Qed.
+Proof.
+  intros G m H ga bad o Sg Lg. destruct (proj1 (proj2 H) ga bad o Sg Lg) as (cb & co & A & B & C & D & E & F & _).
+  exists cb, co. tauto.
+Qed.
+Lemma cam_w_si : forall (G : genv) m, cam_w G m ->
+  forall ga bad o, Genv.find_symbol G level_update._gCurrentArea = Some ga ->
+       Mem.load Mint32 m ga 0 = Some (Vptr bad o) ->
+       exists cb co, Mem.load Mint32 m bad (Ptrofs.unsigned (Ptrofs.add o (Ptrofs.repr 36))) = Some (Vptr cb co)
+         /\ cam_si G m cb co.
+Proof.
+  intros G m H ga bad o Sg Lg. destruct (proj1 (proj2 H) ga bad o Sg Lg) as (cb & co & A & _ & _ & _ & _ & _ & S).
+  exists cb, co. exact (conj A S).
+Qed.
 
 (* lvl_w from its parts (the order of the conjuncts, in one place) *)
 Lemma lvl_w_mk : forall (G : genv) m,
@@ -1556,12 +1584,12 @@ Proof.
     rewrite (UG ga Sg) in Lg.
     destruct (AW ga Sg) as (bad' & o' & Sad & Lg').
     rewrite Lg in Lg'. injection Lg' as <- <-.
-    destruct (C2 ga bad o Sg Lg) as (cb & co & Lc & Pg & Ab & (n & Ln & Cn) & Sz & R3).
+    destruct (C2 ga bad o Sg Lg) as (cb & co & Lc & Pg & Ab & (n & Ln & Cn) & Sz & R3 & RS).
     exists cb, co.
     split; [ rewrite (US bad Mint32 _ (cam_sym_of G area._gAreaData bad ltac:(cam_in) Sad)); exact Lc | ].
     split; [ exact Pg | ].
     split; [ intros ab bt ot Sa La; rewrite (UA ab Sa) in La; exact (Ab ab bt ot Sa La) | ].
-    split; [ | split; [ exact Sz | ] ].
+    split; [ | split; [ exact Sz | split ] ].
     + exists n. split; [ | exact Cn ].
       rewrite (U cb Mint8unsigned _ (or_intror (ex_intro _ co (ex_intro _ ga (ex_intro _ bad
                  (ex_intro _ o (conj Sg (conj Lg Lc)))))))).
@@ -1572,6 +1600,9 @@ Proof.
         destruct Hin as [E | [E | []]]; injection E as <- _; cam_in. }
       rewrite (US bs Mint32 0 (cam_sym_of G _ bs Hid Hs)) in Hl.
       exact (R3 id k bs bp op Hin Hs Hl).
+    + intros bs bp op Hs Hl.
+      rewrite (US bs Mint32 0 (cam_sym_of G surface_load._sSurfacePool bs ltac:(cam_in) Hs)) in Hl.
+      exact (RS bs bp op Hs Hl).
   - split; [ | split ].
     + intros b Hs bb oo Hl.
       rewrite (US b Mint32 0 (cam_sym_of G camera._gCamera b ltac:(cam_in) Hs)) in Hl.

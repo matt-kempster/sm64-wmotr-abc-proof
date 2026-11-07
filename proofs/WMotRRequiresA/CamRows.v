@@ -142,7 +142,7 @@ Section CR.
     cbn [Mem.loadv] in Hga_ld. change Mptr with Mint32 in Hga_ld. rewrite Ptrofs.unsigned_zero in Hga_ld.
     subst v11.
     destruct CW as (_ & CA & (Pcam & Pcs & Psf)).
-    destruct (CA ga a o Hga Hga_ld) as (cb & co & Lc & Hcbg & _ & (n & Lcut & _) & Hco & R3).
+    destruct (CA ga a o Hga Hga_ld) as (cb & co & Lc & Hcbg & _ & (n & Lcut & _) & Hco & (R3 & _)).
     cbn [Mem.loadv] in Hld.
     rewrite Lc in Hld. injection Hld as <-.
     (* the cast keeps the pointer *)
