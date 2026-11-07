@@ -1524,6 +1524,17 @@ without pressing A".*
     state. A spawn sets behavior and script together, and VM steps keep the class.
   - T2 (gMarioPlatform runs a special script) was rejected: FALSE in a real state.
   - Not yet kept by the spawn path; that is part of the generic frame keep.
+  **RenderKeep KEEP generalized in place (2026-11-07).** The PhiW keep (`k_all_wc` and
+  its parts) now takes TYPE-ONLY objects `Qt` beside the whole-kept far objects `Q`:
+  - A collided object may be `Qt`. Only its interactType cell must be kept (`LDt`), and
+    that type is neither POLE nor CANNON_BASE (`QtT`), so `coll_obj_ok` reads nothing
+    else of it (`coll_keep_t`).
+  - `QU` asks usedObj to be `Q` only in a pole / cannon action, the only actions in which
+    `used_ok` reads it.
+  - Older callers (KEEPQ, CollKeep) take `Qt := fun _ => False`.
+  - Purpose: the generic frame keep, where a native on a generic slot (possibly
+    Mario's collided object or his usedObj outside those actions) changes the slot's
+    non-XBn bytes. No trust moves.
   **`ow_scr` (2026-11-03): `scr_ok` is an obj_w clause.** `ObjWorld.scr_ok` (moved from
   BhvStep, which keeps its names as notations) is obj_w's 21st clause; the boot witness
   checks it by vm inside `ow_chk` (`scr_b_l` over the reachable scripts, at m3 / m4 / m11).
