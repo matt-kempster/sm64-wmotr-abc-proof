@@ -150,6 +150,58 @@ Proof.
 Qed.
 End TrAlloc.
 
+(* the frame block is allocated and no byte outside it names it.  The
+   callee row (Hobj_noref) is stated over nrv, not noref: FOUND 2026-11-07
+   (phantom forall), over noref alone b may be the next fresh block, which
+   a callee's own frame alloc returns, and a callee that spills an
+   address-taken pointer parameter then leaves Vptr b in another block.
+   The frame block of the real call is allocated, so nrv holds there. *)
+Definition nrv (b : block) (m : mem) : Prop := Mem.valid_block m b /\ noref b m.
+
+(* Clight execution never invalidates a block *)
+Lemma assign_loc_valid : forall ge ty m b0 ofs bf v m', assign_loc ge ty m b0 ofs bf v m' ->
+  forall b, Mem.valid_block m b -> Mem.valid_block m' b.
+Proof.
+  intros ge ty m b0 ofs bf v m' H b Hv. inv H.
+  - cbn [Mem.storev] in *. eapply Mem.store_valid_block_1; eassumption.
+  - eapply Mem.storebytes_valid_block_1; eassumption.
+  - match goal with Hs : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ => inv Hs end.
+    cbn [Mem.storev] in *. eapply Mem.store_valid_block_1; eassumption.
+Qed.
+
+Lemma alloc_variables_valid : forall ge e m vars e' m', alloc_variables ge e m vars e' m' ->
+  forall b, Mem.valid_block m b -> Mem.valid_block m' b.
+Proof.
+  intros ge e m vars e' m' H. induction H; intros b0 Hv; [ exact Hv | ].
+  apply IHalloc_variables. eapply Mem.valid_block_alloc; eassumption.
+Qed.
+
+Lemma free_list_valid : forall l m m', Mem.free_list m l = Some m' ->
+  forall b, Mem.valid_block m b -> Mem.valid_block m' b.
+Proof.
+  induction l as [| [[b0 lo] hi] l IH]; intros m m' H b Hv; cbn in H.
+  - injection H as <-. exact Hv.
+  - destruct (Mem.free m b0 lo hi) as [m1|] eqn:E; [ | discriminate H ].
+    apply (IH m1 m' H). eapply Mem.valid_block_free_1; eassumption.
+Qed.
+
+Lemma exec_valid : forall ge,
+  (forall e le m s t le' m' out, exec_stmt function_entry2 ge e le m s t le' m' out ->
+     forall b, Mem.valid_block m b -> Mem.valid_block m' b)
+  /\ (forall m fd vargs t m' vr, eval_funcall function_entry2 ge m fd vargs t m' vr ->
+     forall b, Mem.valid_block m b -> Mem.valid_block m' b).
+Proof.
+  intros ge. apply exec_stmt_funcall_ind; intros.
+  all: try solve [ eauto ].
+  all: try solve [ eapply assign_loc_valid; eassumption ].
+  all: try solve [ eapply external_call_valid_block; eassumption ].
+  all: match goal with Hfe : function_entry2 _ _ _ _ _ _ _ |- _ => destruct Hfe as [_ _ _ Hav _] end.
+  all: eapply free_list_valid; [ eassumption | ].
+  all: match goal with IH : forall b, Mem.valid_block ?m1 b -> Mem.valid_block ?m2 b |- _ =>
+         apply IH end.
+  all: eapply alloc_variables_valid; eassumption.
+Qed.
+
 Lemma free_list_one : forall m b lo hi m',
   Mem.free_list m [(b, lo, hi)] = Some m' -> Mem.free m b lo hi = Some m'.
 Proof.
@@ -174,6 +226,11 @@ Definition no_ocall (l : list obl) : bool :=
   forallb (fun o => match o with OCall _ => false | _ => true end) l.
 
 Definition uo_callees : list ident := callees uo_list.
+
+(* the callees the frame-block row (Hobj_noref) speaks of: update_objects'
+   and unload_deactivated_objects' (whose own frame block, filler[4], is
+   carried through its body, UnloadKeep) *)
+Definition nr_callees : list ident := OLP._unload_deactivated_objects_in_list :: uo_callees.
 
 (* update_objects' callees, in body order (computed from the generated body) *)
 Lemma uo_callees_eq : uo_callees =
@@ -503,9 +560,10 @@ Section Phase.
        no stored pointer names *)
     Hypothesis Hobj_fresh : forall m m1 b, P m -> Mem.alloc m 0 240 = (m1, b) ->
       Ple (Genv.genv_next G) b /\ noref b m1.
-    (* no callee stores a pointer into a non-symbol block nothing names *)
+    (* no callee stores a pointer into an allocated non-symbol block
+       nothing names (nrv: FOUND 2026-11-07, see nrv) *)
     Hypothesis Hobj_noref : forall b f, In f uo_callees -> Ple (Genv.genv_next G) b ->
-      call_keeps G (noref b) f.
+      call_keeps G (nrv b) f.
     (* update_objects' own stores (cycleCounts[i], gTimeStopState,
        gNumRoomedObjects*, gCheckingSurfaceCollisionsForCamera, gObjectLists,
        gPrevFrameObjectCount) and area_update_objects' gAreaUpdateCounter++ *)
@@ -562,7 +620,7 @@ Section Phase.
       { apply (Hobj_blind b1 m ma Hple HP (noref_alloc _ _ _ _ _ Hal Hn1)).
         apply (Mem.unchanged_on_implies (fun _ _ => True)); [ | intros; exact I ].
         exact (Mem.alloc_unchanged_on _ _ _ _ _ _ Hal). }
-      set (Q := fun m0 => P m0 /\ noref b1 m0).
+      set (Q := fun m0 => P m0 /\ nrv b1 m0).
       (* every piece outside the window's two calls keeps Q *)
       assert (Hpc : forall s, In s pieces -> safeE G Q (uo_env b1) s).
       { intros s Hs.
@@ -575,7 +633,9 @@ Section Phase.
         - pose proof (piece_callee _ _ _ _ Hs Ho) as Hr. split.
           + exact (env_none b1 f (rest_uo f Hr)).
           + exact (call_keeps_and _ _ _ _ (rest_P f Hr) (Hobj_noref b1 f (rest_uo f Hr) Hple)).
-        - exact (Hobj_stores b1 s' (piece_in _ _ Hs Ho) Hple). }
+        - intros le0 m0 t0 le0' m0' out0 (Hp & Hv & Hn) Hx0.
+          destruct (Hobj_stores b1 s' (piece_in _ _ Hs Ho) Hple _ _ _ _ _ _ (conj Hp Hn) Hx0) as (Hp' & Hn').
+          exact (conj Hp' (conj (proj1 (exec_valid G) _ _ _ _ _ _ _ _ Hx0 b1 Hv) Hn')). }
       set (QR := fun m0 => Q m0 /\ R m0).
       assert (Hin_clr : In OLP._clear_dynamic_surfaces uo_callees)
         by (rewrite uo_callees_eq; cbn; tauto).
@@ -606,7 +666,8 @@ Section Phase.
       { rewrite uo_split. apply fold_safe; [ | exact HT ].
         rewrite Forall_forall. intros s Hs. exact (Hpc s (or_intror (or_intror Hs))). }
       match goal with Hx : exec_stmt _ _ _ _ _ (fn_body _) _ _ _ _ |- _ =>
-        destruct (Hbody _ _ _ _ _ _ (conj HP1 Hn1) Hx) as (HP2 & Hn2) end.
+        destruct (Hbody _ _ _ _ _ _ (conj HP1 (conj (Mem.valid_new_block _ _ _ _ _ Hal) Hn1)) Hx)
+          as (HP2 & _ & Hn2) end.
       match goal with Hfr : Mem.free_list _ _ = Some _ |- _ =>
         change (blocks_of_env G (uo_env b1)) with [(b1, 0, 240)] in Hfr;
         apply free_list_one in Hfr; rename Hfr into Hfree end.

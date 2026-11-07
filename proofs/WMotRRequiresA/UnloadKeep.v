@@ -11,8 +11,10 @@
 (*    on each list head the order table names (i = 0..9; obj_w's        *)
 (*    ow_order pins the table, its 11th entry -1 ends the loop), (b) an  *)
 (*    int store into gTimeStopState, (c) the frame block of the unused   *)
-(*    local filler[4]: fresh (Hfresh), kept unreferenced by the whole     *)
-(*    call (Hnoref; Mem.free keeps contents), invisible to P (Hblind).    *)
+(*    local filler[4]: fresh (Hfresh), kept allocated and unreferenced   *)
+(*    through the body (the per-list call by Hnoref at that allocated     *)
+(*    block, the int store by ObjStores; Mem.free keeps contents),       *)
+(*    invisible to P (Hblind).                                            *)
 (* ====================================================================== *)
 
 From Coq Require Import ZArith List Lia Bool.
@@ -22,7 +24,7 @@ From compcert Require Linking.
 From SM64.Generated Require object_list_processor.
 From SM64.Proofs Require Import SymbolicLinking LinkedTwelve RealFrameLinked.
 From SM64.Proofs.WMotRRequiresA Require Import RenderAnim.
-From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop.
+From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop ObjStores.
 
 Import ListNotations.
 Local Open Scope Z_scope.
@@ -138,13 +140,7 @@ Section Real.
     (* (b) gTimeStopState = <an int> *)
     Hypothesis Hts : forall m b c m', P m -> Genv.find_symbol G OLP._gTimeStopState = Some b ->
       Mem.store Mint32 m b 0 (Vint c) = Some m' -> P m'.
-    (* (c) the frame block *)
-    Hypothesis Hblind : forall b m m', Ple (Genv.genv_next G) b -> P m -> ObjPhase.noref b m ->
-      Mem.unchanged_on (fun b' _ => b' <> b) m m' -> P m'.
-    Hypothesis Hfresh : forall m m1 b, P m -> Mem.alloc m 0 4 = (m1, b) ->
-      Ple (Genv.genv_next G) b /\ ObjPhase.noref b m1.
-    Hypothesis Hnoref : forall b, Ple (Genv.genv_next G) b ->
-      ObjPhase.call_keeps G (ObjPhase.noref b) OLP._unload_deactivated_objects.
+    (* (c) the frame block: unload_outer's premises below *)
 
     Section Frame.
       Variable e : env.
@@ -238,14 +234,31 @@ Section Real.
         exact (conj (Hts _ _ _ _ HP Hs Hst) eq_refl).
       Qed.
     End Frame.
+  End Outer.
 
-    Ltac envtac := rewrite PTree.gso by neq; apply PTree.gempty.
+  Ltac envtac := rewrite PTree.gso by neq; apply PTree.gempty.
 
-    (* unload_deactivated_objects: PROVED from the per-list row *)
-    Theorem unload_outer : ObjPhase.call_keeps G P OLP._unload_deactivated_objects.
-    Proof.
-      intros bf fd m vargs t m' vr Hs Hf HP Hev.
-      pose proof Hev as Hev0.
+  (* unload_deactivated_objects: PROVED from the per-list row.  The frame
+     block's noref is carried through the body with its validity (nrv):
+     the per-list call keeps it (Hnoref, the callee row at an allocated
+     block), the gTimeStopState int store keeps it. *)
+  Theorem unload_outer : forall P : mem -> Prop,
+    (forall m, P m -> OW.obj_w G bm m) ->
+    (forall la idx m t m' vr, (idx < 13)%nat ->
+      Genv.find_symbol G OLP._gObjectListArray = Some la -> P m ->
+      eval_funcall function_entry2 G m (Internal OLP.f_unload_deactivated_objects_in_list)
+        [ObjLoop.head_v la idx] t m' vr -> P m') ->
+    (forall m b c m', P m -> Genv.find_symbol G OLP._gTimeStopState = Some b ->
+      Mem.store Mint32 m b 0 (Vint c) = Some m' -> P m') ->
+    (forall b m m', Ple (Genv.genv_next G) b -> P m -> ObjPhase.noref b m ->
+      Mem.unchanged_on (fun b' _ => b' <> b) m m' -> P m') ->
+    (forall m m1 b, P m -> Mem.alloc m 0 4 = (m1, b) ->
+      Ple (Genv.genv_next G) b /\ ObjPhase.noref b m1) ->
+    (forall b, Ple (Genv.genv_next G) b ->
+      ObjPhase.call_keeps G (ObjPhase.nrv b) OLP._unload_deactivated_objects_in_list) ->
+    ObjPhase.call_keeps G P OLP._unload_deactivated_objects.
+  Proof.
+      intros P HPow Hil Hts Hblind Hfresh Hnoref bf fd m vargs t m' vr Hs Hf HP Hev.
       rewrite (ObjLoop.fun_olp lp H12 _ _ dm_ud bf fd Hs Hf) in Hev.
       remember (Internal OLP.f_unload_deactivated_objects) as fd' eqn:Efd.
       destruct Hev as [mm ff va tt ee lea leb mm1 mm2 oo vv mm3 Hfe Hx Hor Hfr | ];
@@ -262,22 +275,39 @@ Section Real.
       { apply (Hblind b1 _ _ Hple HP Hn0).
         apply (Mem.unchanged_on_implies (fun _ _ => True)); [ | intros; exact I ].
         exact (Mem.alloc_unchanged_on _ _ _ _ _ _ Hal). }
-      (* the whole call keeps b1 unreferenced; the free keeps contents *)
-      pose proof (Hnoref b1 Hple bf fd mm va tt mm3 vv Hs Hf Hn0 Hev0) as Hn'.
+      (* the body keeps P and b1's nrv; the free keeps contents *)
+      set (P' := fun m0 => P m0 /\ ObjPhase.nrv b1 m0).
+      assert (HPow' : forall m0, P' m0 -> OW.obj_w G bm m0) by (intros m0 (Hp & _); exact (HPow m0 Hp)).
+      destruct (linkorder_resolves_internal lp OLP.prog _ _ (ObjPhase.LO_olp lp H12) dm_udl) as (bl & Hbl & Hpl).
+      assert (Hfl : Genv.find_funct G (Vptr bl Ptrofs.zero)
+                    = Some (Internal OLP.f_unload_deactivated_objects_in_list))
+        by (rewrite Genv.find_funct_find_funct_ptr; exact Hpl).
+      assert (Hil' : forall la idx m0 t0 m0' vr0, (idx < 13)%nat ->
+        Genv.find_symbol G OLP._gObjectListArray = Some la -> P' m0 ->
+        eval_funcall function_entry2 G m0 (Internal OLP.f_unload_deactivated_objects_in_list)
+          [ObjLoop.head_v la idx] t0 m0' vr0 -> P' m0').
+      { intros la idx m0 t0 m0' vr0 Hidx Hla (Hp & Hn) Hc. split.
+        - exact (Hil la idx m0 t0 m0' vr0 Hidx Hla Hp Hc).
+        - exact (Hnoref b1 Hple bl _ m0 _ t0 m0' vr0 Hbl Hfl Hn Hc). }
+      assert (Hts' : forall m0 b c m0', P' m0 -> Genv.find_symbol G OLP._gTimeStopState = Some b ->
+        Mem.store Mint32 m0 b 0 (Vint c) = Some m0' -> P' m0').
+      { intros m0 b c m0' (Hp & Hv & Hn) Hbt St. split; [ exact (Hts m0 b c m0' Hp Hbt St) | split ].
+        - exact (Mem.store_valid_block_1 _ _ _ _ _ _ St _ Hv).
+        - refine (ObjStores.noref_store_out _ _ _ _ _ _ _ St _ Hn). intros x o E. discriminate E. }
+      assert (HQ1 : P' ma) by exact (conj HP1 (conj (Mem.valid_new_block _ _ _ _ _ Hal) Hn1)).
       rewrite ud_shape in Hx.
       apply seq_inv in Hx as [(t1 & le1 & m3 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_abn ].
       apply set_inv in X1 as (iv & Eiv & -> & -> & _). apply ev_const in Eiv. subst iv.
       set (e := PTree.set OLP._filler (b1, tarray tuchar 4) empty_env) in *.
       apply seq_inv in X2 as [(t3 & le3 & m4 & t4 & X3 & X4) | (X3 & Xn)].
-      2: { exfalso. apply Xn. refine (proj2 (loop_ud e ltac:(unfold e; envtac) ltac:(unfold e; envtac) ltac:(unfold e; envtac) _ _ _ _ _ _ X3 _)).
-           split; [ exact HP1 | exists 0%nat; split; [ apply PTree.gss | lia ] ]. }
-      destruct (loop_ud e ltac:(unfold e; envtac) ltac:(unfold e; envtac) ltac:(unfold e; envtac) _ _ _ _ _ _ X3) as (HP4 & _).
-      { split; [ exact HP1 | exists 0%nat; split; [ apply PTree.gss | lia ] ]. }
-      destruct (tail_ud e _ _ _ _ _ _ HP4 ltac:(unfold e; envtac) X4) as (HP5 & _).
+      2: { exfalso. apply Xn. refine (proj2 (loop_ud P' HPow' Hil' e ltac:(unfold e; envtac) ltac:(unfold e; envtac) ltac:(unfold e; envtac) _ _ _ _ _ _ X3 _)).
+           split; [ exact HQ1 | exists 0%nat; split; [ apply PTree.gss | lia ] ]. }
+      destruct (loop_ud P' HPow' Hil' e ltac:(unfold e; envtac) ltac:(unfold e; envtac) ltac:(unfold e; envtac) _ _ _ _ _ _ X3) as (HP4 & _).
+      { split; [ exact HQ1 | exists 0%nat; split; [ apply PTree.gss | lia ] ]. }
+      destruct (tail_ud P' Hts' e _ _ _ _ _ _ HP4 ltac:(unfold e; envtac) X4) as ((HP5 & _ & Hn5) & _).
       change (blocks_of_env G e) with [(b1, 0, 4)] in Hfr.
       apply ObjPhase.free_list_one in Hfr.
-      apply (Hblind b1 _ _ Hple HP5 (noref_free _ _ _ _ _ _ Hfr Hn')).
+      apply (Hblind b1 _ _ Hple HP5 Hn5).
       apply (Mem.free_unchanged_on _ _ _ _ _ _ Hfr). intros i _ N. exact (N eq_refl).
-    Qed.
-  End Outer.
+  Qed.
 End Real.
