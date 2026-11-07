@@ -1,0 +1,145 @@
+<title>Cannon Lid Displacement</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column; the two-frame timeline and the results table break out wider. */
+:root{
+  --bg:#f6f7fb; --surface:#ffffff; --ink:#1b2033; --ink2:#535a72; --rule:#d9dcea;
+  --sky:#2f5fd0; --sky-soft:#e3eafb; --hot:#c2410c; --hot-soft:#fbe7dc; --ok:#1f7a4d;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11141f; --surface:#181c2b; --ink:#e7e9f3; --ink2:#a3a9c2; --rule:#2c3248;
+  --sky:#8fb0ff; --sky-soft:#1d2744; --hot:#ff9a6b; --hot-soft:#3a2219; --ok:#6fd3a0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11141f; --surface:#181c2b; --ink:#e7e9f3; --ink2:#a3a9c2; --rule:#2c3248;
+  --sky:#8fb0ff; --sky-soft:#1d2744; --hot:#ff9a6b; --hot-soft:#3a2219; --ok:#6fd3a0; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:400 17.5px/1.65 var(--body)}
+.wrap{max-width:760px;margin:0 auto;padding-block:48px 72px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:40px}
+.wide{max-width:980px;margin-inline:auto;width:100%}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.15;margin:0}
+h1{font-weight:800;font-size:clamp(34px,6vw,52px);letter-spacing:-.01em}
+h2{font-weight:800;font-size:26px}
+h3{font-weight:600;font-size:18px}
+p{margin:0}
+section{display:grid;gap:14px}
+.eyebrow{font:600 12.5px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--sky)}
+.lede{font-size:20px;color:var(--ink2)}
+.meta{font:400 13.5px/1.5 var(--mono);color:var(--ink2)}
+code{font:400 .86em var(--mono);background:var(--sky-soft);padding:.08em .35em;border-radius:4px}
+pre{font:400 13.5px/1.55 var(--mono);background:var(--surface);border:1px solid var(--rule);border-radius:8px;padding:14px 16px;overflow-x:auto;margin:0}
+.callout{border-left:3px solid var(--hot);background:var(--hot-soft);padding:14px 18px;border-radius:0 8px 8px 0}
+.frames{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.frame{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;display:grid;gap:10px;min-width:0}
+.frame h3{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.frame h3 span{font:400 12.5px var(--mono);color:var(--ink2)}
+.frame ol{margin:0;padding-left:0;list-style:none;display:grid;gap:8px;counter-reset:s}
+.frame li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;font-size:15.5px;line-height:1.5;counter-increment:s}
+.frame li::before{content:counter(s);font:600 12px/22px var(--mono);text-align:center;border-radius:50%;background:var(--sky-soft);color:var(--sky);height:22px}
+.frame li.key::before{background:var(--hot);color:var(--surface)}
+.frame li b{font-family:var(--mono);font-weight:600;font-size:13.5px}
+.tbl{overflow-x:auto;border:1px solid var(--rule);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:15px;min-width:560px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font:600 12.5px var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--ink2)}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.up{color:var(--ok);font-weight:600}.down{color:var(--hot);font-weight:600}
+ul.plain{margin:0;padding-left:1.1em;display:grid;gap:6px}
+a{color:var(--sky)}
+</style>
+
+<div class="wrap">
+  <header style="display:grid;gap:14px">
+    <div class="eyebrow">SM64 · Wing Mario Over the Rainbow · US version</div>
+    <h1>Cannon Lid Displacement</h1>
+    <p class="lede">On its last frame the WMotR cannon lid deletes itself but still loads its floor, so Mario's platform pointer can be left naming a freed object slot. If a spinning object is spawned into that slot before the next frame's platform step, Mario is rotated around it and thrown up to thousands of units in one frame.</p>
+    <p class="meta">Found 2026-11-07 while proving the A-button-challenge height bound for WMotR. Demonstrated in the real game with memory hacks. Not reachable in normal play, as far as we can tell.</p>
+  </header>
+
+  <section>
+    <h2>Background: platform displacement</h2>
+    <p>The game keeps one pointer, <code>gMarioPlatform</code>, to the object Mario is standing on. Each frame, <code>apply_mario_platform_displacement</code> moves Mario by that object's velocity and, if it spins, rotates him around the object's centre by its angular velocity. At the end of each frame, <code>update_mario_platform</code> looks up Mario's floor and sets the pointer again.</p>
+    <p>The pointer is only a slot address in the 240-slot object pool. When an object is deleted its slot goes on a last-in-first-out free list, and the next spawned object takes it. A pointer that is not cleared in time starts naming whatever object is spawned there next.</p>
+    <p>A known relative is <i>spawning displacement</i> on the Japanese version: there the pointer is not cleared on area transitions (<code>spawn_objects_from_info</code> calls <code>clear_mario_platform</code> only <code>#ifndef VERSION_JP</code>). Cannon lid displacement is an intra-level version that also exists on the US version.</p>
+  </section>
+
+  <section>
+    <h2>What is special about the lid</h2>
+    <p>Most solid objects drop their collision before they are deleted. The exclamation box spends 7 frames with no surfaces before it is removed, and the blue coin switch hides and stops loading collision long before it deletes itself. The cannon lid does it in the other order. At opening timer 80, <code>cannon_door_act_opening</code> calls <code>bhv_cannon_closed_init</code>, which marks the lid deleted and returns. The lid's behavior script then continues to its next command, which loads its collision model:</p>
+<pre>// cannon_door.inc.c
+if (o-&gt;oTimer == 80) {
+    bhv_cannon_closed_init();      // spawns the cannon, activeFlags = DEACTIVATED
+    return;
+}
+// bhvCannonClosed then runs CALL_NATIVE(load_object_collision_model)</pre>
+    <p>So for one frame the lid is already deleted but its floor is still in the collision data. In WMotR only two object types load collision at all, the exclamation box and this lid, so the lid is the only object in the level with this property.</p>
+  </section>
+
+  <section class="wide">
+    <h2>The sequence</h2>
+    <p>Each frame, <code>update_objects</code> runs the steps below in this order. The pointer is set at the end of frame N and read early in frame N+1.</p>
+    <div class="frames">
+      <div class="frame">
+        <h3>Frame N <span>lid's last frame</span></h3>
+        <ol>
+          <li><span><b>update_terrain_objects</b>: the lid reaches timer 80, deletes itself, then still loads its floor.</span></li>
+          <li><span>Mario updates. He must be standing on the part of the lid still over the cannon hole, an 8-unit-wide sliver.</span></li>
+          <li><span><b>unload_deactivated_objects</b>: the lid's slot goes to the front of the free list.</span></li>
+          <li class="key"><span><b>update_mario_platform</b>: Mario's floor is the lid's floor, so <code>gMarioPlatform</code> now names the freed slot.</span></li>
+        </ol>
+      </div>
+      <div class="frame">
+        <h3>Frame N+1 <span>the fling</span></h3>
+        <ol>
+          <li><span><b>clear_dynamic_surfaces</b>: the lid's floor is gone; the pointer is not updated yet.</span></li>
+          <li class="key"><span><b>update_terrain_objects</b>: an exclamation box breaks this frame and spawns its contents, mist, then 20 debris triangles, each with pitch spin <code>0x80 * (rand + 50)</code>, about 35°. One triangle must land in the lid's old slot.</span></li>
+          <li class="key"><span><b>apply_mario_platform_displacement</b>: Mario is rotated 35° around that triangle.</span></li>
+          <li><span><b>update_mario_platform</b>: the pointer is corrected. The effect lasts one frame.</span></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="wide">
+    <h2>Demonstration</h2>
+    <p>Run in the real US game (the matching decomp build in Mupen64Plus), starting from a WMotR save state. All game code runs unmodified; the hacks are memory writes.</p>
+    <ul class="plain">
+      <li><b>Hack 1:</b> set the cannon-unlocked save bit directly, so the lid opens without the Bob-omb Buddy's cutscene, which normally freezes Mario.</li>
+      <li><b>Hack 2:</b> place Mario on the lid, and on its last frames on the exposed sliver 108 units behind its centre.</li>
+      <li><b>Hack 3:</b> once <code>gMarioPlatform</code> names the freed slot, fill that slot the way a debris triangle would: zero it as <code>allocate_object</code> does, place it at a box position plus 100 in y, and give it pitch spin 6400.</li>
+    </ul>
+    <p>The stale pointer itself needed no hack: with Mario on the sliver, the game set <code>gMarioPlatform</code> to the freed lid slot on its own.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Debris position (box + 100 y)</th><th>Mario before</th><th>Mario after one frame</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr><td>Wing-cap box at (3600, −2480, 5440), 260 units from the lid</td><td class="num">y −2755, z 5200</td><td class="num">y −2548, z 5028</td><td class="num"><span class="up">+207 y</span>, −172 z</td></tr>
+          <tr><td>Wing-cap box at (3960, 520, 440), far away</td><td class="num">y −2755, z 5200</td><td class="num">y −4880, z 2388</td><td class="num"><span class="down">−2125 y</span>, −2812 z</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The size and direction depend only on where the triangle is: the farther the pivot, the larger the throw. With the nearby box Mario gains 207 units of height in one frame with no A press.</p>
+<pre>OFFX=-108 PIVOT=3600,-2380,5440 python3 experiments/oracle/stale_lid_demo.py</pre>
+  </section>
+
+  <section>
+    <h2>Why it does not happen in normal play</h2>
+    <div class="callout">The lid only opens after you talk to the Bob-omb Buddy. Mario stays in the talking action through the whole cannon-opening cutscene, and the lid finishes opening (60 + 80 frames after the unlock) inside that cutscene, about 540 units away from Mario. If the cannon is already open when you enter the level, the lid deletes itself on its first frame while Mario is at the start.</div>
+    <p>Even without the freeze, all of these would have to line up:</p>
+    <ul class="plain">
+      <li>Mario stands on an 8-unit sliver of the lid on its last frame. Further forward he is on the ground; further back he is over the hole.</li>
+      <li>An exclamation box breaks on exactly the next frame, so Mario must have hit it about 8 frames earlier. The nearest box is 260 units away and 260 units up.</li>
+      <li>A debris triangle, not the box's contents, gets the lid's slot. The freed slot is at the front of the free list, so the contents take it unless other objects were deleted after the lid in the same frame.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Where it matters</h2>
+    <p>It came up in a machine-checked proof that, without pressing A, Mario cannot gain height in WMotR beyond a fixed bound. Part of that proof is a rule that the object Mario stands on never spins, which rules out platform-displacement height gains. This sequence is the one way that rule could break in WMotR, so the proof relies on a labeled assumption about the cannon cutscene's length (<code>Hcam_cannon_cutscene</code>) until the camera code is brought into the proof.</p>
+    <p>A rough scan of the whole game found 17 solid object behaviors that can delete themselves, but the ones checked so far drop their collision first. Whether any other object repeats the lid's order of events is open.</p>
+  </section>
+</div>
