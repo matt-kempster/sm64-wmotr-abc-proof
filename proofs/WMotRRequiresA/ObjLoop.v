@@ -802,23 +802,6 @@ Proof.
   match goal with Hx : eval_exprlist _ _ _ _ nil _ _ |- _ => inv Hx end. eauto 20.
 Qed.
 
-(* a store of an int keeps every noref *)
-Lemma store_int_noref : forall m b0 ofs c m' b,
-  Mem.store Mint32 m b0 ofs (Vint c) = Some m' -> ObjPhase.noref b m -> ObjPhase.noref b m'.
-Proof.
-  intros m b0 ofs c m' b Hs Hn b' q Hne. specialize (Hn b' q Hne).
-  rewrite (Mem.store_mem_contents _ _ _ _ _ _ Hs).
-  destruct (peq b' b0) as [-> | N].
-  - rewrite PMap.gss.
-    destruct (zlt q ofs) as [Lq | Lq]; [ rewrite Mem.setN_outside by lia; exact Hn | ].
-    destruct (zle (ofs + Z.of_nat (length (encode_val Mint32 (Vint c)))) q) as [Hq | Hq];
-      [ rewrite Mem.setN_outside by lia; exact Hn | ].
-    pose proof (Mem.setN_in (encode_val Mint32 (Vint c)) ofs q ((Mem.mem_contents m) !! b0) ltac:(lia)) as I.
-    destruct (ZMap.get q (Mem.setN (encode_val Mint32 (Vint c)) ofs ((Mem.mem_contents m) !! b0))) as [ | x | v0 qq nn ]; [ exact Logic.I | exact Logic.I | ].
-    cbn [encode_val inj_bytes] in I. apply in_map_iff in I as (x & Ex & _). discriminate Ex.
-  - rewrite PMap.gso by exact N. exact Hn.
-Qed.
-
 (* ---------------------------------------------------------------------- *)
 (* 6. The real functions on the twelve-TU link.                            *)
 (* ---------------------------------------------------------------------- *)
@@ -871,12 +854,6 @@ Definition step_row (G : genv) (P : mem -> Prop) (inr : mem -> val -> val -> Pro
     le ! OLP._firstObj = Some v -> le ! OLP._objList = Some hd ->
     exec_stmt function_entry2 G empty_env le m (app_seq (loop_pre f) Sskip) t le' m' out ->
     P m' /\ inr m' hd v.
-Definition step_nr_row (G : genv) (P : mem -> Prop) (inr : mem -> val -> val -> Prop) (f : function) : Prop :=
-  forall b, Ple (Genv.genv_next G) b ->
-  forall hd v le m t le' m' out, P m -> ObjPhase.noref b m -> inr m hd v ->
-    le ! OLP._firstObj = Some v -> le ! OLP._objList = Some hd ->
-    exec_stmt function_entry2 G empty_env le m (app_seq (loop_pre f) Sskip) t le' m' out ->
-    ObjPhase.noref b m'.
 
 (* THE TERRAIN ROW WITH THE SURFACE BUDGET (2026-11-02).  On top of the
    step row: the object v starts under its budget (vbud: the counter plus
@@ -1184,6 +1161,43 @@ Section Real.
       exact (conj (Hctr _ _ _ _ HP Hs Hst) (conj eq_refl eq_refl)).
     Qed.
   End Walk.
+
+  (* an allocated private block stays so across
+     tmp = update_objects_in_list(gObjectLists + idx): the argument points
+     into gObjectListArray, a symbol's block (ObjPhase.nrv_funcall) *)
+  Lemma call_il_nr : forall e le m t le' m' out tmpl tmp a idx fb,
+    OW.obj_w G bm m -> ObjPhase.nrv G fb m ->
+    e ! OLP._gObjectLists = None -> e ! OLP._update_objects_in_list = None ->
+    (idx < 13)%nat -> typeof a = tint ->
+    (forall gv v, eval_expr G e (PTree.set tmpl gv le) m a v -> v = Vint (Int.repr (Z.of_nat idx))) ->
+    exec_stmt function_entry2 G e le m
+      (Ssequence (Sset tmpl (Evar OLP._gObjectLists tnode))
+         (Scall (Some tmp) (Evar OLP._update_objects_in_list (Tfunction [tnode] tint cc_default))
+            [Ebinop Oadd (Etempvar tmpl tnode) a tnode])) t le' m' out ->
+    ObjPhase.nrv G fb m'.
+  Proof.
+    intros e le m t le' m' out tmpl tmp a idx fb How Hn He1 He2 Hidx Hta Ha H.
+    apply seq_inv in H as [(t1 & le1 & m1 & t2 & H1 & H2) | (H1 & Hne)]; [ | kill_abn ].
+    apply set_inv in H1 as (gv & Egv & -> & -> & _).
+    destruct (ev_gvar G e m le OLP._gObjectLists tnode gv Mint32 He1 eq_refl Egv) as (bg & Hbg & Hlg).
+    destruct How as (pool & la & fl & gol & gmo & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & Hc).
+    rewrite Hbg in S4. injection S4 as <-.
+    cbn [Mem.loadv] in Hlg. rewrite Ptrofs.unsigned_zero, (OW.ow_gol _ _ _ _ _ _ _ _ _ _ _ _ Hc) in Hlg.
+    injection Hlg as <-.
+    apply call_inv in H2 as (tya & tyr & cc & vf & vargs & fd & vres & Hcf & Evf & Eal & Hff & _ & Hcall & -> & ->).
+    cbn in Hcf. injection Hcf as <- <- <-.
+    destruct (exl1 _ _ _ _ _ _ _ Eal) as (ty1 & v1 & w1 & E1 & -> & Ev1 & C1). injection E1 as <-.
+    apply ev_binop in Ev1 as (x1 & x2 & X1 & X2 & X3).
+    apply ev_temp in X1. rewrite PTree.gss in X1. injection X1 as <-.
+    rewrite (Ha _ _ X2) in X3. cbn [typeof] in X3. rewrite Hta in X3.
+    assert (E : sem_binary_operation G Oadd (Vptr la Ptrofs.zero) tnode (Vint (Int.repr (Z.of_nat idx))) tint m
+                = Some (Vptr la (Ptrofs.add Ptrofs.zero (Ptrofs.mul (Ptrofs.repr (sizeof G (Tstruct OLP._ObjectNode noattr)))
+                                                                  (Ptrofs.of_ints (Int.repr (Z.of_nat idx))))))) by reflexivity.
+    rewrite E in X3. injection X3 as <-.
+    cbn [typeof] in C1. apply cast_tnode in C1. subst w1.
+    apply (ObjPhase.nrv_funcall _ _ _ _ _ _ _ _ Hcall); [ | exact Hn ].
+    intros g Hcg Hsg. constructor; [ exact (ObjPhase.vok_sym_ptr _ _ _ _ _ _ Hcg Hsg S2) | constructor ].
+  Qed.
 
   (* update_terrain_objects: lists 11 and 9 *)
   Section Terrain.
@@ -1800,39 +1814,33 @@ Section Real.
     Hypothesis HPow : forall m, P m -> OW.obj_w G bm m.
     Hypothesis Hsa : step_row G P (in_ring_l G bm nt_ls) OLP.f_update_objects_starting_at.
     Hypothesis Hts : step_row G P (in_ring_l G bm nt_ls) OLP.f_update_objects_during_time_stop.
-    Hypothesis Hsa_nr : step_nr_row G P (in_ring_l G bm nt_ls) OLP.f_update_objects_starting_at.
-    Hypothesis Hts_nr : step_nr_row G P (in_ring_l G bm nt_ls) OLP.f_update_objects_during_time_stop.
     Hypothesis Hctr : forall m b c m', P m -> Genv.find_symbol G OLP._gObjectCounter = Some b ->
       Mem.store Mint32 m b 0 (Vint c) = Some m' -> P m'.
-    Hypothesis Hblind : forall b m m', Ple (Genv.genv_next G) b -> P m -> ObjPhase.noref b m ->
+    (* the frame block (filler[4]): ObjPhase's frame rows *)
+    Variable FB : block -> Prop.
+    Hypothesis Hblind : forall b m m', FB b -> P m -> ObjPhase.noref G b m ->
       Mem.unchanged_on (fun b' _ => b' <> b) m m' -> P m'.
     Hypothesis Hfresh : forall m m1 b, P m -> Mem.alloc m 0 4 = (m1, b) ->
-      Ple (Genv.genv_next G) b /\ ObjPhase.noref b m1.
+      FB b /\ ObjPhase.noref G b m /\ ObjPhase.noref G b m1.
 
     Section Frame.
       Variable fb : block.
-      Hypothesis Hfb : Ple (Genv.genv_next G) fb.
       Variable e : env.
       Hypothesis He1 : e ! OLP._gObjectLists = None.
       Hypothesis He2 : e ! OLP._update_objects_in_list = None.
       Hypothesis He3 : e ! OLP._gObjectCounter = None.
       Hypothesis He4 : e ! OLP._sObjectListUpdateOrder = None.
 
-      Definition Pf (m : mem) : Prop := P m /\ ObjPhase.noref fb m.
-
-      Lemma step_and : forall f, step_row G P (in_ring_l G bm nt_ls) f -> step_nr_row G P (in_ring_l G bm nt_ls) f ->
-        step_row G Pf (in_ring_l G bm nt_ls) f.
-      Proof.
-        intros f H1 H2 hd v le m t le' m' out (HP & Hn) Hr Hv Ho Hx.
-        destruct (H1 _ _ _ _ _ _ _ _ HP Hr Hv Ho Hx) as (HP' & Hr').
-        exact (conj (conj HP' (H2 fb Hfb _ _ _ _ _ _ _ _ HP Hn Hr Hv Ho Hx)) Hr').
-      Qed.
+      (* the frame block, allocated and private, rides along (nrv) *)
+      Definition Pf (m : mem) : Prop := P m /\ ObjPhase.nrv G fb m.
 
       Lemma ctr_and : forall m b c m', Pf m -> Genv.find_symbol G OLP._gObjectCounter = Some b ->
         Mem.store Mint32 m b 0 (Vint c) = Some m' -> Pf m'.
       Proof.
-        intros m b c m' (HP & Hn) Hs Hst.
-        exact (conj (Hctr _ _ _ _ HP Hs Hst) (store_int_noref _ _ _ _ _ _ Hst Hn)).
+        intros m b c m' (HP & Hv & Hn) Hs Hst.
+        refine (conj (Hctr _ _ _ _ HP Hs Hst) (conj (Mem.store_valid_block_1 _ _ _ _ _ _ Hst _ Hv) _)).
+        refine (ObjPhase.noref_store_sym _ _ _ _ _ _ _ _ (ex_intro _ _ Hs) _ Hst Hn).
+        intros x o E. discriminate E.
       Qed.
 
       Lemma pow_f : forall m, Pf m -> OW.obj_w G bm m.
@@ -1861,9 +1869,12 @@ Section Real.
                        v = Vint (Int.repr (Z.of_nat idx))).
         { intros gv v Ev. apply ev_temp in Ev. rewrite PTree.gso in Ev by neq. rewrite Hli in Ev.
           injection Ev as <-. f_equal. f_equal. exact Eidx. }
-        destruct (call_il nt_ls Pf pow_f (step_and _ Hsa Hsa_nr) (step_and _ Hts Hts_nr)
+        pose proof (call_il_nr e le2 m _ _ _ _ OLP._t'4 OLP._t'2 (Etempvar OLP._listIndex tint) idx fb
+                      (HPow m (proj1 HP)) (proj2 HP) He1 He2 Hidx eq_refl Ha H5) as HN5.
+        destruct (call_il nt_ls P HPow Hsa Hts
                     e le2 m _ _ _ _ OLP._t'4 OLP._t'2 (Etempvar OLP._listIndex tint) idx
-                    HP He1 He2 Hin Hidx eq_refl Ha H5) as (HP5 & _ & c & gv & ->).
+                    (proj1 HP) He1 He2 Hin Hidx eq_refl Ha H5) as (HP5a & _ & c & gv & ->).
+        assert (HP5 : Pf m5) by exact (conj HP5a HN5).
         apply seq_inv in H6 as [(t7 & le7 & m7 & t8 & H7 & H8) | (H7 & Hn')]; [ | kill_abn ].
         apply set_inv in H7 as (w & _ & -> & -> & _).
         assert (Ha2 : forall v, eval_expr G e (PTree.set OLP._t'3 w (PTree.set OLP._t'2 (Vint c) (PTree.set OLP._t'4 gv le2))) m5
@@ -1913,22 +1924,23 @@ Section Real.
       inversion Hav as [ | e0 m0 id0 ty0 vs0 m1 b1 m2 e2 Hal Hrest ]; subst.
       inversion Hrest; subst.
       change (sizeof G (tarray tuchar 4)) with 4 in Hal.
-      destruct (Hfresh _ _ _ HP Hal) as (Hple & Hn1).
+      destruct (Hfresh _ _ _ HP Hal) as (Hfb & Hn0 & Hn1).
       match type of Hal with Mem.alloc _ 0 4 = (?mx, _) => rename mx into ma end.
       assert (HP1 : P ma).
-      { apply (Hblind b1 _ _ Hple HP (ObjPhase.noref_alloc _ _ _ _ _ Hal Hn1)).
+      { apply (Hblind b1 _ _ Hfb HP Hn0).
         apply (Mem.unchanged_on_implies (fun _ _ => True)); [ | intros; exact I ].
         exact (Mem.alloc_unchanged_on _ _ _ _ _ _ Hal). }
       rewrite nt_shape in Hx.
       apply seq_inv in Hx as [(t1 & le1 & m3 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_abn ].
       apply set_inv in X1 as (iv & Eiv & -> & -> & _). apply ev_const in Eiv. subst iv.
-      destruct (loop_nt b1 Hple (PTree.set OLP._filler (b1, tarray tuchar 4) empty_env)
+      destruct (loop_nt b1 (PTree.set OLP._filler (b1, tarray tuchar 4) empty_env)
                   ltac:(envtac) ltac:(envtac) ltac:(envtac) ltac:(envtac) _ _ _ _ _ _ X2)
-        as ((HP2 & Hn2) & _).
-      { split; [ exact (conj HP1 Hn1) | exists 2%nat; split; [ apply PTree.gss | lia ] ]. }
+        as ((HP2 & _ & Hn2) & _).
+      { split; [ exact (conj HP1 (conj (Mem.valid_new_block _ _ _ _ _ Hal) Hn1))
+               | exists 2%nat; split; [ apply PTree.gss | lia ] ]. }
       change (blocks_of_env G (PTree.set OLP._filler (b1, tarray tuchar 4) empty_env)) with [(b1, 0, 4)] in Hfr.
       apply ObjPhase.free_list_one in Hfr.
-      apply (Hblind b1 _ _ Hple HP2 Hn2).
+      apply (Hblind b1 _ _ Hfb HP2 Hn2).
       apply (Mem.free_unchanged_on _ _ _ _ _ _ Hfr). intros i _ N. exact (N eq_refl).
     Qed.
   End NT.

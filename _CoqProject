@@ -74,6 +74,7 @@ proofs/Generic/RootedLvalue.v
 proofs/Generic/ClightDeterm.v
 proofs/Generic/ClosedMem.v
 proofs/Generic/ClightClosed.v
+proofs/Generic/ClosedFrame.v
 proofs/Generic/PermWalk.v
 proofs/Generic/MaxPerm.v
 proofs/Generic/UnusedParam.v
@@ -334,6 +335,7 @@ proofs/WMotRRequiresA/LevelFlank.v
 proofs/WMotRRequiresA/LevelWalk.v
 proofs/WMotRRequiresA/LevelWarp.v
 proofs/WMotRRequiresA/LevelKeep.v
+proofs/WMotRRequiresA/BlindKeep.v
 proofs/WMotRRequiresA/HeightFrame.v
 proofs/NoAImpliesNoFly/NoAImpliesNoFlyFrame.v
 proofs/WMotRRequiresA/WMotREntry.v

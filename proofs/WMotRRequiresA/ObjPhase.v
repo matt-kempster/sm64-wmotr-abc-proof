@@ -24,10 +24,11 @@
 From Coq Require Import List ZArith.
 From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs
   Ctypes Ctypesdefs Cop Clight ClightBigstep Events Linking.
-From SM64.Generated Require object_list_processor area debug.
+From SM64.Generated Require object_list_processor area debug surface_load platform_displacement
+  object_collision.
 From SM64.Proofs Require Import SymbolicLinking LinkedTwelve RealFrameLinked.
 From SM64.Proofs.WMotRRequiresA Require Import FrameCalls.
-From SM64.Proofs Require Generic.ClightClosed.
+From SM64.Proofs Require Generic.ClosedMem Generic.ClightClosed.
 Import ListNotations.
 
 Module OLP := SM64.Generated.object_list_processor.
@@ -133,34 +134,107 @@ End Body.
 (* ---------------------------------------------------------------------- *)
 (* 2. The frame block.                                                     *)
 (* ---------------------------------------------------------------------- *)
-(* no byte outside b holds a pointer into b *)
-Definition noref (b : block) (m : mem) : Prop :=
-  forall b' ofs, b' <> b ->
-    match ZMap.get ofs ((Mem.mem_contents m) !! b') with
-    | Fragment (Vptr x _) _ _ => x <> b
-    | _ => True
-    end.
+(* b is PRIVATE: some closing injection g (Generic.ClosedMem.closed_by:
+   every readable byte of a g-mapped block names a g-mapped block) maps
+   every symbol and leaves b unmapped, so no byte reachable from a global
+   names b.  RESTATED 2026-11-07 (was raw: no byte outside b, readable or
+   not, holds a pointer into b).  The raw form is not provable across an
+   external call: CompCert's external-call properties
+   (external_call_mem_inject_gen) speak only of readable bytes of mapped
+   blocks, so an external call may write anything into unreadable bytes or
+   unmapped blocks.  The closure form is kept by every Clight call
+   (Generic.ClightClosed.funcall_closed_sep), and every use of noref reads
+   it only through a closing injection. *)
+Definition noref (ge : genv) (b : block) (m : mem) : Prop :=
+  exists g, Generic.ClosedMem.closed_by g m /\ Generic.ClightClosed.syms_mapped ge g /\ g b = None.
 
-Section TrAlloc.
-Local Transparent Mem.alloc.
-Lemma noref_alloc : forall m lo hi m1 b, Mem.alloc m lo hi = (m1, b) -> noref b m1 -> noref b m.
+(* a store into b, of anything *)
+Lemma noref_store_in : forall ge b ch m z v m2,
+  Mem.store ch m b z v = Some m2 -> noref ge b m -> noref ge b m2.
 Proof.
-  intros m lo hi m1 b Ha Hn b' ofs Hne. specialize (Hn b' ofs Hne).
-  unfold Mem.alloc in Ha. injection Ha as <- <-. cbn in Hn.
-  rewrite PMap.gso in Hn by exact Hne. exact Hn.
+  intros ge b ch m z v m2 St (g & Hc & Hs & Hb). exists g.
+  split; [ exact (Generic.ClosedMem.store_private_closed _ _ _ _ _ _ _ Hc Hb St) | split; assumption ].
 Qed.
-End TrAlloc.
 
-(* the frame block is allocated and no byte outside it names it.  The
-   callee row (Hobj_noref) is stated over nrv, not noref: FOUND 2026-11-07
-   (phantom forall), over noref alone b may be the next fresh block, which
-   a callee's own frame alloc returns, and a callee that spills an
-   address-taken pointer parameter then leaves Vptr b in another block.
-   The frame block of the real call is allocated, so nrv holds there. *)
-Definition nrv (b : block) (m : mem) : Prop := Mem.valid_block m b /\ noref b m.
+(* a pointer into a symbol's block is closed *)
+Lemma vok_sym_ptr : forall (ge : genv) g m id b o, Generic.ClosedMem.closed_by g m ->
+  Generic.ClightClosed.syms_mapped ge g -> Genv.find_symbol ge id = Some b ->
+  Generic.ClightClosed.vok g (Vptr b o).
+Proof.
+  intros ge g m id b o Hc Hs Hid.
+  exact (Generic.ClightClosed.vok_mk_ptr _ _ _ (Generic.ClightClosed.closed_mapped_flat _ _ _ Hc (Hs _ _ Hid))).
+Qed.
+
+(* a store into a symbol's block of a value naming only a symbol's block *)
+Lemma noref_store_sym : forall (ge : genv) b bg ch m z v m2,
+  (exists id, Genv.find_symbol ge id = Some bg) ->
+  (forall x o, v = Vptr x o -> exists id, Genv.find_symbol ge id = Some x) ->
+  Mem.store ch m bg z v = Some m2 -> noref ge b m -> noref ge b m2.
+Proof.
+  intros ge b bg ch m z v m2 (id & Hid) Hv St (g & Hc & Hs & Hb). exists g.
+  split; [ | split; assumption ].
+  apply (Generic.ClosedMem.store_mapped_closed g m ch bg z v m2 Hc); [ | | exact St ].
+  - exact (Generic.ClightClosed.closed_mapped_flat _ _ _ Hc (Hs _ _ Hid)).
+  - destruct v as [ | | | | | x o ]; try solve [ constructor ].
+    destruct (Hv x o eq_refl) as (id' & Hid').
+    exact (Generic.ClightClosed.vok_mk_ptr _ _ _ (Generic.ClightClosed.closed_mapped_flat _ _ _ Hc (Hs _ _ Hid'))).
+Qed.
+
+(* a fresh block is private, before and after its alloc *)
+Lemma noref_fresh : forall ge g m lo hi m1 b,
+  Generic.ClosedMem.closed_by g m -> Generic.ClightClosed.syms_mapped ge g ->
+  Mem.alloc m lo hi = (m1, b) -> noref ge b m /\ noref ge b m1.
+Proof.
+  intros ge g m lo hi m1 b Hc Hs Ha.
+  destruct (Generic.ClosedMem.alloc_private _ _ _ _ _ _ Hc Ha) as (Hc1 & Hb).
+  split; exists g; tauto.
+Qed.
+
+(* the frame block is allocated and private.  The callee row
+   (Hobj_noref) is stated over nrv: FOUND 2026-11-07 (phantom forall),
+   b may otherwise be the next fresh block, which a callee's own frame
+   alloc returns. *)
+Definition nrv (ge : genv) (b : block) (m : mem) : Prop := Mem.valid_block m b /\ noref ge b m.
 
 (* Clight execution never invalidates a block (Generic.ClightClosed) *)
 Notation exec_valid := Generic.ClightClosed.exec_valid.
+
+(* a call given only closed arguments keeps nrv: the separated closedness
+   (Generic.ClightClosed.funcall_closed_sep) leaves an allocated block the
+   closing injection drops still dropped *)
+Lemma nrv_funcall : forall ge b m fd vs t m' vr,
+  eval_funcall function_entry2 ge m fd vs t m' vr ->
+  (forall g, Generic.ClosedMem.closed_by g m -> Generic.ClightClosed.syms_mapped ge g ->
+     Forall (Generic.ClightClosed.vok g) vs) ->
+  nrv ge b m -> nrv ge b m'.
+Proof.
+  intros ge b m fd vs t m' vr Hev Hvs (Hv & g & Hc & Hs & Hb).
+  destruct (Generic.ClightClosed.funcall_closed_sep ge m fd vs t m' vr g Hev Hc Hs (Hvs g Hc Hs))
+    as (g' & _ & Hc' & Hs' & _ & Sp).
+  split; [ exact (proj2 (exec_valid ge) _ _ _ _ _ _ Hev b Hv) | ].
+  exists g'. split; [ exact Hc' | split; [ exact Hs' | exact (Sp b Hv Hb) ] ].
+Qed.
+
+(* a function with no parameters is called with no arguments *)
+Lemma funcall_nil_args : forall ge m f vs t m' vr, fn_params f = nil ->
+  eval_funcall function_entry2 ge m (Internal f) vs t m' vr -> vs = nil.
+Proof.
+  intros ge m f vs t m' vr Hp H. inv H.
+  match goal with Hfe : function_entry2 _ _ _ _ _ _ _ |- _ => destruct Hfe as [_ _ _ _ Hb] end.
+  rewrite Hp in Hb. destruct vs; [ reflexivity | cbn in Hb; discriminate Hb ].
+Qed.
+
+(* so a call of a parameterless function keeps nrv *)
+Lemma nrv_keeps_nil : forall (ge : genv) f id b, fn_params f = nil ->
+  (forall bf fd, Genv.find_symbol ge id = Some bf ->
+     Genv.find_funct ge (Vptr bf Ptrofs.zero) = Some fd -> fd = Internal f) ->
+  call_keeps ge (nrv ge b) id.
+Proof.
+  intros ge f id b Hp Hfd bf fd m vargs t m' vr Hs Hf Hn Hev.
+  rewrite (Hfd bf fd Hs Hf) in Hev.
+  pose proof (funcall_nil_args _ _ _ _ _ _ _ Hp Hev) as E. subst vargs.
+  exact (nrv_funcall _ _ _ _ _ _ _ _ Hev (fun _ _ _ => Forall_nil _) Hn).
+Qed.
 
 Lemma free_list_one : forall m b lo hi m',
   Mem.free_list m [(b, lo, hi)] = Some m' -> Mem.free m b lo hi = Some m'.
@@ -187,10 +261,6 @@ Definition no_ocall (l : list obl) : bool :=
 
 Definition uo_callees : list ident := callees uo_list.
 
-(* the callees the frame-block row (Hobj_noref) speaks of: update_objects'
-   and unload_deactivated_objects' (whose own frame block, filler[4], is
-   carried through its body, UnloadKeep) *)
-Definition nr_callees : list ident := OLP._unload_deactivated_objects_in_list :: uo_callees.
 
 (* update_objects' callees, in body order (computed from the generated body) *)
 Lemma uo_callees_eq : uo_callees =
@@ -488,6 +558,52 @@ Section Link.
   Lemma auo_fun : forall bf fd, Genv.find_symbol G AR._update_objects = Some bf ->
     Genv.find_funct G (Vptr bf Ptrofs.zero) = Some fd -> fd = Internal OLP.f_update_objects.
   Proof. exact (fun_of _ _ _ LO_olp dm_uo). Qed.
+
+  (* THE FRAME BLOCK'S CALLEE ROW, PROVED (2026-11-07, was Hobj_noref): every
+     callee of update_objects is a parameterless function of the link, so it
+     is called with no argument and keeps any allocated private block
+     private (nrv_keeps_nil); the clock stubs keep anything (clock_keeps) *)
+  Lemma noref_uo : forall b f, In f uo_callees -> call_keeps G (nrv G b) f.
+  Proof.
+    intros b f Hin. rewrite uo_callees_eq in Hin.
+    assert (Hd : forall q id fn, linkorder q lp -> (prog_defmap q) ! id = Some (Gfun (Internal fn)) ->
+               fn_params fn = nil -> call_keeps G (nrv G b) id)
+      by (intros q id fn Hlo Hdm Hp; exact (nrv_keeps_nil G fn id b Hp (fun_of q id fn Hlo Hdm))).
+    pose proof (linked12_LO_debug lp H12) as Ldb.
+    pose proof (linked12_LO_surface_load lp H12) as Lsl.
+    pose proof (linked12_LO_platform_displacement lp H12) as Lpd.
+    pose proof (linked12_LO_object_collision lp H12) as Loc.
+    cbn [In] in Hin.
+    repeat (destruct Hin as [<- | Hin];
+      [ lazymatch goal with
+        | |- call_keeps _ _ OLP._get_current_clock => exact (proj1 (clock_keeps _))
+        | |- call_keeps _ _ OLP._get_clock_difference => exact (proj2 (clock_keeps _))
+        | |- call_keeps _ _ OLP._reset_debug_objectinfo =>
+            apply (Hd DB.prog _ DB.f_reset_debug_objectinfo Ldb); [ vm_compute; reflexivity | reflexivity ]
+        | |- call_keeps _ _ OLP._stub_debug_5 =>
+            apply (Hd DB.prog _ DB.f_stub_debug_5 Ldb); [ vm_compute; reflexivity | reflexivity ]
+        | |- call_keeps _ _ OLP._try_print_debug_mario_object_info =>
+            apply (Hd DB.prog _ DB.f_try_print_debug_mario_object_info Ldb); [ vm_compute; reflexivity | reflexivity ]
+        | |- call_keeps _ _ OLP._clear_dynamic_surfaces =>
+            apply (Hd surface_load.prog _ surface_load.f_clear_dynamic_surfaces Lsl); [ vm_compute; reflexivity | reflexivity ]
+        | |- call_keeps _ _ OLP._update_terrain_objects =>
+            apply (Hd OLP.prog _ OLP.f_update_terrain_objects LO_olp); [ vm_compute; reflexivity | reflexivity ]
+        | |- call_keeps _ _ OLP._apply_mario_platform_displacement =>
+            apply (Hd platform_displacement.prog _ platform_displacement.f_apply_mario_platform_displacement Lpd);
+              [ vm_compute; reflexivity | reflexivity ]
+        | |- call_keeps _ _ OLP._detect_object_collisions =>
+            apply (Hd object_collision.prog _ object_collision.f_detect_object_collisions Loc); [ vm_compute; reflexivity | reflexivity ]
+        | |- call_keeps _ _ OLP._update_non_terrain_objects =>
+            apply (Hd OLP.prog _ OLP.f_update_non_terrain_objects LO_olp); [ vm_compute; reflexivity | reflexivity ]
+        | |- call_keeps _ _ OLP._unload_deactivated_objects =>
+            apply (Hd OLP.prog _ OLP.f_unload_deactivated_objects LO_olp); [ vm_compute; reflexivity | reflexivity ]
+        | |- call_keeps _ _ OLP._update_mario_platform =>
+            apply (Hd platform_displacement.prog _ platform_displacement.f_update_mario_platform Lpd);
+              [ vm_compute; reflexivity | reflexivity ]
+        end
+      | ]).
+    destruct Hin.
+  Qed.
 End Link.
 
 (* ---------------------------------------------------------------------- *)
@@ -513,22 +629,25 @@ Section Phase.
       Mem.store ch m b ofs v = Some m' -> R m'.
 
     (* ---- THE FRAME ROWS (the stack array cycleCounts[30]) ---- *)
-    (* P does not read a non-symbol block that no stored pointer names *)
-    Hypothesis Hobj_blind : forall b m m', Ple (Genv.genv_next G) b -> P m -> noref b m ->
+    (* FB: what the invariant knows of a frame block (on the link: past
+       every symbol, and outside GOAL 1's chase set) *)
+    Variable FB : block -> Prop.
+    Hypothesis HFB : forall b, FB b -> Ple (Genv.genv_next G) b.
+    (* P does not read a private frame block *)
+    Hypothesis Hobj_blind : forall b m m', FB b -> P m -> noref G b m ->
       Mem.unchanged_on (fun b' _ => b' <> b) m m' -> P m'.
-    (* the frame block, allocated from a P-memory, is a non-symbol block that
-       no stored pointer names *)
+    (* the frame block, allocated from a P-memory, is a frame block,
+       private before and after its alloc *)
     Hypothesis Hobj_fresh : forall m m1 b, P m -> Mem.alloc m 0 240 = (m1, b) ->
-      Ple (Genv.genv_next G) b /\ noref b m1.
-    (* no callee stores a pointer into an allocated non-symbol block
-       nothing names (nrv: FOUND 2026-11-07, see nrv) *)
-    Hypothesis Hobj_noref : forall b f, In f uo_callees -> Ple (Genv.genv_next G) b ->
-      call_keeps G (nrv b) f.
+      FB b /\ noref G b m /\ noref G b m1.
+    (* no callee makes an allocated private block reachable (nrv: FOUND
+       2026-11-07, see nrv; on the link PROVED, noref_uo) *)
+    Hypothesis Hobj_noref : forall b f, In f uo_callees -> call_keeps G (nrv G b) f.
     (* update_objects' own stores (cycleCounts[i], gTimeStopState,
        gNumRoomedObjects*, gCheckingSurfaceCollisionsForCamera, gObjectLists,
        gPrevFrameObjectCount) and area_update_objects' gAreaUpdateCounter++ *)
-    Hypothesis Hobj_stores : forall b s, In (OBlk s) uo_list -> Ple (Genv.genv_next G) b ->
-      safeE G (fun m => P m /\ noref b m) (uo_env b) s.
+    Hypothesis Hobj_stores : forall b s, In (OBlk s) uo_list -> FB b ->
+      safeE G (fun m => P m /\ noref G b m) (uo_env b) s.
     Hypothesis Hobj_counter : forall le m t le' m' out,
       P m -> exec_stmt function_entry2 G empty_env le m auo_counter t le' m' out -> P m'.
 
@@ -574,13 +693,14 @@ Section Phase.
       match goal with Hav : alloc_variables _ _ _ nil _ _ |- _ => inv Hav end.
       match goal with Ha : Mem.alloc _ 0 _ = (_, ?b) |- _ =>
         change (sizeof G (tarray tlong 30)) with 240 in Ha; rename Ha into Hal; rename b into b1 end.
-      destruct (Hobj_fresh _ _ _ HP Hal) as (Hple & Hn1).
+      destruct (Hobj_fresh _ _ _ HP Hal) as (Hfb & Hn0 & Hn1).
+      pose proof (HFB _ Hfb) as Hple.
       match goal with Hal : Mem.alloc m 0 240 = (?m1, b1) |- _ => rename m1 into ma end.
       assert (HP1 : P ma).
-      { apply (Hobj_blind b1 m ma Hple HP (noref_alloc _ _ _ _ _ Hal Hn1)).
+      { apply (Hobj_blind b1 m ma Hfb HP Hn0).
         apply (Mem.unchanged_on_implies (fun _ _ => True)); [ | intros; exact I ].
         exact (Mem.alloc_unchanged_on _ _ _ _ _ _ Hal). }
-      set (Q := fun m0 => P m0 /\ nrv b1 m0).
+      set (Q := fun m0 => P m0 /\ nrv G b1 m0).
       (* every piece outside the window's two calls keeps Q *)
       assert (Hpc : forall s, In s pieces -> safeE G Q (uo_env b1) s).
       { intros s Hs.
@@ -592,9 +712,9 @@ Section Phase.
         - exact (In_no_ocall _ _ uo_no_ocall (piece_in _ _ Hs Ho)).
         - pose proof (piece_callee _ _ _ _ Hs Ho) as Hr. split.
           + exact (env_none b1 f (rest_uo f Hr)).
-          + exact (call_keeps_and _ _ _ _ (rest_P f Hr) (Hobj_noref b1 f (rest_uo f Hr) Hple)).
+          + exact (call_keeps_and _ _ _ _ (rest_P f Hr) (Hobj_noref b1 f (rest_uo f Hr))).
         - intros le0 m0 t0 le0' m0' out0 (Hp & Hv & Hn) Hx0.
-          destruct (Hobj_stores b1 s' (piece_in _ _ Hs Ho) Hple _ _ _ _ _ _ (conj Hp Hn) Hx0) as (Hp' & Hn').
+          destruct (Hobj_stores b1 s' (piece_in _ _ Hs Ho) Hfb _ _ _ _ _ _ (conj Hp Hn) Hx0) as (Hp' & Hn').
           exact (conj Hp' (conj (proj1 (exec_valid G) _ _ _ _ _ _ _ _ Hx0 b1 Hv) Hn')). }
       set (QR := fun m0 => Q m0 /\ R m0).
       assert (Hin_clr : In OLP._clear_dynamic_surfaces uo_callees)
@@ -607,7 +727,7 @@ Section Phase.
         - apply srel_call; [ reflexivity | exact (env_none b1 _ Hin_clr) | ].
           intros bf fd m0 vargs0 t0 m0' vr0 Hs Hf (Hp & Hn) Hc.
           destruct (Hobj_surfaces _ _ _ _ _ _ _ Hs Hf Hp Hc) as (Hp' & Hr').
-          exact (conj (conj Hp' (Hobj_noref b1 _ Hin_clr Hple _ _ _ _ _ _ _ Hs Hf Hn Hc)) Hr').
+          exact (conj (conj Hp' (Hobj_noref b1 _ Hin_clr _ _ _ _ _ _ _ Hs Hf Hn Hc)) Hr').
         - apply (srel_seq G (uo_env b1) QR QR Q); [ | | intros m0 (H0 & _); exact H0 ].
           + intros le0 m0 t0 le0' m0' out0 (Hq & Hr) Hx0. split.
             * exact (Hpc uo_win (or_introl eq_refl) _ _ _ _ _ _ Hq Hx0).
@@ -620,7 +740,7 @@ Section Phase.
             * apply srel_call; [ reflexivity | exact (env_none b1 _ Hin_ter) | ].
               intros bf fd m0 vargs0 t0 m0' vr0 Hs Hf ((Hp & Hn) & Hr) Hc.
               exact (conj (Hobj_terrain _ _ _ _ _ _ _ Hs Hf (conj Hp Hr) Hc)
-                          (Hobj_noref b1 _ Hin_ter Hple _ _ _ _ _ _ _ Hs Hf Hn Hc)).
+                          (Hobj_noref b1 _ Hin_ter _ _ _ _ _ _ _ Hs Hf Hn Hc)).
             * exact (Hpc uo_post (or_intror (or_introl eq_refl))). }
       assert (Hbody : safeE G Q (uo_env b1) (fn_body OLP.f_update_objects)).
       { rewrite uo_split. apply fold_safe; [ | exact HT ].
@@ -631,7 +751,7 @@ Section Phase.
       match goal with Hfr : Mem.free_list _ _ = Some _ |- _ =>
         change (blocks_of_env G (uo_env b1)) with [(b1, 0, 240)] in Hfr;
         apply free_list_one in Hfr; rename Hfr into Hfree end.
-      apply (Hobj_blind b1 _ _ Hple HP2 Hn2).
+      apply (Hobj_blind b1 _ _ Hfb HP2 Hn2).
       apply (Mem.free_unchanged_on _ _ _ _ _ _ Hfree). intros i _ N. exact (N eq_refl).
     Qed.
 
