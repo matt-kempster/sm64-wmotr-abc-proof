@@ -960,6 +960,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
        Qfam_closed = Hqs_cl). TRAP: lemmas stated on the computed `cls` hang at Qed
        (kernel unfolds the lists) -- prove generic over the lists, instantiate.
        FOUND/REPAIRED: XBn lacked numCollidedObjs [118,120) (ow_ncoll reads it).
+       TIE: obj_w's ow_tie (T1 tie_bhvs => sp_vm; T3 pole/cannon action => usedObj
+       sp_vm), boot-checked (tie_b); Kbm lists gained bm 12 (Hcam_ow_res now also
+       claims Mario's action; dead npc leaf under cam_w). Spawn keep: with the GFK.
+       Next: Hcam_cannon_cutscene + the stale-lid state tie (coordinator OK'd (b)).
        Next (W2/W3, coordinator OK'd INV_k = Pobjl with ow_vm relaxed at slot k + cur):
        Hinv/Hinv_cur/Hinv_frame for INV_k; discharge row_keeps (phantom rule: a keep
        false without a script tie => strengthen INV with script-tied pins, checked on

@@ -1502,6 +1502,28 @@ without pressing A".*
   REPAIRED by adding (118,120) to XBn. Checked against the code: no live WMotR native
   writes it (the collision pass does, outside cur_obj_update), and coin formations zero
   only angle velocity. No trust moves.
+  **TIE (2026-11-07): `ObjWorld.ow_tie`, obj_w's 33rd clause, checked on the start
+  witness.** It is needed by the generic frame keep: a native running on a generic slot
+  may write that slot's non-XBn bytes, so obj_w must not read those bytes by behavior.
+  - T1: a listed slot whose behavior is in `tie_bhvs` (JumpingBox, Cannon,
+    ExclamationBox, HiddenRedCoinStar) runs an sp_scripts state. These are the
+    behaviors whose oAction / star counter / position `act_ok` / `red_ok` / `coll_ok`
+    read.
+  - T3: in a pole or cannon action (`used_acts`, Mario's action at bm 12), usedObj
+    (bm 128) is a slot running an sp_scripts state. `used_ok` reads that slot's posY /
+    hitbox.
+  - Checked by vm in `ow_chk` (`tie_b`, sound by `tie_b_sound`).
+  - Keepers: `PollKeep.obj_w_slots_c` (behavior / VM cells are slot fields) and
+    `UnloadOw` (`sp_vm_all` covers the freed slot too).
+  - Bm 12 joined the `Kbm` lists, so the labeled camera residual `Hcam_ow_res` now also
+    claims the camera keeps Mario's action. Its only camera writer is
+    `set_mario_npc_dialog`'s `set_mario_action`, which is outside the live closure over
+    cam_w states (`CamCutCensus.uc_wmotr`), the same reason as usedObj.
+  - Phantom check: only interact_pole / interact_cannon_base enter those actions, with
+    usedObj the POLE / CANNON_BASE object, which `ow_cls` already ties to a special
+    state. A spawn sets behavior and script together, and VM steps keep the class.
+  - T2 (gMarioPlatform runs a special script) was rejected: FALSE in a real state.
+  - Not yet kept by the spawn path; that is part of the generic frame keep.
   **`ow_scr` (2026-11-03): `scr_ok` is an obj_w clause.** `ObjWorld.scr_ok` (moved from
   BhvStep, which keeps its names as notations) is obj_w's 21st clause; the boot witness
   checks it by vm inside `ow_chk` (`scr_b_l` over the reachable scripts, at m3 / m4 / m11).
@@ -1813,6 +1835,8 @@ without pressing A".*
           `set_mario_npc_dialog` leaf (no walked body stores into Mario's block, probe), which
           stores `usedObj` (128). Phantom check: under cam_w the dialog cutscenes are outside
           the live closure (`CamCutCensus.uc_wmotr`). A value fact, not a footprint fact.
+        - Mario's action (bm 12, since 2026-11-07, for `ow_tie`'s T3): the leaf's
+          `set_mario_action` is its only camera writer, dead under cam_w for the same reason.
         - (was) `surf_keep`: **FOUND FALSE AS STATED (phantom ∀, 2026-11-02); REPAIRED
           2026-11-03.** The Camera may share the main-pool block with the surface lists; R3
           keeps its bytes off the two pools' ranges, but `ObjWorld.surf_obj_ok` let a partition
