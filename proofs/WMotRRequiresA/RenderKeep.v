@@ -191,6 +191,35 @@ Proof.
   - right; right; right. exists co. auto.
 Qed.
 
+(* THE SAME, off the collision cells (2026-11-06, detect_object_collisions):
+   Mario's collidedObjInteractTypes / numCollidedObjs / collidedObjs
+   [112, 136), and of every object rawData words 5 and 66 (offsets 156,
+   400; no PhiW clause reads them).  A step keeping only owinc keeps PhiW
+   when Mario's collision cells after are old or name far objects
+   (KEEP's CKo / CKn) *)
+Definition ccl_at (o z e : Z) : Prop := (e <= o + 156 \/ o + 160 <= z) /\ (e <= o + 400 \/ o + 404 <= z).
+
+Definition owinc (Q : ptrofs -> Prop) (mo : ptrofs) (ch : memory_chunk) (z : Z) : Prop :=
+  (Ptrofs.unsigned mo + 16 <= z /\ z + size_chunk ch <= Ptrofs.unsigned mo + 64)
+  \/ (Ptrofs.unsigned mo + 72 <= z /\ z + size_chunk ch <= Ptrofs.unsigned mo + 96)
+  \/ (Ptrofs.unsigned mo + 104 <= z /\ z + size_chunk ch <= Ptrofs.unsigned mo + 112)
+  \/ (Ptrofs.unsigned mo + 136 <= z /\ z + size_chunk ch <= Ptrofs.unsigned mo + 532
+      /\ ccl_at (Ptrofs.unsigned mo) z (z + size_chunk ch))
+  \/ (exists co, Q co
+        /\ (Ptrofs.unsigned co + 608 <= Ptrofs.unsigned mo \/ Ptrofs.unsigned mo + 608 <= Ptrofs.unsigned co)
+        /\ Ptrofs.unsigned co + 136 <= z /\ z + size_chunk ch <= Ptrofs.unsigned co + 532
+        /\ ccl_at (Ptrofs.unsigned co) z (z + size_chunk ch)).
+
+Lemma owinc_q : forall Q mo ch z, owinc Q mo ch z -> owinq Q mo ch z.
+Proof.
+  intros Q mo ch z [H | [H | [H | [H | (co & Hq & F & H1 & H2 & _)]]]].
+  - left. exact H.
+  - right; left. exact H.
+  - right; right; left. lia.
+  - right; right; left. lia.
+  - right; right; right. exists co. auto.
+Qed.
+
 Lemma owin_old : forall mo ch z, owin mo ch z ->
   z + size_chunk ch <= Ptrofs.unsigned mo + 64 \/ Ptrofs.unsigned mo + 72 <= z.
 Proof.
@@ -370,13 +399,16 @@ Section RK.
   (*    New blocks may appear (a call's locals) as long as the old ones    *)
   (*    keep their permissions, and closedness may need a larger meminj.   *)
   (* ===================================================================== *)
+  (* 2026-11-06: the general form, off the collision cells too (owinc),
+     with Mario's collision cells after old or naming far objects (CKo,
+     CKn); KEEPQ below derives the owinq form *)
   Section KEEP.
     Variables (m m' : mem) (mb : block) (mo : ptrofs).
     Variable Q : ptrofs -> Prop.
     Hypothesis Lmo : Mem.load Mint32 m bm 136 = Some (Vptr mb mo).
     Hypothesis NB : Ple (Mem.nextblock m) (Mem.nextblock m').
     Hypothesis PM : forall b o k p, Plt b (Mem.nextblock m) -> Mem.perm m b o k p -> Mem.perm m' b o k p.
-    Hypothesis LD : forall ch b z, ~ rgb b -> b <> bm -> (b <> mb \/ owinq Q mo ch z) ->
+    Hypothesis LD : forall ch b z, ~ rgb b -> b <> bm -> (b <> mb \/ owinc Q mo ch z) ->
       Mem.load ch m' b z = Mem.load ch m b z.
     Hypothesis LM : forall ch z, bmk ch z -> Mem.load ch m' bm z = Mem.load ch m bm z.
     Hypothesis Sbm : Genv.find_symbol G level_update._gMarioStates = Some bm.
@@ -397,6 +429,23 @@ Section RK.
     Hypothesis QC : forall i co, 0 <= i < 4 ->
       Mem.load Mint32 m mb (u mo + COLL_OFF + 4 * i) = Some (Vptr mb co) -> Q co.
     Hypothesis QU : forall uo, Mem.load Mint32 m bm USED_OFF = Some (Vptr mb uo) -> Q uo.
+    (* a new collided object: a far object Q names, apart from the usedObj
+       when that is an object of Mario's block, and a WMotR object *)
+    Definition coll_new (co : ptrofs) : Prop :=
+      Q co /\ (u co + 608 <= u mo \/ u mo + 608 <= u co)
+      /\ (forall uo, Mem.load Mint32 m bm USED_OFF = Some (Vptr mb uo) ->
+            co = uo \/ u co + 608 <= u uo \/ u uo + 608 <= u co)
+      /\ coll_obj_ok m (Vptr mb co).
+    Hypothesis CKo : forall i cb co, 0 <= i < 4 ->
+      Mem.load Mint32 m' mb (u mo + COLL_OFF + 4 * i) = Some (Vptr cb co) ->
+      Mem.load Mint32 m mb (u mo + COLL_OFF + 4 * i) = Some (Vptr cb co) \/ (cb = mb /\ coll_new co).
+    Hypothesis CKn : forall n, Mem.load Mint16signed m mb (u mo + NUMCOLL_OFF) = Some (Vint n) ->
+      exists n', Mem.load Mint16signed m' mb (u mo + NUMCOLL_OFF) = Some (Vint n')
+      /\ (n' = n \/ 0 <= Int.signed n' <= 4)
+      /\ forall i v, 0 <= i < Int.signed n' -> i < 4 -> Mem.load Mint32 m' mb (u mo + COLL_OFF + 4 * i) = Some v ->
+           (exists n, Mem.load Mint16signed m mb (u mo + NUMCOLL_OFF) = Some (Vint n) /\ i < Int.signed n
+              /\ Mem.load Mint32 m mb (u mo + COLL_OFF + 4 * i) = Some v)
+           \/ (exists co, v = Vptr mb co /\ coll_new co).
 
     Lemma Nmb : ~ rgb mb.
     Proof. intros H. exact (proj1 (RGa mb H) eq_refl). Qed.
@@ -406,11 +455,15 @@ Section RK.
 
     Lemma LHo : forall ch z,
       (u mo + 16 <= z /\ z + size_chunk ch <= u mo + 64) \/ (u mo + 72 <= z /\ z + size_chunk ch <= u mo + 96)
-      \/ (u mo + 104 <= z /\ z + size_chunk ch <= u mo + 532) ->
+      \/ (u mo + 104 <= z /\ z + size_chunk ch <= u mo + 112)
+      \/ (u mo + 136 <= z /\ z + size_chunk ch <= u mo + 532
+          /\ (z + size_chunk ch <= u mo + 156 \/ u mo + 160 <= z)
+          /\ (z + size_chunk ch <= u mo + 400 \/ u mo + 404 <= z)) ->
       Mem.load ch m' mb z = Mem.load ch m mb z.
     Proof.
-      intros ch z H. apply (LD ch mb z Nmb (fun E => Bmb (eq_sym E))). right. unfold owinq.
-      destruct H as [H | [H | H]]; [ left | right; left | right; right; left ]; exact H.
+      intros ch z H. apply (LD ch mb z Nmb (fun E => Bmb (eq_sym E))). right. unfold owinc, ccl_at.
+      destruct H as [H | [H | [H | H]]]; [ left | right; left | right; right; left | right; right; right; left ];
+        exact H.
     Qed.
 
     Lemma LHb : forall ch b z, b <> mb -> b <> bm -> ~ rgb b -> Mem.load ch m' b z = Mem.load ch m b z.
@@ -423,11 +476,12 @@ Section RK.
     (* an object of Mario's block that is Mario's own or a whole Object away *)
     Lemma far_keep : forall co ch o', (co = mo \/ (Q co /\ (u co + 608 <= u mo \/ u mo + 608 <= u co))) ->
       136 <= o' -> o' + size_chunk ch <= 532 ->
+      (o' + size_chunk ch <= 156 \/ 160 <= o') /\ (o' + size_chunk ch <= 400 \/ 404 <= o') ->
       Mem.load ch m' mb (u co + o') = Mem.load ch m mb (u co + o').
     Proof.
-      intros co ch o' H H1 H2. destruct H as [-> | (Hq & H)]; [ apply LHo; lia | ].
-      apply (LD ch mb _ Nmb (fun E => Bmb (eq_sym E))). right. right. right. right.
-      exists co. split; [ exact Hq | split; [ exact H | lia ] ].
+      intros co ch o' H H1 H2 H3. destruct H as [-> | (Hq & H)]; [ apply LHo; lia | ].
+      apply (LD ch mb _ Nmb (fun E => Bmb (eq_sym E))). right. right. right. right. right.
+      exists co. split; [ exact Hq | split; [ exact H | unfold ccl_at; lia ] ].
     Qed.
 
     Lemma obj_eq : forall bo oo, Mem.load Mint32 m bm 136 = Some (Vptr bo oo) -> bo = mb /\ oo = mo.
@@ -445,7 +499,7 @@ Section RK.
       rewrite LHo by (unfold OFS_GFXY; cbn [size_chunk]; lia). exact H8.
     Qed.
 
-    Lemma k_hi : height_invariant bm R_noA m -> height_invariant bm R_noA m'.
+    Lemma k_hic : height_invariant bm R_noA m -> height_invariant bm R_noA m'.
     Proof.
       intros (Hs & c & Hc & Hb). split.
       - intros v Hl. apply Hs. rewrite LHm in Hl by bmk_t. exact Hl.
@@ -474,7 +528,7 @@ Section RK.
         exact P1.
     Qed.
 
-    Lemma k_worldq : wmotr_world bm m -> mobj_apart bm m -> surf_apart lp bm Xs m ->
+    Lemma k_worldc : wmotr_world bm m -> mobj_apart bm m -> surf_apart lp bm Xs m ->
       (forall off sb so, (off = WALL_OFF \/ off = CEIL_OFF \/ off = FLOOR_OFF) ->
          Mem.load Mint32 m bm off = Some (Vptr sb so) -> sb <> bm) ->
       (forall i cb co, 0 <= i < 4 ->
@@ -506,28 +560,35 @@ Section RK.
       - rewrite LHm by bmk_t. exact Hq.
       - destruct Ho as (mb' & mo' & s & n & Hl & Ls & Hs & Ln & Hn & Hall).
         destruct (obj_eq mb' mo' Hl) as (-> & ->).
-        exists mb, mo, s, n. split; [rewrite LHm by bmk_t; exact Hl |].
+        destruct (CKn n Ln) as (n' & Ln' & Rn' & En').
+        exists mb, mo, s, n'. split; [rewrite LHm by bmk_t; exact Hl |].
         split; [rewrite LHo by (unfold O_INTERACT_STATUS, RAW_OFF; cbn [size_chunk]; lia); exact Ls |].
         split; [exact Hs |].
-        split; [rewrite LHo by (unfold NUMCOLL_OFF; cbn [size_chunk]; lia); exact Ln |].
-        split; [exact Hn |].
-        intros i v Hi Hl2. rewrite LHo in Hl2 by (unfold COLL_OFF; cbn [size_chunk]; lia).
-        pose proof (Hall i v Hi Hl2) as Hok.
-        pose proof Hok as (cb & co & t & -> & _).
-        assert (Hi4 : 0 <= i < 4) by lia.
-        assert (Ecb : cb = mb) by exact (Co i cb co Hi4 Hl2). subst cb.
-        exact (coll_keep co (QC i co Hi4 Hl2) (P3 i mb co Hi4 Hl2) Hok).
+        split; [exact Ln' |].
+        assert (Rn'' : 0 <= Int.signed n' <= 4) by (destruct Rn' as [-> | R]; [exact Hn | exact R]).
+        split; [exact Rn'' |].
+        intros i v Hi Hl2.
+        destruct (En' i v Hi ltac:(lia) Hl2) as [(n0 & Ln0 & Hi0 & Lv) | (co & -> & Hq0 & Ap & _ & Hok)].
+        + rewrite Ln in Ln0. injection Ln0 as En0. subst n0.
+          assert (Hi' : 0 <= i < Int.signed n) by lia.
+          pose proof (Hall i v Hi' Lv) as Hok.
+          pose proof Hok as (cb & co & t & -> & _).
+          assert (Hi4 : 0 <= i < 4) by lia.
+          assert (Ecb : cb = mb) by exact (Co i cb co Hi4 Lv). subst cb.
+          exact (coll_keep co (QC i co Hi4 Lv) (P3 i mb co Hi4 Lv) Hok).
+        + apply (coll_keep co Hq0); [ | exact Hok ]. unfold OBJ_SIZE. right; right. exact Ap.
     Qed.
 
     (* ---- Mario's object's apartness facts ---- *)
-    Lemma k_mobj : mobj_apart bm m -> mobj_apart bm m'.
+    Lemma k_mobjc : mobj_apart bm m -> mobj_apart bm m'.
     Proof.
       intros Hmo mb' mo' Hl. rewrite LHm in Hl by bmk_t. destruct (obj_eq mb' mo' Hl) as (-> & ->).
       destruct (Hmo mb mo Hl) as (P1 & P2 & P3).
       split; [exact P1 |]. split.
       - intros off sb so Hoff Hl'. rewrite LHm in Hl' by bmk_t. exact (P2 off sb so Hoff Hl').
-      - intros i cb co Hi Hl'. rewrite LHo in Hl' by (unfold COLL_OFF; cbn [size_chunk]; lia).
-        exact (P3 i cb co Hi Hl').
+      - intros i cb co Hi Hl'. destruct (CKo i cb co Hi Hl') as [Ho | (_ & _ & Ap & _)].
+        + exact (P3 i cb co Hi Ho).
+        + unfold OBJ_SIZE. right; right. exact Ap.
     Qed.
 
     Lemma ffw_ne : ffw G bm m -> forall b,
@@ -561,11 +622,16 @@ Section RK.
       destruct (Han ab bt ot Hs Hl) as (A1 & A2). split.
       - intros off sb so Hoff Hl'. rewrite LHm in Hl' by bmk_t. exact (A1 off sb so Hoff Hl').
       - intros mb' mo' i cb co Hl' Hi Hl2. rewrite LHm in Hl' by bmk_t. destruct (obj_eq mb' mo' Hl') as (-> & ->).
-        rewrite LHo in Hl2 by (unfold COLL_OFF; cbn [size_chunk]; lia). exact (A2 mb mo i cb co Hl' Hi Hl2).
+        destruct (CKo i cb co Hi Hl2) as [Ho | (-> & _)]; [ exact (A2 mb mo i cb co Hl' Hi Ho) | ].
+        (* a new collided object is in Mario's block, not the DMA buffer *)
+        destruct Hf as (_ & EX & _). ffw_unpack EX. destruct (obj_eq bo oo Lo) as (-> & ->).
+        assert (Eab : ab0 = ab) by congruence. subst ab0.
+        assert (Hl8 : Mem.load Mint32 m ab 8 = Some (Vptr bt ot)) by exact Hl.
+        rewrite Lb in Hl8. injection Hl8 as <- _. exact D3.
     Qed.
 
     (* ---- usedObj ---- *)
-    Lemma k_usedq : used_ok bm m -> used_ok bm m'.
+    Lemma k_usedc : used_ok bm m -> used_ok bm m'.
     Proof.
       intros U a La. rewrite LHm in La by bmk_t. destruct (U a La) as (U1 & U2).
       assert (K136 : Mem.load Mint32 m' bm MARIOOBJ_OFF = Mem.load Mint32 m bm MARIOOBJ_OFF)
@@ -598,7 +664,8 @@ Section RK.
           rewrite (far_keep uo) by (first [exact F | unfold O_POSY, RAW_OFF; cbn [size_chunk]; lia]). exact P1.
         + split; [exact S |]. intros mb' mo' Hl. rewrite K136 in Hl. destruct (obj_eq mb' mo' Hl) as (-> & ->).
           split; [reflexivity |]. intros i cb co Hi Hl2.
-          rewrite LHo in Hl2 by (unfold COLL_OFF; cbn [size_chunk]; lia). exact (CC i cb co Hi Hl2).
+          destruct (CKo i cb co Hi Hl2) as [Ho | (_ & _ & _ & Au & _)]; [ exact (CC i cb co Hi Ho) | ].
+          unfold OBJ_SPAN. exact (Au uo Lu).
     Qed.
 
     (* ---- the frame's world fact, closedness, the floor data ---- *)
@@ -626,15 +693,20 @@ Section RK.
       destruct (CL gp HC Gmb HS) as (gp' & Hg & HC').
       assert (W2 : Wff G m' gp' SZ_SURFACE (rl ++ rgl))
         by exact (Wff_keep2 G m m' (rl ++ rgl) Hnb Hperm Hld gp gp' Hg W1).
-      apply (ffw_rebuild G bm m m' _ gp' FWF (Ple_trans _ _ _ Hgn NB) Hnb Hg HC').
+      apply (ffw_rebuild_ch G bm m m' _ gp' FWF (Ple_trans _ _ _ Hgn NB) Hnb Hg HC'); ffw_simpl.
       - exact (Wff_mono G m' gp' SZ_SURFACE (rl ++ rgl) rl (fun b H => rblk_app_l _ _ b H) W2).
       - exact (floor_data_keep2 G m m' (rl ++ rgl) Hnb Hperm Hld gp W1 FD).
-      - intros ch b z Hr. ffw_read_split Hr;
-          first [ solve [apply LHm; bmk_t] | solve [exact (LHb Mint32 ab 8 Nab (ab_bm ab S5) Rab)]
-                | solve [apply LHo; unfold FFW_COLL; cbn [size_chunk]; lia]
-                  (* throwMatrix (+80) lies outside the render footprint (+64..72) *)
-                | solve [apply LHo; unfold FFW_THROW; cbn [size_chunk]; lia]
-                | solve [apply LHo; unfold FFW_HH, FFW_HD; cbn [size_chunk]; lia] ].
+      - intros z ch Hin. unfold ffw_bm_cells in Hin. ffw_in_split Hin; apply LHm; bmk_t.
+      - exact (LHb Mint32 ab 8 Nab (ab_bm ab S5) Rab).
+        (* throwMatrix (+80) lies outside the render footprint (+64..72) *)
+      - apply LHo; unfold FFW_THROW; cbn [size_chunk]; lia.
+      - apply LHo; unfold FFW_HD; cbn [size_chunk]; lia.
+      - (* a collided object after: an old one (Co, Cd) or a new far one *)
+        intros i cb co Hi Hl. destruct (CKo i cb co Hi Hl) as [Ho | (-> & _ & Ap & _)].
+        + exact (conj (Co i cb co Hi Ho) (Cd i cb co Hi Ho)).
+        + split; [ reflexivity | unfold SZ_OBJECT; exact Ap ].
+      - unfold ffw_hh. destruct HHt as (h & Lh & Eh). exists h. split; [ | exact Eh ].
+        rewrite LHo by (unfold FFW_HH; cbn [size_chunk]; lia). exact Lh.
       - split.
         + exists fl. split; [rewrite LHm by bmk_t; exact Lf | exact Wf].
         + split.
@@ -716,8 +788,8 @@ Section RK.
       - intros ch b z (A & B & C). exact (LHb ch b z A B C).
     Qed.
 
-    Lemma k_all_wq : phiw lp bm m -> surf_apart lp bm Xs m -> phiw lp bm m'.
-    Proof using HXs HXl Lmo NB PM LD LM Sbm Nbm Bmb RGa CL FR QC QU.
+    Lemma k_all_wc : phiw lp bm m -> surf_apart lp bm Xs m -> phiw lp bm m'.
+    Proof using HXs HXl Lmo NB PM LD LM Sbm Nbm Bmb RGa CL FR QC QU CKo CKn.
       intros (Hh & Hw & Han & Hmo & Hf & Hu & Haw & Hl) RSA.
       assert (Co : forall i cb co, 0 <= i < 4 ->
                 Mem.load Mint32 m mb (u mo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = mb).
@@ -738,16 +810,16 @@ Section RK.
         - change FFW_FLOOR with FLOOR_OFF in Lf. rewrite Hl0 in Lf. injection Lf as <-.
           destruct Wf as [(b & o & E & _ & _ & _ & Nr) | E]; [| exfalso; congruence]. injection E as <- _.
           apply Nr. exists Ptrofs.zero. unfold ff_rl. cbn. auto. }
-      split; [exact (k_hi Hh) |]. split; [exact (k_worldq Hw Hmo RSA SNB Co) |].
-      split; [exact (k_anim_apart Hf Han) |]. split; [exact (k_mobj Hmo) |].
-      split; [exact (k_ffw Hf) |]. split; [exact (k_usedq Hu) |].
+      split; [exact (k_hic Hh) |]. split; [exact (k_worldc Hw Hmo RSA SNB Co) |].
+      split; [exact (k_anim_apart Hf Han) |]. split; [exact (k_mobjc Hmo) |].
+      split; [exact (k_ffw Hf) |]. split; [exact (k_usedc Hu) |].
       split; [exact (k_anim_w Hf Haw) |]. exact (k_lvl Hf Hl).
     Qed.
 
     (* the same, for a step that writes level cells lvl_w pins and
        re-establishes lvl_w itself (LevelKeep's POST tail) *)
-    Lemma k_all_lvl_wq : phiw lp bm m -> surf_apart lp bm Xs m -> lvl_w G m' -> phiw lp bm m'.
-    Proof using HXs Lmo NB PM LD LM Sbm Nbm Bmb RGa CL FR QC QU.
+    Lemma k_all_lvl_wc : phiw lp bm m -> surf_apart lp bm Xs m -> lvl_w G m' -> phiw lp bm m'.
+    Proof using HXs Lmo NB PM LD LM Sbm Nbm Bmb RGa CL FR QC QU CKo CKn.
       intros (Hh & Hw & Han & Hmo & Hf & Hu & Haw & _) RSA Hl'.
       assert (Co : forall i cb co, 0 <= i < 4 ->
                 Mem.load Mint32 m mb (u mo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = mb).
@@ -768,12 +840,112 @@ Section RK.
         - change FFW_FLOOR with FLOOR_OFF in Lf. rewrite Hl0 in Lf. injection Lf as <-.
           destruct Wf as [(b & o & E & _ & _ & _ & Nr) | E]; [| exfalso; congruence]. injection E as <- _.
           apply Nr. exists Ptrofs.zero. unfold ff_rl. cbn. auto. }
-      split; [exact (k_hi Hh) |]. split; [exact (k_worldq Hw Hmo RSA SNB Co) |].
-      split; [exact (k_anim_apart Hf Han) |]. split; [exact (k_mobj Hmo) |].
-      split; [exact (k_ffw Hf) |]. split; [exact (k_usedq Hu) |].
+      split; [exact (k_hic Hh) |]. split; [exact (k_worldc Hw Hmo RSA SNB Co) |].
+      split; [exact (k_anim_apart Hf Han) |]. split; [exact (k_mobjc Hmo) |].
+      split; [exact (k_ffw Hf) |]. split; [exact (k_usedc Hu) |].
       split; [exact (k_anim_w Hf Haw) |]. exact Hl'.
     Qed.
   End KEEP.
+
+  (* the keeps over the far objects Q names (owinq): KEEP with Mario's
+     collision cells kept *)
+  Section KEEPQ.
+    Variables (m m' : mem) (mb : block) (mo : ptrofs).
+    Variable Q : ptrofs -> Prop.
+    Hypothesis Lmo : Mem.load Mint32 m bm 136 = Some (Vptr mb mo).
+    Hypothesis NB : Ple (Mem.nextblock m) (Mem.nextblock m').
+    Hypothesis PM : forall b o k p, Plt b (Mem.nextblock m) -> Mem.perm m b o k p -> Mem.perm m' b o k p.
+    Hypothesis LD : forall ch b z, ~ rgb b -> b <> bm -> (b <> mb \/ owinq Q mo ch z) ->
+      Mem.load ch m' b z = Mem.load ch m b z.
+    Hypothesis LM : forall ch z, bmk ch z -> Mem.load ch m' bm z = Mem.load ch m bm z.
+    Hypothesis Sbm : Genv.find_symbol G level_update._gMarioStates = Some bm.
+    Hypothesis Nbm : ~ rgb bm.
+    Hypothesis Bmb : bm <> mb.
+    Hypothesis RGa : forall b, rgb b -> b <> mb /\ tab_apart G m b.
+    Hypothesis CL : forall gp, closed_by gp m -> gp mb <> None ->
+      (forall id b, Genv.find_symbol G id = Some b -> gp b <> None) ->
+      exists gp', (forall b, gp b <> None -> gp' b <> None) /\ closed_by gp' m'.
+    Hypothesis FR : forall bt ot k, In k hs_ids ->
+      Mem.load Mint32 m mb (u mo + 60) = Some (Vptr bt ot) ->
+      Mem.load Mint32 m mb (u mo + 72) = Some (Vint Int.zero) ->
+      (exists f, -1 <= f <= hs_le k /\ Mem.load Mint16signed m mb (u mo + 64) = Some (Vint (Int.repr f))) ->
+      buf_ok m bt ot k -> u ot + BUFSZ < Ptrofs.modulus ->
+      exists f, -1 <= f <= hs_le k /\ Mem.load Mint16signed m' mb (u mo + 64) = Some (Vint (Int.repr f)).
+    Hypothesis QC : forall i co, 0 <= i < 4 ->
+      Mem.load Mint32 m mb (u mo + COLL_OFF + 4 * i) = Some (Vptr mb co) -> Q co.
+    Hypothesis QU : forall uo, Mem.load Mint32 m bm USED_OFF = Some (Vptr mb uo) -> Q uo.
+
+    Lemma LDc : forall ch b z, ~ rgb b -> b <> bm -> (b <> mb \/ owinc Q mo ch z) ->
+      Mem.load ch m' b z = Mem.load ch m b z.
+    Proof. intros ch b z N1 N2 [H | H]; apply LD; auto. right. exact (owinc_q _ _ _ _ H). Qed.
+
+    Lemma LHq : forall ch z, u mo + 104 <= z -> z + size_chunk ch <= u mo + 532 ->
+      Mem.load ch m' mb z = Mem.load ch m mb z.
+    Proof.
+      intros ch z H1 H2. apply LD; [ intros H; exact (proj1 (RGa mb H) eq_refl) | intros E; exact (Bmb (eq_sym E)) | ].
+      right. right; right; left. lia.
+    Qed.
+
+    Lemma CKoq : forall i cb co, 0 <= i < 4 ->
+      Mem.load Mint32 m' mb (u mo + COLL_OFF + 4 * i) = Some (Vptr cb co) ->
+      Mem.load Mint32 m mb (u mo + COLL_OFF + 4 * i) = Some (Vptr cb co) \/ (cb = mb /\ coll_new m mb mo Q co).
+    Proof.
+      intros i cb co Hi Hl. left. rewrite <- Hl. symmetry. apply LHq; unfold COLL_OFF; cbn [size_chunk]; lia.
+    Qed.
+
+    Lemma CKnq : forall n, Mem.load Mint16signed m mb (u mo + NUMCOLL_OFF) = Some (Vint n) ->
+      exists n', Mem.load Mint16signed m' mb (u mo + NUMCOLL_OFF) = Some (Vint n')
+      /\ (n' = n \/ 0 <= Int.signed n' <= 4)
+      /\ forall i v, 0 <= i < Int.signed n' -> i < 4 -> Mem.load Mint32 m' mb (u mo + COLL_OFF + 4 * i) = Some v ->
+           (exists n, Mem.load Mint16signed m mb (u mo + NUMCOLL_OFF) = Some (Vint n) /\ i < Int.signed n
+              /\ Mem.load Mint32 m mb (u mo + COLL_OFF + 4 * i) = Some v)
+           \/ (exists co, v = Vptr mb co /\ coll_new m mb mo Q co).
+    Proof.
+      intros n Ln. exists n.
+      split; [ rewrite LHq by (unfold NUMCOLL_OFF; cbn [size_chunk]; lia); exact Ln | ].
+      split; [ left; reflexivity | ].
+      intros i v Hi Hi4 Hl. left. exists n. split; [ exact Ln | split; [ lia | ] ].
+      rewrite LHq in Hl by (unfold COLL_OFF; cbn [size_chunk]; lia). exact Hl.
+    Qed.
+
+    Lemma k_hi : height_invariant bm R_noA m -> height_invariant bm R_noA m'.
+    Proof. eapply k_hic; first [ exact Lmo | exact LDc | exact LM | exact Bmb | exact RGa ]. Qed.
+
+    Lemma k_mobj : mobj_apart bm m -> mobj_apart bm m'.
+    Proof. eapply k_mobjc; first [ exact Lmo | exact LDc | exact LM | exact Bmb | exact RGa | exact CKoq ]. Qed.
+
+    Lemma k_worldq : wmotr_world bm m -> mobj_apart bm m -> surf_apart lp bm Xs m ->
+      (forall off sb so, (off = WALL_OFF \/ off = CEIL_OFF \/ off = FLOOR_OFF) ->
+         Mem.load Mint32 m bm off = Some (Vptr sb so) -> sb <> bm) ->
+      (forall i cb co, 0 <= i < 4 ->
+         Mem.load Mint32 m mb (u mo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = mb) ->
+      wmotr_world bm m'.
+    Proof.
+      eapply k_worldc;
+        first [ exact Lmo | exact LDc | exact LM | exact Bmb | exact RGa | exact QC | exact CKoq | exact CKnq ].
+    Qed.
+
+    Lemma k_usedq : used_ok bm m -> used_ok bm m'.
+    Proof.
+      eapply k_usedc; first [ exact Lmo | exact LDc | exact LM | exact Bmb | exact RGa | exact QU | exact CKoq ].
+    Qed.
+
+    Lemma k_all_wq : phiw lp bm m -> surf_apart lp bm Xs m -> phiw lp bm m'.
+    Proof using HXs HXl Lmo NB PM LD LM Sbm Nbm Bmb RGa CL FR QC QU.
+      eapply k_all_wc;
+        first [ exact HXs | exact HXl | exact Lmo | exact NB | exact PM | exact LDc | exact LM | exact Sbm
+              | exact Nbm | exact Bmb | exact RGa | exact CL | exact FR | exact QC | exact QU
+              | exact CKoq | exact CKnq ].
+    Qed.
+
+    Lemma k_all_lvl_wq : phiw lp bm m -> surf_apart lp bm Xs m -> lvl_w G m' -> phiw lp bm m'.
+    Proof using HXs Lmo NB PM LD LM Sbm Nbm Bmb RGa CL FR QC QU.
+      eapply k_all_lvl_wc;
+        first [ exact HXs | exact Lmo | exact NB | exact PM | exact LDc | exact LM | exact Sbm
+              | exact Nbm | exact Bmb | exact RGa | exact CL | exact FR | exact QC | exact QU
+              | exact CKoq | exact CKnq ].
+    Qed.
+  End KEEPQ.
 
   (* the keeps over every far offset (owin): the flanks' form *)
   Section KEEP1.

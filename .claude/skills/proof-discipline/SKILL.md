@@ -642,6 +642,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
     hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
     rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref,
     Hobj_debug, Hobj_collisions
+    (2026-11-06: the store keep for Hobj_collisions is PROVED, CollKeep.coll_store_pc: one
+    store into a slot's collision cells, with the value the code stores, keeps Pc; via
+    RenderKeep.k_all_wc (owinc, CKo / CKn), PollKeep.obj_w_slots_c (SKc), FfWorld
+    ffw_rebuild_ch. The walk of the real detect_object_collisions is next.)
     (2026-11-03: Hobj_unload narrowed; the loops are PROVED, HeightFrame.obj_unload_linked12
     from UnloadKeep.unload_outer + UnloadLoop.inlist_ok via UnloadRows; the real
     unload_object keeps mem_ok / PhiW / a_down / obj_w, UnloadPc.unl_row_proved (sharp

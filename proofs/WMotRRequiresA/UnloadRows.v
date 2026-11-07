@@ -10,18 +10,17 @@
 (* into globals no clause reads), and that each per-slot call leaves the  *)
 (* rings as the loop needs them (UnloadSharp.unload_sharp_real: slot k     *)
 (* leaves ring i).                                                         *)
-(* OPEN, two narrow rows (stated over Pc):                                 *)
+(* The two rows the loops rest on, stated here over Pc, are PROVED        *)
+(* (2026-11-06; HeightFrame instantiates them):                            *)
 (*   si_row   the respawn OR into a SpawnInfo behaviorArg cell of the main *)
-(*            pool block P (ObjWorld.SI_OFFS) keeps Pc.  TRUTH: P's other  *)
-(*            readers are the surface and node pools (from NP_OFF = 2672,  *)
-(*            past every SI cell), Mario's surfaces (in_sp), the Camera    *)
-(*            (kept off the SI cells: FfWorld.cam_si).                    *)
+(*            pool block P (ObjWorld.SI_OFFS) keeps Pc:                    *)
+(*            UnloadSi.si_row_proved (P's other readers are the surface    *)
+(*            and node pools from NP_OFF = 2672, Mario's surfaces, the     *)
+(*            Camera, kept off the SI cells by FfWorld.cam_si).            *)
 (*   unl_row  the real unload_object on an inactive slot of a walked ring  *)
-(*            keeps Pc.  TRUTH: UnloadSharp.unload_sharp_real: it writes   *)
-(*            the slot's activeFlags / prevObj / throwMatrix / node flags, *)
-(*            the graph and list links and the sound blocks; Mario's slot  *)
-(*            is active (ow_mact), so it is never the one freed.  PROVED   *)
-(*            but for gMarioPlatform's fact: UnloadPc.unl_row_proved.      *)
+(*            keeps Pc: UnloadPc.unl_row_proved (UnloadSharp's footprint;  *)
+(*            Mario's slot is active, ow_mact, so it is never the one      *)
+(*            freed).                                                      *)
 (* ====================================================================== *)
 
 From Coq Require Import ZArith Lia List Bool.
@@ -153,7 +152,7 @@ Section UR.
       bt <> pool -> bt <> la -> OW.rings m2 pool la = OW.rings m pool la.
     Proof.
       intros m m2 bt LO Np Nl. apply (PollKeep.rings_eq m m2 pool la).
-      - apply PollKeep.SKp_full. intros ch z. apply LO. exact (not_eq_sym Np).
+      - apply PollKeep.SKp_c, PollKeep.SKp_full. intros ch z. apply LO. exact (not_eq_sym Np).
       - intros z. unfold OW.ld32. rewrite !OW.CM.load_eq. apply LO. exact (not_eq_sym Nl).
     Qed.
     Lemma inactive_off : forall m m2 bt k, (forall ch b z, b <> bt -> Mem.load ch m2 b z = Mem.load ch m b z) ->
