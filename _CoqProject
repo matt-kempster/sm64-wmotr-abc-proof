@@ -369,6 +369,7 @@ proofs/WMotRRequiresA/UnloadRows.v
 proofs/WMotRRequiresA/UnloadOw.v
 proofs/WMotRRequiresA/UnloadPc.v
 proofs/WMotRRequiresA/UnloadSi.v
+proofs/WMotRRequiresA/CollKeep.v
 proofs/WMotRRequiresA/ObjMake.v
 proofs/WMotRRequiresA/ObjGeo.v
 proofs/WMotRRequiresA/ObjOrigin.v

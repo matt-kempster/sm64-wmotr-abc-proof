@@ -555,6 +555,54 @@ Proof.
             | let E := fresh "E" in intros (_ & _ & E); discriminate E ] ].
 Qed.
 
+(* THE REBUILD, for a call that may write Mario's collided-object cells
+   and hitboxHeight (detect_object_collisions, 2026-11-06): each read cell
+   kept but those, a collided object after is still a pool object a whole
+   Object away from Mario's (KC), and the hitboxHeight fact holds after *)
+Theorem ffw_rebuild_ch : forall m m' d gp',
+  ffw_facts m d ->
+  Ple (Genv.genv_next G) (Mem.nextblock m') ->
+  Ple (Mem.nextblock m) (Mem.nextblock m') ->
+  (forall b, fw_gp d b <> None -> gp' b <> None) -> closed_by gp' m' ->
+  Wff G m' gp' SZ_SURFACE (ff_rl_of bm d) -> floor_data G m' ->
+  (forall z ch, In (z, ch) ffw_bm_cells -> Mem.load ch m' bm z = Mem.load ch m bm z) ->
+  Mem.load Mint32 m' (fw_ab d) 8 = Mem.load Mint32 m (fw_ab d) 8 ->
+  Mem.load Mint32 m' (fw_bo d) (Ptrofs.unsigned (fw_oo d) + FFW_THROW)
+    = Mem.load Mint32 m (fw_bo d) (Ptrofs.unsigned (fw_oo d) + FFW_THROW) ->
+  Mem.load Mfloat32 m' (fw_bo d) (Ptrofs.unsigned (fw_oo d) + FFW_HD)
+    = Mem.load Mfloat32 m (fw_bo d) (Ptrofs.unsigned (fw_oo d) + FFW_HD) ->
+  (forall i cb co, 0 <= i < 4 ->
+     Mem.load Mint32 m' (fw_bo d) (Ptrofs.unsigned (fw_oo d) + FFW_COLL + 4 * i) = Some (Vptr cb co) ->
+     cb = fw_bo d
+     /\ (Ptrofs.unsigned co + SZ_OBJECT <= Ptrofs.unsigned (fw_oo d)
+         \/ Ptrofs.unsigned (fw_oo d) + SZ_OBJECT <= Ptrofs.unsigned co)) ->
+  ffw_hh m' (fw_bo d) (fw_oo d) -> ffw_surf_ok d m m' ->
+  ffw m'.
+Proof.
+  intros m m' d gp' F Hgn Hnb Hinc HC' W' FD' KM Kab Kth Khd KC HH' ((fl' & Lf' & Wf') & WC' & SP').
+  split; [exact Hgn |]. split; [| exact FD'].
+  exists (mk_ffw_wit gp' (fw_bfi d) (fw_bmiss d) (fw_bcalls d) (fw_bsin d) (fw_ab d) (fw_biom d)
+            (fw_bmq d) (fw_brm d) (fw_blk d) (fw_bpc d) (fw_bsr d) (fw_bsrc d) (fw_bsms d) (fw_bbs d)
+            (fw_bfa d) (fw_bo d) (fw_oo d) (fw_bt d) (fw_ot d) fl' (fw_ar d) (fw_inp d) (fw_ctl d)).
+  pose proof F as F0. destruct F0.
+  unfold ffw_hh in HH'.
+  eapply mk_ffw_facts; ffw_simpl;
+    first [ assumption | exact HC' | exact W' | exact Lf' | exact WC' | exact SP'
+          | exact (wfl_mono _ _ _ _ Hnb Wf')
+          | apply (wblk_mono _ _ _ _ _ Hnb); assumption
+          | apply Hinc; assumption
+          | let id := fresh "id" in let b := fresh "b" in let Hs := fresh "Hs" in
+            intros id b Hs; exact (Hinc b (ff_HS _ _ F id b Hs))
+          | rewrite KM by (unfold ffw_bm_cells; cbn [In]; auto 10); assumption
+          | rewrite Kab; assumption
+          | rewrite Kth; assumption
+          | rewrite Khd; assumption
+          | let i := fresh "i" in let cb := fresh "cb" in let co := fresh "co" in
+            let Hi := fresh "Hi" in let Hl := fresh "Hl" in
+            intros i cb co Hi Hl;
+            first [ exact (proj1 (KC i cb co Hi Hl)) | exact (proj2 (KC i cb co Hi Hl)) ] ].
+Qed.
+
 Theorem ffw_rebuild : forall m m' d gp',
   ffw_facts m d ->
   Ple (Genv.genv_next G) (Mem.nextblock m') ->

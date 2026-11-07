@@ -308,18 +308,29 @@ End CLAUSES.
 
 (* kind_ok depends only on each slot's cells at offsets >= 96 of the pool
    block (frames call this rather than destructing the clause) *)
+(* the collision cells of a slot (2026-11-06, detect_object_collisions):
+   collidedObjInteractTypes [112, 116), numCollidedObjs and collidedObjs
+   [118, 136) (activeFlags, 116, is not one), rawData word 5
+   (oIntangibleTimer, 156) and word 66 (400).  ccl off e: the bytes
+   [off, e) miss them *)
+Definition ccl (off e : Z) : Prop :=
+  (e <= 112 \/ 116 <= off) /\ (e <= 118 \/ 136 <= off) /\ (e <= 156 \/ 160 <= off)
+  /\ (e <= 400 \/ 404 <= off).
+
 Local Ltac ko := unfold OSZ, O_INTERACT_TYPE, O_POSX, O_POSY, O_POSZ, HITBOX_DOWN_OFF, HITBOX_H_OFF,
-                   RAW_OFF; cbn [size_chunk]; lia.
+                   RAW_OFF, ccl; cbn [size_chunk]; lia.
 (* the slot fields obj_w reads: from offset 96 on, except the platform
    field (Object.platform, offset 532, which update_mario_platform writes
-   and no obj_w clause reads) *)
+   and no obj_w clause reads) and the collision cells (ccl) *)
 Lemma kind_ok_eq : forall pool m m',
   (forall ch k off, 96 <= off -> off + size_chunk ch <= OSZ -> (off + size_chunk ch <= 532 \/ 536 <= off) ->
+     ccl off (off + size_chunk ch) ->
      Mem.load ch m' pool (k * OSZ + off) = Mem.load ch m pool (k * OSZ + off)) ->
   forall k, kind_ok pool m k -> kind_ok pool m' k.
 Proof.
   intros pool m m' Kp k (t & Lt & Hin & Hp & Hc & Hpx & Hcx).
   assert (S : forall ch off, 96 <= off -> off + size_chunk ch <= OSZ -> (off + size_chunk ch <= 532 \/ 536 <= off) ->
+            ccl off (off + size_chunk ch) ->
             Mem.load ch m' pool (k * OSZ + off) = Mem.load ch m pool (k * OSZ + off)) by (intros; apply Kp; assumption).
   exists t.
   split; [ rewrite S by ko; exact Lt | split; [ exact Hin | split; [ | split; [ | split ] ] ] ].
