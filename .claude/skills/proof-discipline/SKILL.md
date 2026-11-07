@@ -971,6 +971,18 @@ all in `Unwired/`, and the theorem moved nowhere. See
        PhiW closedness) -- now takes nvals; natives' side native_vals (Hnative_vals).
        RenderKeep KEEP: type-only collided objects Qt (LDt / QtT; QU only in
        pole / cannon actions).
+       INV_k (WMotRRequiresA/Unwired/ObjInv.v, STAGED until the step row requires
+       it): ghost form -- nb0 <= nextblock /\ cur /\ exists g, Pobjl g /\ Vo g st0 /\
+       nextblock g <= nb0 /\ unchanged_on Pfr g m; Qk = Qfam (v_s st0).  PROVED:
+       inv_frame, inv_cur, inv_scr (Hinv), inv_free, inv_entry.  OPEN for it: the
+       exit swap (Pobjl m' from INVk m' + Vo m' st' + Qfam: RenderKeep ccl_at must
+       skip VM cells [460,502); KEEP's PM; scripts SafeB via a GOAL-2-only premise
+       HSafeB_scr DISCHARGED at the linked capstone from StartSat's SB1 + vm check
+       (GOAL 1's safe_ptr_syms untouched, coordinator 2026-11-07); obj_w VM-swap
+       keeper by Qfam bits), the row keeps (ghost stores) and sfr_keep (nvals).
+       TRAP: `apply in_map_iff in H as ...` on a vm_tab map hung >1200s; use
+       proj1 (in_map_iff ..) in a small lemma.  `congruence` on two existsb facts
+       over map v_s vm_tab took 114s; rewrite + discriminate is instant.
        Next (W2/W3, coordinator OK'd INV_k = Pobjl with ow_vm relaxed at slot k + cur):
        Hinv/Hinv_cur/Hinv_frame for INV_k; discharge row_keeps (phantom rule: a keep
        false without a script tie => strengthen INV with script-tied pins, checked on
