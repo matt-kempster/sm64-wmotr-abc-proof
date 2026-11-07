@@ -297,7 +297,9 @@ Proof.
   - intros j Hj. exact (script_u ge pool k m m' Ku j (Nn j Hj) (Cs j (Inw j Hj))).
   - intros j Hj. exact (act_u ge pool k m m' Ku j (Nn j Hj) (Ca j (Inw j Hj))).
   - intros j Hj. exact (red_u ge pool k m m' Ku j (Nn j Hj) (Crd j (Inw j Hj))).
-  - rewrite Ks, Kd. exact Cdb.
+  - destruct Cdb as (Cd1 & Cd2). split; [ rewrite Ks; exact Cd1 | ].
+    apply (OW.dflags_ok_ext ge m m'); [ | exact Cd2 ]. intros b Sb.
+    exact (K debug._gDebugInfoFlags b PollKeep.dflags_in_ow ltac:(vm_compute; reflexivity) Sb _ _).
   - intros z Hz. assert (Hz' : In z [120; 124; 128; 132; 96; 100; 104]) by (cbn [In] in Hz |- *; tauto).
     rewrite (Kbm z (or_intror Hz')). exact (Cst z Hz).
   - destruct Co as (b & Sb & L). exists b. split; [ exact Sb | ].

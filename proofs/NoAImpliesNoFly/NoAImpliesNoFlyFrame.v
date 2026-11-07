@@ -69,9 +69,12 @@
 (*    UnloadPc (unload_object) and UnloadSi (the respawn OR).)          *)
 (*  (Hobj_mplat, update_mario_platform, is PROVED since 2026-11-03:     *)
 (*    HeightFrame.obj_mplat_linked12, from the real body, MplatKeep.)    *)
-(*  - Hobj_debug, Hobj_blind / Hobj_fresh / Hobj_noref: the debug      *)
-(*    calls (off) and the stack array write no MarioState cell and no   *)
-(*    MWF_real cell.                                                      *)
+(*  (Hobj_debug, the three debug calls, is PROVED since 2026-11-07:   *)
+(*    HeightFrame.obj_debug_linked12, from the real bodies, DebugKeep;  *)
+(*    the pins sDebugPage = 0, gDebugInfoFlags bit 0 clear are obj_w's  *)
+(*    ow_debug, start-checked.)                                          *)
+(*  - Hobj_blind / Hobj_fresh / Hobj_noref: the stack array writes no   *)
+(*    MarioState cell and no MWF_real cell.                               *)
 (*  (Hobj_stores, the phase's own stores, is PROVED since 2026-11-03:   *)
 (*    HeightFrame.obj_stores_linked12, ObjStores; it rests on Hobj_blind *)
 (*    for the stack stores.)                                             *)
@@ -152,10 +155,6 @@ Section NoAImpliesNoFlyFrame.
     Ple (Genv.genv_next (lp_ge lp)) b /\ ObjPhase.noref b m1.
   Hypothesis Hobj_noref : forall b f, In f ObjPhase.nr_callees -> Ple (Genv.genv_next (lp_ge lp)) b ->
     ObjPhase.call_keeps (lp_ge lp) (ObjPhase.nrv b) f.
-  Hypothesis Hobj_debug :
-    ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._reset_debug_objectinfo
-    /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._stub_debug_5
-    /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._try_print_debug_mario_object_info.
   Hypothesis Hobj_step_act_terrain :
     ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
       object_list_processor.f_update_objects_starting_at
@@ -202,7 +201,7 @@ Section NoAImpliesNoFlyFrame.
     apply (mem_ok_not_flying_lp bm MWF m).
     exact (proj1 (HeightFrame.wmotr_noA_run_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms
                     Hbm_sym Hbc_sym Hoc0 Hls Hdma_floor Hseg_na_open Hdma_anim Hsqrtf Hsqrtf_float
-                    Hcam_phi Hobj_blind Hobj_fresh Hobj_noref Hobj_debug
+                    Hcam_phi Hobj_blind Hobj_fresh Hobj_noref
                     Hobj_step_act_terrain Hobj_step_rest_terrain
                     Hobj_step_act_nonterrain Hobj_step_rest_nonterrain
                     Hcam_ow_res

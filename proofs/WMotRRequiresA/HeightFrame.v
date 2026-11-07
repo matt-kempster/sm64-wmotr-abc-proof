@@ -78,7 +78,7 @@ From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT LsContract AudioInv.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
 From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep PollKeep MidKeep CamRows MplatKeep ClearKeep ObjStores.
 From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop ObjStepSplit BhvVM UnloadKeep UnloadRows UnloadPc UnloadSi.
-From SM64.Proofs.WMotRRequiresA Require CollWalk.
+From SM64.Proofs.WMotRRequiresA Require CollWalk DebugKeep.
 From SM64.Generated Require object_list_processor area platform_displacement.
 From SM64.Proofs Require OsDmaFloor LptBody ObjExtBodies UpdateCameraBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
@@ -1467,11 +1467,21 @@ Section HeightLinked12.
                (pc_of_pobj m HP)).
     - intros m m2 HP Hn U. exact (Hobj_blind b m m2 Hp HP Hn U).
   Qed.
-  (* OPEN, the stage rows (see the HeightFrame section for each) *)
-  Hypothesis Hobj_debug :
+  (* (Hobj_debug, the three debug calls: PROVED 2026-11-07,
+     obj_debug_linked12, from the real bodies, DebugKeep; the two pins,
+     sDebugPage = 0 and gDebugInfoFlags bit 0 clear, are obj_w's ow_debug,
+     start-checked by ow_chk on the boot witness) *)
+  Lemma obj_debug_linked12 :
     ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._reset_debug_objectinfo
     /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._stub_debug_5
     /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._try_print_debug_mario_object_info.
+  Proof.
+    destruct (DebugKeep.debug_keeps lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0) as (D1 & D2 & D3).
+    split; [ | split ]; intros bf fd m vargs t m' vr Hs Hf HP Hev; apply pobj_of_pc;
+      [ exact (D1 bf fd m vargs t m' vr Hs Hf (pc_of_pobj m HP) Hev)
+      | exact (D2 bf fd m vargs t m' vr Hs Hf (pc_of_pobj m HP) Hev)
+      | exact (D3 bf fd m vargs t m' vr Hs Hf (pc_of_pobj m HP) Hev) ].
+  Qed.
   (* (Hobj_surfaces, clear_dynamic_surfaces with the post-clear fact:
      PROVED 2026-11-03, obj_surfaces_linked12 below, from the real body,
      ClearRun / ClearKeep) *)
@@ -1937,7 +1947,7 @@ Section HeightLinked12.
                     frame_action_linked12 render_ok_linked12 render_phi_linked12
                     obj_clock_linked12 obj_auo_linked12
                     Hobj_blind (Hobj_fresh 240) obj_noref_uo obj_stores_linked12 obj_counter_linked12
-                    Hobj_debug (ObjWorld.post_clear (lp_ge lp)) obj_R_store_linked12
+                    obj_debug_linked12 (ObjWorld.post_clear (lp_ge lp)) obj_R_store_linked12
                     obj_surfaces_linked12 obj_terrain_linked12 obj_collisions_linked12 obj_nonterrain_linked12
                     obj_unload_linked12 obj_mplat_linked12 obj_platform_linked12 Hlvl_ow Hrender_ow
                     lvl_pre_linked12 lvl_post_linked12 seg_action_phi Hphi_y Hphi_sa_linked12
@@ -1960,7 +1970,7 @@ Section HeightLinked12.
                     frame_action_linked12 render_ok_linked12 render_phi_linked12
                     obj_clock_linked12 obj_auo_linked12
                     Hobj_blind (Hobj_fresh 240) obj_noref_uo obj_stores_linked12 obj_counter_linked12
-                    Hobj_debug (ObjWorld.post_clear (lp_ge lp)) obj_R_store_linked12
+                    obj_debug_linked12 (ObjWorld.post_clear (lp_ge lp)) obj_R_store_linked12
                     obj_surfaces_linked12 obj_terrain_linked12 obj_collisions_linked12 obj_nonterrain_linked12
                     obj_unload_linked12 obj_mplat_linked12 obj_platform_linked12 Hlvl_ow Hrender_ow
                     lvl_pre_linked12 lvl_post_linked12 seg_action_phi Hphi_y Hphi_sa_linked12

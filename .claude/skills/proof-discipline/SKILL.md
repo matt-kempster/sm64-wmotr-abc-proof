@@ -644,7 +644,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
     (2026-11-07 FOUND + REPAIRED: Hobj_noref was over noref b alone, b possibly the next
     fresh block, a phantom forall; now over ObjPhase.nrv b, b allocated; UnloadKeep carries
     filler's nrv through its body and uses the row for unload_deactivated_objects_in_list),
-    Hobj_debug
+    (2026-11-07: Hobj_debug is PROVED, HeightFrame.obj_debug_linked12 from
+    DebugKeep.debug_keeps, the walks of the real debug calls; pins sDebugPage = 0 and
+    gDebugInfoFlags bit 0 clear live in ObjWorld.ow_debug, checked by ow_chk at boot;
+    DebugKeep.dlsc_keeps shows clear_objects' flag store keeps bit 0 clear. Ltac gotcha:
+    destruct patterns with fixed names inside a walk tactic clash with names already in
+    context and fail silently inside first [..]; use fresh names.)
     (2026-11-07: Hobj_collisions is PROVED, HeightFrame.obj_collisions_linked12 from
     CollWalk.detect_keeps, the walk of the real detect_object_collisions; each store is kept
     by CollKeep.coll_store_pc (via RenderKeep.k_all_wc, PollKeep.obj_w_slots_c, FfWorld

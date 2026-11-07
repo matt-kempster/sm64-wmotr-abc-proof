@@ -259,7 +259,15 @@ Definition ow_ids : list ident :=
    wmotr_level_data._peach_seg5_anim_05016798; wmotr_level_data._peach_seg5_anim_05018664;
    wmotr_level_data._peach_seg5_anim_0501B328; wmotr_level_data._peach_seg5_anim_0501C404;
    (* 3i, 2026-11-03: the droplet parameter structs (ow_dp, OW.dparams) *)
-   behavior_data._gShallowWaterSplashDropletParams; behavior_data._gShallowWaterWaveDropletParams].
+   behavior_data._gShallowWaterSplashDropletParams; behavior_data._gShallowWaterWaveDropletParams;
+   (* 2026-11-07: the debug-print gate (ow_debug, OW.dflags_ok) *)
+   debug._gDebugInfoFlags].
+
+Lemma dflags_in_ow : In debug._gDebugInfoFlags ow_ids.
+Proof.
+  assert (A : existsb (Pos.eqb debug._gDebugInfoFlags) ow_ids = true) by (vm_compute; reflexivity).
+  apply existsb_exists in A as (x & Hx & Ex). apply Pos.eqb_eq in Ex. subst x. exact Hx.
+Qed.
 
 (* the globals a writer of obj_w's surface cells changes (2026-11-03,
    ClearKeep: the clear writes the counter and the dynamic partition) *)
@@ -588,7 +596,9 @@ Section OWK.
     - intros k Hk. exact (script_eq ge pool Kp k (Cs k Hk)).
     - intros k Hk. exact (act_eq ge pool Kp k (Ca k Hk)).
     - intros k Hk. exact (red_eq ge pool Kp k (Crd k Hk)).
-    - rewrite Ks, Kd. exact Cdb.
+    - destruct Cdb as (Cd1 & Cd2). split; [ rewrite Ks; exact Cd1 | ].
+      apply (OW.dflags_ok_ext ge m m'); [ | exact Cd2 ]. intros b Sb.
+      exact (K debug._gDebugInfoFlags b dflags_in_ow ltac:(vm_compute; reflexivity) Sb _ _).
     - intros z Hz. assert (Hz' : In z [120; 124; 128; 132; 96; 100; 104]) by (cbn [In] in Hz |- *; tauto).
       rewrite (Kbm z (or_intror Hz')). exact (Cst z Hz).
     - destruct Co as (b & Sb & L). exists b. split; [ exact Sb | ].
