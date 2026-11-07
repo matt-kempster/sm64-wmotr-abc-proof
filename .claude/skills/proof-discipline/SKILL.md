@@ -932,7 +932,14 @@ all in `Unwired/`, and the theorem moved nowhere. See
        row_keeps; wd_dp (params byte 4 = &bhvWaterDroplet, dparams_init) is batched for
        the StartTerrain recheck. Route 1 (believed unreachable: terrainSoundAddend guard)
        is in the row comment and TRUST as a note only.
-       Next: rows 30 / 40 and the CALL_NATIVE residual; then the loop INV = obj_w minus
+       DONE 2026-11-07 (row 40): ObjAnimate.goia_real (geo_obj_init_animation: nothing,
+       or the 4 animInfo cells; s2v_any = segmented_to_virtual on any value) and
+       BhvStep.hd_animate / row_animate; an_keep joined row_keeps; 40 is in done_ops.
+       Traps: `inv` on an Eaddrof eval leaves a spurious eval_lvalue (Eaddrof) goal, and it
+       substitutes remembered names (I4, w) away; f_equal on Vcmd goals took 13 min (use
+       padd_repr); a cbn'd cast leaves match-junk in temps, so `change` it to the clean
+       int; pointer + int: ObjAnimate.padd_inv (cbn on Archi.ptr64 hung).
+       Next: row 30 and the CALL_NATIVE residual; then the loop INV = obj_w minus
        the current slot's ow_vm, and wiring dloop into Hobj_step_rest (PRIORITY);
        the pre-/post-loop code of cur_obj_update; the loop INV = obj_w minus the current
        slot's ow_vm; then narrow Hobj_step_rest.

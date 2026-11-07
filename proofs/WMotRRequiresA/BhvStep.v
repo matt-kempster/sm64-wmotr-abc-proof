@@ -56,13 +56,13 @@ From Coq Require Import ZArith Lia List Bool.
 From compcert Require Import Coqlib Integers Floats Values AST Ctypes Cop Clight
   ClightBigstep Clightdefs Memory Maps Globalenvs Events Errors Linking.
 From SM64.Generated Require behavior_script memory behavior_data object_helpers
-  object_list_processor area behavior_actions.
+  object_list_processor area behavior_actions graph_node.
 From SM64.Proofs Require Import SymbolicLinking LinkedTwelve RealFrameLinked.
 From SM64.Proofs.WMotRRequiresA Require Import BhvVM BehaviorScripts.
 From SM64.Proofs.MarioModel Require SpawnBodies.
 From SM64.Proofs.WMotRRequiresA Require RenderAnim ObjWorld ObjPhase ObjLoop ObjCensus PlatformWalk BoxCensus
   ObjSelf ObjFrame FpuFloor ObjAlloc.
-From SM64.Proofs.WMotRRequiresA Require ObjCreate ObjMake ObjGeo ObjOrigin ObjCopy ObjChild ObjDroplet.
+From SM64.Proofs.WMotRRequiresA Require ObjCreate ObjMake ObjGeo ObjOrigin ObjCopy ObjChild ObjDroplet ObjAnimate.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -770,7 +770,20 @@ Proof.
     apply Ptrofs.eqm_sym; apply Ptrofs.eqm_unsigned_repr.
 Qed.
 
-Lemma nd_app_disj :forall (l1 l2 : list Z) x, NoDup (l1 ++ l2) -> In x l1 -> In x l2 -> False.
+(* ANIMATE (opcode 0x28 = 40): one word *)
+Lemma succs_an : forall st w, word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 40 ->
+  succs st = if Nat.ltb (List.length (words (v_s st))) (v_i st + 1) then None else
+    Some [at_ st (v_s st) (v_i st + 1) (v_k st)].
+Proof. intros st w Hw Ho. unfold succs. cbv zeta. rewrite Hw, Ho. reflexivity. Qed.
+
+Lemma aio_eq : forall oc d, 0 <= oc <= 145312 -> 0 <= d <= 16 ->
+  ObjAnimate.AIo (Ptrofs.add (Ptrofs.add (Ptrofs.repr oc) (Ptrofs.repr 0)) (Ptrofs.repr 0)) d = oc + 56 + d.
+Proof.
+  intros oc d Ho Hd. unfold ObjAnimate.AIo. rewrite !padd_repr.
+  rewrite Ptrofs.unsigned_repr by (rewrite maxu; lia). lia.
+Qed.
+
+Lemma nd_app_disj : forall (l1 l2 : list Z) x, NoDup (l1 ++ l2) -> In x l1 -> In x l2 -> False.
 Proof.
   induction l1 as [| a l1 IH]; intros l2 x Hn H1 H2; [ destruct H1 | ].
   cbn in Hn. apply NoDup_cons_iff in Hn as (Ha & Hn).
@@ -7338,19 +7351,260 @@ Section Link.
       exact (Hk m st w la fl bpg bwd n rs k fs' m' HI Hst Hw Ho Hla Hfl Hbpg Hbwd Hn0 Hr Hf Hk' R' F' G' U HF Vc).
   Qed.
 
+  (* ---- ANIMATE (opcode 0x28 = 40): the REAL bhv_cmd_animate ----
+     animIndex = byte2 w; animations = o->oAnimations (field 38);
+     geo_obj_init_animation(&o->header.gfx, &animations[animIndex]) (walked in
+     ObjAnimate.goia_real); gCurBhvCommand++; return 0 *)
+  Lemma ufo_anims : forall co, (genv_cenv G) ! BS.__764 = Some co ->
+    union_field_offset G BS._asAnims (co_members co) = OK (0, Full).
+  Proof. apply (PlatformWalk.ufo_ok_lift (prog_comp_env BS.prog)); [ vm_compute; reflexivity | exact bs_cenv ]. Qed.
+  Lemma fo_hdr : forall co, (genv_cenv G) ! BS._Object = Some co ->
+    field_offset G BS._header (co_members co) = OK (0, Full).
+  Proof. exact fo_header. Qed.
+
+  (* o->rawData.asAnims + 38: the cell oc + 136 + 4 * 38 *)
+  Lemma ev_anims38 : forall m le p b o,
+    eval_expr G empty_env le m
+      (Ebinop Oadd
+         (Efield (Efield (Ederef (Etempvar p (tptr (Tstruct BS._Object noattr))) (Tstruct BS._Object noattr))
+            BS._rawData (Tunion BS.__764 noattr)) BS._asAnims
+            (tarray (tptr (tptr (Tstruct BS._Animation noattr))) 80))
+         (Econst_int (Int.repr 38) tint) (tptr (tptr (tptr (Tstruct BS._Animation noattr))))) (Vptr b o) ->
+    le ! p = Some (Vptr pool (Ptrofs.repr oc)) ->
+    b = pool /\ Ptrofs.unsigned o = oc + 136 + 4 * 38.
+  Proof.
+    intros m le p b o Hb Hp.
+    apply RA.ev_binop in Hb; destruct Hb as (v1 & v2 & E1 & E2 & E3).
+    apply RA.ev_const in E2. subst v2.
+    inv E1. cbn [typeof] in E3.
+    match goal with H0 : deref_loc _ _ _ _ _ _ |- _ => inv H0 end; kill_r.
+    all: match goal with H : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ => inv H end; kill_r.
+    all: match goal with Ht : typeof _ = Tunion _ _ |- _ => cbn in Ht; injection Ht as <- <- end.
+    all: match goal with Hf : union_field_offset _ _ (co_members ?co) = OK _, Hc : _ ! _ = Some ?co |- _ =>
+           rewrite (ufo_anims _ Hc) in Hf; injection Hf; intros; subst end.
+    all: match goal with He : eval_expr _ _ _ _ (Efield _ _ _) _ |- _ => inv He end.
+    all: match goal with Hd2 : deref_loc (typeof (Efield _ _ _)) _ _ _ _ _ |- _ =>
+           cbn [typeof] in Hd2; inv Hd2 end; kill_r.
+    all: match goal with Hl : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ => inv Hl end; kill_r.
+    all: match goal with Ht : typeof _ = Tstruct _ _ |- _ => cbn in Ht; injection Ht as <- <- end.
+    all: match goal with Hf : field_offset _ _ (co_members ?co) = OK _, Hc : _ ! _ = Some ?co |- _ =>
+           rewrite (fo_raw _ Hc) in Hf; injection Hf; intros; subst end.
+    all: match goal with He : eval_expr _ _ _ _ (Ederef _ _) _ |- _ => inv He end.
+    all: match goal with Hd2 : deref_loc (typeof (Ederef _ _)) _ _ _ _ _ |- _ =>
+           cbn [typeof] in Hd2; inv Hd2 end; kill_r.
+    all: match goal with Hl : eval_lvalue _ _ _ _ (Ederef _ _) _ _ _ |- _ => inv Hl end.
+    all: match goal with Ht : eval_expr _ _ _ _ (Etempvar _ _) _ |- _ => apply RA.ev_temp in Ht end.
+    all: match goal with Ht : ?l ! ?x = Some (Vptr _ _), Hq : ?l ! ?x = Some (Vptr pool _) |- _ =>
+           tryif constr_eq Ht Hq then fail else (rewrite Hq in Ht; injection Ht as <- <-) end.
+    all: cbn in E3; injection E3 as <- <-.
+    all: split; [ reflexivity | ].
+    all: unfold Ptrofs.of_ints; rewrite Int.signed_repr by (cbn; lia); apply raw_addr; lia.
+  Qed.
+
+  Lemma dm_goia : (prog_defmap graph_node.prog) ! BS._geo_obj_init_animation
+    = Some (Gfun (Internal graph_node.f_geo_obj_init_animation)).
+  Proof. vm_compute. reflexivity. Qed.
+  Lemma fun_gn : forall id f, (prog_defmap graph_node.prog) ! id = Some (Gfun (Internal f)) ->
+    forall b fd, Genv.find_symbol G id = Some b ->
+      Genv.find_funct G (Vptr b Ptrofs.zero) = Some fd -> fd = Internal f.
+  Proof. intros id f. exact (ObjPhase.fun_of lp _ _ _ (linked12_LO_graph_node lp H12)). Qed.
+  Lemma gn_cenv : forall id co, (prog_comp_env graph_node.prog) ! id = Some co -> (genv_cenv G) ! id = Some co.
+  Proof. exact (ObjAlloc.cenv_of lp _ (linked12_LO_graph_node lp H12)). Qed.
+  Lemma s2v_gn : forall b fd, Genv.find_symbol G graph_node._segmented_to_virtual = Some b ->
+    Genv.find_funct G (Vptr b Ptrofs.zero) = Some fd -> fd = Internal memory.f_segmented_to_virtual.
+  Proof. intros b fd Hs Hf. exact (fun_mem _ _ dm_s2v b fd Hs Hf). Qed.
+
+  (* the four animInfo stores keep the VM cells, gCurBhvCommand and cur *)
+  Lemma an_stores : forall m va v1 v2 v3 ma mb mc md,
+    Mem.store Mint32 m pool (oc + 56 + 4) va = Some ma ->
+    Mem.store Mint16signed ma pool (oc + 56 + 8) v1 = Some mb ->
+    Mem.store Mint32 mb pool (oc + 56 + 16) v2 = Some mc ->
+    Mem.store Mint16signed mc pool (oc + 56 + 2) v3 = Some md ->
+    (cur m -> cur md) /\ Mem.load Mint32 md bc 0 = Mem.load Mint32 m bc 0
+    /\ (forall z, oc + 460 <= z -> Mem.load Mint32 md pool z = Mem.load Mint32 m pool z).
+  Proof.
+    intros m va v1 v2 v3 ma mb mc md S1 S2 S3 S4. split; [ | split ].
+    - intros Hc. exact (cur_store _ _ _ _ _ S4 (cur_store _ _ _ _ _ S3 (cur_store _ _ _ _ _ S2 (cur_store _ _ _ _ _ S1 Hc)))).
+    - rewrite (Mem.load_store_other _ _ _ _ _ _ S4) by (left; exact Hbp).
+      rewrite (Mem.load_store_other _ _ _ _ _ _ S3) by (left; exact Hbp).
+      rewrite (Mem.load_store_other _ _ _ _ _ _ S2) by (left; exact Hbp).
+      exact (Mem.load_store_other _ _ _ _ _ _ S1 _ _ _ (or_introl Hbp)).
+    - intros z Hz.
+      rewrite (Mem.load_store_other _ _ _ _ _ _ S4) by (right; right; cbn [size_chunk]; lia).
+      rewrite (Mem.load_store_other _ _ _ _ _ _ S3) by (right; right; cbn [size_chunk]; lia).
+      rewrite (Mem.load_store_other _ _ _ _ _ _ S2) by (right; right; cbn [size_chunk]; lia).
+      apply (Mem.load_store_other _ _ _ _ _ _ S1). right. right. cbn [size_chunk]. lia.
+  Qed.
+
+  Definition an_post (m m1 : mem) (w : Z) : Prop :=
+    m1 = m
+    \/ exists bt ot va v1 v2 v3 ma mb mc,
+         Mem.load Mint32 m pool (oc + 136 + 4 * 38) = Some (Vptr bt ot)
+         /\ Mem.loadv Mint32 m (Vptr bt (Ptrofs.add ot (Ptrofs.mul (Ptrofs.repr 4)
+                                                       (Ptrofs.of_ints (Int.repr (byte2 w)))))) = Some va
+         /\ Mem.store Mint32 m pool (oc + 56 + 4) va = Some ma
+         /\ Mem.store Mint16signed ma pool (oc + 56 + 8) v1 = Some mb
+         /\ Mem.store Mint32 mb pool (oc + 56 + 16) v2 = Some mc
+         /\ Mem.store Mint16signed mc pool (oc + 56 + 2) v3 = Some m1.
+
+  Lemma hd_animate : forall m st w t m' vr,
+    In st vm_tab -> scr_ok G m -> V m st -> cur m ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 40 ->
+    eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_animate) [] t m' vr ->
+    exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
+      /\ exists m1, an_post m m1 w /\ Mem.unchanged_on Pfr m1 m'.
+  Proof.
+    intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
+    destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
+    pose proof (succs_an st w Hw Ho) as Es. rewrite Hl in Es.
+    destruct (Nat.ltb _ _) eqn:Elt; [ discriminate Es | ]. apply Nat.ltb_ge in Elt.
+    injection Es as Es. subst l.
+    apply V_iff in HV as ((b & Hsb & Hcm) & HS).
+    destruct (word_int _ _ _ Hw) as (n & Hn & Ewn).
+    destruct (Hscr (v_s st) b (v_i st) _ Hsb (in_map _ _ _ Hst) Hn) as (vn & Hlv & Hiv).
+    cbn in Hiv. subst vn.
+    assert (Hilt : (v_i st < List.length (words (v_s st)))%nat)
+      by (apply nth_error_Some; rewrite Hn; discriminate).
+    remember (4 * Z.of_nat (v_i st)) as I4 eqn:EI.
+    try rewrite <- EI in Hlv. try rewrite <- EI in Hcm.
+    apply fcall_inv in H as (le1 & le2 & out1 & Hb & X & Hor); [ | reflexivity ].
+    cbn [fn_params BS.f_bhv_cmd_animate bind_parameter_temps] in Hb. injection Hb as <-.
+    cbn [fn_body BS.f_bhv_cmd_animate] in X.
+    apply RA.seq_inv in X as [(t1 & le1 & m1 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
+    (* animIndex = ( *cmd >> 16) & 0xFF *)
+    apply RA.seq_inv in X1 as [(t3 & le3 & m3 & t4 & X3 & X4) | (X3 & Xn)]; [ | kill_sq X3 Xn ].
+    destruct (ld_cmd _ _ _ _ _ _ _ _ X3 Hcm) as (-> & -> & _).
+    apply RA.seq_inv in X4 as [(t5 & le5 & m5 & t6 & X5 & X6) | (X5 & Xn)]; [ | kill_sq X5 Xn ].
+    apply RA.set_inv in X5 as (vw & Evw & -> & -> & _).
+    apply (ev_w0 _ _ _ b I4 n _ (PTree.gss _ _ _) ltac:(lia) Hlv) in Evw. subst vw.
+    apply RA.set_inv in X6 as (vf & Evf & -> & -> & _).
+    apply RA.ev_cast in Evf as (x2 & Ex2 & C2).
+    apply RA.ev_binop in Ex2 as (a1 & a2 & Ea1 & Ea2 & Eand).
+    apply RA.ev_binop in Ea1 as (s1 & s2 & Es1 & Es2 & Eshr).
+    apply RA.ev_temp in Es1. rewrite PTree.gss in Es1. injection Es1 as <-.
+    apply RA.ev_const in Es2. subst s2. apply RA.ev_const in Ea2. subst a2.
+    cbn in Eshr. injection Eshr as <-. cbn in Eand. injection Eand as <-. cbn in C2. injection C2 as <-.
+    match goal with X : exec_stmt _ _ _ (PTree.set BS._animIndex ?v _) _ _ _ _ _ _ |- _ =>
+      change v with (Vint (Int.zero_ext 8 (Int.and (Int.shru n (Int.repr 16)) (Int.repr 255)))) in X end.
+    (* animations = o->oAnimations *)
+    apply RA.seq_inv in X2 as [(u1 & ke1 & mm1 & u2 & Y1 & Y2) | (Y1 & Xn)]; [ | kill_sq Y1 Xn ].
+    apply RA.seq_inv in Y1 as [(u3 & ke3 & mm3 & u4 & Y3 & Y4) | (Y3 & Xn)]; [ | kill_sq Y3 Xn ].
+    apply ld_cur in Y3 as (-> & -> & _); [ | exact Hc ].
+    apply RA.set_inv in Y4 as (va & Eva & -> & -> & _).
+    apply (ev_deref _ _ _ _ _ (tptr (tptr (Tstruct BS._Animation noattr))) Mint32 _ eq_refl) in Eva
+      as (ba & oa & Eadd & Lva).
+    apply ev_anims38 in Eadd as (-> & Eoa); [ | apply PTree.gss ].
+    cbn [Mem.loadv] in Lva. rewrite Eoa in Lva.
+    (* geo_obj_init_animation(&o->header.gfx, animations + animIndex) *)
+    apply RA.seq_inv in Y2 as [(u5 & ke5 & mm5 & u6 & Y5 & Y6) | (Y5 & Xn)]; [ | kill_sq Y5 Xn ].
+    apply RA.seq_inv in Y5 as [(u7 & ke7 & mm7 & u8 & Y7 & Y8) | (Y7 & Xn)]; [ | kill_sq Y7 Xn ].
+    apply ld_cur in Y7 as (-> & -> & _); [ | exact Hc ].
+    apply RA.call_inv in Y8 as (tya & tyr & cc & vf & vargs & fd & vres & Hcf & Evf & Eal & Hff & _ & Hcall & -> & _).
+    cbn in Hcf. injection Hcf as <- <- <-.
+    match type of Evf with eval_expr _ _ _ _ (Evar _ ?ty) _ =>
+      destruct (RA.ev_fun G empty_env m _ _ ty vf (PTree.gempty _ _) eq_refl Evf) as (bf & Hsf & ->) end.
+    rewrite (fun_gn _ _ dm_goia bf fd Hsf Hff) in Hcall.
+    destruct (ObjLoop.exl2 _ _ _ _ _ _ _ _ Eal) as (ty1 & ty2 & v1 & v2 & w1 & w2 & E1 & -> & Ev1 & C1 & Ev2 & C2').
+    injection E1 as <- <-.
+    (* arg 1: &o->header.gfx = the slot *)
+    inv Ev1; try (match goal with Hl : eval_lvalue _ _ _ _ (Eaddrof _ _) _ _ _ |- _ => inv Hl end).
+    match goal with Hlg : eval_lvalue _ _ _ _ (Efield _ _ _) _ _ _ |- _ =>
+      apply (ObjAnimate.lv_fld2 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ fo_hdr fo_gfx) in Hlg as (og & Eog & -> & _) end.
+    rewrite PTree.gss in Eog. injection Eog as <- <-.
+    cbn [typeof] in C1. rewrite cast_pp in C1. injection C1 as <-.
+    (* arg 2: animations + animIndex *)
+    apply RA.ev_binop in Ev2 as (p1 & p2 & Ep1 & Ep2 & Epadd).
+    apply RA.ev_temp in Ep1. repeat first [ rewrite PTree.gss in Ep1 | rewrite PTree.gso in Ep1 by RA.neq ].
+    injection Ep1 as <-.
+    apply RA.ev_temp in Ep2. repeat first [ rewrite PTree.gss in Ep2 | rewrite PTree.gso in Ep2 by RA.neq ].
+    injection Ep2 as <-.
+    cbn [typeof] in C2'. apply RA.cast_ptr_id in C2'. subst w2.
+    destruct (ObjAnimate.goia_real G gn_cenv s2v_gn _ _ _ _ _ _ _ Hcall) as (ab & ao & -> & Hgi).
+    cbn [typeof] in Epadd.
+    apply ObjAnimate.padd_inv in Epadd as (ot & -> & ->). rename ab into bt.
+    assert (Efi : Int.zero_ext 8 (Int.and (Int.shru n (Int.repr 16)) (Int.repr 255))
+                  = Int.repr (byte2 (Int.unsigned n))).
+    { rewrite <- (Int.repr_signed (Int.zero_ext 8 _)). f_equal. rewrite <- fld_eq, Int.zero_ext_idem by lia.
+      reflexivity. }
+    match type of Hgi with context [Ptrofs.of_ints ?X] =>
+      change X with (Int.zero_ext 8 (Int.and (Int.shru n (Int.repr 16)) (Int.repr 255))) in Hgi end.
+    rewrite Efi in Hgi. try rewrite <- Ewn in Hgi.
+    rewrite !aio_eq in Hgi by lia.
+    (* gCurBhvCommand++ ; return 0 *)
+    apply RA.seq_inv in Y6 as [(u11 & ke11 & n11 & u12 & Y11 & Y12) | (Y11 & Xn)]; [ | kill_sq Y11 Xn ].
+    apply RA.seq_inv in Y11 as [(u13 & ke13 & n13 & u14 & Y13 & Y14) | (Y13 & Xn)]; [ | kill_sq Y13 Xn ].
+    assert (Hpost : an_post m mm5 (Int.unsigned n) /\ (cur mm5) /\ Mem.load Mint32 mm5 bc 0 = Mem.load Mint32 m bc 0
+                    /\ forall z, oc + 460 <= z -> Mem.load Mint32 mm5 pool z = Mem.load Mint32 m pool z).
+    { destruct Hgi as [-> | (va' & w1 & w2' & w3 & ma & mb & mc & Lva' & S1 & S2 & S3 & S4)].
+      - split; [ left; reflexivity | split; [ exact Hc | split; [ reflexivity | intros; reflexivity ] ] ].
+      - destruct (an_stores _ _ _ _ _ _ _ _ _ S1 S2 S3 S4) as (Hc1 & Hb1 & Hp1).
+        split; [ right; exists bt, ot, va', w1, w2', w3, ma, mb, mc | split; [ exact (Hc1 Hc) | split; [ exact Hb1 | exact Hp1 ] ] ].
+        exact (conj Lva (conj Lva' (conj S1 (conj S2 (conj S3 S4))))). }
+    destruct Hpost as (Hpost & Hc5 & Hb5 & Hp5).
+    assert (Lc : Mem.load Mint32 mm5 bc 0 = Some (Vptr b (Ptrofs.repr (4 * Z.of_nat (v_i st))))) by (rewrite Hb5; exact Hcm).
+    destruct (ld_cmd _ _ _ _ _ _ _ _ Y13 Lc) as (-> & -> & _).
+    apply st_cmd in Y14 as (v4 & v5 & Ev4 & Hcast4 & Hs2 & -> & _).
+    apply RA.ev_binop in Ev4 as (q1 & q2 & Eq1 & Eq2 & Eadd).
+    apply RA.ev_temp in Eq1. rewrite PTree.gss in Eq1. injection Eq1 as <-.
+    apply RA.ev_const in Eq2. subst q2. cbn [typeof] in Eadd. rewrite add_pi in Eadd. injection Eadd as <-.
+    cbn [typeof] in Hcast4. rewrite cast_pp in Hcast4. injection Hcast4 as <-.
+    rewrite ptr_inc in Hs2 by lia. assert (Hs2x : Mem.store Mint32 mm5 bc 0 (Vptr b (Ptrofs.repr (4 * Z.of_nat (v_i st + 1)))) = Some n11) by (replace (4 * Z.of_nat (v_i st + 1)) with (4 * Z.of_nat (v_i st) + 4 * 1) by lia; exact Hs2). clear Hs2. rename Hs2x into Hs2.
+    destruct (bc_store _ _ _ Hs2) as (Hc2 & _ & U2).
+    apply RA.ret_inv in Y12 as (-> & rv & Erv & ->). apply RA.ev_const in Erv. subst rv.
+    cbn in Hor. destruct Hor as (_ & Hor). cbn in Hor. injection Hor as <-.
+    assert (HS1 : Vstk mm5 (v_k st)).
+    { destruct HS as (Hsi & Hk). split.
+      - rewrite Hp5 by (unfold OW.O_SIDX; lia). exact Hsi.
+      - intros j f Hj.
+        assert (Hjl : (j < List.length (v_k st))%nat) by (apply nth_error_Some; rewrite Hj; discriminate).
+        rewrite Hp5 by (unfold OW.O_STK; lia). exact (Hk j f Hj). }
+    eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
+    - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
+    - split; [ exact (Hc2 Hc5) | split; [ reflexivity | ] ].
+      exists mm5. exact (conj Hpost U2).
+  Qed.
+
+  (* ANIMATE's row (opcode 40).  Computed reachable users (vm_animate_users):
+     bhvBobombBuddyOpensCannon, bhvEndToad, bhvEndPeach, all with index 0.
+     The handler and geo_obj_init_animation are walked whole (hd_animate,
+     ObjAnimate.goia_real); the run either writes nothing or the four
+     animInfo cells of the CURRENT slot (curAnim @60 := animations[index],
+     the pointer the slot's oAnimations table holds; animFrame @64,
+     animAccel @72, animYTrans @58).  Pinned: an_keep -- INV survives those
+     four stores (obj_w reads no animInfo cell; PhiW pins Mario's, and no
+     user is Mario) *)
+  Definition an_keep : Prop := forall m st w m1, INV m -> In st vm_tab ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 40 -> an_post m m1 w -> INV m1.
+
+  Lemma row_animate : an_keep -> cmd_row_op 40.
+  Proof.
+    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 40) = Some BS._bhv_cmd_animate)
+      by (vm_compute; reflexivity).
+    rewrite E in Hid. injection Hid as <-.
+    assert (Hdm : (prog_defmap BS.prog) ! BS._bhv_cmd_animate
+                  = Some (Gfun (Internal BS.f_bhv_cmd_animate))) by (vm_compute; reflexivity).
+    rewrite (fun_bs _ _ Hdm _ _ Hhb Hfd) in Hev.
+    destruct (hd_animate _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
+      as (l & st' & Hl & Hin & HV' & _ & -> & m1 & Hp & U).
+    exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ HI Hst Hw Ho Hp) U).
+    - left. reflexivity.
+  Qed.
+
   (* the pinned one-store premises of the field commands, together *)
   Definition row_keeps : Prop := set_keep /\ setf_keep /\ addi_keep /\ ori_keep /\ addf_keep /\ sumf_keep /\ deact_keep /\ sit_keep /\ srf_keep /\ sri_keep /\ sir_keep /\ par51_ok /\ pbc_keep /\ atex_keep /\ bb_keep /\ dr_keep /\ hb_keep /\ hbo_keep /\ home_keep /\ phys_keep /\ la_keep /\ lcd_keep /\ scale_keep /\ begin_ok /\ sfr_keep /\ native_res
-    /\ sc_pre /\ sc_free /\ sc_keep /\ wd_pre /\ wd_free /\ wd_dp /\ wd_keep.
+    /\ sc_pre /\ sc_free /\ sc_keep /\ wd_pre /\ wd_free /\ wd_dp /\ wd_keep /\ an_keep.
 
   (* the opcodes whose rows are proved: the control layer, DELAY_VAR, and
      SET_INT / SET_FLOAT / ADD_INT / OR_INT / ADD_FLOAT / SUM_FLOAT / DEACTIVATE / SET_INTERACT_TYPE / SET_RANDOM_FLOAT / SET_RANDOM_INT / SET_INT_RAND_RSHIFT / PARENT_BIT_CLEAR / ANIMATE_TEXTURE / BILLBOARD / DISABLE_RENDERING / SET_HITBOX(_WITH_OFFSET) / SET_HOME / SET_OBJ_PHYSICS / LOAD_ANIMATIONS / LOAD_COLLISION_DATA / SCALE / BEGIN / CALL_NATIVE / SPAWN_CHILD (from row_keeps) *)
-  Definition done_ops : list Z := 55 :: 28 :: 12 :: 0 :: 50 :: 39 :: 42 :: 48 :: 45 :: 35 :: 43 :: 33 :: 53 :: 52 :: 51 :: 21 :: 19 :: 20 :: 47 :: 29 :: 31 :: 13 :: 17 :: 15 :: 14 :: 16 :: 37 :: ctl_ops.
+  Definition done_ops : list Z := 40 :: 55 :: 28 :: 12 :: 0 :: 50 :: 39 :: 42 :: 48 :: 45 :: 35 :: 43 :: 33 :: 53 :: 52 :: 51 :: 21 :: 19 :: 20 :: 47 :: 29 :: 31 :: 13 :: 17 :: 15 :: 14 :: 16 :: 37 :: ctl_ops.
 
   Lemma done_rows : row_keeps -> forall op, In op done_ops -> cmd_row_op op.
   Proof.
-    intros (K16 & K14 & K15 & K17 & K13 & K31 & K29 & K47 & K20 & K21 & K19 & K51p & K51 & K52 & K33 & K53 & K35 & K43 & K45 & K48 & K39 & K42 & K50 & K0 & K12a & K12b & K28a & K28b & K28c & K55a & K55b & K55c & K55d) op
-      [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | H]]]]]]]]]]]]]]]]]]]]]]]]]]];
-      [ exact (row_spawn_water_droplet K55a K55b K55c K55d) | exact (row_spawn_child K28a K28b K28c) | exact (row_call_native (native_keep_of K12a K12b)) | exact (row_begin K0) | exact (row_scale K50) | exact (row_load_animations K39) | exact (row_load_collision_data K42) | exact (row_set_obj_physics K48) | exact (row_set_home K45) | exact (row_set_hitbox K35) | exact (row_set_hitbox_with_offset K43) | exact (row_billboard K33) | exact (row_disable_rendering K53) | exact (row_animate_texture K52) | exact (row_parent_bit_clear K51p K51) | exact (row_set_random_int K21) | exact (row_set_int_rand_rshift K19) | exact (row_set_random_float K20) | exact (row_set_interact_type K47) | exact (row_deactivate K29) | exact (row_sum_float K31) | exact (row_add_float K13) | exact (row_or_int K17) | exact (row_add_int K15)
+    intros (K16 & K14 & K15 & K17 & K13 & K31 & K29 & K47 & K20 & K21 & K19 & K51p & K51 & K52 & K33 & K53 & K35 & K43 & K45 & K48 & K39 & K42 & K50 & K0 & K12a & K12b & K28a & K28b & K28c & K55a & K55b & K55c & K55d & K40) op
+      [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | H]]]]]]]]]]]]]]]]]]]]]]]]]]]];
+      [ exact (row_animate K40) | exact (row_spawn_water_droplet K55a K55b K55c K55d) | exact (row_spawn_child K28a K28b K28c) | exact (row_call_native (native_keep_of K12a K12b)) | exact (row_begin K0) | exact (row_scale K50) | exact (row_load_animations K39) | exact (row_load_collision_data K42) | exact (row_set_obj_physics K48) | exact (row_set_home K45) | exact (row_set_hitbox K35) | exact (row_set_hitbox_with_offset K43) | exact (row_billboard K33) | exact (row_disable_rendering K53) | exact (row_animate_texture K52) | exact (row_parent_bit_clear K51p K51) | exact (row_set_random_int K21) | exact (row_set_int_rand_rshift K19) | exact (row_set_random_float K20) | exact (row_set_interact_type K47) | exact (row_deactivate K29) | exact (row_sum_float K31) | exact (row_add_float K13) | exact (row_or_int K17) | exact (row_add_int K15)
       | exact (row_set_float K14) | exact (row_set_int K16) | exact row_delay_var | exact (ctl_rows op H) ].
   Qed.
 

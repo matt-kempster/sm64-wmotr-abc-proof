@@ -1438,6 +1438,16 @@ without pressing A".*
     [-8191, 4542].
   - The other way to meet it is an sTerrainSounds entry of 2, and there is none.
   Proving the row on the real code instead makes it hold either way.
+  **Row 40 ANIMATE (2026-11-07): `row_animate`, on the REAL handler.** `hd_animate`
+  walks bhv_cmd_animate. `ObjAnimate.goia_real` walks geo_obj_init_animation, including
+  segmented_to_virtual's real body (the identity, TRUST 2.2). The run does one of two
+  things:
+  - writes nothing; or
+  - writes the CURRENT slot's four animInfo cells: curAnim @60 (set to animations[index],
+    where animations is the slot's oAnimations), animFrame @64, animAccel @72 and
+    animYTrans @58.
+  Every value comes from the run itself. One pinned premise is added to `row_keeps`:
+  `an_keep`, which says INV survives those stores (`an_post`). No new trust row.
   **`ow_scr` (2026-11-03): `scr_ok` is an obj_w clause.** `ObjWorld.scr_ok` (moved from
   BhvStep, which keeps its names as notations) is obj_w's 21st clause; the boot witness
   checks it by vm inside `ow_chk` (`scr_b_l` over the reachable scripts, at m3 / m4 / m11).
