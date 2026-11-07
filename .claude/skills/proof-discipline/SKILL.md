@@ -963,7 +963,14 @@ all in `Unwired/`, and the theorem moved nowhere. See
        TIE: obj_w's ow_tie (T1 tie_bhvs => sp_vm; T3 pole/cannon action => usedObj
        sp_vm), boot-checked (tie_b); Kbm lists gained bm 12 (Hcam_ow_res now also
        claims Mario's action; dead npc leaf under cam_w). Spawn keep: with the GFK.
-       Next: Hcam_cannon_cutscene + the stale-lid state tie (coordinator OK'd (b)).
+       Stale-lid tie (Hcam_cannon_cutscene >= 143 frames + M1/M2 proved) and the
+       value-tracking SFR' (discharging native_vals) come AFTER the step rows are
+       wired; until then keep the stale-lid case out of premises (name the gap
+       Hplat_stale_lid if the generic keep needs it).
+       FOUND/REPAIRED: sfr_keep was false (SFR' carries no store values; MWF R7 /
+       PhiW closedness) -- now takes nvals; natives' side native_vals (Hnative_vals).
+       RenderKeep KEEP: type-only collided objects Qt (LDt / QtT; QU only in
+       pole / cannon actions).
        Next (W2/W3, coordinator OK'd INV_k = Pobjl with ow_vm relaxed at slot k + cur):
        Hinv/Hinv_cur/Hinv_frame for INV_k; discharge row_keeps (phantom rule: a keep
        false without a script tie => strengthen INV with script-tied pins, checked on

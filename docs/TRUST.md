@@ -1399,7 +1399,21 @@ without pressing A".*
   (`sfr_keep`). 35 of the 94 natives generic states call are bulk (`cn_census`).
   RESIDUAL (`native_res`): the other 59 generic natives (cross-slot writers: spawn /
   allocate, the 5 obj_set_hitbox interactType writers, red_coin_init's parent) and the
-  13 called from special states (Mario's three included). BhvStep now also takes
+  13 called from special states (Mario's three included).
+  VALUE SIDE (`native_vals`, to be named `Hnative_vals` where the rows are wired):
+  a bulk native at a generic state stores into old blocks only pointers to blocks
+  `PV` names at entry (`nvals`; the instance is a SafeB block). It sits beside
+  `native_res` among the residuals. TRUE IN THE GAME: bulk natives store ints /
+  floats, pool and surface pointers (oFloor into the main-pool block, SafeB by
+  StartSat's SB1) and data-symbol pointers. To be DISCHARGED by a value-tracking SFR'
+  walk (option A, scheduled with the stale-lid M1/M2 after the step rows are wired).
+  **FOUND / REPAIRED (2026-11-07, phantom ∀ in `sfr_keep`).** SFR' says only WHERE a
+  bulk native stores, never WHAT. So over every m1 it allows (e.g. a pointer to a
+  freed local stored into the slot), `sfr_keep` was FALSE for any INV holding MWF_real
+  (R7: the pool is SafeB, and SafeB is load-closed) or PhiW's closedness. REPAIRED:
+  `sfr_keep` takes the value premise `nvals m m1`, and the natives' side is the
+  separate premise `native_vals` above. This splits an undischarged premise into a
+  true one; no capstone row moves. BhvStep now also takes
   `Hsq` (sqrtf_spec, the FPU floor row already in the ledger) and `Hpool` (the current
   slot lives in gObjectPool). No new trust row; ObjFrame's whole-walk frame (ls_frame)
   is not used. The pinned premises are bundled as `row_keeps`.
