@@ -480,6 +480,51 @@ Section GS.
           eapply Mem.load_store_other; [ exact Hst | exact Hdis ].
   Qed.
 
+  (* mem_ok across an int store into a dynamic block (past every global):
+     every MWF row is a global's block, and an int is no pointer
+     (2026-11-06, for unload's respawn OR into a SpawnInfo cell) *)
+  Lemma safe_store_dyn : forall bP ch z i m1 m2,
+      Ple (Genv.genv_next G) bP ->
+      Mem.store ch m1 bP z (Vint i) = Some m2 ->
+      mem_ok_lp bm MWF m1 -> mem_ok_lp bm MWF m2.
+  Proof.
+    intros bP ch z i m1 m2 HP Hst (Hvb & Hsat & HM).
+    pose proof Hsp as Hsp0. pose proof Hsp as (init & _ & Hbm & Hbc & _).
+    assert (Hne : forall id b, Genv.find_symbol G id = Some b -> bP <> b).
+    { intros id b Hs ->. pose proof (Genv.genv_symb_range _ _ Hs) as R. unfold Plt, Ple in *. lia. }
+    assert (Hnbm : bP <> bm) by exact (Hne _ _ Hbm).
+    split; [ eauto using Mem.store_valid_block_1 | split ].
+    - eapply action_sat_unchanged_on with (m := m1); [ | exact Hvb | exact Hsat ].
+      eapply Mem.store_unchanged_on; [ exact Hst | ].
+      intros i0 _ [Hb _]. exact (Hnbm Hb).
+    - apply (MWF_real_transfer lp bm bc oc0 SafeB (ObjExtBodies.ox_Hbc_bm lp bm bc oc0 Hsp0) m1 m2); [ .. | exact HM ].
+      + intros b Hv. eapply Mem.store_valid_block_1; eauto.
+      + intros v0 Hld. pose proof HM as (_ & R1 & _). apply R1.
+        rewrite <- Hld. symmetry.
+        eapply Mem.load_store_other; [ exact Hst | left; congruence ].
+      + intros ch1 b ofs v0 Hrow Hld.
+        rewrite <- Hld. symmetry.
+        eapply Mem.load_store_other; [ exact Hst | left ].
+        intro E. subst b.
+        destruct Hrow as [ [Eb _] | [ Eb | [ Hfs2 | [ Hfs2 | [ Hfs2 | [ Hkt | Hab ] ] ] ] ] ].
+        * exact (Hnbm Eb).
+        * exact (Hne _ _ Hbc Eb).
+        * exact (Hne _ _ Hfs2 eq_refl).
+        * exact (Hne _ _ Hfs2 eq_refl).
+        * exact (Hne _ _ Hfs2 eq_refl).
+        * destruct Hkt as (gid2 & _ & Hfs2). exact (Hne _ _ Hfs2 eq_refl).
+        * exact (Hne _ _ Hab eq_refl).
+      + intros b ofs b' o' Hs Hld.
+        pose proof HM as (_ & _ & _ & _ & _ & _ & _ & R7 & _).
+        cbn in Hld.
+        destruct (Mem.load_pointer_store _ _ _ _ _ _ _ _ _ _ _ Hst Hld)
+          as [ (Evv & _) | Hdis ].
+        * discriminate Evv.
+        * apply (R7 b ofs b' o' Hs). cbn.
+          rewrite <- Hld. symmetry.
+          eapply Mem.load_store_other; [ exact Hst | exact Hdis ].
+  Qed.
+
   (* THE GLOBAL STORE: everything of Pobjl but obj_w, and the store's
      footprint (only bg changed).  2026-11-03: the value may be a pointer
      to a global's block that is SafeB whenever bg is (the update_objects
