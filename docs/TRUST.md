@@ -1404,9 +1404,12 @@ without pressing A".*
   a bulk native at a generic state stores into old blocks only pointers to blocks
   `PV` names at entry (`nvals`; the instance is a SafeB block). Since 2026-11-07
   `nvals` is BYTE level (`nvB (PV m) m m1`: every changed byte of an old block is no
-  pointer fragment, or a fragment of a PV pointer), a strengthening of this
-  undischarged premise that is still true in the game (the natives' pointer stores
-  write whole PV pointers); it matches the handlers' own frame `PfrN` below. It sits beside
+  pointer fragment, or a fragment of a PV pointer; and every old block keeps its
+  permissions), a strengthening of this undischarged premise that is still true in
+  the game (the natives' pointer stores write whole PV pointers; a call frees only
+  the locals it allocated); it matches the handlers' own frame `PfrN` below. When
+  `Hnative_vals` is wired, a static scan of the census natives' pointer stores is to be
+  vm-checked behind it (coordinator 2026-11-07). It sits beside
   `native_res` among the residuals. TRUE IN THE GAME: bulk natives store ints /
   floats, pool and surface pointers (oFloor into the main-pool block, SafeB by
   StartSat's SB1) and data-symbol pointers. To be DISCHARGED by a value-tracking SFR'
