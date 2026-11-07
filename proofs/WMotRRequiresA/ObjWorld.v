@@ -28,8 +28,9 @@
 (*           detect_object_collisions rebuilds it).                        *)
 (*   RED     no listed slot runs bhvStarSpawnCoordinates (the red-coin    *)
 (*           star), and a listed bhvHiddenRedCoinStar's counter is < 8.   *)
-(*   DEBUG   the debug spawner's guard is false (sDebugPage is not        *)
-(*           STAGEINFO or gDebugInfo[ENEMYINFO][7] is not 1).            *)
+(*   DEBUG   sDebugPage is 0 and gDebugInfoFlags has bit 0 clear        *)
+(*           (2026-11-07: the debug prints and the debug spawner's guard *)
+(*           are off; see dflags_ok).                                     *)
 (*   ORDER   sObjectListUpdateOrder holds its initializer.               *)
 (*   STALE   Mario's interactObj / heldObj / usedObj / riddenObj are NULL *)
 (*           or a slot-aligned pool pointer.  NOT claimed: that the slot  *)
@@ -1227,6 +1228,21 @@ Qed.
 (* ---------------------------------------------------------------------- *)
 (* 4. obj_w.                                                                *)
 (* ---------------------------------------------------------------------- *)
+(* gDebugInfoFlags has DEBUG_INFO_FLAG_DPRINT (bit 0) clear (2026-11-07):
+   the gate of debug.c's print_debug_top_down_mapinfo / _bottom_up /
+   _top_down_objectinfo.  In the game: the global boots 0; its only
+   generated store is debug_unknown_level_select_check's (from
+   clear_objects), of 0 << 0 or 1 << 1, both with bit 0 clear
+   (DebugKeep.dlsc_keeps). *)
+Definition dflags_ok (ge : genv) (m : mem) : Prop :=
+  forall b, Genv.find_symbol ge debug._gDebugInfoFlags = Some b ->
+    exists n, Mem.load Mint32 m b 0 = Some (Vint n) /\ Int.and n Int.one = Int.zero.
+
+Lemma dflags_ok_ext : forall (ge : genv) m m',
+  (forall b, Genv.find_symbol ge debug._gDebugInfoFlags = Some b -> Mem.load Mint32 m' b 0 = Mem.load Mint32 m b 0) ->
+  dflags_ok ge m -> dflags_ok ge m'.
+Proof. intros ge m m' K D b Hs. rewrite (K b Hs). exact (D b Hs). Qed.
+
 Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
     (rs : list (list Z)) (fs : list Z) : Prop := {
   ow_gol : Mem.load Mint32 m gol 0 = Some (Vptr la Ptrofs.zero);
@@ -1241,8 +1257,11 @@ Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
   ow_script : forall k, In k (concat rs) -> script_ok ge pool m k;
   ow_act : forall k, In k (concat rs) -> act_ok ge pool m k;
   ow_red : forall k, In k (concat rs) -> red_ok ge pool m k;
-  ow_debug : Mem.load Mint8signed m sdp 0 <> Some (Vint (Int.repr 3))
-             \/ Mem.load Mint16signed m gdi DBG_ENEMY7 <> Some (Vint Int.one);
+  (* 2026-11-07: sDebugPage is 0 (it boots 0 and no generated code stores
+     it by name: try_modify_debug_controls, its only writer in debug.c, has
+     no caller), so the debug spawner's guard (sDebugPage == STAGEINFO) and
+     try_print_debug_mario_object_info's page switch are off *)
+  ow_debug : Mem.load Mint8signed m sdp 0 = Some (Vint Int.zero) /\ dflags_ok ge m;
   ow_stale : forall z, In z [120; 124; 128; 132] ->
                exists v, Mem.load Mint32 m bm z = Some v /\ slot_ptr pool v;
   ow_order : order_ok ge m;
@@ -2466,6 +2485,21 @@ Section Chk3h.
   Qed.
 End Chk3h.
 
+Definition dflags_b (ge : genv) (m : mem) : bool :=
+  match Genv.find_symbol ge debug._gDebugInfoFlags with
+  | Some b => match CM.load Mint32 m b 0 with
+              | Some (Vint n) => Int.eq (Int.and n Int.one) Int.zero
+              | _ => false end
+  | None => true
+  end.
+
+Lemma dflags_b_sound : forall ge m, dflags_b ge m = true -> dflags_ok ge m.
+Proof.
+  intros ge m H b Hs. unfold dflags_b in H. rewrite Hs, CM.load_eq in H.
+  destruct (Mem.load Mint32 m b 0) as [[| n | | | |]|]; try discriminate H.
+  exists n. split; [ reflexivity | exact (Int.same_if_eq _ _ H) ].
+Qed.
+
 Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem) : bool :=
   match rings m pool la, free_list m pool fl, ld32 m gmo 0 with
   | Some rs, Some fs, Some (Vptr pb po) =>
@@ -2480,7 +2514,7 @@ Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : 
       && veqb (Vptr pb po) (slot_v pool k)
       && forallb (fun j => Z.eqb j k || kind_b pool m j) (concat rs)
       && forallb (fun k => script_b ge pool m k && act_b ge pool m k && red_b ge pool m k) (concat rs)
-      && (negb (vint_is (CM.load Mint8signed m sdp 0) 3) || negb (vint_is (CM.load Mint16signed m gdi DBG_ENEMY7) 1))
+      && vint_is (CM.load Mint8signed m sdp 0) 0 && dflags_b ge m
       && forallb (fun z => match ld32 m bm z with Some v => slot_ptr_b pool v | None => false end)
            [120; 124; 128; 132]
       && order_b ge m
@@ -2536,7 +2570,7 @@ Proof.
   apply andb_prop in H as [H Hcmd].
   apply andb_prop in H as [H Hd12].
   apply andb_prop in H as [H Hord].
-  apply andb_prop in H as [H Hst]. apply andb_prop in H as [H Hdb].
+  apply andb_prop in H as [H Hst]. apply andb_prop in H as [H Hdf]. apply andb_prop in H as [H Hdb].
   apply andb_prop in H as [H Hsar]. apply andb_prop in H as [H Hkd].
   apply andb_prop in H as [H Hpo]. apply andb_prop in H as [H Hbm].
   apply andb_prop in H as [H Hin]. apply andb_prop in H as [H Hff].
@@ -2562,8 +2596,9 @@ Proof.
     apply andb_prop in Hz as [Hz _]. apply andb_prop in Hz as [_ Hz]. exact (act_b_sound _ _ _ _ Hz).
   - intros j Hj. pose proof (proj1 (forallb_forall _ _) Hsar j Hj) as Hz.
     apply andb_prop in Hz as [_ Hz]. exact (red_b_sound _ _ _ _ Hz).
-  - rewrite !CM.load_eq in Hdb. apply orb_true_iff in Hdb as [Hd | Hd]; apply negb_true_iff in Hd;
-      [ left | right ]; refine (vint_is_ne _ _ _ Hd); cbn; lia.
+  - split; [ | exact (dflags_b_sound _ _ Hdf) ].
+    rewrite CM.load_eq in Hdb. destruct (Mem.load Mint8signed m sdp 0) as [[| i | | | |]|]; try discriminate Hdb.
+    cbn in Hdb. apply Z.eqb_eq in Hdb. rewrite <- (Int.repr_unsigned i), Hdb. reflexivity.
   - intros z Hz. pose proof (proj1 (forallb_forall _ _) Hst z Hz) as Hy.
     cbn beta in Hy. unfold ld32 in Hy. rewrite CM.load_eq in Hy.
     destruct (Mem.load Mint32 m bm z) as [v|]; [ | discriminate Hy ].
