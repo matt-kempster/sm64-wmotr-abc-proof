@@ -839,7 +839,10 @@ Qed.
 (*         gfx node links [4,20), header next/prev + parentObj [96,108),   *)
 (*         oInteractType [304,308), the VM cells curBhvCommand / stack     *)
 (*         index / stack [460,500), respawnInfoType [502,504), behavior   *)
-(*         [524,528), collisionData [536,540), respawnInfo [604,608).      *)
+(*         [524,528), collisionData [536,540), respawnInfo [604,608),      *)
+(*         numCollidedObjs [118,120) (FOUND 2026-11-07: ow_ncoll reads it  *)
+(*         for every listed slot, so without it the generic-native keep   *)
+(*         sfr_keep was false; no live WMotR native writes it).           *)
 (*         activeFlags is NOT protected (obj_mark_for_deletion clears it  *)
 (*         legitimately; only ow_mact reads it, for Mario's slot).         *)
 (*       - allow_n: the ONLY globals a store may land in (besides blocks  *)
@@ -857,7 +860,8 @@ Qed.
 (* ---------------------------------------------------------------------- *)
 
 Definition XBn : list (Z * Z) :=
-  [(4, 20); (96, 108); (304, 308); (460, 500); (502, 504); (524, 528); (536, 540); (604, 608)].
+  [(4, 20); (96, 108); (304, 308); (460, 500); (502, 504); (524, 528); (536, 540); (604, 608);
+   (118, 120)].
 
 Definition allow_n : list ident :=
   [audio_external._sSoundRequests; audio_external._sSoundRequestCount; behavior_script._gRandomSeed16;

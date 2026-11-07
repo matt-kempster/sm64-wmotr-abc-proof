@@ -956,6 +956,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
        ow_cls). REPAIR STARTED: section `Qs` (closed under succs, Hqs_cl) threaded through
        cmd_row_op, every keep, dloop*, seg, cou_real; concrete Qs = slot k's family in W2.
        Trap: a section Hypothesis named like a proof's intro name ("HQs is already used").
+       Concrete family: ObjFamily.Qfam s0 (7-bit class, fam_chk_ok vm over 95 scripts,
+       Qfam_closed = Hqs_cl). TRAP: lemmas stated on the computed `cls` hang at Qed
+       (kernel unfolds the lists) -- prove generic over the lists, instantiate.
+       FOUND/REPAIRED: XBn lacked numCollidedObjs [118,120) (ow_ncoll reads it).
        Next (W2/W3, coordinator OK'd INV_k = Pobjl with ow_vm relaxed at slot k + cur):
        Hinv/Hinv_cur/Hinv_frame for INV_k; discharge row_keeps (phantom rule: a keep
        false without a script tie => strengthen INV with script-tied pins, checked on
