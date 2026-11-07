@@ -78,6 +78,7 @@ From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT LsContract AudioInv.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
 From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep PollKeep MidKeep CamRows MplatKeep ClearKeep ObjStores.
 From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop ObjStepSplit BhvVM UnloadKeep UnloadRows UnloadPc UnloadSi.
+From SM64.Proofs.WMotRRequiresA Require CollWalk.
 From SM64.Generated Require object_list_processor area platform_displacement.
 From SM64.Proofs Require OsDmaFloor LptBody ObjExtBodies UpdateCameraBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
@@ -1465,7 +1466,15 @@ Section HeightLinked12.
   (* (Hobj_surfaces, clear_dynamic_surfaces with the post-clear fact:
      PROVED 2026-11-03, obj_surfaces_linked12 below, from the real body,
      ClearRun / ClearKeep) *)
-  Hypothesis Hobj_collisions : ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._detect_object_collisions.
+  (* (Hobj_collisions, detect_object_collisions: PROVED 2026-11-07,
+     obj_collisions_linked12, from the real body, CollWalk / CollKeep) *)
+  Lemma obj_collisions_linked12 :
+    ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._detect_object_collisions.
+  Proof.
+    intros bf fd m vargs t m' vr Hs Hf HP Hev. apply pobj_of_pc.
+    eapply CollWalk.detect_keeps with (lp := lp) (bm := bm) (bc := bc) (oc0 := oc0) (SafeB := SafeB);
+      first [ exact (pc_of_pobj m HP) | eassumption ].
+  Qed.
   (* OPEN, B2 (2026-10-26): the two list walks update_terrain_objects /
      update_non_terrain_objects are PROVED (ObjLoop.terrain_keeps_ix /
      nonterrain_keeps: the real update_objects_in_list, the two real
@@ -1920,7 +1929,7 @@ Section HeightLinked12.
                     obj_clock_linked12 obj_auo_linked12
                     Hobj_blind (Hobj_fresh 240) Hobj_noref obj_stores_linked12 obj_counter_linked12
                     Hobj_debug (ObjWorld.post_clear (lp_ge lp)) obj_R_store_linked12
-                    obj_surfaces_linked12 obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
+                    obj_surfaces_linked12 obj_terrain_linked12 obj_collisions_linked12 obj_nonterrain_linked12
                     obj_unload_linked12 obj_mplat_linked12 obj_platform_linked12 Hlvl_ow Hrender_ow
                     lvl_pre_linked12 lvl_post_linked12 seg_action_phi Hphi_y Hphi_sa_linked12
                     srd_ok_linked12 srd_keep_linked12 mid_keep_linked12 poll_ok_linked12
@@ -1943,7 +1952,7 @@ Section HeightLinked12.
                     obj_clock_linked12 obj_auo_linked12
                     Hobj_blind (Hobj_fresh 240) Hobj_noref obj_stores_linked12 obj_counter_linked12
                     Hobj_debug (ObjWorld.post_clear (lp_ge lp)) obj_R_store_linked12
-                    obj_surfaces_linked12 obj_terrain_linked12 Hobj_collisions obj_nonterrain_linked12
+                    obj_surfaces_linked12 obj_terrain_linked12 obj_collisions_linked12 obj_nonterrain_linked12
                     obj_unload_linked12 obj_mplat_linked12 obj_platform_linked12 Hlvl_ow Hrender_ow
                     lvl_pre_linked12 lvl_post_linked12 seg_action_phi Hphi_y Hphi_sa_linked12
                     srd_ok_linked12 srd_keep_linked12 mid_keep_linked12 poll_ok_linked12

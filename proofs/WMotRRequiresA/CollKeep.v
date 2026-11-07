@@ -22,9 +22,8 @@
 (* (ClearKeep.safe_store_g: an int or a pool pointer into the pool).      *)
 (* PHANTOM CHECK: nothing is quantified beyond Pc and the stored value;   *)
 (* the value facts are what the walk of the real code supplies.           *)
+(* Used by CollWalk (the walk of the real detect_object_collisions).      *)
 (* ====================================================================== *)
-(* kept: staged for the detect_object_collisions walk (Hobj_collisions),
-   which uses it next; not yet load-bearing *)
 
 From Coq Require Import ZArith Lia List Bool.
 From compcert Require Import Coqlib Integers Floats Values AST Ctypes Cop Clight
