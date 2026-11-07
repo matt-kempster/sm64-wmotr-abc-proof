@@ -6973,9 +6973,32 @@ Section Link.
      interactType and surf_obj_at's angle-velocity pins on surface
      ownership, not on the script; the keep needs INV to tie both to the
      special scripts -- see the SKILL open surface.) *)
+  (* FOUND / REPAIRED (2026-11-07, phantom forall): SFR' says only WHERE a
+     bulk native stores, never WHAT, so over every m1 it allows (a pointer
+     to a freed local stored into the slot) sfr_keep was FALSE for any INV
+     holding MWF_real (R7: the pool is SafeB and SafeB is load-closed) or
+     PhiW's closedness.  REPAIRED: the keep takes the VALUE premise nvals --
+     a pointer an old cell holds after the call that it did not hold before
+     aims at a block PV names at entry (the instance: a SafeB block of the
+     entry memory).  The natives' side is native_vals (true in the game:
+     bulk natives store ints / floats, pool and surface pointers, data
+     symbols; to be discharged by a value-tracking SFR' walk) *)
+  Variable PV : mem -> block -> Prop.
+  Definition nvals (m m1 : mem) : Prop :=
+    forall b z bp op, Plt b (Mem.nextblock m) -> Mem.load Mint32 m1 b z = Some (Vptr bp op) ->
+      Mem.load Mint32 m b z <> Some (Vptr bp op) -> PV m bp.
+
   Definition sfr_keep : Prop := forall m m1 st,
     INV m -> V m st -> In st vm_tab -> Qs st -> existsb (Pos.eqb (v_s st)) sp_scripts = false ->
-    Mem.unchanged_on (SFPn m) m m1 -> INV m1.
+    Mem.unchanged_on (SFPn m) m m1 -> nvals m m1 -> INV m1.
+
+  (* THE NATIVES' VALUE SIDE: a bulk native called at a generic state
+     stores only PV pointers into old blocks *)
+  Definition native_vals : Prop := forall m st fid bfn fd t m1 vres,
+    INV m -> V m st -> In st vm_tab -> Qs st -> existsb (Pos.eqb (v_s st)) sp_scripts = false ->
+    has_null fid ObjFrame.self_tab_n = true ->
+    Genv.find_symbol G fid = Some bfn -> Genv.find_funct G (Vptr bfn Ptrofs.zero) = Some fd ->
+    eval_funcall function_entry2 G m fd [] t m1 vres -> nvals m m1.
 
   (* THE RESIDUAL: a CALL_NATIVE at a special state (Mario's three
      included), or of a callee with no nullary SFR'-clean entry (at a
@@ -7062,15 +7085,16 @@ Section Link.
     eval_funcall function_entry2 G m fd [] t m1 vres -> INV m1 /\ V m1 st.
 
   (* the split discharges native_keep *)
-  Lemma native_keep_of : sfr_keep -> native_res -> native_keep.
+  Lemma native_keep_of : sfr_keep -> native_vals -> native_res -> native_keep.
   Proof.
-    intros Hk Hr m st w fid bfn fd t m1 vres HI HV Hst HQs Hw Ho Ha Hs Hff Hev.
+    intros Hk Hnv Hr m st w fid bfn fd t m1 vres HI HV Hst HQs Hw Ho Ha Hs Hff Hev.
     destruct (existsb (Pos.eqb (v_s st)) sp_scripts) eqn:E1;
       [ exact (Hr m st w fid bfn fd t m1 vres HI HV Hst HQs Hw Ho Ha (or_introl E1) Hs Hff Hev) | ].
     destruct (has_null fid ObjFrame.self_tab_n) eqn:E2;
       [ | exact (Hr m st w fid bfn fd t m1 vres HI HV Hst HQs Hw Ho Ha (or_intror E2) Hs Hff Hev) ].
     pose proof (native_bulk m st fid bfn fd t m1 vres HI HV E2 Hs Hff Hev) as U.
-    split; [ exact (Hk m m1 st HI HV Hst HQs E1 U) | exact (V_sfr m m1 st Hst HV U) ].
+    split; [ exact (Hk m m1 st HI HV Hst HQs E1 U (Hnv m st fid bfn fd t m1 vres HI HV Hst HQs E1 E2 Hs Hff Hev))
+           | exact (V_sfr m m1 st Hst HV U) ].
   Qed.
 
   Lemma row_call_native : native_keep -> cmd_row_op 12.
@@ -7930,7 +7954,7 @@ Section Link.
   Qed.
 
   (* the pinned one-store premises of the field commands, together *)
-  Definition row_keeps : Prop := set_keep /\ setf_keep /\ addi_keep /\ ori_keep /\ addf_keep /\ sumf_keep /\ deact_keep /\ sit_keep /\ srf_keep /\ sri_keep /\ sir_keep /\ par51_ok /\ pbc_keep /\ atex_keep /\ bb_keep /\ dr_keep /\ hb_keep /\ hbo_keep /\ home_keep /\ phys_keep /\ la_keep /\ lcd_keep /\ scale_keep /\ begin_ok /\ sfr_keep /\ native_res
+  Definition row_keeps : Prop := set_keep /\ setf_keep /\ addi_keep /\ ori_keep /\ addf_keep /\ sumf_keep /\ deact_keep /\ sit_keep /\ srf_keep /\ sri_keep /\ sir_keep /\ par51_ok /\ pbc_keep /\ atex_keep /\ bb_keep /\ dr_keep /\ hb_keep /\ hbo_keep /\ home_keep /\ phys_keep /\ la_keep /\ lcd_keep /\ scale_keep /\ begin_ok /\ sfr_keep /\ native_vals /\ native_res
     /\ sc_pre /\ sc_free /\ sc_keep /\ wd_pre /\ wd_free /\ wd_dp /\ wd_keep /\ an_keep /\ dtf_ff /\ dtf_keep.
 
   (* the opcodes whose rows are proved: the control layer, DELAY_VAR, and
@@ -7939,9 +7963,9 @@ Section Link.
 
   Lemma done_rows : row_keeps -> forall op, In op done_ops -> cmd_row_op op.
   Proof.
-    intros (K16 & K14 & K15 & K17 & K13 & K31 & K29 & K47 & K20 & K21 & K19 & K51p & K51 & K52 & K33 & K53 & K35 & K43 & K45 & K48 & K39 & K42 & K50 & K0 & K12a & K12b & K28a & K28b & K28c & K55a & K55b & K55c & K55d & K40 & K30a & K30b) op
+    intros (K16 & K14 & K15 & K17 & K13 & K31 & K29 & K47 & K20 & K21 & K19 & K51p & K51 & K52 & K33 & K53 & K35 & K43 & K45 & K48 & K39 & K42 & K50 & K0 & K12a & K12v & K12b & K28a & K28b & K28c & K55a & K55b & K55c & K55d & K40 & K30a & K30b) op
       [<- | [<- |[<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | H]]]]]]]]]]]]]]]]]]]]]]]]]]]]];
-      [ exact (row_drop_to_floor K30a K30b) | exact (row_animate K40) | exact (row_spawn_water_droplet K55a K55b K55c K55d) | exact (row_spawn_child K28a K28b K28c) | exact (row_call_native (native_keep_of K12a K12b)) | exact (row_begin K0) | exact (row_scale K50) | exact (row_load_animations K39) | exact (row_load_collision_data K42) | exact (row_set_obj_physics K48) | exact (row_set_home K45) | exact (row_set_hitbox K35) | exact (row_set_hitbox_with_offset K43) | exact (row_billboard K33) | exact (row_disable_rendering K53) | exact (row_animate_texture K52) | exact (row_parent_bit_clear K51p K51) | exact (row_set_random_int K21) | exact (row_set_int_rand_rshift K19) | exact (row_set_random_float K20) | exact (row_set_interact_type K47) | exact (row_deactivate K29) | exact (row_sum_float K31) | exact (row_add_float K13) | exact (row_or_int K17) | exact (row_add_int K15)
+      [ exact (row_drop_to_floor K30a K30b) | exact (row_animate K40) | exact (row_spawn_water_droplet K55a K55b K55c K55d) | exact (row_spawn_child K28a K28b K28c) | exact (row_call_native (native_keep_of K12a K12v K12b)) | exact (row_begin K0) | exact (row_scale K50) | exact (row_load_animations K39) | exact (row_load_collision_data K42) | exact (row_set_obj_physics K48) | exact (row_set_home K45) | exact (row_set_hitbox K35) | exact (row_set_hitbox_with_offset K43) | exact (row_billboard K33) | exact (row_disable_rendering K53) | exact (row_animate_texture K52) | exact (row_parent_bit_clear K51p K51) | exact (row_set_random_int K21) | exact (row_set_int_rand_rshift K19) | exact (row_set_random_float K20) | exact (row_set_interact_type K47) | exact (row_deactivate K29) | exact (row_sum_float K31) | exact (row_add_float K13) | exact (row_or_int K17) | exact (row_add_int K15)
       | exact (row_set_float K14) | exact (row_set_int K16) | exact row_delay_var | exact (ctl_rows op H) ].
   Qed.
 

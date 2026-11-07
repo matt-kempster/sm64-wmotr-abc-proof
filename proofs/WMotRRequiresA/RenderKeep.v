@@ -424,11 +424,24 @@ Section RK.
       (exists f, -1 <= f <= hs_le k /\ Mem.load Mint16signed m mb (u mo + 64) = Some (Vint (Int.repr f))) ->
       buf_ok m bt ot k -> u ot + BUFSZ < Ptrofs.modulus ->
       exists f, -1 <= f <= hs_le k /\ Mem.load Mint16signed m' mb (u mo + 64) = Some (Vint (Int.repr f)).
-    (* Mario's collided objects and usedObj, when objects of his block,
-       are objects Q names *)
+    (* GENERALIZED 2026-11-07 (for the generic frame keep of GOAL 2's
+       object step, whose native may write a collided object's non-XBn
+       bytes): Qt names TYPE-ONLY objects, whose only cell PhiW reads is
+       interactType (neither POLE nor CANNON_BASE, so coll_obj_ok reads no
+       position / hitbox of them); Q names the objects kept whole.  The
+       older callers take Qt := fun _ => False. *)
+    Variable Qt : ptrofs -> Prop.
+    Hypothesis LDt : forall co, Qt co -> (u co + 608 <= u mo \/ u mo + 608 <= u co) ->
+      Mem.load Mint32 m' mb (u co + O_INTERACT_TYPE) = Mem.load Mint32 m mb (u co + O_INTERACT_TYPE).
+    Hypothesis QtT : forall co t, Qt co -> Mem.load Mint32 m mb (u co + O_INTERACT_TYPE) = Some (Vint t) ->
+      Int.unsigned t <> INTERACT_POLE /\ Int.unsigned t <> INTERACT_CANNON_BASE.
+    (* Mario's collided objects, when objects of his block, are objects Q
+       or Qt names; usedObj, in a pole / cannon action (the only ones
+       used_ok reads it in), is one Q names *)
     Hypothesis QC : forall i co, 0 <= i < 4 ->
-      Mem.load Mint32 m mb (u mo + COLL_OFF + 4 * i) = Some (Vptr mb co) -> Q co.
-    Hypothesis QU : forall uo, Mem.load Mint32 m bm USED_OFF = Some (Vptr mb uo) -> Q uo.
+      Mem.load Mint32 m mb (u mo + COLL_OFF + 4 * i) = Some (Vptr mb co) -> Q co \/ Qt co.
+    Hypothesis QU : forall a uo, Mem.load Mint32 m bm 12 = Some (Vint a) -> In (Int.unsigned a) used_acts ->
+      Mem.load Mint32 m bm USED_OFF = Some (Vptr mb uo) -> Q uo.
     (* a new collided object: a far object Q names, apart from the usedObj
        when that is an object of Mario's block, and a WMotR object *)
     Definition coll_new (co : ptrofs) : Prop :=
@@ -528,6 +541,21 @@ Section RK.
         exact P1.
     Qed.
 
+    (* a type-only collided object: its interactType is kept, and it is
+       neither a pole nor a cannon base *)
+    Lemma coll_keep_t : forall co, Qt co -> (mb <> mb \/ co = mo \/ u co + OBJ_SIZE <= u mo \/ u mo + OBJ_SIZE <= u co) ->
+      coll_obj_ok m (Vptr mb co) -> coll_obj_ok m' (Vptr mb co).
+    Proof.
+      intros co Hq Hap (b & o & t & E & Lt & Hin & Hp & Hc).
+      injection E as <- <-.
+      destruct (QtT co t Hq Lt) as (Np & Nc).
+      exists mb, co, t. split; [reflexivity |].
+      split; [ | split; [ exact Hin | split; intros Ht; contradiction ] ].
+      unfold OBJ_SIZE in Hap. destruct Hap as [N | [-> | H]]; [ exfalso; exact (N eq_refl) | | ].
+      - rewrite LHo by (unfold O_INTERACT_TYPE, RAW_OFF; cbn [size_chunk]; lia). exact Lt.
+      - rewrite (LDt co Hq H). exact Lt.
+    Qed.
+
     Lemma k_worldc : wmotr_world bm m -> mobj_apart bm m -> surf_apart lp bm Xs m ->
       (forall off sb so, (off = WALL_OFF \/ off = CEIL_OFF \/ off = FLOOR_OFF) ->
          Mem.load Mint32 m bm off = Some (Vptr sb so) -> sb <> bm) ->
@@ -575,7 +603,8 @@ Section RK.
           pose proof Hok as (cb & co & t & -> & _).
           assert (Hi4 : 0 <= i < 4) by lia.
           assert (Ecb : cb = mb) by exact (Co i cb co Hi4 Lv). subst cb.
-          exact (coll_keep co (QC i co Hi4 Lv) (P3 i mb co Hi4 Lv) Hok).
+          destruct (QC i co Hi4 Lv) as [Hq7 | Hq7];
+            [ exact (coll_keep co Hq7 (P3 i mb co Hi4 Lv) Hok) | exact (coll_keep_t co Hq7 (P3 i mb co Hi4 Lv) Hok) ].
         + apply (coll_keep co Hq0); [ | exact Hok ]. unfold OBJ_SIZE. right; right. exact Ap.
     Qed.
 
@@ -638,14 +667,15 @@ Section RK.
         by (apply LHm; bmk_t).
       assert (Ap : forall ub uo, used_apart bm m ub uo -> used_apart bm m' ub uo).
       { intros ub uo A. split; [exact (proj1 A) |]. intros mb' mo' Hl. rewrite K136 in Hl. exact (proj2 A mb' mo' Hl). }
-      assert (Far : forall uo, Mem.load Mint32 m bm USED_OFF = Some (Vptr mb uo) -> used_apart bm m mb uo ->
+      assert (Far : In (Int.unsigned a) used_acts ->
+                  forall uo, Mem.load Mint32 m bm USED_OFF = Some (Vptr mb uo) -> used_apart bm m mb uo ->
                   uo = mo \/ (Q uo /\ (u uo + 608 <= u mo \/ u mo + 608 <= u uo))).
-      { intros uo Lu (_ & A). destruct (A mb mo Lmo) as [N | F]; [exfalso; exact (N eq_refl) |].
-        unfold OBJ_SPAN in F. right. exact (conj (QU uo Lu) F). }
+      { intros Ha uo Lu (_ & A). destruct (A mb mo Lmo) as [N | F]; [exfalso; exact (N eq_refl) |].
+        unfold OBJ_SPAN in F. right. exact (conj (QU a uo La Ha Lu) F). }
       split.
       - intros Hp. destruct (U1 Hp) as (ub & uo & Lu & (base & top & Hin & Ht & P1 & P2 & P3) & A & (S & PP) & V).
         destruct (PP mb mo Lmo) as (Eu & p & Lp & Fp & Rp). subst ub.
-        pose proof (Far uo Lu A) as F.
+        pose proof (Far (or_intror Hp) uo Lu A) as F.
         exists mb, uo. split; [rewrite LHm by bmk_t; exact Lu |].
         split; [| split; [exact (Ap _ _ A) | split]].
         + exists base, top. split; [exact Hin |]. split; [exact Ht |].
@@ -658,7 +688,7 @@ Section RK.
         + intros w Lv. rewrite LHm in Lv by bmk_t. exact (V w Lv).
       - intros Hcn. destruct (U2 Hcn) as (ub & uo & Lu & (y & Hin & P1) & A & (S & CP)).
         destruct (CP mb mo Lmo) as (Eu & CC). subst ub.
-        pose proof (Far uo Lu A) as F.
+        pose proof (Far (or_introl (eq_sym Hcn)) uo Lu A) as F.
         exists mb, uo. split; [rewrite LHm by bmk_t; exact Lu |]. split; [| split; [exact (Ap _ _ A) |]].
         + exists y. split; [exact Hin |].
           rewrite (far_keep uo) by (first [exact F | unfold O_POSY, RAW_OFF; cbn [size_chunk]; lia]). exact P1.
@@ -789,7 +819,7 @@ Section RK.
     Qed.
 
     Lemma k_all_wc : phiw lp bm m -> surf_apart lp bm Xs m -> phiw lp bm m'.
-    Proof using HXs HXl Lmo NB PM LD LM Sbm Nbm Bmb RGa CL FR QC QU CKo CKn.
+    Proof using HXs HXl Lmo NB PM LD LM Sbm Nbm Bmb RGa CL FR LDt QtT QC QU CKo CKn.
       intros (Hh & Hw & Han & Hmo & Hf & Hu & Haw & Hl) RSA.
       assert (Co : forall i cb co, 0 <= i < 4 ->
                 Mem.load Mint32 m mb (u mo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = mb).
@@ -819,7 +849,7 @@ Section RK.
     (* the same, for a step that writes level cells lvl_w pins and
        re-establishes lvl_w itself (LevelKeep's POST tail) *)
     Lemma k_all_lvl_wc : phiw lp bm m -> surf_apart lp bm Xs m -> lvl_w G m' -> phiw lp bm m'.
-    Proof using HXs Lmo NB PM LD LM Sbm Nbm Bmb RGa CL FR QC QU CKo CKn.
+    Proof using HXs Lmo NB PM LD LM Sbm Nbm Bmb RGa CL FR LDt QtT QC QU CKo CKn.
       intros (Hh & Hw & Han & Hmo & Hf & Hu & Haw & _) RSA Hl'.
       assert (Co : forall i cb co, 0 <= i < 4 ->
                 Mem.load Mint32 m mb (u mo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = mb).
@@ -908,6 +938,21 @@ Section RK.
       rewrite LHq in Hl by (unfold COLL_OFF; cbn [size_chunk]; lia). exact Hl.
     Qed.
 
+    (* KEEP's generalized hypotheses at Qt := fun _ => False *)
+    Lemma QCf : forall i co, 0 <= i < 4 ->
+      Mem.load Mint32 m mb (u mo + COLL_OFF + 4 * i) = Some (Vptr mb co) -> Q co \/ (fun _ : ptrofs => False) co.
+    Proof. intros i co Hi L. left. exact (QC i co Hi L). Qed.
+    Lemma QUf : forall a uo, Mem.load Mint32 m bm 12 = Some (Vint a) -> In (Int.unsigned a) used_acts ->
+      Mem.load Mint32 m bm USED_OFF = Some (Vptr mb uo) -> Q uo.
+    Proof. intros a uo _ _ L. exact (QU uo L). Qed.
+    Lemma LDtf : forall co, (fun _ : ptrofs => False) co -> (u co + 608 <= u mo \/ u mo + 608 <= u co) ->
+      Mem.load Mint32 m' mb (u co + O_INTERACT_TYPE) = Mem.load Mint32 m mb (u co + O_INTERACT_TYPE).
+    Proof. intros co []. Qed.
+    Lemma QtTf : forall co t, (fun _ : ptrofs => False) co ->
+      Mem.load Mint32 m mb (u co + O_INTERACT_TYPE) = Some (Vint t) ->
+      Int.unsigned t <> INTERACT_POLE /\ Int.unsigned t <> INTERACT_CANNON_BASE.
+    Proof. intros co t []. Qed.
+
     Lemma k_hi : height_invariant bm R_noA m -> height_invariant bm R_noA m'.
     Proof. eapply k_hic; first [ exact Lmo | exact LDc | exact LM | exact Bmb | exact RGa ]. Qed.
 
@@ -921,28 +966,28 @@ Section RK.
          Mem.load Mint32 m mb (u mo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = mb) ->
       wmotr_world bm m'.
     Proof.
-      eapply k_worldc;
-        first [ exact Lmo | exact LDc | exact LM | exact Bmb | exact RGa | exact QC | exact CKoq | exact CKnq ].
+      eapply k_worldc with (Qt := fun _ : ptrofs => False);
+        first [ exact Lmo | exact LDc | exact LM | exact Bmb | exact RGa | exact QCf | exact LDtf | exact QtTf | exact CKoq | exact CKnq ].
     Qed.
 
     Lemma k_usedq : used_ok bm m -> used_ok bm m'.
     Proof.
-      eapply k_usedc; first [ exact Lmo | exact LDc | exact LM | exact Bmb | exact RGa | exact QU | exact CKoq ].
+      eapply k_usedc; first [ exact Lmo | exact LDc | exact LM | exact Bmb | exact RGa | exact QUf | exact CKoq ].
     Qed.
 
     Lemma k_all_wq : phiw lp bm m -> surf_apart lp bm Xs m -> phiw lp bm m'.
     Proof using HXs HXl Lmo NB PM LD LM Sbm Nbm Bmb RGa CL FR QC QU.
-      eapply k_all_wc;
+      eapply k_all_wc with (Qt := fun _ : ptrofs => False);
         first [ exact HXs | exact HXl | exact Lmo | exact NB | exact PM | exact LDc | exact LM | exact Sbm
-              | exact Nbm | exact Bmb | exact RGa | exact CL | exact FR | exact QC | exact QU
+              | exact Nbm | exact Bmb | exact RGa | exact CL | exact FR | exact QCf | exact LDtf | exact QtTf | exact QUf
               | exact CKoq | exact CKnq ].
     Qed.
 
     Lemma k_all_lvl_wq : phiw lp bm m -> surf_apart lp bm Xs m -> lvl_w G m' -> phiw lp bm m'.
     Proof using HXs Lmo NB PM LD LM Sbm Nbm Bmb RGa CL FR QC QU.
-      eapply k_all_lvl_wc;
+      eapply k_all_lvl_wc with (Qt := fun _ : ptrofs => False);
         first [ exact HXs | exact Lmo | exact NB | exact PM | exact LDc | exact LM | exact Sbm
-              | exact Nbm | exact Bmb | exact RGa | exact CL | exact FR | exact QC | exact QU
+              | exact Nbm | exact Bmb | exact RGa | exact CL | exact FR | exact QCf | exact LDtf | exact QtTf | exact QUf
               | exact CKoq | exact CKnq ].
     Qed.
   End KEEPQ.

@@ -1399,7 +1399,21 @@ without pressing A".*
   (`sfr_keep`). 35 of the 94 natives generic states call are bulk (`cn_census`).
   RESIDUAL (`native_res`): the other 59 generic natives (cross-slot writers: spawn /
   allocate, the 5 obj_set_hitbox interactType writers, red_coin_init's parent) and the
-  13 called from special states (Mario's three included). BhvStep now also takes
+  13 called from special states (Mario's three included).
+  VALUE SIDE (`native_vals`, to be named `Hnative_vals` where the rows are wired):
+  a bulk native at a generic state stores into old blocks only pointers to blocks
+  `PV` names at entry (`nvals`; the instance is a SafeB block). It sits beside
+  `native_res` among the residuals. TRUE IN THE GAME: bulk natives store ints /
+  floats, pool and surface pointers (oFloor into the main-pool block, SafeB by
+  StartSat's SB1) and data-symbol pointers. To be DISCHARGED by a value-tracking SFR'
+  walk (option A, scheduled with the stale-lid M1/M2 after the step rows are wired).
+  **FOUND / REPAIRED (2026-11-07, phantom ∀ in `sfr_keep`).** SFR' says only WHERE a
+  bulk native stores, never WHAT. So over every m1 it allows (e.g. a pointer to a
+  freed local stored into the slot), `sfr_keep` was FALSE for any INV holding MWF_real
+  (R7: the pool is SafeB, and SafeB is load-closed) or PhiW's closedness. REPAIRED:
+  `sfr_keep` takes the value premise `nvals m m1`, and the natives' side is the
+  separate premise `native_vals` above. This splits an undischarged premise into a
+  true one; no capstone row moves. BhvStep now also takes
   `Hsq` (sqrtf_spec, the FPU floor row already in the ledger) and `Hpool` (the current
   slot lives in gObjectPool). No new trust row; ObjFrame's whole-walk frame (ls_frame)
   is not used. The pinned premises are bundled as `row_keeps`.
@@ -1524,6 +1538,17 @@ without pressing A".*
     state. A spawn sets behavior and script together, and VM steps keep the class.
   - T2 (gMarioPlatform runs a special script) was rejected: FALSE in a real state.
   - Not yet kept by the spawn path; that is part of the generic frame keep.
+  **RenderKeep KEEP generalized in place (2026-11-07).** The PhiW keep (`k_all_wc` and
+  its parts) now takes TYPE-ONLY objects `Qt` beside the whole-kept far objects `Q`:
+  - A collided object may be `Qt`. Only its interactType cell must be kept (`LDt`), and
+    that type is neither POLE nor CANNON_BASE (`QtT`), so `coll_obj_ok` reads nothing
+    else of it (`coll_keep_t`).
+  - `QU` asks usedObj to be `Q` only in a pole / cannon action, the only actions in which
+    `used_ok` reads it.
+  - Older callers (KEEPQ, CollKeep) take `Qt := fun _ => False`.
+  - Purpose: the generic frame keep, where a native on a generic slot (possibly
+    Mario's collided object or his usedObj outside those actions) changes the slot's
+    non-XBn bytes. No trust moves.
   **`ow_scr` (2026-11-03): `scr_ok` is an obj_w clause.** `ObjWorld.scr_ok` (moved from
   BhvStep, which keeps its names as notations) is obj_w's 21st clause; the boot witness
   checks it by vm inside `ow_chk` (`scr_b_l` over the reachable scripts, at m3 / m4 / m11).
