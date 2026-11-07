@@ -640,7 +640,17 @@ all in `Unwired/`, and the theorem moved nowhere. See
     OBJECTS (2026-10-26, `ObjPhase.v` / `ObjWorld.v`): the objects segment is ONE real
     `area_update_objects` call (`ObjPhase.objects_call`), with `execute_mario_action` as the
     hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
-    rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref
+    rows over the real stages: (Hobj_blind / Hobj_fresh / Hobj_noref PROVED 2026-11-07, gone
+    from both capstones: HeightFrame.obj_blind_linked12 via BlindKeep.blind_pc on
+    Generic.ClosedFrame, obj_fresh_linked12, ObjPhase.noref_uo via
+    Generic.ClightClosed.funcall_closed_sep; ObjLoop.call_il_nr replaced the per-object nr
+    rows. RESTATEMENT, no new assumption: ObjPhase.noref ge b m = some flat closing
+    injection maps every symbol and drops b (was: no byte names b). Reason: CompCert's
+    external-call properties speak only of readable bytes of mapped blocks, so the
+    raw-bytes form cannot cross an external call. Every use site needs only "unmapped by the
+    closing injection": stores into b, int / symbol-pointer stores elsewhere, fresh allocs,
+    and reads of mapped blocks. Reusable: ClosedFrame.cf_load / cf_reach / cf_closed (a
+    change confined to an unmapped block), BlindKeep's per-component keeps; history:)
     (2026-11-07 FOUND + REPAIRED: Hobj_noref was over noref b alone, b possibly the next
     fresh block, a phantom forall; now over ObjPhase.nrv b, b allocated; UnloadKeep carries
     filler's nrv through its body and uses the row for unload_deactivated_objects_in_list),
@@ -683,9 +693,9 @@ all in `Unwired/`, and the theorem moved nowhere. See
     instantiates W (mem_ok via AudioBodies.sp_stop_sounds_from_source, PhiW past the
     respawn OR into P, obj_w with the ring change))
     (Hobj_stores PROVED 2026-11-03: obj_stores_linked12 / ObjStores.stores_safe, every
-    update_objects store block classified by vm (uo_sok); rests on Hobj_blind for the stack
+    update_objects store block classified by vm (uo_sok); rests on obj_blind_linked12 (proved) for the stack
     stores. Reusable: ClearKeep.gstore_core_p takes a pointer to a SafeB-if-bg-is global;
-    ObjStores.store_same_ptr, noref_store_in / noref_store_out)
+    ObjStores.store_same_ptr, ObjPhase.noref_store_in / noref_store_sym)
     (Hobj_counter / Hobj_ctr PROVED 2026-11-03: obj_counter_linked12 / obj_ctr_linked12,
     ClearKeep.gstore_keep; gone from both capstones)
     (Hobj_surfaces PROVED 2026-11-03: HeightFrame.obj_surfaces_linked12 / ClearRun + ClearKeep,

@@ -78,7 +78,7 @@ From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT LsContract AudioInv.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
 From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep PollKeep MidKeep CamRows MplatKeep ClearKeep ObjStores.
 From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop ObjStepSplit BhvVM UnloadKeep UnloadRows UnloadPc UnloadSi.
-From SM64.Proofs.WMotRRequiresA Require CollWalk DebugKeep.
+From SM64.Proofs.WMotRRequiresA Require CollWalk DebugKeep BlindKeep.
 From SM64.Generated Require object_list_processor area platform_displacement.
 From SM64.Proofs Require OsDmaFloor LptBody ObjExtBodies UpdateCameraBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
@@ -326,23 +326,24 @@ Section HeightFrame.
     Genv.find_funct (lp_ge lp) (Vptr bf Ptrofs.zero) = Some fd ->
     fd = Internal object_list_processor.f_update_objects.
 
-  (* OPEN, the frame block (update_objects' stack array cycleCounts[30]):
-     Pobj does not read a non-symbol block no stored pointer names; the
-     frame block allocated from a Pobj memory is one; no callee stores a
-     pointer to it (none is passed one). *)
-  Hypothesis Hobj_blind : forall b m m', Ple (Genv.genv_next (lp_ge lp)) b -> Pobj m ->
-    ObjPhase.noref b m -> Mem.unchanged_on (fun b' _ => b' <> b) m m' -> Pobj m'.
+  (* the frame block (update_objects' stack array cycleCounts[30]): FBo is
+     what Pobj knows of a frame block; Pobj does not read a private one
+     (ObjPhase.noref); the frame block allocated from a Pobj memory is one;
+     no callee makes an allocated private block reachable. *)
+  Variable FBo : block -> Prop.
+  Hypothesis HFBo : forall b, FBo b -> Ple (Genv.genv_next (lp_ge lp)) b.
+  Hypothesis Hobj_blind : forall b m m', FBo b -> Pobj m ->
+    ObjPhase.noref (lp_ge lp) b m -> Mem.unchanged_on (fun b' _ => b' <> b) m m' -> Pobj m'.
   Hypothesis Hobj_fresh : forall m m1 b, Pobj m -> Mem.alloc m 0 240 = (m1, b) ->
-    Ple (Genv.genv_next (lp_ge lp)) b /\ ObjPhase.noref b m1.
-  Hypothesis Hobj_noref : forall b f, In f ObjPhase.uo_callees -> Ple (Genv.genv_next (lp_ge lp)) b ->
-    ObjPhase.call_keeps (lp_ge lp) (ObjPhase.nrv b) f.
+    FBo b /\ ObjPhase.noref (lp_ge lp) b m /\ ObjPhase.noref (lp_ge lp) b m1.
+  Hypothesis Hobj_noref : forall b f, In f ObjPhase.uo_callees ->
+    ObjPhase.call_keeps (lp_ge lp) (ObjPhase.nrv (lp_ge lp) b) f.
   (* OPEN, the phase's own stores: update_objects' (cycleCounts[i],
      gTimeStopState, gNumRoomedObjects*, gCheckingSurfaceCollisionsForCamera,
      gObjectLists, gPrevFrameObjectCount) and area_update_objects'
      gAreaUpdateCounter++ *)
-  Hypothesis Hobj_stores : forall b s, In (OBlk s) ObjPhase.uo_list ->
-    Ple (Genv.genv_next (lp_ge lp)) b ->
-    ObjPhase.safeE (lp_ge lp) (fun m => Pobj m /\ ObjPhase.noref b m) (ObjPhase.uo_env b) s.
+  Hypothesis Hobj_stores : forall b s, In (OBlk s) ObjPhase.uo_list -> FBo b ->
+    ObjPhase.safeE (lp_ge lp) (fun m => Pobj m /\ ObjPhase.noref (lp_ge lp) b m) (ObjPhase.uo_env b) s.
   Hypothesis Hobj_counter : forall le m t le' m' out, Pobj m ->
     exec_stmt function_entry2 (lp_ge lp) empty_env le m ObjPhase.auo_counter t le' m' out -> Pobj m'.
   (* OPEN, THE STAGE ROWS: each real callee of update_objects keeps Pobj.
@@ -548,7 +549,7 @@ Section HeightFrame.
     intros ma m3 (Hok & Hphi & Hst & How) HD Hc.
     pose proof (Hphi_sa PlatformKeep.plat_gvars ma Hphi) as Hsa.
     destruct (ObjPhase.objects_keep lp Hobj_clock Hobj_auo Pobj Robj Hobj_R_store
-                Hobj_blind Hobj_fresh Hobj_noref Hobj_stores Hobj_counter
+                FBo HFBo Hobj_blind Hobj_fresh Hobj_noref Hobj_stores Hobj_counter
                 Hobj_debug Hobj_surfaces Hobj_terrain Hobj_platform Hobj_collisions
                 (Hobj_nonterrain mario_hole_filled) Hobj_unload Hobj_mplat
                 ma m3 (conj Hok (conj Hphi (conj HD (conj Hst (conj Hsa How))))) Hc)
@@ -1387,9 +1388,9 @@ Section HeightLinked12.
     fd = Internal object_list_processor.f_update_objects.
   Proof. exact (ObjPhase.auo_fun lp H12). Qed.
 
-  (* OPEN, the frame block (update_objects' cycleCounts[30]; filler[4] of
-     the list walks and of unload_deactivated_objects).  What would
-     discharge each (2026-11-03):
+  (* WERE OPEN, all three PROVED 2026-11-07: the frame block
+     (update_objects' cycleCounts[30]; filler[4] of the list walks and of
+     unload_deactivated_objects).  The plan for each (2026-11-03):
      - Hobj_blind: Pobjl is reach-local: it reads only globals' blocks and
        blocks named by a pointer stored in a block it reads (the main pool
        via sSurfacePool, the Camera via gAreaData, Mario's surfaces, the
@@ -1408,17 +1409,34 @@ Section HeightLinked12.
        the next fresh block, which a callee's own frame alloc returns (and
        UnloadKeep applied it so, to unload_deactivated_objects with its
        own filler block); now over ObjPhase.nrv b (b allocated), and
-       UnloadKeep carries filler's nrv through the body, applying the row
-       to unload_deactivated_objects_in_list (nr_callees). *)
-  Hypothesis Hobj_blind : forall b m m', Ple (Genv.genv_next (lp_ge lp)) b -> Pobjl m ->
-    ObjPhase.noref b m -> Mem.unchanged_on (fun b' _ => b' <> b) m m' -> Pobjl m'.
-  Hypothesis Hobj_fresh : forall sz m m1 b, Pobjl m -> Mem.alloc m 0 sz = (m1, b) ->
-    Ple (Genv.genv_next (lp_ge lp)) b /\ ObjPhase.noref b m1.
-  Hypothesis Hobj_noref : forall b f, In f ObjPhase.nr_callees -> Ple (Genv.genv_next (lp_ge lp)) b ->
-    ObjPhase.call_keeps (lp_ge lp) (ObjPhase.nrv b) f.
-  Lemma obj_noref_uo : forall b f, In f ObjPhase.uo_callees -> Ple (Genv.genv_next (lp_ge lp)) b ->
-    ObjPhase.call_keeps (lp_ge lp) (ObjPhase.nrv b) f.
-  Proof. intros b f Hf Hb. exact (Hobj_noref b f (or_intror Hf) Hb). Qed.
+       UnloadKeep carries filler's nrv through the body.
+     RESTATED 2026-11-07 (closure-relative privacy, ObjPhase.noref): the
+     raw form (no byte, readable or not, names b) is not provable across
+     an external call, whose CompCert properties speak of readable bytes
+     of mapped blocks only.  Hobj_fresh and Hobj_noref are now PROVED
+     (obj_fresh_linked12, ObjPhase.noref_uo), the list walks' per-object
+     nr rows are gone (ObjLoop.call_il_nr), and Hobj_blind is PROVED
+     (obj_blind_linked12 below, BlindKeep). *)
+  (* a frame block: past every symbol and outside GOAL 1's chase set *)
+  Definition FBl (b : block) : Prop := Ple (Genv.genv_next (lp_ge lp)) b /\ ~ SafeB b.
+  Lemma HFBl : forall b, FBl b -> Ple (Genv.genv_next (lp_ge lp)) b.
+  Proof. intros b H. exact (proj1 H). Qed.
+  (* PROVED (2026-11-07, was the row Hobj_fresh): a block allocated from a
+     Pobjl memory is past every symbol (ffw's nextblock bound), outside the
+     chase set (MWF: every SafeB block is valid) and private before and
+     after the alloc (ffw's closing injection gp maps every symbol:
+     ObjPhase.noref_fresh) *)
+  Lemma obj_fresh_linked12 : forall sz m m1 b, Pobjl m -> Mem.alloc m 0 sz = (m1, b) ->
+    FBl b /\ ObjPhase.noref (lp_ge lp) b m /\ ObjPhase.noref (lp_ge lp) b m1.
+  Proof.
+    intros sz m m1 b ((_ & _ & HM) & Hphi & _) Ha.
+    pose proof Hphi as (_ & _ & _ & _ & (Hgn & (d & FWF) & _) & _).
+    pose proof (Mem.alloc_result _ _ _ _ _ Ha) as Eb. subst b.
+    split; [ split | ].
+    - exact Hgn.
+    - intros Hs. exact (Plt_strict _ (mwf_real_safe_valid lp bm bc oc0 SafeB m HM _ Hs)).
+    - exact (ObjPhase.noref_fresh _ _ _ _ _ _ _ (ff_HC _ _ _ _ FWF) (ff_HS _ _ _ _ FWF) Ha).
+  Qed.
   (* (Hobj_stores, the phase's own stores: PROVED 2026-11-03,
      obj_stores_linked12 below, ObjStores) *)
   (* Pobjl is ClearKeep's Pc plus the surface premise PhiW gives *)
@@ -1428,6 +1446,20 @@ Section HeightLinked12.
   Proof.
     intros m (Hok & Hphi & HD & Hst & How).
     exact (conj Hok (conj Hphi (conj HD (conj Hst (conj (Hphi_sa_linked12 _ m Hphi) How))))).
+  Qed.
+  (* PROVED (2026-11-07, was the row Hobj_blind): Pobjl is blind to a
+     private frame block.  Every fact of ClearKeep.Pc reads globals'
+     blocks, blocks reached from them by loads, and GOAL 1's chase set; a
+     closing injection maps every symbol and is closed under loads, so all
+     of those are mapped and differ from the unmapped b, and a frame block
+     is not in the chase set (FBl).  BlindKeep.blind_pc, from
+     Generic.ClosedFrame.  PHANTOM CHECK: no premise beyond FBl b, Pobjl,
+     b's privacy and a change confined to b. *)
+  Lemma obj_blind_linked12 : forall b m m', FBl b -> Pobjl m ->
+    ObjPhase.noref (lp_ge lp) b m -> Mem.unchanged_on (fun b' _ => b' <> b) m m' -> Pobjl m'.
+  Proof.
+    intros b m m' (_ & Hsf) HP (g & Hc & Hs & Hgb) U. apply pobj_of_pc.
+    exact (BlindKeep.blind_pc lp bm Hbm_sym bc oc0 SafeB Hbc_sym g m m' b Hc Hs Hgb U Hsf (pc_of_pobj m HP)).
   Qed.
   (* PROVED (2026-11-03, was the row Hobj_counter): gAreaUpdateCounter++ is
      one u16 store of an int into a global no invariant reads
@@ -1444,28 +1476,25 @@ Section HeightLinked12.
   (* PROVED (2026-11-03, was the row Hobj_stores): update_objects' own
      store blocks (ObjStores.stores_safe; every block's shape decided by vm
      on the generated body, uo_sok): cycleCounts[i] = .. writes only the
-     frame block b (so Hobj_blind carries Pobjl, and b's noref stays);
+     frame block b (so obj_blind_linked12 carries Pobjl, and b's noref stays);
      g = <an int> into a global no invariant reads (gTimeStopState, the
      room counters, the camera-collision flag, gPrevFrameObjectCount:
      ClearKeep.gstore_keep); gObjectLists = gObjectListArray stores the
      pointer the cell already holds (obj_w's ow_gol), so no load changes
      (ObjStores.gol_keep).  PHANTOM CHECK: no premise beyond Pobjl and the
-     frame block's noref, which the phase carries; the row now rests on
-     Hobj_blind (still open) for the stack stores. *)
-  Lemma obj_stores_linked12 : forall b s, In (FrameCalls.OBlk s) ObjPhase.uo_list ->
-    Ple (Genv.genv_next (lp_ge lp)) b ->
-    ObjPhase.safeE (lp_ge lp) (fun m => Pobjl m /\ ObjPhase.noref b m) (ObjPhase.uo_env b) s.
+     frame block's noref, which the phase carries; the stack stores rest
+     on obj_blind_linked12 (PROVED). *)
+  Lemma obj_stores_linked12 : forall b s, In (FrameCalls.OBlk s) ObjPhase.uo_list -> FBl b ->
+    ObjPhase.safeE (lp_ge lp) (fun m => Pobjl m /\ ObjPhase.noref (lp_ge lp) b m) (ObjPhase.uo_env b) s.
   Proof.
-    intros b s Hin Hp. apply (ObjStores.stores_safe (lp_ge lp) b Pobjl); [ | | | | exact Hin ].
-    - intros id bg Hs E. subst bg. pose proof (Genv.genv_symb_range _ _ Hs) as Hr.
-      exact (Plt_strict _ (Plt_Ple_trans _ _ _ Hr Hp)).
+    intros b s Hin Hp. apply (ObjStores.stores_safe (lp_ge lp) b Pobjl); [ | | | exact Hin ].
     - intros id bg ch z i m m2 Hs Hok Hw Hsc St HP. apply pobj_of_pc.
       exact (ClearKeep.gstore_keep lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 id bg ch z i m m2
                Hs Hok Hw Hsc St (pc_of_pobj m HP)).
     - intros gol la m m2 Hg Hl St HP. apply pobj_of_pc.
       exact (ObjStores.gol_keep lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 gol la m m2 Hg Hl St
                (pc_of_pobj m HP)).
-    - intros m m2 HP Hn U. exact (Hobj_blind b m m2 Hp HP Hn U).
+    - intros m m2 HP Hn U. exact (obj_blind_linked12 b m m2 Hp HP Hn U).
   Qed.
   (* (Hobj_debug, the three debug calls: PROVED 2026-11-07,
      obj_debug_linked12, from the real bodies, DebugKeep; the two pins,
@@ -1532,10 +1561,6 @@ Section HeightLinked12.
     ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_starting_at
     /\ ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
-      object_list_processor.f_update_objects_during_time_stop
-    /\ ObjLoop.step_nr_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
-      object_list_processor.f_update_objects_starting_at
-    /\ ObjLoop.step_nr_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_during_time_stop.
   (* the step rows ObjLoop's walk reads, reassembled *)
   Lemma Hobj_step_terrain :
@@ -1549,16 +1574,12 @@ Section HeightLinked12.
     ObjLoop.step_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_starting_at
     /\ ObjLoop.step_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
-      object_list_processor.f_update_objects_during_time_stop
-    /\ ObjLoop.step_nr_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
-      object_list_processor.f_update_objects_starting_at
-    /\ ObjLoop.step_nr_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_during_time_stop.
   Proof.
     intros Hh. destruct (Hobj_step_act_nonterrain Hh) as (A1 & A2).
-    destruct (Hobj_step_rest_nonterrain Hh) as (R1 & R2 & N1 & N2).
+    destruct (Hobj_step_rest_nonterrain Hh) as (R1 & R2).
     exact (conj (ObjStepSplit.step_row_split _ _ _ _ _ A1 R1)
-             (conj (ObjStepSplit.step_row_split _ _ _ _ _ A2 R2) (conj N1 N2))).
+             (ObjStepSplit.step_row_split _ _ _ _ _ A2 R2)).
   Qed.
   (* the walks' own store: gObjectCounter = <an int>.  PROVED (2026-11-03,
      was the row Hobj_ctr): a global no invariant reads
@@ -1591,16 +1612,15 @@ Section HeightLinked12.
   Lemma obj_unload_linked12 :
     ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._unload_deactivated_objects.
   Proof.
-    apply (UnloadKeep.unload_outer lp H12 bm Pobjl).
+    apply (UnloadKeep.unload_outer lp H12 bm Pobjl FBl).
     - intros m (_ & _ & _ & _ & _ & How). exact How.
     - intros la idx m t m' vr Hidx Hl HP H. apply pobj_of_pc.
       exact (UnloadRows.inlist_keeps lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 Hobj_unload_si Hobj_unload_obj
                la idx m t m' vr Hidx Hl (pc_of_pobj m HP) H).
     - intros m b c m' HP Hs St. apply pobj_of_pc.
       exact (UnloadRows.ts_keeps lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 m b c m' (pc_of_pobj m HP) Hs St).
-    - exact Hobj_blind.
-    - exact (Hobj_fresh 4).
-    - intros b Hb. exact (Hobj_noref b _ (or_introl eq_refl) Hb).
+    - exact obj_blind_linked12.
+    - exact (obj_fresh_linked12 4).
   Qed.
   (* (Hobj_mplat, update_mario_platform: PROVED 2026-11-03, obj_mplat_linked12
      below, from the real body, MplatKeep) *)
@@ -1930,9 +1950,9 @@ Section HeightLinked12.
   Lemma obj_nonterrain_linked12 : mario_hole lp bm MWF Phi ->
     ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._update_non_terrain_objects.
   Proof.
-    intros Hm. destruct (Hobj_step_nonterrain Hm) as (Hsa & Hts & Hsa_nr & Hts_nr).
-    exact (ObjLoop.nonterrain_keeps lp H12 bm Pobjl pobj_ow Hsa Hts Hsa_nr Hts_nr obj_ctr_linked12
-             Hobj_blind (Hobj_fresh 4)).
+    intros Hm. destruct (Hobj_step_nonterrain Hm) as (Hsa & Hts).
+    exact (ObjLoop.nonterrain_keeps lp H12 bm Pobjl pobj_ow Hsa Hts obj_ctr_linked12
+             FBl obj_blind_linked12 (obj_fresh_linked12 4)).
   Qed.
 
   Theorem wmotr_noA_height_bound_linked12 :
@@ -1946,7 +1966,8 @@ Section HeightLinked12.
     exact (proj2 (noA_run_height_bound lp bm MWF Phi OWl PHI_YMAX
                     frame_action_linked12 render_ok_linked12 render_phi_linked12
                     obj_clock_linked12 obj_auo_linked12
-                    Hobj_blind (Hobj_fresh 240) obj_noref_uo obj_stores_linked12 obj_counter_linked12
+                    FBl HFBl obj_blind_linked12 (obj_fresh_linked12 240) (ObjPhase.noref_uo lp H12)
+                    obj_stores_linked12 obj_counter_linked12
                     obj_debug_linked12 (ObjWorld.post_clear (lp_ge lp)) obj_R_store_linked12
                     obj_surfaces_linked12 obj_terrain_linked12 obj_collisions_linked12 obj_nonterrain_linked12
                     obj_unload_linked12 obj_mplat_linked12 obj_platform_linked12 Hlvl_ow Hrender_ow
@@ -1969,7 +1990,8 @@ Section HeightLinked12.
     exact ((noA_run_height_bound lp bm MWF Phi OWl PHI_YMAX
                     frame_action_linked12 render_ok_linked12 render_phi_linked12
                     obj_clock_linked12 obj_auo_linked12
-                    Hobj_blind (Hobj_fresh 240) obj_noref_uo obj_stores_linked12 obj_counter_linked12
+                    FBl HFBl obj_blind_linked12 (obj_fresh_linked12 240) (ObjPhase.noref_uo lp H12)
+                    obj_stores_linked12 obj_counter_linked12
                     obj_debug_linked12 (ObjWorld.post_clear (lp_ge lp)) obj_R_store_linked12
                     obj_surfaces_linked12 obj_terrain_linked12 obj_collisions_linked12 obj_nonterrain_linked12
                     obj_unload_linked12 obj_mplat_linked12 obj_platform_linked12 Hlvl_ow Hrender_ow

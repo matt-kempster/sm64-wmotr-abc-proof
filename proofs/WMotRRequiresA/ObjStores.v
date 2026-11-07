@@ -103,30 +103,8 @@ Proof.
           | destruct (in_inj_value _ _ _ H) as (? & E); injection E as E _ _; exact E ].
 Qed.
 
-(* noref b survives a store into b, and a store elsewhere of a value that
-   is no pointer into b *)
-Lemma noref_store_in : forall b ch m z v m2,
-  Mem.store ch m b z v = Some m2 -> ObjPhase.noref b m -> ObjPhase.noref b m2.
-Proof.
-  intros b ch m z v m2 St H b' ofs Ne. rewrite (Mem.store_mem_contents _ _ _ _ _ _ St).
-  rewrite PMap.gso by exact Ne. exact (H b' ofs Ne).
-Qed.
-
-Lemma noref_store_out : forall b bg ch m z v m2,
-  Mem.store ch m bg z v = Some m2 -> (forall x o, v = Vptr x o -> x <> b) ->
-  ObjPhase.noref b m -> ObjPhase.noref b m2.
-Proof.
-  intros b bg ch m z v m2 St Hv H b' ofs Ne. rewrite (Mem.store_mem_contents _ _ _ _ _ _ St).
-  destruct (peq b' bg) as [-> | Nb]; [ rewrite PMap.gss | rewrite PMap.gso by exact Nb; exact (H b' ofs Ne) ].
-  destruct (zle z ofs) as [L1 | L1]; [ destruct (zlt ofs (z + Z.of_nat (length (encode_val ch v)))) as [L2 | L2] | ].
-  - pose proof (Mem.setN_in (encode_val ch v) z ofs (PMap.get bg (Mem.mem_contents m)) (conj L1 L2)) as Hin.
-    destruct (ZMap.get ofs (Mem.setN (encode_val ch v) z (PMap.get bg (Mem.mem_contents m))))
-      as [ | | v0 q k ]; [ exact I | exact I | ].
-    destruct v0; try exact I.
-    rewrite <- (enc_frag ch v _ q k Hin) in Hv. exact (Hv _ _ eq_refl).
-  - rewrite Mem.setN_outside by lia. exact (H bg ofs Ne).
-  - rewrite Mem.setN_outside by lia. exact (H bg ofs Ne).
-Qed.
+(* (the frame block's privacy across a store: ObjPhase.noref_store_in /
+   noref_store_sym) *)
 
 (* ---------------------------------------------------------------------- *)
 (* 2. The store shapes, decided on the generated body.                     *)
@@ -218,7 +196,6 @@ Section ST.
   Variable G : genv.
   Variable b : block.
   Variable R : mem -> Prop.
-  Hypothesis Hb : forall id bg, Genv.find_symbol G id = Some bg -> bg <> b.
   Hypothesis RG : forall id bg ch z i m m2, Genv.find_symbol G id = Some bg -> ClearKeep.gs_ok id = true ->
     existsb (Pos.eqb id) PollKeep.ow_ids = false ->
     existsb (Pos.eqb id) (map BhvVM.v_s BhvVM.vm_tab) = false ->
@@ -226,9 +203,9 @@ Section ST.
   Hypothesis RL : forall gol la m m2, Genv.find_symbol G OLP._gObjectLists = Some gol ->
     Genv.find_symbol G OLP._gObjectListArray = Some la ->
     Mem.store Mint32 m gol 0 (Vptr la Ptrofs.zero) = Some m2 -> R m -> R m2.
-  Hypothesis RB : forall m m2, R m -> ObjPhase.noref b m -> Mem.unchanged_on (fun b' _ => b' <> b) m m2 -> R m2.
+  Hypothesis RB : forall m m2, R m -> ObjPhase.noref G b m -> Mem.unchanged_on (fun b' _ => b' <> b) m m2 -> R m2.
 
-  Let Q := fun m => R m /\ ObjPhase.noref b m.
+  Let Q := fun m => R m /\ ObjPhase.noref G b m.
   Let e := ObjPhase.uo_env b.
 
   Lemma e_glob : forall g, Pos.eqb g OLP._cycleCounts = false -> e ! g = None.
@@ -266,7 +243,7 @@ Section ST.
     split.
     - apply (RB m m' HR Hn). apply (Mem.store_unchanged_on _ _ _ _ _ _ _ Ha).
       intros i0 _ N. exact (N eq_refl).
-    - exact (noref_store_in _ _ _ _ _ _ Ha Hn).
+    - exact (ObjPhase.noref_store_in _ _ _ _ _ _ _ Ha Hn).
   Qed.
 
   Lemma g_safe : forall g ty a2, gok g = true -> rv_ok ty a2 = true -> ObjPhase.safeE G Q e (Sassign (Evar g ty) a2).
@@ -291,7 +268,7 @@ Section ST.
     destruct St as (ch & St).
     split.
     - exact (RG g bb ch 0 i m m' Hs Hok How Hsc St HR).
-    - refine (noref_store_out _ _ _ _ _ _ _ St _ Hn). intros x o E. discriminate E.
+    - refine (ObjPhase.noref_store_sym _ _ _ _ _ _ _ _ (ex_intro _ _ Hs) _ St Hn). intros x o E. discriminate E.
   Qed.
 
   Lemma gol_safe : forall g ty a2, gol_ok g ty a2 = true -> ObjPhase.safeE G Q e (Sassign (Evar g ty) a2).
@@ -307,7 +284,8 @@ Section ST.
     apply (RenderAnim.store_by_value G (tptr (Tstruct OLP._ObjectNode noattr)) _ _ _ _ _ _ Mint32 eq_refl eq_refl) in Ha.
     split.
     - exact (RL bb la m m' Hs Hla Ha HR).
-    - refine (noref_store_out _ _ _ _ _ _ _ Ha _ Hn). intros x o E. injection E as <- _. exact (Hb _ _ Hla).
+    - refine (ObjPhase.noref_store_sym _ _ _ _ _ _ _ _ (ex_intro _ _ Hs) _ Ha Hn).
+      intros x o E. injection E as <- _. exact (ex_intro _ _ Hla).
   Qed.
 
   Lemma sok_safe : forall s, sok s = true -> ObjPhase.safeE G Q e s.

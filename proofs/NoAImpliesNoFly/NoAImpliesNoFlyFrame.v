@@ -73,11 +73,12 @@
 (*    HeightFrame.obj_debug_linked12, from the real bodies, DebugKeep;  *)
 (*    the pins sDebugPage = 0, gDebugInfoFlags bit 0 clear are obj_w's  *)
 (*    ow_debug, start-checked.)                                          *)
-(*  - Hobj_blind / Hobj_fresh / Hobj_noref: the stack array writes no   *)
-(*    MarioState cell and no MWF_real cell.                               *)
+(*  (Hobj_blind / Hobj_fresh / Hobj_noref, the frame block, are PROVED *)
+(*    since 2026-11-07: HeightFrame.obj_blind_linked12 (BlindKeep),     *)
+(*    obj_fresh_linked12, ObjPhase.noref_uo; privacy is RESTATED        *)
+(*    relative to a closing injection, docs/TRUST.md.)                  *)
 (*  (Hobj_stores, the phase's own stores, is PROVED since 2026-11-03:   *)
-(*    HeightFrame.obj_stores_linked12, ObjStores; it rests on Hobj_blind *)
-(*    for the stack stores.)                                             *)
+(*    HeightFrame.obj_stores_linked12, ObjStores.)                       *)
 (*  (Hobj_counter / Hobj_ctr, the counters, are PROVED since 2026-11-03: *)
 (*    HeightFrame.obj_counter_linked12 / obj_ctr_linked12, ClearKeep.)   *)
 (*  - Hseg_na_open (Mario's frame, GOAL 2's per-call PhiW rows): GOAL 1  *)
@@ -149,12 +150,6 @@ Section NoAImpliesNoFlyFrame.
 
   (* the objects phase's rows (HeightFrame's HeightLinked12 section has the
      commentary; above: what GOAL 1 needs from each) *)
-  Hypothesis Hobj_blind : forall b m m', Ple (Genv.genv_next (lp_ge lp)) b -> Pobjl m ->
-    ObjPhase.noref b m -> Mem.unchanged_on (fun b' _ => b' <> b) m m' -> Pobjl m'.
-  Hypothesis Hobj_fresh : forall sz m m1 b, Pobjl m -> Mem.alloc m 0 sz = (m1, b) ->
-    Ple (Genv.genv_next (lp_ge lp)) b /\ ObjPhase.noref b m1.
-  Hypothesis Hobj_noref : forall b f, In f ObjPhase.nr_callees -> Ple (Genv.genv_next (lp_ge lp)) b ->
-    ObjPhase.call_keeps (lp_ge lp) (ObjPhase.nrv b) f.
   Hypothesis Hobj_step_act_terrain :
     ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.ter_ls)
       object_list_processor.f_update_objects_starting_at
@@ -172,10 +167,6 @@ Section NoAImpliesNoFlyFrame.
     ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_starting_at
     /\ ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
-      object_list_processor.f_update_objects_during_time_stop
-    /\ ObjLoop.step_nr_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
-      object_list_processor.f_update_objects_starting_at
-    /\ ObjLoop.step_nr_row (lp_ge lp) Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_during_time_stop.
 
   (* the camera statement's object-world footprint, its residual part
@@ -201,7 +192,7 @@ Section NoAImpliesNoFlyFrame.
     apply (mem_ok_not_flying_lp bm MWF m).
     exact (proj1 (HeightFrame.wmotr_noA_run_ok_linked12 lp H12 bm bc oc0 SafeB HSafeB_syms
                     Hbm_sym Hbc_sym Hoc0 Hls Hdma_floor Hseg_na_open Hdma_anim Hsqrtf Hsqrtf_float
-                    Hcam_phi Hobj_blind Hobj_fresh Hobj_noref
+                    Hcam_phi
                     Hobj_step_act_terrain Hobj_step_rest_terrain
                     Hobj_step_act_nonterrain Hobj_step_rest_nonterrain
                     Hcam_ow_res
