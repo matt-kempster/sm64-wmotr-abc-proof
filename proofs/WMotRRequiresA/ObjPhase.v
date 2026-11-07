@@ -27,6 +27,7 @@ From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs
 From SM64.Generated Require object_list_processor area debug.
 From SM64.Proofs Require Import SymbolicLinking LinkedTwelve RealFrameLinked.
 From SM64.Proofs.WMotRRequiresA Require Import FrameCalls.
+From SM64.Proofs Require Generic.ClightClosed.
 Import ListNotations.
 
 Module OLP := SM64.Generated.object_list_processor.
@@ -158,49 +159,8 @@ End TrAlloc.
    The frame block of the real call is allocated, so nrv holds there. *)
 Definition nrv (b : block) (m : mem) : Prop := Mem.valid_block m b /\ noref b m.
 
-(* Clight execution never invalidates a block *)
-Lemma assign_loc_valid : forall ge ty m b0 ofs bf v m', assign_loc ge ty m b0 ofs bf v m' ->
-  forall b, Mem.valid_block m b -> Mem.valid_block m' b.
-Proof.
-  intros ge ty m b0 ofs bf v m' H b Hv. inv H.
-  - cbn [Mem.storev] in *. eapply Mem.store_valid_block_1; eassumption.
-  - eapply Mem.storebytes_valid_block_1; eassumption.
-  - match goal with Hs : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ => inv Hs end.
-    cbn [Mem.storev] in *. eapply Mem.store_valid_block_1; eassumption.
-Qed.
-
-Lemma alloc_variables_valid : forall ge e m vars e' m', alloc_variables ge e m vars e' m' ->
-  forall b, Mem.valid_block m b -> Mem.valid_block m' b.
-Proof.
-  intros ge e m vars e' m' H. induction H; intros b0 Hv; [ exact Hv | ].
-  apply IHalloc_variables. eapply Mem.valid_block_alloc; eassumption.
-Qed.
-
-Lemma free_list_valid : forall l m m', Mem.free_list m l = Some m' ->
-  forall b, Mem.valid_block m b -> Mem.valid_block m' b.
-Proof.
-  induction l as [| [[b0 lo] hi] l IH]; intros m m' H b Hv; cbn in H.
-  - injection H as <-. exact Hv.
-  - destruct (Mem.free m b0 lo hi) as [m1|] eqn:E; [ | discriminate H ].
-    apply (IH m1 m' H). eapply Mem.valid_block_free_1; eassumption.
-Qed.
-
-Lemma exec_valid : forall ge,
-  (forall e le m s t le' m' out, exec_stmt function_entry2 ge e le m s t le' m' out ->
-     forall b, Mem.valid_block m b -> Mem.valid_block m' b)
-  /\ (forall m fd vargs t m' vr, eval_funcall function_entry2 ge m fd vargs t m' vr ->
-     forall b, Mem.valid_block m b -> Mem.valid_block m' b).
-Proof.
-  intros ge. apply exec_stmt_funcall_ind; intros.
-  all: try solve [ eauto ].
-  all: try solve [ eapply assign_loc_valid; eassumption ].
-  all: try solve [ eapply external_call_valid_block; eassumption ].
-  all: match goal with Hfe : function_entry2 _ _ _ _ _ _ _ |- _ => destruct Hfe as [_ _ _ Hav _] end.
-  all: eapply free_list_valid; [ eassumption | ].
-  all: match goal with IH : forall b, Mem.valid_block ?m1 b -> Mem.valid_block ?m2 b |- _ =>
-         apply IH end.
-  all: eapply alloc_variables_valid; eassumption.
-Qed.
+(* Clight execution never invalidates a block (Generic.ClightClosed) *)
+Notation exec_valid := Generic.ClightClosed.exec_valid.
 
 Lemma free_list_one : forall m b lo hi m',
   Mem.free_list m [(b, lo, hi)] = Some m' -> Mem.free m b lo hi = Some m'.

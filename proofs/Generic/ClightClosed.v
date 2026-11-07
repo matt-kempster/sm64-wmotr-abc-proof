@@ -19,6 +19,61 @@ Import ListNotations.
 
 Definition vok (g : meminj) (v : val) : Prop := Val.inject g v v.
 
+(* ---- Clight execution never invalidates a block ---- *)
+Lemma assign_loc_valid : forall ge ty m b0 ofs bf v m', assign_loc ge ty m b0 ofs bf v m' ->
+  forall b, Mem.valid_block m b -> Mem.valid_block m' b.
+Proof.
+  intros ge ty m b0 ofs bf v m' H b Hv. inv H.
+  - cbn [Mem.storev] in *. eapply Mem.store_valid_block_1; eassumption.
+  - eapply Mem.storebytes_valid_block_1; eassumption.
+  - match goal with Hs : store_bitfield _ _ _ _ _ _ _ _ _ _ |- _ => inv Hs end.
+    cbn [Mem.storev] in *. eapply Mem.store_valid_block_1; eassumption.
+Qed.
+
+Lemma alloc_variables_valid : forall ge e m vars e' m', alloc_variables ge e m vars e' m' ->
+  forall b, Mem.valid_block m b -> Mem.valid_block m' b.
+Proof.
+  intros ge e m vars e' m' H. induction H; intros b0 Hv; [ exact Hv | ].
+  apply IHalloc_variables. eapply Mem.valid_block_alloc; eassumption.
+Qed.
+
+Lemma free_list_valid : forall l m m', Mem.free_list m l = Some m' ->
+  forall b, Mem.valid_block m b -> Mem.valid_block m' b.
+Proof.
+  induction l as [| [[b0 lo] hi] l IH]; intros m m' H b Hv; cbn in H.
+  - injection H as <-. exact Hv.
+  - destruct (Mem.free m b0 lo hi) as [m1|] eqn:E; [ | discriminate H ].
+    apply (IH m1 m' H). eapply Mem.valid_block_free_1; eassumption.
+Qed.
+
+Lemma exec_valid : forall ge,
+  (forall e le m s t le' m' out, exec_stmt function_entry2 ge e le m s t le' m' out ->
+     forall b, Mem.valid_block m b -> Mem.valid_block m' b)
+  /\ (forall m fd vargs t m' vr, eval_funcall function_entry2 ge m fd vargs t m' vr ->
+     forall b, Mem.valid_block m b -> Mem.valid_block m' b).
+Proof.
+  intros ge. apply exec_stmt_funcall_ind; intros.
+  all: try solve [ eauto ].
+  all: try solve [ eapply assign_loc_valid; eassumption ].
+  all: try solve [ eapply external_call_valid_block; eassumption ].
+  all: match goal with Hfe : function_entry2 _ _ _ _ _ _ _ |- _ => destruct Hfe as [_ _ _ Hav _] end.
+  all: eapply free_list_valid; [ eassumption | ].
+  all: match goal with IH : forall b, Mem.valid_block ?m1 b -> Mem.valid_block ?m2 b |- _ =>
+         apply IH end.
+  all: eapply alloc_variables_valid; eassumption.
+Qed.
+
+(* g' leaves unmapped every block valid in m that g leaves unmapped *)
+Definition sep_from (g g' : meminj) (m : mem) : Prop :=
+  forall b, Mem.valid_block m b -> g b = None -> g' b = None.
+
+Lemma sep_refl : forall g m, sep_from g g m.
+Proof. intros g m b _ H. exact H. Qed.
+
+Lemma sep_trans : forall g1 g2 g3 m1 m2, (forall b, Mem.valid_block m1 b -> Mem.valid_block m2 b) ->
+  sep_from g1 g2 m1 -> sep_from g2 g3 m2 -> sep_from g1 g3 m1.
+Proof. intros g1 g2 g3 m1 m2 V A B b Hv H. exact (B b (V b Hv) (A b Hv H)). Qed.
+
 Lemma vok_incr : forall g g' v, inject_incr g g' -> vok g v -> vok g' v.
 Proof. intros g g' v I H. exact (val_inject_incr _ _ _ _ I H). Qed.
 
@@ -192,10 +247,10 @@ Qed.
 
 Lemma alloc_vars_closed : forall e m vars e' m', alloc_variables ge e m vars e' m' ->
   forall g, closed_by g m -> env_mapped g e ->
-  exists g', inject_incr g g' /\ closed_by g' m' /\ env_mapped g' e'.
+  exists g', inject_incr g g' /\ closed_by g' m' /\ env_mapped g' e' /\ sep_from g g' m.
 Proof.
   induction 1; intros g Hc He.
-  - exists g. split; [intros ? ? ? X; exact X | auto].
+  - exists g. split; [intros ? ? ? X; exact X | split; [exact Hc | split; [exact He | apply sep_refl]]].
   - pose proof (alloc_private _ _ _ _ _ _ Hc H) as (_ & Hgb).
     set (g1 := fun x => if peq x b1 then Some (b1, 0) else g x).
     assert (I1 : inject_incr g g1).
@@ -205,8 +260,11 @@ Proof.
     { intros id' b ty' E. rewrite PTree.gsspec in E. destruct (peq id' id).
       - injection E as <- <-. unfold g1. destruct (peq b1 b1); [reflexivity | congruence].
       - exact (I1 _ _ _ (He _ _ _ E)). }
-    destruct (IHalloc_variables g1 Hc1 He1) as (g' & I' & Hc' & He').
-    exists g'. split; [| auto]. intros x x' d X. exact (I' _ _ _ (I1 _ _ _ X)).
+    destruct (IHalloc_variables g1 Hc1 He1) as (g' & I' & Hc' & He' & S').
+    exists g'. split; [intros x x' d X; exact (I' _ _ _ (I1 _ _ _ X)) | split; [exact Hc' | split; [exact He' |]]].
+    intros x Hv Hx. apply S'; [ eapply Mem.valid_block_alloc; eassumption | ].
+    unfold g1. destruct (peq x b1) as [-> | _]; [ | exact Hx ].
+    exfalso. exact (Mem.fresh_block_alloc _ _ _ _ _ H Hv).
 Qed.
 
 Lemma create_undef_ok : forall g l, temps_ok g (create_undef_temps l).
@@ -230,11 +288,11 @@ Qed.
 Definition stmt_P (e : env) (le : temp_env) (m : mem) (s : statement) (t : trace)
     (le' : temp_env) (m' : mem) (out : outcome) : Prop :=
   forall g, closed_by g m -> syms_mapped g -> env_mapped g e -> temps_ok g le ->
-  exists g', inject_incr g g' /\ closed_by g' m' /\ temps_ok g' le' /\ out_ok g' out.
+  exists g', inject_incr g g' /\ closed_by g' m' /\ temps_ok g' le' /\ out_ok g' out /\ sep_from g g' m.
 
 Definition call_P (m : mem) (fd : fundef) (vs : list val) (t : trace) (m' : mem) (v : val) : Prop :=
   forall g, closed_by g m -> syms_mapped g -> Forall (vok g) vs ->
-  exists g', inject_incr g g' /\ closed_by g' m' /\ vok g' v.
+  exists g', inject_incr g g' /\ closed_by g' m' /\ vok g' v /\ sep_from g g' m.
 
 Lemma incr_trans : forall f1 f2 f3, inject_incr f1 f2 -> inject_incr f2 f3 -> inject_incr f1 f3.
 Proof. intros f1 f2 f3 A B x x' d X. exact (B _ _ _ (A _ _ _ X)). Qed.
@@ -244,7 +302,7 @@ Proof. intros f x x' d X. exact X. Qed.
 
 Ltac stmt_intro := intros until g; intros HC HS HE HT.
 Ltac call_intro := intros until g; intros HC HS HA.
-Ltac keep := split; [apply incr_refl | split; [assumption | split; [assumption | exact I]]].
+Ltac keep := split; [apply incr_refl | split; [assumption | split; [assumption | split; [exact I | apply sep_refl]]]].
 
 Theorem exec_closed :
   (forall e le m s t le' m' out, exec_stmt function_entry2 ge e le m s t le' m' out ->
@@ -262,68 +320,76 @@ Proof.
       pose proof (proj1 (eval_ok g _ _ _ HC HS HE HT) _ _ He) as Hv2;
       destruct (sem_cast_inject _ _ _ _ _ _ _ _ Hc Hv2 Hi) as (tv & E & Hv);
       rewrite Hc in E; injection E as <-;
-      exists g; split; [apply incr_refl | split; [exact (assign_loc_closed _ _ _ _ _ _ _ _ HC Hb Hv Ha) | split; [exact HT | exact I]]]
+      exists g; split; [apply incr_refl | split; [exact (assign_loc_closed _ _ _ _ _ _ _ _ HC Hb Hv Ha)
+        | split; [exact HT | split; [exact I | apply sep_refl]]]]
     end.
   - (* set *) stmt_intro.
     match goal with He : eval_expr _ _ _ _ _ _ |- _ =>
-      exists g; split; [apply incr_refl | split; [exact HC | split; [| exact I]]];
+      exists g; split; [apply incr_refl | split; [exact HC | split; [| split; [exact I | apply sep_refl]]]];
       exact (temps_set _ _ _ _ HT (proj1 (eval_ok g _ _ _ HC HS HE HT) _ _ He)) end.
   - (* call *) stmt_intro.
     match goal with Hl : eval_exprlist _ _ _ _ _ _ _, IH : forall g, closed_by g _ -> _ |- _ =>
       pose proof (eval_exprlist_ok g _ _ _ HC HS HE HT _ _ _ Hl) as Hargs;
-      destruct (IH g HC HS Hargs) as (g' & I1 & Hc' & Hv);
-      exists g'; split; [exact I1 | split; [exact Hc' | split; [| exact I]]];
+      destruct (IH g HC HS Hargs) as (g' & I1 & Hc' & Hv & Sp);
+      exists g'; split; [exact I1 | split; [exact Hc' | split; [| split; [exact I | exact Sp]]]];
       exact (temps_setopt _ _ _ _ (temps_incr _ _ _ I1 HT) Hv) end.
   - (* builtin *) stmt_intro.
     match goal with Hl : eval_exprlist _ _ _ _ _ _ _, Hx : external_call _ _ _ _ _ _ _ |- _ =>
       pose proof (eval_exprlist_ok g _ _ _ HC HS HE HT _ _ _ Hl) as Hargs;
       destruct (ext_call_closed _ _ _ _ _ _ _ _ HC (syms_inject _ _ HC HS) (Forall_inject_list _ _ Hargs) Hx)
-        as (g' & Hc' & I1 & Hv & _);
-      exists g'; split; [exact I1 | split; [exact Hc' | split; [| exact I]]];
+        as (g' & Hc' & I1 & Hv & _ & Sp);
+      exists g'; split; [exact I1 | split; [exact Hc' | split; [| split; [exact I | exact Sp]]]];
       exact (temps_setopt _ _ _ _ (temps_incr _ _ _ I1 HT) Hv) end.
-  - (* seq 1 *) intros e le m s1 s2 t1 le1 m1 t2 le2 m2 out _ IH1 _ IH2. stmt_intro.
-    destruct (IH1 g HC HS HE HT) as (g1 & I1 & C1 & T1 & _).
-    destruct (IH2 g1 C1 (syms_incr _ _ I1 HS) (env_incr _ _ _ I1 HE) T1) as (g2 & I2 & C2 & T2 & O2).
-    exists g2. split; [exact (incr_trans _ _ _ I1 I2) | tauto].
+  - (* seq 1 *) intros e le m s1 s2 t1 le1 m1 t2 le2 m2 out X1 IH1 _ IH2. stmt_intro.
+    destruct (IH1 g HC HS HE HT) as (g1 & I1 & C1 & T1 & _ & S1).
+    destruct (IH2 g1 C1 (syms_incr _ _ I1 HS) (env_incr _ _ _ I1 HE) T1) as (g2 & I2 & C2 & T2 & O2 & S2).
+    exists g2. split; [exact (incr_trans _ _ _ I1 I2) | split; [exact C2 | split; [exact T2 | split; [exact O2 |]]]].
+    exact (sep_trans _ _ _ _ _ (proj1 (exec_valid ge) _ _ _ _ _ _ _ _ X1) S1 S2).
   - (* seq 2 *) intros e le m s1 s2 t1 le1 m1 out _ IH1 _. stmt_intro. exact (IH1 g HC HS HE HT).
   - (* if *) intros e le m a s1 s2 v1 b t le' m' out _ _ _ IH. stmt_intro. exact (IH g HC HS HE HT).
   - (* return none *) stmt_intro. exists g. keep.
   - (* return some *) stmt_intro.
     match goal with He : eval_expr _ _ _ _ _ _ |- _ =>
-      exists g; split; [apply incr_refl | split; [exact HC | split; [exact HT |]]];
+      exists g; split; [apply incr_refl | split; [exact HC | split; [exact HT | split; [| apply sep_refl]]]];
       exact (proj1 (eval_ok g _ _ _ HC HS HE HT) _ _ He) end.
   - (* break *) stmt_intro. exists g. keep.
   - (* continue *) stmt_intro. exists g. keep.
   - (* loop stop 1 *) intros e le m s1 s2 t le' m' out' out _ IH1 Hbr. stmt_intro.
-    destruct (IH1 g HC HS HE HT) as (g1 & I1 & C1 & T1 & O1).
-    exists g1. split; [exact I1 | split; [exact C1 | split; [exact T1 |]]].
+    destruct (IH1 g HC HS HE HT) as (g1 & I1 & C1 & T1 & O1 & S1).
+    exists g1. split; [exact I1 | split; [exact C1 | split; [exact T1 | split; [| exact S1]]]].
     inv Hbr; cbn in *; auto.
-  - (* loop stop 2 *) intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 out2 out _ IH1 _ _ IH2 Hbr. stmt_intro.
-    destruct (IH1 g HC HS HE HT) as (g1 & I1 & C1 & T1 & _).
-    destruct (IH2 g1 C1 (syms_incr _ _ I1 HS) (env_incr _ _ _ I1 HE) T1) as (g2 & I2 & C2 & T2 & O2).
-    exists g2. split; [exact (incr_trans _ _ _ I1 I2) | split; [exact C2 | split; [exact T2 |]]].
-    inv Hbr; cbn in *; auto.
-  - (* loop loop *) intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 t3 le3 m3 out _ IH1 _ _ IH2 _ IH3.
+  - (* loop stop 2 *) intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 out2 out X1 IH1 _ _ IH2 Hbr. stmt_intro.
+    destruct (IH1 g HC HS HE HT) as (g1 & I1 & C1 & T1 & _ & S1).
+    destruct (IH2 g1 C1 (syms_incr _ _ I1 HS) (env_incr _ _ _ I1 HE) T1) as (g2 & I2 & C2 & T2 & O2 & S2).
+    exists g2. split; [exact (incr_trans _ _ _ I1 I2) | split; [exact C2 | split; [exact T2 | split]]].
+    + inv Hbr; cbn in *; auto.
+    + exact (sep_trans _ _ _ _ _ (proj1 (exec_valid ge) _ _ _ _ _ _ _ _ X1) S1 S2).
+  - (* loop loop *) intros e le m s1 s2 t1 le1 m1 out1 t2 le2 m2 t3 le3 m3 out X1 IH1 _ X2 IH2 _ IH3.
     stmt_intro.
-    destruct (IH1 g HC HS HE HT) as (g1 & I1 & C1 & T1 & _).
-    destruct (IH2 g1 C1 (syms_incr _ _ I1 HS) (env_incr _ _ _ I1 HE) T1) as (g2 & I2 & C2 & T2 & _).
+    destruct (IH1 g HC HS HE HT) as (g1 & I1 & C1 & T1 & _ & S1).
+    destruct (IH2 g1 C1 (syms_incr _ _ I1 HS) (env_incr _ _ _ I1 HE) T1) as (g2 & I2 & C2 & T2 & _ & S2).
     destruct (IH3 g2 C2 (syms_incr _ _ (incr_trans _ _ _ I1 I2) HS)
-                (env_incr _ _ _ (incr_trans _ _ _ I1 I2) HE) T2) as (g3 & I3 & C3 & T3 & O3).
-    exists g3. split; [exact (incr_trans _ _ _ (incr_trans _ _ _ I1 I2) I3) | tauto].
+                (env_incr _ _ _ (incr_trans _ _ _ I1 I2) HE) T2) as (g3 & I3 & C3 & T3 & O3 & S3).
+    exists g3. split; [exact (incr_trans _ _ _ (incr_trans _ _ _ I1 I2) I3) | split; [exact C3 | split; [exact T3 | split; [exact O3 |]]]].
+    pose proof (proj1 (exec_valid ge) _ _ _ _ _ _ _ _ X1) as V1.
+    pose proof (proj1 (exec_valid ge) _ _ _ _ _ _ _ _ X2) as V2.
+    exact (sep_trans _ _ _ _ _ V1 S1 (sep_trans _ _ _ _ _ V2 S2 S3)).
   - (* switch *) intros e le m a t v n sl le1 m1 out _ _ _ IH. stmt_intro.
-    destruct (IH g HC HS HE HT) as (g1 & I1 & C1 & T1 & O1).
-    exists g1. split; [exact I1 | split; [exact C1 | split; [exact T1 |]]].
+    destruct (IH g HC HS HE HT) as (g1 & I1 & C1 & T1 & O1 & S1).
+    exists g1. split; [exact I1 | split; [exact C1 | split; [exact T1 | split; [| exact S1]]]].
     destruct out as [| | | [[]|]]; cbn in *; auto.
-  - (* internal call *) intros m f vargs t e le1 le2 m1 m2 out vres m3 Hfe _ IH Hres Hfree.
-    call_intro. inv Hfe.
+  - (* internal call *) intros m f vargs t e le1 le2 m1 m2 out vres m3 Hfe X IH Hres Hfree.
+    call_intro. pose proof Hfe as Hfe0. inv Hfe.
     match goal with Ha : alloc_variables _ _ _ _ _ _, Hb : bind_parameter_temps _ _ _ = Some _ |- _ =>
+      pose proof (alloc_variables_valid _ _ _ _ _ _ Ha) as V0;
       destruct (alloc_vars_closed _ _ _ _ _ Ha g HC
                   ltac:(intros id b ty E; rewrite PTree.gempty in E; discriminate))
-        as (g1 & I1 & C1 & E1);
+        as (g1 & I1 & C1 & E1 & S1);
       pose proof (bind_ok g1 _ _ _ _ (create_undef_ok g1 _)
                     (Forall_impl _ (fun v => vok_incr _ _ v I1) HA) Hb) as T1 end.
-    destruct (IH g1 C1 (syms_incr _ _ I1 HS) E1 T1) as (g2 & I2 & C2 & T2 & O2).
+    destruct (IH g1 C1 (syms_incr _ _ I1 HS) E1 T1) as (g2 & I2 & C2 & T2 & O2 & S2).
     exists g2. split; [exact (incr_trans _ _ _ I1 I2) | split; [exact (free_list_closed _ _ _ _ C2 Hfree) |]].
+    split; [ | exact (sep_trans _ _ _ _ _ V0 S1 S2) ].
     unfold outcome_result_value in Hres.
     destruct out as [| | | [[v' t']|]]; destruct (fn_return f); try contradiction;
       try (subst; constructor); try (destruct Hres as (_ & Hres)).
@@ -331,7 +397,7 @@ Proof.
               rewrite Hres in E; injection E as <-; exact V).
   - (* external call *) intros m ef targs tres cconv vargs t vres m' Hx. call_intro.
     destruct (ext_call_closed _ _ _ _ _ _ _ _ HC (syms_inject _ _ HC HS) (Forall_inject_list _ _ HA) Hx)
-      as (g' & Hc' & I1 & Hv & _).
+      as (g' & Hc' & I1 & Hv & _ & Sp).
     exists g'. tauto.
 Qed.
 
@@ -341,8 +407,22 @@ Theorem funcall_closed : forall m fd vs t m' v g,
   exists g', inject_incr g g' /\ closed_by g' m' /\ syms_mapped g' /\ vok g' v.
 Proof.
   intros m fd vs t m' v g H Hc Hs Hv.
-  destruct (proj2 exec_closed _ _ _ _ _ _ H g Hc Hs Hv) as (g' & I & Hc' & Hv').
+  destruct (proj2 exec_closed _ _ _ _ _ _ H g Hc Hs Hv) as (g' & I & Hc' & Hv' & _).
   exists g'. split; [exact I | split; [exact Hc' | split; [exact (syms_incr _ _ I Hs) | exact Hv']]].
+Qed.
+
+(* THE SEPARATED FORM (2026-11-07): a block valid before the call and left
+   unmapped by g -- private: no mapped readable byte names it -- is still
+   unmapped by g' after the call.  External calls: CompCert's
+   inject_separated (ext_call_closed); locals: fresh blocks. *)
+Theorem funcall_closed_sep : forall m fd vs t m' v g,
+  eval_funcall function_entry2 ge m fd vs t m' v ->
+  closed_by g m -> syms_mapped g -> Forall (vok g) vs ->
+  exists g', inject_incr g g' /\ closed_by g' m' /\ syms_mapped g' /\ vok g' v /\ sep_from g g' m.
+Proof.
+  intros m fd vs t m' v g H Hc Hs Hv.
+  destruct (proj2 exec_closed _ _ _ _ _ _ H g Hc Hs Hv) as (g' & I & Hc' & Hv' & Sp).
+  exists g'. split; [exact I | split; [exact Hc' | split; [exact (syms_incr _ _ I Hs) | split; [exact Hv' | exact Sp]]]].
 Qed.
 
 End CC.
