@@ -1487,6 +1487,21 @@ without pressing A".*
   Qs (slot k's script family, checked on the start witness) comes with INV_k in W2. Until
   then the keeps are still abstract premises about a section INV; none is on a capstone.
   No trust moves.
+  **The concrete family (2026-11-07): `ObjFamily.Qfam s0`.** `cls s` is the 7 bits obj_w
+  reads off a script: in sp_scripts, in live12, live, in pbc_ids, and whether it is
+  BOXS, LIDS or COINF. `Qfam s0 st` means st's script has s0's class and is live.
+  `fam_chk_ok` is a vm check over all 95 scripts: from a live script, every `succs`
+  edge keeps the class. Six edges cross scripts. The two that change class start in
+  cut scripts (bhvSpawnedStar, bhvObjectWaveTrail), which no slot runs. Hence
+  `Qfam_closed` (= `Hqs_cl`) and the projections `Qfam_sp/_live12/_pbc/_id`. TRAP: a
+  lemma stated on `cls` itself hung at Qed (the kernel unfolded the computed lists), so
+  the projections are proved generic over the lists. No trust moves.
+  **FOUND / REPAIRED (2026-11-07): `ObjFrame.XBn` lacked numCollidedObjs [118,120).**
+  `sfr_keep` said a native on a generic slot changes only non-XBn bytes and keeps obj_w.
+  That is false as stated: `ow_ncoll` reads numCollidedObjs, which was outside XBn.
+  REPAIRED by adding (118,120) to XBn. Checked against the code: no live WMotR native
+  writes it (the collision pass does, outside cur_obj_update), and coin formations zero
+  only angle velocity. No trust moves.
   **`ow_scr` (2026-11-03): `scr_ok` is an obj_w clause.** `ObjWorld.scr_ok` (moved from
   BhvStep, which keeps its names as notations) is obj_w's 21st clause; the boot witness
   checks it by vm inside `ow_chk` (`scr_b_l` over the reachable scripts, at m3 / m4 / m11).

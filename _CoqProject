@@ -383,6 +383,7 @@ proofs/WMotRRequiresA/ObjDroplet.v
 proofs/WMotRRequiresA/ObjAnimate.v
 proofs/WMotRRequiresA/ObjFloorH.v
 proofs/WMotRRequiresA/EnvSwap.v
+proofs/WMotRRequiresA/ObjFamily.v
 proofs/WMotRRequiresA/ObjPhase.v
 proofs/WMotRRequiresA/ObjLoop.v
 proofs/WMotRRequiresA/ObjStepSplit.v
