@@ -939,7 +939,14 @@ all in `Unwired/`, and the theorem moved nowhere. See
        substitutes remembered names (I4, w) away; f_equal on Vcmd goals took 13 min (use
        padd_repr); a cbn'd cast leaves match-junk in temps, so `change` it to the clean
        int; pointer + int: ObjAnimate.padd_inv (cbn on Archi.ptr64 hung).
-       Next: row 30 and the CALL_NATIVE residual; then the loop INV = obj_w minus
+       DONE 2026-11-07 (row 30): ObjFloorH.ffh_foot (find_floor_height: footprint = the
+       three find_floor statics, perms kept; over FloorList.ff_value_contract with
+       avoid = statics + the local) and BhvStep.hd_drop_to_floor / row_drop_to_floor;
+       dtf_ff (INV -> ff_ok) + dtf_keep joined row_keeps. ALL used opcodes are done
+       (used_done, vm); dloop_done / seg need only row_keeps. Traps: check.sh does NOT
+       rebuild a stale dep .vo (probe the dep first); after call_inv the temps are
+       `set_opttemp` (cbn it before gss); `exists _` does not work, use eexists.
+       Next: the CALL_NATIVE residual; then the loop INV = obj_w minus
        the current slot's ow_vm, and wiring dloop into Hobj_step_rest (PRIORITY);
        the pre-/post-loop code of cur_obj_update; the loop INV = obj_w minus the current
        slot's ow_vm; then narrow Hobj_step_rest.

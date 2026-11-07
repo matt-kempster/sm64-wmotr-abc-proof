@@ -1448,6 +1448,21 @@ without pressing A".*
     animYTrans @58.
   Every value comes from the run itself. One pinned premise is added to `row_keeps`:
   `an_keep`, which says INV survives those stores (`an_post`). No new trust row.
+  **Row 30 DROP_TO_FLOOR (2026-11-07): `row_drop_to_floor`, on the REAL handler; every
+  used opcode now has its row.** `hd_drop_to_floor` walks bhv_cmd_drop_to_floor:
+  oPosX/Y/Z are read, find_floor_height(x, y + 200, z) runs, oPosY gets the result and
+  oMoveFlags |= 2. `ObjFloorH.ffh_foot` walks find_floor_height (a fresh local, freed)
+  over `FloorList.ff_value_contract` for find_floor: no cell of the entry memory outside
+  find_floor's three statics changes, and no permission changes. That footprint keeps the
+  stepper's cells (none of the statics is gCurBhvCommand, gCurrentObject or the pool).
+  Two premises are pinned in `row_keeps`:
+  - `dtf_ff`: INV gives find_floor's entry facts (`ObjFloorH.ff_ok`: the statics and the
+    partition arrays are allocated, and the partition lists are well formed and stay off
+    the statics; this is ObjWorld's surface clause);
+  - `dtf_keep`: INV survives `dtf_post`, which is the real run plus the two stores.
+  With 30 done, `used_done` checks used_ops ⊆ done_ops by vm. `dloop_done` and `seg` lost
+  their "rows not yet proved" premise: the dispatch loop needs only `row_keeps`, premises
+  about INV. No new trust row.
   **`ow_scr` (2026-11-03): `scr_ok` is an obj_w clause.** `ObjWorld.scr_ok` (moved from
   BhvStep, which keeps its names as notations) is obj_w's 21st clause; the boot witness
   checks it by vm inside `ow_chk` (`scr_b_l` over the reachable scripts, at m3 / m4 / m11).
