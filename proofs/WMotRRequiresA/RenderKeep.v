@@ -196,8 +196,13 @@ Qed.
    [112, 136), and of every object rawData words 5 and 66 (offsets 156,
    400; no PhiW clause reads them).  A step keeping only owinc keeps PhiW
    when Mario's collision cells after are old or name far objects
-   (KEEP's CKo / CKn) *)
-Definition ccl_at (o z e : Z) : Prop := (e <= o + 156 \/ o + 160 <= z) /\ (e <= o + 400 \/ o + 404 <= z).
+   (KEEP's CKo / CKn).
+   2026-11-07: also off the behavior-VM cells [460, 502) (curBhvCommand,
+   bhvStackIndex, bhvStack[8], bhvDelayTimer): no PhiW clause reads them,
+   and the objects step moves the running slot's (BhvStep.Pfr), which may
+   be Mario's or a far object's. *)
+Definition ccl_at (o z e : Z) : Prop :=
+  (e <= o + 156 \/ o + 160 <= z) /\ (e <= o + 400 \/ o + 404 <= z) /\ (e <= o + 460 \/ o + 502 <= z).
 
 Definition owinc (Q : ptrofs -> Prop) (mo : ptrofs) (ch : memory_chunk) (z : Z) : Prop :=
   (Ptrofs.unsigned mo + 16 <= z /\ z + size_chunk ch <= Ptrofs.unsigned mo + 64)
@@ -471,7 +476,8 @@ Section RK.
       \/ (u mo + 104 <= z /\ z + size_chunk ch <= u mo + 112)
       \/ (u mo + 136 <= z /\ z + size_chunk ch <= u mo + 532
           /\ (z + size_chunk ch <= u mo + 156 \/ u mo + 160 <= z)
-          /\ (z + size_chunk ch <= u mo + 400 \/ u mo + 404 <= z)) ->
+          /\ (z + size_chunk ch <= u mo + 400 \/ u mo + 404 <= z)
+          /\ (z + size_chunk ch <= u mo + 460 \/ u mo + 502 <= z)) ->
       Mem.load ch m' mb z = Mem.load ch m mb z.
     Proof.
       intros ch z H. apply (LD ch mb z Nmb (fun E => Bmb (eq_sym E))). right. unfold owinc, ccl_at.
@@ -489,7 +495,8 @@ Section RK.
     (* an object of Mario's block that is Mario's own or a whole Object away *)
     Lemma far_keep : forall co ch o', (co = mo \/ (Q co /\ (u co + 608 <= u mo \/ u mo + 608 <= u co))) ->
       136 <= o' -> o' + size_chunk ch <= 532 ->
-      (o' + size_chunk ch <= 156 \/ 160 <= o') /\ (o' + size_chunk ch <= 400 \/ 404 <= o') ->
+      (o' + size_chunk ch <= 156 \/ 160 <= o') /\ (o' + size_chunk ch <= 400 \/ 404 <= o')
+      /\ (o' + size_chunk ch <= 460 \/ 502 <= o') ->
       Mem.load ch m' mb (u co + o') = Mem.load ch m mb (u co + o').
     Proof.
       intros co ch o' H H1 H2 H3. destruct H as [-> | (Hq & H)]; [ apply LHo; lia | ].
