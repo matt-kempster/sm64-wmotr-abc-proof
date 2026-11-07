@@ -1463,6 +1463,19 @@ without pressing A".*
   With 30 done, `used_done` checks used_ops ⊆ done_ops by vm. `dloop_done` and `seg` lost
   their "rows not yet proved" premise: the dispatch loop needs only `row_keeps`, premises
   about INV. No new trust row.
+  **W1 (2026-11-07): `BhvStep.cou_real`, the whole REAL cur_obj_update.** The body is
+  checked by vm (`cou_split`) to be COU_PRE ++ [COPYIN; DLOOP; COPYOUT] ++ COU_POST.
+  `EnvSwap.exec_swap` is generic Clight: a statement that never names a local runs the same
+  in any two environments that agree off it. It moves the segment from the filler[4]
+  environment to the empty one (`cou_nofv`, vm). Then `seg` runs in that environment.
+  The function's alloc is taken through `Hinv_frame`, and its free through `inv_free`.
+  The remaining premises, all about INV (still a section variable, not on a capstone):
+  - `row_keeps`;
+  - `pre_keep` and `post_keep`, pinned to the real COU_PRE and COU_POST statements, for
+    any temps. COU_PRE sets every temp it reads. COU_POST's one inherited temp,
+    distanceFromMario, only picks a render-flag branch;
+  - `inv_free`: freeing a block allocated after an INV state keeps INV.
+  No new trust row.
   **`ow_scr` (2026-11-03): `scr_ok` is an obj_w clause.** `ObjWorld.scr_ok` (moved from
   BhvStep, which keeps its names as notations) is obj_w's 21st clause; the boot witness
   checks it by vm inside `ow_chk` (`scr_b_l` over the reachable scripts, at m3 / m4 / m11).

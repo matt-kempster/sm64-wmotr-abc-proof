@@ -62,7 +62,7 @@ From SM64.Proofs.WMotRRequiresA Require Import BhvVM BehaviorScripts.
 From SM64.Proofs.MarioModel Require SpawnBodies.
 From SM64.Proofs.WMotRRequiresA Require RenderAnim ObjWorld ObjPhase ObjLoop ObjCensus PlatformWalk BoxCensus
   ObjSelf ObjFrame FpuFloor ObjAlloc.
-From SM64.Proofs.WMotRRequiresA Require ObjCreate ObjMake ObjGeo ObjOrigin ObjCopy ObjChild ObjDroplet ObjAnimate FloorList ObjFloorH.
+From SM64.Proofs.WMotRRequiresA Require ObjCreate ObjMake ObjGeo ObjOrigin ObjCopy ObjChild ObjDroplet ObjAnimate FloorList ObjFloorH EnvSwap.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -1173,6 +1173,41 @@ Fixpoint find_seg (s : statement) : option (statement * statement * statement) :
   end.
 Lemma seg_is_real : find_seg (fn_body BS.f_cur_obj_update) = Some (COPYIN, DLOOP, COPYOUT).
 Proof. vm_compute. reflexivity. Qed.
+
+(* the whole body around the segment: the statements before it (COU_PRE:
+   the distance / angle to Mario, the action-timer reset) and the
+   statement after it (COU_POST: the timer, the flag-gated move /
+   transform / gfx calls, room and render-distance visibility) *)
+Fixpoint pre_seg (s : statement) : list statement :=
+  match s with
+  | Ssequence a b =>
+      match b with
+      | Ssequence (Sloop _ _) _ => []
+      | _ => a :: pre_seg b
+      end
+  | _ => []
+  end.
+Fixpoint post_seg (s : statement) : statement :=
+  match s with
+  | Ssequence a b =>
+      match b with
+      | Ssequence (Sloop _ _) (Ssequence _ r) => r
+      | _ => post_seg b
+      end
+  | _ => Sskip
+  end.
+Definition COU_PRE : list statement := pre_seg (fn_body BS.f_cur_obj_update).
+Definition COU_POST : statement := post_seg (fn_body BS.f_cur_obj_update).
+
+Lemma cou_split : fn_body BS.f_cur_obj_update
+  = ObjLoop.app_seq COU_PRE (Ssequence COPYIN (Ssequence DLOOP (Ssequence COPYOUT COU_POST))).
+Proof. vm_compute. reflexivity. Qed.
+Lemma cou_plain : ObjLoop.plain (ObjLoop.app_seq COU_PRE Sskip) = true.
+Proof. vm_compute. reflexivity. Qed.
+(* the segment never names the local filler[4] *)
+Lemma cou_nofv : EnvSwap.s_nofv BS._filler COPYIN = true /\ EnvSwap.s_nofv BS._filler DLOOP = true
+  /\ EnvSwap.s_nofv BS._filler COPYOUT = true.
+Proof. vm_compute. auto. Qed.
 
 Section Link.
   Variable lp : Clight.program.
@@ -8014,5 +8049,101 @@ Section Link.
     destruct (copyout _ _ _ _ _ _ _ X3 (Hinv_cur _ HI2) HV2) as (-> & HV3 & U3).
     split; [ reflexivity | split; [ reflexivity | split; [ reflexivity | ] ] ].
     exact (ex_intro _ st2 (conj Hst2 (conj HV3 (Hinv_frame _ _ HI2 U3)))).
+  Qed.
+
+  (* ---- the whole REAL cur_obj_update (W1, 2026-11-07) ---- *)
+  Lemma Vo_unch : forall (P : block -> Z -> Prop) m m1 st, Mem.unchanged_on P m m1 ->
+    (forall z, P pool z) -> Vo m st -> Vo m1 st.
+  Proof.
+    intros P m m1 st U HP HV. unfold Vo, Vstk in *.
+    destruct HV as ((b & Hb & Hl) & Hsi & Hk).
+    split; [ exists b; split; [ exact Hb | ] | split ].
+    - apply (Mem.load_unchanged_on _ _ _ _ _ _ _ U); [ intros; apply HP | exact Hl ].
+    - apply (Mem.load_unchanged_on _ _ _ _ _ _ _ U); [ intros; apply HP | exact Hsi ].
+    - intros j f Hj. pose proof (Hk j f Hj) as Hf.
+      destruct f as [s0 i0 |];
+        [ destruct Hf as (b0 & Hb0 & Hl0); exists b0; split; [ exact Hb0 | ]
+        | destruct Hf as (c & Hl0); exists c ];
+        (apply (Mem.load_unchanged_on _ _ _ _ _ _ _ U); [ intros; apply HP | exact Hl0 ]).
+  Qed.
+
+  Definition cou_env (b : block) : env := PTree.set BS._filler (b, tarray tuchar 4) empty_env.
+
+  (* the code before the segment keeps INV and the slot's VM state.  Any
+     temps: COU_PRE sets every temp it reads (objFlags, distanceFromMario) *)
+  Definition pre_keep : Prop := forall b le m t le' m' out st,
+    INV m -> Vo m st -> In st vm_tab ->
+    exec_stmt function_entry2 G (cou_env b) le m (ObjLoop.app_seq COU_PRE Sskip) t le' m' out ->
+    INV m' /\ Vo m' st.
+  (* the code after it.  Any temps: COU_POST re-reads objFlags; the one
+     temp it inherits, distanceFromMario, only picks a render-flag branch *)
+  Definition post_keep : Prop := forall b le m t le' m' out st,
+    INV m -> Vo m st -> In st vm_tab ->
+    exec_stmt function_entry2 G (cou_env b) le m COU_POST t le' m' out ->
+    INV m' /\ Vo m' st.
+  (* freeing a block allocated after an INV state (the local filler[4])
+     keeps INV *)
+  Definition inv_free : Prop := forall m0 m b m', INV m0 -> ~ Mem.valid_block m0 b -> INV m ->
+    Mem.free m b 0 4 = Some m' -> INV m'.
+
+  Lemma cou_ag : forall bF y, y <> BS._filler ->
+    (PTree.set BS._filler (bF, tarray tuchar 4) empty_env) ! y = empty_env ! y.
+  Proof. intros bF y Hy. rewrite PTree.gso by exact Hy. reflexivity. Qed.
+
+  (* THE OBJECT UPDATE: the REAL cur_obj_update, from a slot whose own cells
+     hold a reachable VM state, keeps INV and leaves the slot's cells in a
+     reachable state -- given row_keeps (the dispatch loop's premises), the
+     code around the segment (pre_keep / post_keep) and inv_free *)
+  Theorem cou_real : row_keeps -> pre_keep -> post_keep -> inv_free ->
+    forall m t m' vr st, In st vm_tab -> Vo m st -> INV m ->
+    eval_funcall function_entry2 G m (Internal BS.f_cur_obj_update) [] t m' vr ->
+    exists st', In st' vm_tab /\ Vo m' st' /\ INV m'.
+  Proof.
+    intros Hk Hpre Hpost Hfree m t m' vr st Hst HV HI H.
+    destruct cou_nofv as (N1 & N2 & N3).
+    inv H.
+    match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => inv He end.
+    match goal with Ha : alloc_variables _ _ _ _ _ _ |- _ =>
+      cbn [BS.f_cur_obj_update fn_vars] in Ha; inv Ha end.
+    match goal with Ha : alloc_variables _ _ _ [] _ _ |- _ => inv Ha end.
+    match goal with A1 : Mem.alloc m 0 _ = (?M1, ?b1) |- _ =>
+      rename b1 into bF, A1 into HA, M1 into mA end.
+    assert (HnF : ~ Mem.valid_block m bF) by exact (Mem.fresh_block_alloc _ _ _ _ _ HA).
+    pose proof (Mem.alloc_unchanged_on (fun _ _ => True) _ _ _ _ _ HA) as UA.
+    assert (HIA : INV mA) by exact (Hinv_frame _ _ HI (Mem.unchanged_on_implies _ _ _ _ UA (fun _ _ _ _ => I))).
+    pose proof (Vo_unch _ _ _ _ UA (fun _ => I) HV) as HVA.
+    match goal with Hx : exec_stmt _ _ _ _ _ (fn_body _) _ _ _ _ |- _ => rename Hx into X end.
+    rewrite cou_split in X.
+    apply ObjLoop.app_seq_inv in X as [(q1 & qe1 & qm1 & q2 & XP & XR) | ((q1 & XP) & Xn)];
+      [ | exfalso; exact (Xn (ObjLoop.plain_out _ _ _ _ _ _ _ _ _ XP cou_plain)) ].
+    destruct (Hpre bF _ _ _ _ _ _ st HIA HVA Hst XP) as (HI1 & HV1).
+    (* the segment, in the empty environment *)
+    apply RA.seq_inv in XR as [(r1 & re1 & rm1 & r2 & Y1 & Y2) | (Y1 & Xn)];
+      [ | exfalso; exact (Xn (ObjLoop.plain_out _ _ _ _ _ _ _ _ _ Y1 eq_refl)) ].
+    apply (EnvSwap.exec_swap _ _ _ _ _ _ _ _ _ _ _ Y1 (cou_ag bF)) in N1.
+    apply RA.seq_inv in Y2 as [(r3 & re3 & rm3 & r4 & Y3 & Y4) | (Y3 & Xn)].
+    2: { exfalso. destruct (copyin _ _ _ _ _ _ _ N1 (Hinv_cur _ HI1) HV1) as (_ & HVc & Uc).
+         apply (EnvSwap.exec_swap _ _ _ _ _ _ _ _ _ _ _ Y3 (cou_ag bF)) in N2.
+         destruct (dloop_done Hk _ _ _ _ _ _ N2 st Hst HVc (Hinv_frame _ _ HI1 Uc)) as (Eo & _).
+         exact (Xn Eo). }
+    apply (EnvSwap.exec_swap _ _ _ _ _ _ _ _ _ _ _ Y3 (cou_ag bF)) in N2.
+    apply RA.seq_inv in Y4 as [(r5 & re5 & rm5 & r6 & Y5 & Y6) | (Y5 & Xn)];
+      [ | exfalso; exact (Xn (ObjLoop.plain_out _ _ _ _ _ _ _ _ _ Y5 eq_refl)) ].
+    apply (EnvSwap.exec_swap _ _ _ _ _ _ _ _ _ _ _ Y5 (cou_ag bF)) in N3.
+    destruct (seg Hk _ _ _ _ _ _ _ _ _ _ _ _ _ _ st Hst HV1 HI1 N1 N2 N3)
+      as (_ & _ & _ & st' & Hst' & HV2 & HI2).
+    destruct (Hpost bF _ _ _ _ _ _ st' HI2 HV2 Hst' Y6) as (HI3 & HV3).
+    (* the local is freed *)
+    match goal with Hf : Mem.free_list ?M _ = Some ?R |- _ =>
+      change (Mem.free_list M [(bF, 0, 4)] = Some R) in Hf; cbn [Mem.free_list] in Hf;
+      destruct (Mem.free M bF 0 4) as [M5 |] eqn:F1; [ injection Hf as <- | discriminate Hf ] end.
+    assert (Hpf : pool <> bF).
+    { intros E. subst bF. apply HnF. destruct HV as ((b & _ & Hl) & _).
+      pose proof (Mem.load_valid_access _ _ _ _ _ Hl) as Ha. eapply Mem.valid_access_valid_block.
+      eapply Mem.valid_access_implies; [ exact Ha | constructor ]. }
+    exists st'. split; [ exact Hst' | split ].
+    - refine (Vo_unch (fun b _ => b <> bF) _ _ _ _ (fun _ => Hpf) HV3).
+      eapply Mem.free_unchanged_on; [ exact F1 | ]. intros i _ Hn. exact (Hn eq_refl).
+    - exact (Hfree m _ bF _ HI HnF HI3 F1).
   Qed.
 End Link.

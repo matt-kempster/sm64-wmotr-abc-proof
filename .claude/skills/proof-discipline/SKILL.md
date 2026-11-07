@@ -946,7 +946,17 @@ all in `Unwired/`, and the theorem moved nowhere. See
        (used_done, vm); dloop_done / seg need only row_keeps. Traps: check.sh does NOT
        rebuild a stale dep .vo (probe the dep first); after call_inv the temps are
        `set_opttemp` (cbn it before gss); `exists _` does not work, use eexists.
-       Next: the CALL_NATIVE residual; then the loop INV = obj_w minus
+       DONE 2026-11-07 (W1): BhvStep.cou_real -- the REAL cur_obj_update keeps INV and
+       the slot's Vo state, from row_keeps + pre_keep + post_keep + inv_free (COU_PRE /
+       COU_POST pinned by cou_split, vm); EnvSwap.exec_swap moves the segment out of
+       the filler env. TRAP: a wrong `_` count before a named arg made Coq unify a
+       vst with `In ?st vm_tab` -- a silent 20-min hang (count section args!).
+       Next (W2/W3, coordinator OK'd INV_k = Pobjl with ow_vm relaxed at slot k + cur):
+       Hinv/Hinv_cur/Hinv_frame for INV_k; discharge row_keeps (phantom rule: a keep
+       false without a script tie => strengthen INV with script-tied pins, checked on
+       the start witness, log FOUND/REPAIRED); prove step_rest_row from loop_pre +
+       cou_real. The CALL_NATIVE residual stays one row (59 generic + 13 special
+       natives; Mario's bhv_mario_update: check how much mario_hole covers); then the loop INV = obj_w minus
        the current slot's ow_vm, and wiring dloop into Hobj_step_rest (PRIORITY);
        the pre-/post-loop code of cur_obj_update; the loop INV = obj_w minus the current
        slot's ow_vm; then narrow Hobj_step_rest.
