@@ -1476,6 +1476,17 @@ without pressing A".*
     distanceFromMario, only picks a render-flag branch;
   - `inv_free`: freeing a block allocated after an INV state keeps INV.
   No new trust row.
+  **FOUND / REPAIR STARTED (2026-11-07): the field keeps had no script tie.** Each keep
+  in `row_keeps` (set_keep, sit_keep, the arithmetic and hitbox keeps, ...) took the state
+  `st` from anywhere in `vm_tab`, unrelated to the script slot k actually runs. For
+  INV = "Pobjl at slot k" that is FALSE over real states. Example: bhvPoleGrabbing's
+  `SET_INT(oInteractType, INTERACT_POLE)` applied to a generic slot breaks `ow_cls` (a POLE
+  slot must run an sp_scripts state). Repair: a section predicate `Qs` on states, closed
+  under `succs` (`Hqs_cl`). It is threaded through `cmd_row_op`, every keep, `native_res`
+  / `sfr_keep`, `dloop*`, `seg` and `cou_real` (start `Qs st`, end `Qs st'`). The concrete
+  Qs (slot k's script family, checked on the start witness) comes with INV_k in W2. Until
+  then the keeps are still abstract premises about a section INV; none is on a capstone.
+  No trust moves.
   **`ow_scr` (2026-11-03): `scr_ok` is an obj_w clause.** `ObjWorld.scr_ok` (moved from
   BhvStep, which keeps its names as notations) is obj_w's 21st clause; the boot witness
   checks it by vm inside `ow_chk` (`scr_b_l` over the reachable scripts, at m3 / m4 / m11).

@@ -6089,12 +6089,19 @@ Section Link.
 
   (* ---- the dispatch loop ---- *)
   Variable INV : mem -> Prop.
+  (* the slot's script family (2026-11-07): a set of VM states closed under
+     succs.  The rows' keeps may assume the executing state is in it -- the
+     script tie: a field store is the slot's OWN script's store, not any
+     reachable script's (sit_keep without it is false: a pole script's
+     INTERACT_POLE stored into a non-pole slot breaks kind_ok) *)
+  Variable Qs : vst -> Prop.
+  Hypothesis Hqs_cl : forall st l st', In st vm_tab -> Qs st -> succs st = Some l -> In st' l -> Qs st'.
 
   (* ONE COMMAND: the handler BehaviorCmdTable names for opcode op, called
      at a reachable state whose cells hold it, moves the cells to a VM
      successor, keeps INV, and returns BHV_PROC_CONTINUE (0) or _BREAK (1) *)
   Definition cmd_row_op (op : Z) : Prop :=
-    forall m st w id hb fd t m' vr, In st vm_tab -> V m st -> INV m ->
+    forall m st w id hb fd t m' vr, In st vm_tab -> Qs st -> V m st -> INV m ->
       word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = op ->
       nth_error ObjCensus.cmd_handlers (Z.to_nat op) = Some id ->
       Genv.find_symbol G id = Some hb -> Genv.find_funct G (Vptr hb Ptrofs.zero) = Some fd ->
@@ -6106,11 +6113,11 @@ Section Link.
 
   Lemma disp_step : forall le m t le1 m1 out1 st, (forall op, cmd_row_op op) ->
     exec_stmt function_entry2 G empty_env le m DISP t le1 m1 out1 ->
-    In st vm_tab -> V m st -> INV m ->
-    out1 = Out_normal /\ exists st1 vr, In st1 vm_tab /\ V m1 st1 /\ INV m1
+    In st vm_tab -> Qs st -> V m st -> INV m ->
+    out1 = Out_normal /\ exists st1 vr, In st1 vm_tab /\ Qs st1 /\ V m1 st1 /\ INV m1
       /\ le1 ! BS._bhvProcResult = Some vr /\ (vr = Vint (Int.repr 0) \/ vr = Vint (Int.repr 1)).
   Proof.
-    intros le m t le1 m1 out1 st Hrow H Hst HV HI.
+    intros le m t le1 m1 out1 st Hrow H Hst HQs0 HV HI.
     destruct (Hinv m HI) as (Hscr & (btab & Hbt & Htab)).
     destruct (st_facts st Hst) as (Hlen & _ & _ & l & Hl & Hcl).
     pose proof HV as HV0. destruct HV as ((b & Hsb & Hcm) & Hsi & Hk).
@@ -6154,13 +6161,14 @@ Section Link.
     apply RA.call_inv in Y1 as (tya & tyr & cc & vf & vargs & fd & vres & Hcf & Evf & Eal & Hff & _ & Hx & -> & _).
     apply RA.ev_temp in Evf. rewrite PTree.gss in Evf. injection Evf as <-.
     inversion Eal; subst.
-    destruct (Hrow _ _ _ _ _ _ _ _ _ _ Hst HV0 HI Hw eq_refl Eid Hhb Hff Hx)
+    destruct (Hrow _ _ _ _ _ _ _ _ _ _ Hst HQs0 HV0 HI Hw eq_refl Eid Hhb Hff Hx)
       as (l' & st1 & Hl' & Hin & HV1 & HI1 & Hvr).
     apply RA.set_inv in Y2 as (vr & Evr & -> & -> & ->).
     apply RA.ev_temp in Evr. cbn [set_opttemp] in Evr. rewrite PTree.gss in Evr.
     injection Evr as <-.
     split; [ reflexivity | ].
     exists st1, vres. split; [ exact (vm_succ_in st l' st1 Hst Hl' Hin) | ].
+    split; [ exact (Hqs_cl st l' st1 Hst HQs0 Hl' Hin) | ].
     split; [ exact HV1 | split; [ exact HI1 | split; [ apply PTree.gss | exact Hvr ] ] ].
   Qed.
 
@@ -6181,19 +6189,19 @@ Section Link.
      ends at a reachable state whose cells hold it, keeping INV *)
   Theorem dloop : (forall op, cmd_row_op op) ->
     forall le m t le' m' out, exec_stmt function_entry2 G empty_env le m DLOOP t le' m' out ->
-    forall st, In st vm_tab -> V m st -> INV m ->
-    out = Out_normal /\ exists st', In st' vm_tab /\ V m' st' /\ INV m'.
+    forall st, In st vm_tab -> Qs st -> V m st -> INV m ->
+    out = Out_normal /\ exists st', In st' vm_tab /\ Qs st' /\ V m' st' /\ INV m'.
   Proof.
     intros Hrow le m t le' m' out H.
     remember empty_env as e0 eqn:Ee. remember DLOOP as S eqn:ES.
-    induction H; intros st0 Hst HV HI; try discriminate ES; unfold DLOOP in ES; injection ES as E1 E2; subst.
-    - destruct (disp_step _ _ _ _ _ _ _ Hrow H Hst HV HI) as (-> & _). inv H0.
-    - destruct (disp_step _ _ _ _ _ _ _ Hrow H Hst HV HI) as (_ & st1 & vr & Hst1 & HV1 & HI1 & Hv & Hvr).
+    induction H; intros st0 Hst HQ HV HI; try discriminate ES; unfold DLOOP in ES; injection ES as E1 E2; subst.
+    - destruct (disp_step _ _ _ _ _ _ _ Hrow H Hst HQ HV HI) as (-> & _). inv H0.
+    - destruct (disp_step _ _ _ _ _ _ _ Hrow H Hst HQ HV HI) as (_ & st1 & vr & Hst1 & HQ1 & HV1 & HI1 & Hv & Hvr).
       destruct (dchk _ _ _ _ _ _ _ H1 Hv Hvr) as (-> & [(_ & ->) | (_ & ->)]); inv H2.
-      split; [ reflexivity | exact (ex_intro _ st1 (conj Hst1 (conj HV1 HI1))) ].
-    - destruct (disp_step _ _ _ _ _ _ _ Hrow H Hst HV HI) as (_ & st1 & vr & Hst1 & HV1 & HI1 & Hv & Hvr).
+      split; [ reflexivity | exact (ex_intro _ st1 (conj Hst1 (conj HQ1 (conj HV1 HI1)))) ].
+    - destruct (disp_step _ _ _ _ _ _ _ Hrow H Hst HQ HV HI) as (_ & st1 & vr & Hst1 & HQ1 & HV1 & HI1 & Hv & Hvr).
       destruct (dchk _ _ _ _ _ _ _ H1 Hv Hvr) as (-> & [(_ & _) | (_ & E)]); [ | discriminate E ].
-      exact (IHexec_stmt3 eq_refl eq_refl st1 Hst1 HV1 HI1).
+      exact (IHexec_stmt3 eq_refl eq_refl st1 Hst1 HQ1 HV1 HI1).
   Qed.
 
   (* the control opcodes discharge their rows *)
@@ -6218,7 +6226,7 @@ Section Link.
 
   Lemma ctl_row1 : forall op f rc, ctl_handler op f rc -> cmd_row_op op.
   Proof.
-    intros op f rc Hh m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros op f rc Hh m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     destruct (ctl_id _ _ _ Hh) as (id' & Hid' & Hdm). rewrite Hid' in Hid. injection Hid as <-.
     rewrite (fun_bs _ _ Hdm _ _ Hhb Hfd) in Hev.
     destruct (ctl_step _ _ _ _ _ _ _ _ _ Hh Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
@@ -6242,8 +6250,8 @@ Section Link.
   (* so the loop needs the rows of the other opcodes only *)
   Theorem dloop_ctl : (forall op, ~ In op ctl_ops -> cmd_row_op op) ->
     forall le m t le' m' out, exec_stmt function_entry2 G empty_env le m DLOOP t le' m' out ->
-    forall st, In st vm_tab -> V m st -> INV m ->
-    out = Out_normal /\ exists st', In st' vm_tab /\ V m' st' /\ INV m'.
+    forall st, In st vm_tab -> Qs st -> V m st -> INV m ->
+    out = Out_normal /\ exists st', In st' vm_tab /\ Qs st' /\ V m' st' /\ INV m'.
   Proof.
     intros Hrest. apply dloop. intros op.
     destruct (in_dec Z.eq_dec op ctl_ops) as [Hin | Hn]; [ exact (ctl_rows op Hin) | exact (Hrest op Hn) ].
@@ -6252,7 +6260,7 @@ Section Link.
   (* a row for an opcode the reachable VM never executes holds vacuously *)
   Lemma unused_row : forall op, ~ In op used_ops -> cmd_row_op op.
   Proof.
-    intros op Hu m st w id hb fd t m' vr Hst _ _ Hw Ho. exfalso. apply Hu.
+    intros op Hu m st w id hb fd t m' vr Hst _ _ _ Hw Ho. exfalso. apply Hu.
     rewrite <- Ho. exact (op_used st w Hst Hw).
   Qed.
 
@@ -6265,8 +6273,8 @@ Section Link.
      spawn_water_droplet *)
   Theorem dloop_used : (forall op, In op used_ops -> ~ In op ctl_ops -> cmd_row_op op) ->
     forall le m t le' m' out, exec_stmt function_entry2 G empty_env le m DLOOP t le' m' out ->
-    forall st, In st vm_tab -> V m st -> INV m ->
-    out = Out_normal /\ exists st', In st' vm_tab /\ V m' st' /\ INV m'.
+    forall st, In st vm_tab -> Qs st -> V m st -> INV m ->
+    out = Out_normal /\ exists st', In st' vm_tab /\ Qs st' /\ V m' st' /\ INV m'.
   Proof.
     intros Hrest. apply dloop_ctl. intros op Hn.
     destruct (in_dec Z.eq_dec op used_ops) as [Hu | Hu]; [ exact (Hrest op Hu Hn) | exact (unused_row op Hu) ].
@@ -6275,7 +6283,7 @@ Section Link.
   (* ---- the non-control rows, one by one ---- *)
   Lemma row_delay_var : cmd_row_op 37.
   Proof.
-    intros m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 37) = Some BS._bhv_cmd_delay_var)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6294,13 +6302,13 @@ Section Link.
      script's field (byte2 w) and the script's value (s16_of w) -- obj_w
      reads some of these fields (the interact type, 42), so a premise over
      any field or any value would be false *)
-  Definition set_keep : Prop := forall m st w m1, INV m -> In st vm_tab ->
+  Definition set_keep : Prop := forall m st w m1, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 16 ->
     Mem.store Mint32 m pool (oc + 136 + 4 * byte2 w) (Vint (s16_of w)) = Some m1 -> INV m1.
 
   Lemma row_set_int : set_keep -> cmd_row_op 16.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 16) = Some BS._bhv_cmd_set_int)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6310,18 +6318,18 @@ Section Link.
     destruct (hd_set_int _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & m1 & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ HI Hst Hw Ho Hs1) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ HI Hst HQs Hw Ho Hs1) U).
     - left. reflexivity.
   Qed.
 
   (* SET_FLOAT's row, likewise (pinned: the script's field and value) *)
-  Definition setf_keep : Prop := forall m st w m1, INV m -> In st vm_tab ->
+  Definition setf_keep : Prop := forall m st w m1, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 14 ->
     Mem.store Mfloat32 m pool (oc + 136 + 4 * byte2 w) (Vsingle (f32_of w)) = Some m1 -> INV m1.
 
   Lemma row_set_float : setf_keep -> cmd_row_op 14.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 14) = Some BS._bhv_cmd_set_float)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6331,7 +6339,7 @@ Section Link.
     destruct (hd_set_float _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & m1 & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ HI Hst Hw Ho Hs1) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ HI Hst HQs Hw Ho Hs1) U).
     - left. reflexivity.
   Qed.
 
@@ -6368,14 +6376,14 @@ Section Link.
   (* ADD_INT's row: the store of old + (s16)w to the script's field, the old
      value read from that cell (pinned; ADD_INT's fields 16, 19, 26 are
      none that obj_w reads) *)
-  Definition addi_keep : Prop := forall m st w old m1, INV m -> In st vm_tab ->
+  Definition addi_keep : Prop := forall m st w old m1, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 15 ->
     Mem.load Mint32 m pool (oc + 136 + 4 * byte2 w) = Some (Vint old) ->
     Mem.store Mint32 m pool (oc + 136 + 4 * byte2 w) (Vint (Int.add old (s16_of w))) = Some m1 -> INV m1.
 
   Lemma row_add_int : addi_keep -> cmd_row_op 15.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 15) = Some BS._bhv_cmd_add_int)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6385,20 +6393,20 @@ Section Link.
     destruct (hd_add_int _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & old & m1 & Hld & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ HI Hst Hw Ho Hld Hs1) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ HI Hst HQs Hw Ho Hld Hs1) U).
     - left. reflexivity.
   Qed.
 
   (* OR_INT's row (pinned; OR_INT's fields 1 (oFlags) and 3 are none that
      obj_w reads) *)
-  Definition ori_keep : Prop := forall m st w old m1, INV m -> In st vm_tab ->
+  Definition ori_keep : Prop := forall m st w old m1, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 17 ->
     Mem.load Mint32 m pool (oc + 136 + 4 * byte2 w) = Some (Vint old) ->
     Mem.store Mint32 m pool (oc + 136 + 4 * byte2 w) (Vint (Int.or old (u16_of w))) = Some m1 -> INV m1.
 
   Lemma row_or_int : ori_keep -> cmd_row_op 17.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 17) = Some BS._bhv_cmd_or_int)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6408,14 +6416,14 @@ Section Link.
     destruct (hd_or_int _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & old & m1 & Hld & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ HI Hst Hw Ho Hld Hs1) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ HI Hst HQs Hw Ho Hld Hs1) U).
     - left. reflexivity.
   Qed.
 
   (* ADD_FLOAT's row.  Its one reachable field is 7 = oPosY, which obj_w
      DOES read (kind_ok's pole / cannon pins): the premise is pinned to
      the old value read from that cell plus the script's constant *)
-  Definition addf_keep : Prop := forall m st w old m1, INV m -> In st vm_tab ->
+  Definition addf_keep : Prop := forall m st w old m1, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 13 ->
     Mem.load Mfloat32 m pool (oc + 136 + 4 * byte2 w) = Some (Vsingle old) ->
     Mem.store Mfloat32 m pool (oc + 136 + 4 * byte2 w) (Vsingle (Float32.add old (f32_of w))) = Some m1 ->
@@ -6423,7 +6431,7 @@ Section Link.
 
   Lemma row_add_float : addf_keep -> cmd_row_op 13.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 13) = Some BS._bhv_cmd_add_float)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6433,14 +6441,14 @@ Section Link.
     destruct (hd_add_float _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & old & m1 & Hld & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ HI Hst Hw Ho Hld Hs1) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ HI Hst HQs Hw Ho Hld Hs1) U).
     - left. reflexivity.
   Qed.
 
   (* SUM_FLOAT's row.  Its reachable destination fields are 6 / 7 / 8 =
      oPosX / oPosY / oPosZ, which obj_w DOES read: the premise is pinned
      to the one store of the sum of the two source cells read at m *)
-  Definition sumf_keep : Prop := forall m st w a1 a2 m1, INV m -> In st vm_tab ->
+  Definition sumf_keep : Prop := forall m st w a1 a2 m1, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 31 ->
     Mem.load Mfloat32 m pool (oc + 136 + 4 * byte3 w) = Some (Vsingle a1) ->
     Mem.load Mfloat32 m pool (oc + 136 + 4 * byte4 w) = Some (Vsingle a2) ->
@@ -6449,7 +6457,7 @@ Section Link.
 
   Lemma row_sum_float : sumf_keep -> cmd_row_op 31.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 31) = Some BS._bhv_cmd_sum_float)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6459,7 +6467,7 @@ Section Link.
     destruct (hd_sum_float _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & a1 & a2 & m1 & Hl1 & Hl2 & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ HI Hst Hw Ho Hl1 Hl2 Hs1) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ HI Hst HQs Hw Ho Hl1 Hl2 Hs1) U).
     - left. reflexivity.
   Qed.
 
@@ -6468,13 +6476,13 @@ Section Link.
      state the real game produces: unload_deactivated_objects frees it on
      the next pass).  Pinned to the one store of 0 at reachable DEACTIVATE
      words only *)
-  Definition deact_keep : Prop := forall m st w m1, INV m -> In st vm_tab ->
+  Definition deact_keep : Prop := forall m st w m1, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 29 ->
     Mem.store Mint16signed m pool (oc + OW.O_FLAGS) (Vint Int.zero) = Some m1 -> INV m1.
 
   Lemma row_deactivate : deact_keep -> cmd_row_op 29.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 29) = Some BS._bhv_cmd_deactivate)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6484,7 +6492,7 @@ Section Link.
     destruct (hd_deactivate _ _ _ _ _ _ Hst HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & Hs1).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hk _ _ _ _ HI Hst Hw Ho Hs1).
+    - exact (Hk _ _ _ _ HI Hst HQs Hw Ho Hs1).
     - right. reflexivity.
   Qed.
 
@@ -6496,14 +6504,14 @@ Section Link.
      graph (BoxCensus.flame_unreached; sit_kind), so discharging this
      premise from obj_w needs obj_w's SCRIPT domain narrowed to
      BoxCensus.wmotr_closure_b.  Pinned to that one store *)
-  Definition sit_keep : Prop := forall m st w a m1, INV m -> In st vm_tab ->
+  Definition sit_keep : Prop := forall m st w a m1, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 47 ->
     word_at (v_s st) (v_i st + 1) = Some (Int.unsigned a) ->
     Mem.store Mint32 m pool (oc + 136 + 4 * 42) (Vint a) = Some m1 -> INV m1.
 
   Lemma row_set_interact_type : sit_keep -> cmd_row_op 47.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 47) = Some BS._bhv_cmd_set_interact_type)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6513,7 +6521,7 @@ Section Link.
     destruct (hd_set_interact_type _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & a & m1 & Ha & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ HI Hst Hw Ho Ha Hs1) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ HI Hst HQs Hw Ho Ha Hs1) U).
     - left. reflexivity.
   Qed.
 
@@ -6522,7 +6530,7 @@ Section Link.
      bhvHiddenRedCoinStar slot (oHiddenStarTriggerCounter).  Pinned: the RNG call changes only gRandomSeed16
      (Psd), then ONE store of range * r + min, r = rf_of u the real
      random_float value of a 16-bit u, range / min the script's *)
-  Definition srf_keep : Prop := forall m st w z u m1 m2, INV m -> In st vm_tab ->
+  Definition srf_keep : Prop := forall m st w z u m1 m2, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 20 ->
     word_at (v_s st) (v_i st + 1) = Some z -> 0 <= Int.unsigned u < 65536 ->
     Mem.unchanged_on Psd m m1 ->
@@ -6531,7 +6539,7 @@ Section Link.
 
   Lemma row_set_random_float : srf_keep -> cmd_row_op 20.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 20) = Some BS._bhv_cmd_set_random_float)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6541,14 +6549,14 @@ Section Link.
     destruct (hd_set_random_float _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & z & u & m1 & m2 & Hz & Hu & Ur & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ HI Hst Hw Ho Hz Hu Ur Hs1) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ HI Hst HQs Hw Ho Hz Hu Ur Hs1) U).
     - left. reflexivity.
   Qed.
 
   (* SET_RANDOM_INT's row (opcode 21).  Its one reachable field is 27, the cell obj_w's RED clause reads
      for a bhvHiddenRedCoinStar slot.  Pinned: the RNG call changes only
      gRandomSeed16 (Psd), then ONE store of the real computed value *)
-  Definition sri_keep : Prop := forall m st w z u ri m1 m2, INV m -> In st vm_tab ->
+  Definition sri_keep : Prop := forall m st w z u ri m1 m2, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 21 ->
     word_at (v_s st) (v_i st + 1) = Some z -> 0 <= Int.unsigned u < 65536 ->
     Float32.to_int (Float32.mul (Float32.of_int (rngi_of z)) (rf_of u)) = Some ri ->
@@ -6557,7 +6565,7 @@ Section Link.
 
   Lemma row_set_random_int : sri_keep -> cmd_row_op 21.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 21) = Some BS._bhv_cmd_set_random_int)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6567,13 +6575,13 @@ Section Link.
     destruct (hd_set_random_int _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & z & u & ri & m1 & m2 & Hz & Hu & Hv & Ur & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ _ HI Hst Hw Ho Hz Hu Hv Ur Hs1) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ _ HI Hst HQs Hw Ho Hz Hu Hv Ur Hs1) U).
     - left. reflexivity.
   Qed.
 
   (* SET_INT_RAND_RSHIFT's row (opcode 19).  Its one reachable field is 16, which obj_w does not read.  Pinned: the RNG call changes only
      gRandomSeed16 (Psd), then ONE store of the real computed value *)
-  Definition sir_keep : Prop := forall m st w z u ri m1 m2, INV m -> In st vm_tab ->
+  Definition sir_keep : Prop := forall m st w z u ri m1 m2, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 19 ->
     word_at (v_s st) (v_i st + 1) = Some z -> 0 <= Int.unsigned u < 65536 ->
     Int.ltu (rngi_of z) Int.iwordsize = true /\ ri = Int.shr u (rngi_of z) ->
@@ -6582,7 +6590,7 @@ Section Link.
 
   Lemma row_set_int_rand_rshift : sir_keep -> cmd_row_op 19.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 19) = Some BS._bhv_cmd_set_int_rand_rshift)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6592,7 +6600,7 @@ Section Link.
     destruct (hd_set_int_rand_rshift _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & z & u & ri & m1 & m2 & Hz & Hu & Hv1 & Hv2 & Ur & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ _ HI Hst Hw Ho Hz Hu (conj Hv1 Hv2) Ur Hs1) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ _ HI Hst HQs Hw Ho Hz Hu (conj Hv1 Hv2) Ur Hs1) U).
     - left. reflexivity.
   Qed.
 
@@ -6613,12 +6621,12 @@ Section Link.
      parent.  With oc a slot offset, alignment gives the disjointness.
      pbc_keep -- the one store, old & ~mask, into that slot's field 22,
      which obj_w does not read *)
-  Definition par51_ok : Prop := forall m st w, INV m -> In st vm_tab ->
+  Definition par51_ok : Prop := forall m st w, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 51 ->
     exists po, Mem.load Mint32 m pool (oc + 104) = Some (Vptr pool (Ptrofs.repr po))
       /\ 0 <= po <= 145312 /\ (po = oc \/ po + 608 <= oc \/ oc + 608 <= po).
 
-  Definition pbc_keep : Prop := forall m st w po a old m1, INV m -> In st vm_tab ->
+  Definition pbc_keep : Prop := forall m st w po a old m1, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 51 ->
     Mem.load Mint32 m pool (oc + 104) = Some (Vptr pool (Ptrofs.repr po)) ->
     word_at (v_s st) (v_i st + 1) = Some (Int.unsigned a) ->
@@ -6628,14 +6636,14 @@ Section Link.
 
   Lemma row_parent_bit_clear : par51_ok -> pbc_keep -> cmd_row_op 51.
   Proof.
-    intros Hp Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hp Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 51) = Some BS._bhv_cmd_parent_bit_clear)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
     assert (Hdm : (prog_defmap BS.prog) ! BS._bhv_cmd_parent_bit_clear
                   = Some (Gfun (Internal BS.f_bhv_cmd_parent_bit_clear))) by (vm_compute; reflexivity).
     rewrite (fun_bs _ _ Hdm _ _ Hhb Hfd) in Hev.
-    destruct (Hp _ _ _ HI Hst Hw Ho) as (po0 & Hpl0 & Hpo0 & Hdj0).
+    destruct (Hp _ _ _ HI Hst HQs Hw Ho) as (po0 & Hpl0 & Hpo0 & Hdj0).
     assert (Hpar : forall pb o, Mem.load Mint32 m pool (oc + 104) = Some (Vptr pb o) ->
        pb = pool /\ exists po, o = Ptrofs.repr po /\ 0 <= po <= 145312
                       /\ (po = oc \/ po + 608 <= oc \/ oc + 608 <= po)).
@@ -6644,7 +6652,7 @@ Section Link.
     destruct (hd_parent_bit_clear _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hpar Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & po & a & old & m1 & Hpl & Ha & Hld & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ HI Hst Hw Ho Hpl Ha Hld Hs1) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ HI Hst HQs Hw Ho Hpl Ha Hld Hs1) U).
     - left. reflexivity.
   Qed.
 
@@ -6655,14 +6663,14 @@ Section Link.
      (BoxCensus.flame_unreached): once obj_w's SCRIPT domain is narrowed to
      BoxCensus.wmotr_closure_b this premise holds vacuously.  Pinned to the
      one store, old + 1 (the timer branch not taken leaves m unchanged) *)
-  Definition atex_keep : Prop := forall m st w old m1, INV m -> In st vm_tab ->
+  Definition atex_keep : Prop := forall m st w old m1, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 52 ->
     Mem.load Mint32 m pool (oc + 136 + 4 * byte2 w) = Some (Vint old) ->
     Mem.store Mint32 m pool (oc + 136 + 4 * byte2 w) (Vint (Int.add old (Int.repr 1))) = Some m1 -> INV m1.
 
   Lemma row_animate_texture : atex_keep -> cmd_row_op 52.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 52) = Some BS._bhv_cmd_animate_texture)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6673,7 +6681,7 @@ Section Link.
       as (l & st' & Hl & Hin & HV' & _ & -> & m1 & Hq & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
     - refine (Hinv_frame _ _ _ U).
-      destruct Hq as [-> | (old & Hld & Hs1)]; [ exact HI | exact (Hk _ _ _ _ _ HI Hst Hw Ho Hld Hs1) ].
+      destruct Hq as [-> | (old & Hld & Hs1)]; [ exact HI | exact (Hk _ _ _ _ _ HI Hst HQs Hw Ho Hld Hs1) ].
     - left. reflexivity.
   Qed.
 
@@ -6681,14 +6689,14 @@ Section Link.
      Pinned to the one s16 store into the CURRENT slot's
      header.gfx.node.flags (@2), which obj_w does not read (ow_gfx reads the
      node's prev / next / parent links @4 / @8 / @12; mact the activeFlags @116) *)
-  Definition bb_keep : Prop := forall m st w old m1, INV m -> In st vm_tab ->
+  Definition bb_keep : Prop := forall m st w old m1, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 33 ->
     Mem.load Mint16signed m pool (oc + 2) = Some (Vint old) ->
     Mem.store Mint16signed m pool (oc + 2) (Vint (Int.sign_ext 16 (Int.or old (Int.shl (Int.repr 1) (Int.repr 2))))) = Some m1 -> INV m1.
 
   Lemma row_billboard : bb_keep -> cmd_row_op 33.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 33) = Some BS._bhv_cmd_billboard)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6698,7 +6706,7 @@ Section Link.
     destruct (hd_billboard _ _ _ _ _ _ Hst HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & old & m1 & Hld & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ HI Hst Hw Ho Hld Hs1) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ HI Hst HQs Hw Ho Hld Hs1) U).
     - left. reflexivity.
   Qed.
 
@@ -6706,14 +6714,14 @@ Section Link.
      Pinned to the one s16 store into the CURRENT slot's
      header.gfx.node.flags (@2), which obj_w does not read (ow_gfx reads the
      node's prev / next / parent links @4 / @8 / @12; mact the activeFlags @116) *)
-  Definition dr_keep : Prop := forall m st w old m1, INV m -> In st vm_tab ->
+  Definition dr_keep : Prop := forall m st w old m1, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 53 ->
     Mem.load Mint16signed m pool (oc + 2) = Some (Vint old) ->
     Mem.store Mint16signed m pool (oc + 2) (Vint (Int.sign_ext 16 (Int.and old (Int.not (Int.shl (Int.repr 1) (Int.repr 0)))))) = Some m1 -> INV m1.
 
   Lemma row_disable_rendering : dr_keep -> cmd_row_op 53.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 53) = Some BS._bhv_cmd_disable_rendering)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6723,7 +6731,7 @@ Section Link.
     destruct (hd_disable_rendering _ _ _ _ _ _ Hst HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & old & m1 & Hld & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ HI Hst Hw Ho Hld Hs1) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ HI Hst HQs Hw Ho Hld Hs1) U).
     - left. reflexivity.
   Qed.
 
@@ -6732,7 +6740,7 @@ Section Link.
      hitboxDownOffset (@520) -- none read by obj_w (they feed interaction
      tests, which the height frame treats through Mario's own rows).
      Pinned to the stores of the script's real s16 halves *)
-  Definition hb_keep : Prop := forall m st w z m1 m2, INV m -> In st vm_tab ->
+  Definition hb_keep : Prop := forall m st w z m1 m2, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 35 ->
     word_at (v_s st) (v_i st + 1) = Some z ->
     Mem.store Mfloat32 m pool (oc + 504) (Vsingle (Float32.of_int (rngi_of z))) = Some m1 ->
@@ -6740,7 +6748,7 @@ Section Link.
 
   Lemma row_set_hitbox : hb_keep -> cmd_row_op 35.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 35) = Some BS._bhv_cmd_set_hitbox)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6750,11 +6758,11 @@ Section Link.
     destruct (hd_set_hitbox _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & z & m1 & m2 & Hz & Hs1 & Hs2 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ HI Hst Hw Ho Hz Hs1 Hs2) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ HI Hst HQs Hw Ho Hz Hs1 Hs2) U).
     - left. reflexivity.
   Qed.
 
-  Definition hbo_keep : Prop := forall m st w z z2 m1 m2 m3, INV m -> In st vm_tab ->
+  Definition hbo_keep : Prop := forall m st w z z2 m1 m2 m3, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 43 ->
     word_at (v_s st) (v_i st + 1) = Some z -> word_at (v_s st) (v_i st + 2) = Some z2 ->
     Mem.store Mfloat32 m pool (oc + 504) (Vsingle (Float32.of_int (rngi_of z))) = Some m1 ->
@@ -6763,7 +6771,7 @@ Section Link.
 
   Lemma row_set_hitbox_with_offset : hbo_keep -> cmd_row_op 43.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 43) = Some BS._bhv_cmd_set_hitbox_with_offset)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6773,14 +6781,14 @@ Section Link.
     destruct (hd_set_hitbox_with_offset _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & z & z2 & m1 & m2 & m3 & Hz & Hz2 & Hs1 & Hs2 & Hs3 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ _ HI Hst Hw Ho Hz Hz2 Hs1 Hs2 Hs3) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ _ HI Hst HQs Hw Ho Hz Hz2 Hs1 Hs2 Hs3) U).
     - left. reflexivity.
   Qed.
 
   (* SET_HOME's row (opcode 45).  It copies the CURRENT slot's pos (fields
      6-8) to its home (fields 55-57), which obj_w does not read.  Pinned to
      the three real load / store pairs *)
-  Definition home_keep : Prop := forall m st w f1 f2 f3 m1 m2 m3, INV m -> In st vm_tab ->
+  Definition home_keep : Prop := forall m st w f1 f2 f3 m1 m2 m3, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 45 ->
     Mem.load Mfloat32 m pool (oc + 136 + 4 * 6) = Some (Vsingle f1) ->
     Mem.store Mfloat32 m pool (oc + 136 + 4 * 55) (Vsingle f1) = Some m1 ->
@@ -6791,7 +6799,7 @@ Section Link.
 
   Lemma row_set_home : home_keep -> cmd_row_op 45.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 45) = Some BS._bhv_cmd_set_home)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6801,7 +6809,7 @@ Section Link.
     destruct (hd_set_home _ _ _ _ _ _ Hst HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & f1 & f2 & f3 & m1 & m2 & m3 & L1 & S1 & L2 & S2 & L3 & S3 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ _ _ HI Hst Hw Ho L1 S1 L2 S2 L3 S3) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ _ _ HI Hst HQs Hw Ho L1 S1 L2 S2 L3 S3) U).
     - left. reflexivity.
   Qed.
 
@@ -6810,7 +6818,7 @@ Section Link.
      drag, friction, buoyancy) -- none read by obj_w.  Computed reachable
      users (vm_tab): bhvJumpingBox, bhvKoopaShell, bhvSingleCoinGetsSpawned.
      Pinned to the real values *)
-  Definition phys_keep : Prop := forall m st w z1 z2 z3 m1 m2 m3 m4 m5 m6, INV m -> In st vm_tab ->
+  Definition phys_keep : Prop := forall m st w z1 z2 z3 m1 m2 m3 m4 m5 m6, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 48 ->
     word_at (v_s st) (v_i st + 1) = Some z1 -> word_at (v_s st) (v_i st + 2) = Some z2 ->
     word_at (v_s st) (v_i st + 3) = Some z3 ->
@@ -6823,7 +6831,7 @@ Section Link.
 
   Lemma row_set_obj_physics : phys_keep -> cmd_row_op 48.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 48) = Some BS._bhv_cmd_set_obj_physics)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6834,14 +6842,14 @@ Section Link.
       as (l & st' & Hl & Hin & HV' & _ & -> & z1 & z2 & z3 & m1 & m2 & m3 & m4 & m5 & m6
           & Hz1 & Hz2 & Hz3 & S1 & S2 & S3 & S4 & S5 & S6 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ _ _ _ _ _ HI Hst Hw Ho Hz1 Hz2 Hz3 S1 S2 S3 S4 S5 S6) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ _ _ _ _ _ HI Hst HQs Hw Ho Hz1 Hz2 Hz3 S1 S2 S3 S4 S5 S6) U).
     - left. reflexivity.
   Qed.
 
   (* LOAD_ANIMATIONS's row (opcode 39).  ONE pointer store into the CURRENT slot:
      rawData field byte2 w (38, oAnimations, for every user), of the script's own symbol address (the generated word).
      Computed reachable users (vm_tab): bhvBobombBuddyOpensCannon, bhvBowserKeyCourseExit, bhvBowserKeyUnlockDoor, bhvEndToad, bhvEndPeach.  obj_w does not read field 38; PhiW pins Mario's own animation state, and no user is Mario. *)
-  Definition la_keep : Prop := forall m st w ta oa bt m1, INV m -> In st vm_tab ->
+  Definition la_keep : Prop := forall m st w ta oa bt m1, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 39 ->
     nth_error (words (v_s st)) (v_i st + 1) = Some (Init_addrof ta oa) ->
     Genv.find_symbol G ta = Some bt ->
@@ -6849,7 +6857,7 @@ Section Link.
 
   Lemma row_load_animations : la_keep -> cmd_row_op 39.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 39) = Some BS._bhv_cmd_load_animations)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6859,14 +6867,14 @@ Section Link.
     destruct (hd_load_animations _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & ta & oa & bt & m1 & Ha & Hbt & Hs & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ HI Hst Hw Ho Ha Hbt Hs) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ HI Hst HQs Hw Ho Ha Hbt Hs) U).
     - left. reflexivity.
   Qed.
 
   (* LOAD_COLLISION_DATA's row (opcode 42).  ONE pointer store into the CURRENT slot:
      collisionData (@536, O_COLL), of the script's own symbol address (the generated word).
      Computed reachable users (vm_tab): bhvCannonClosed, bhvExclamationBox.  obj_w DOES read @536 (coll_pin: a LIDS / BOXS slot holds NULL or its mesh), so the discharge is the vm fact that these two scripts' word 1 is &cannon_lid / &exclamation_box_outline collision at offset 0. *)
-  Definition lcd_keep : Prop := forall m st w ta oa bt m1, INV m -> In st vm_tab ->
+  Definition lcd_keep : Prop := forall m st w ta oa bt m1, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 42 ->
     nth_error (words (v_s st)) (v_i st + 1) = Some (Init_addrof ta oa) ->
     Genv.find_symbol G ta = Some bt ->
@@ -6874,7 +6882,7 @@ Section Link.
 
   Lemma row_load_collision_data : lcd_keep -> cmd_row_op 42.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 42) = Some BS._bhv_cmd_load_collision_data)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6884,7 +6892,7 @@ Section Link.
     destruct (hd_load_collision_data _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & ta & oa & bt & m1 & Ha & Hbt & Hs & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ HI Hst Hw Ho Ha Hbt Hs) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ _ HI Hst HQs Hw Ho Ha Hbt Hs) U).
     - left. reflexivity.
   Qed.
 
@@ -6894,7 +6902,7 @@ Section Link.
      bhvRedCoinStarMarker (150%), bhvRotatingExclamationMark (200%) -- not
      Mario, whose scale PhiW's window [12,64) covers.  Pinned to the real
      values *)
-  Definition scale_keep : Prop := forall m st w m1 m2 m3, INV m -> In st vm_tab ->
+  Definition scale_keep : Prop := forall m st w m1 m2 m3, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 50 ->
     Mem.store Mfloat32 m pool (oc + 44 + 4 * 0) (Vsingle (pdiv (s16_of w))) = Some m1 ->
     Mem.store Mfloat32 m1 pool (oc + 44 + 4 * 1) (Vsingle (pdiv (s16_of w))) = Some m2 ->
@@ -6902,7 +6910,7 @@ Section Link.
 
   Lemma row_scale : scale_keep -> cmd_row_op 50.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 50) = Some BS._bhv_cmd_scale)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -6912,7 +6920,7 @@ Section Link.
     destruct (hd_scale _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & m1 & m2 & m3 & S1 & S2 & S3 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ HI Hst Hw Ho S1 S2 S3) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ _ _ HI Hst HQs Hw Ho S1 S2 S3) U).
     - left. reflexivity.
   Qed.
 
@@ -6922,7 +6930,7 @@ Section Link.
      slot's behavior is a valid pointer, and bhvHauntedChair / bhvMadPiano /
      bhvMessagePanel are linked, valid, and in other blocks -- none of the
      three is a WMotR object.  Then no store besides the cursor (Pfr) *)
-  Definition begin_ok : Prop := forall m st w, INV m -> In st vm_tab ->
+  Definition begin_ok : Prop := forall m st w, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 0 ->
     exists bb ob, Mem.load Mint32 m pool (oc + 524) = Some (Vptr bb ob)
       /\ Mem.valid_pointer m bb (Ptrofs.unsigned ob) = true
@@ -6931,14 +6939,14 @@ Section Link.
 
   Lemma row_begin : begin_ok -> cmd_row_op 0.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 0) = Some BS._bhv_cmd_begin)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
     assert (Hdm : (prog_defmap BS.prog) ! BS._bhv_cmd_begin
                   = Some (Gfun (Internal BS.f_bhv_cmd_begin))) by (vm_compute; reflexivity).
     rewrite (fun_bs _ _ Hdm _ _ Hhb Hfd) in Hev.
-    destruct (Hk m st w HI Hst Hw Ho) as (bb & ob & Hbh & Hvb & Hsy).
+    destruct (Hk m st w HI Hst HQs Hw Ho) as (bb & ob & Hbh & Hvb & Hsy).
     destruct (hd_begin _ _ _ _ _ _ _ _ Hst HV (Hinv_cur m HI) Hw Ho Hbh Hvb Hsy Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
@@ -6966,14 +6974,14 @@ Section Link.
      ownership, not on the script; the keep needs INV to tie both to the
      special scripts -- see the SKILL open surface.) *)
   Definition sfr_keep : Prop := forall m m1 st,
-    INV m -> V m st -> In st vm_tab -> existsb (Pos.eqb (v_s st)) sp_scripts = false ->
+    INV m -> V m st -> In st vm_tab -> Qs st -> existsb (Pos.eqb (v_s st)) sp_scripts = false ->
     Mem.unchanged_on (SFPn m) m m1 -> INV m1.
 
   (* THE RESIDUAL: a CALL_NATIVE at a special state (Mario's three
      included), or of a callee with no nullary SFR'-clean entry (at a
      generic state these are nat_res_gen) *)
   Definition native_res : Prop := forall m st w fid bfn fd t m1 vres,
-    INV m -> V m st -> In st vm_tab ->
+    INV m -> V m st -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 12 ->
     nth_error (words (v_s st)) (v_i st + 1) = Some (Init_addrof fid Ptrofs.zero) ->
     existsb (Pos.eqb (v_s st)) sp_scripts = true \/ has_null fid ObjFrame.self_tab_n = false ->
@@ -7047,7 +7055,7 @@ Section Link.
      current state.  This is the per-native open surface (what
      Hobj_step_act stood for), now naming each callee by the script word *)
   Definition native_keep : Prop := forall m st w fid bfn fd t m1 vres,
-    INV m -> V m st -> In st vm_tab ->
+    INV m -> V m st -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 12 ->
     nth_error (words (v_s st)) (v_i st + 1) = Some (Init_addrof fid Ptrofs.zero) ->
     Genv.find_symbol G fid = Some bfn -> Genv.find_funct G (Vptr bfn Ptrofs.zero) = Some fd ->
@@ -7056,18 +7064,18 @@ Section Link.
   (* the split discharges native_keep *)
   Lemma native_keep_of : sfr_keep -> native_res -> native_keep.
   Proof.
-    intros Hk Hr m st w fid bfn fd t m1 vres HI HV Hst Hw Ho Ha Hs Hff Hev.
+    intros Hk Hr m st w fid bfn fd t m1 vres HI HV Hst HQs Hw Ho Ha Hs Hff Hev.
     destruct (existsb (Pos.eqb (v_s st)) sp_scripts) eqn:E1;
-      [ exact (Hr m st w fid bfn fd t m1 vres HI HV Hst Hw Ho Ha (or_introl E1) Hs Hff Hev) | ].
+      [ exact (Hr m st w fid bfn fd t m1 vres HI HV Hst HQs Hw Ho Ha (or_introl E1) Hs Hff Hev) | ].
     destruct (has_null fid ObjFrame.self_tab_n) eqn:E2;
-      [ | exact (Hr m st w fid bfn fd t m1 vres HI HV Hst Hw Ho Ha (or_intror E2) Hs Hff Hev) ].
+      [ | exact (Hr m st w fid bfn fd t m1 vres HI HV Hst HQs Hw Ho Ha (or_intror E2) Hs Hff Hev) ].
     pose proof (native_bulk m st fid bfn fd t m1 vres HI HV E2 Hs Hff Hev) as U.
-    split; [ exact (Hk m m1 st HI HV Hst E1 U) | exact (V_sfr m m1 st Hst HV U) ].
+    split; [ exact (Hk m m1 st HI HV Hst HQs E1 U) | exact (V_sfr m m1 st Hst HV U) ].
   Qed.
 
   Lemma row_call_native : native_keep -> cmd_row_op 12.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 12) = Some BS._bhv_cmd_call_native)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -7106,7 +7114,7 @@ Section Link.
     cbn in Hcf. injection Hcf as <- <- <-.
     apply RA.ev_temp in Evf2. rewrite PTree.gss in Evf2. injection Evf2 as <-.
     assert (Ev0 : vargs = []) by (inversion Eal; reflexivity). subst vargs.
-    destruct (Hk m st w fid bfn fd2 _ n1 vres HI HV0 Hst Hw Ho Ha Hbf Hff Hcl2) as (HI1 & HV1).
+    destruct (Hk m st w fid bfn fd2 _ n1 vres HI HV0 Hst HQs Hw Ho Ha Hbf Hff Hcl2) as (HI1 & HV1).
     apply V_iff in HV1 as ((b' & Hsb' & Hcm1) & HS1).
     rewrite Hsb in Hsb'. injection Hsb' as <-.
     try rewrite <- EI in Hcm1.
@@ -7177,7 +7185,7 @@ Section Link.
        produce: the child script, its list and the parent are the computed
        / running ones *)
   Definition sc_pre : Prop := forall m st w la fl gol,
-    INV m -> In st vm_tab -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 28 ->
+    INV m -> In st vm_tab -> Qs st -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 28 ->
     Genv.find_symbol G object_list_processor._gObjectListArray = Some la ->
     Genv.find_symbol G object_list_processor._gFreeObjectList = Some fl ->
     Genv.find_symbol G object_list_processor._gObjectLists = Some gol ->
@@ -7187,12 +7195,12 @@ Section Link.
       /\ oc = kc * OW.OSZ /\ In kc (concat rs).
 
   Definition sc_free : Prop := forall m st w fl fs,
-    INV m -> In st vm_tab -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 28 ->
+    INV m -> In st vm_tab -> Qs st -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 28 ->
     Genv.find_symbol G object_list_processor._gFreeObjectList = Some fl ->
     OW.free_list m pool fl = Some fs -> fs <> [].
 
   Definition sc_keep : Prop := forall m st w la fl bpg c bsc n rs k fs' m',
-    INV m -> In st vm_tab -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 28 ->
+    INV m -> In st vm_tab -> Qs st -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 28 ->
     Genv.find_symbol G object_list_processor._gObjectListArray = Some la ->
     Genv.find_symbol G object_list_processor._gFreeObjectList = Some fl ->
     Genv.find_symbol G area._gObjParentGraphNode = Some bpg ->
@@ -7223,7 +7231,7 @@ Section Link.
 
   Lemma row_spawn_child : sc_pre -> sc_free -> sc_keep -> cmd_row_op 28.
   Proof.
-    intros Hpre Hfr Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hpre Hfr Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 28) = Some BS._bhv_cmd_spawn_child)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -7234,7 +7242,7 @@ Section Link.
     assert (Hpl : pool <> la) by (apply (ObjAlloc.sym_ne lp _ _ _ _ Hpool Hla); RA.neq).
     assert (Hpf : pool <> fl) by (apply (ObjAlloc.sym_ne lp _ _ _ _ Hpool Hfl); RA.neq).
     assert (Hpb : pool <> bpg) by (apply (ObjAlloc.sym_ne lp _ _ _ _ Hpool Hbpg); RA.neq).
-    destruct (Hpre m st w la fl gol HI Hst Hw Ho Hla Hfl Hgol)
+    destruct (Hpre m st w la fl gol HI Hst HQs Hw Ho Hla Hfl Hgol)
       as (rs & fs & kc & Hr & Hf & Hnd & Hg & Hgl & Ekc & Hkc).
     destruct (sc_w st w Hst Hw Ho) as (c & n & Hc2 & Hcin & Hn0 & H13 & H4 & H5 & H10).
     pose proof (proj1 (Hinv m HI)) as Hscr.
@@ -7256,7 +7264,7 @@ Section Link.
                 m rs fs b (Ptrofs.repr (4 * Z.of_nat (v_i st))) bsc Ptrofs.zero n (Vptr pool (Ptrofs.repr oc)) t m' vr
                 Hr Hf Hnd Hg Hgl Hcm (Hinv_cur m HI) L8 Hln H13 H4 H5 H10 Hev)
       as [E0 | (k & fs' & -> & Hk' & -> & Lbc & R' & F' & G' & U & HF)].
-    { exfalso. exact (Hfr m st w fl fs HI Hst Hw Ho Hfl Hf E0). }
+    { exfalso. exact (Hfr m st w fl fs HI Hst HQs Hw Ho Hfl Hf E0). }
     assert (Hne : k <> kc).
     { intros ->. apply (nd_app_disj _ _ kc Hnd Hkc). left. reflexivity. }
     assert (Vc : Vcmd m' (v_s st) (v_i st + 3)).
@@ -7276,7 +7284,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - exact (V_mk m' st (v_s st) (v_i st + 3) (v_k st) Vc HS').
     - split; [ | left; reflexivity ].
-      exact (Hk m st w la fl bpg c bsc n rs k fs' m' HI Hst Hw Ho Hla Hfl Hbpg Hc2 Hbsc Hn0 Hr Hf Hk' R' F' G' U HF Vc).
+      exact (Hk m st w la fl bpg c bsc n rs k fs' m' HI Hst HQs Hw Ho Hla Hfl Hbpg Hc2 Hbsc Hn0 Hr Hf Hk' R' F' G' U HF Vc).
   Qed.
 
   (* ---- SPAWN_WATER_DROPLET (opcode 0x37 = 55): the REAL
@@ -7304,7 +7312,7 @@ Section Link.
        the initializer says so (dparams_init); nothing in the game writes
        these globals.  Pinned for the StartTerrain recheck, like ow_anim *)
   Definition wd_pre : Prop := forall m st w la fl gol,
-    INV m -> In st vm_tab -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 55 ->
+    INV m -> In st vm_tab -> Qs st -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 55 ->
     Genv.find_symbol G object_list_processor._gObjectListArray = Some la ->
     Genv.find_symbol G object_list_processor._gFreeObjectList = Some fl ->
     Genv.find_symbol G object_list_processor._gObjectLists = Some gol ->
@@ -7314,7 +7322,7 @@ Section Link.
       /\ oc = kc * OW.OSZ /\ In kc (concat rs).
 
   Definition wd_free : Prop := forall m st w fl fs,
-    INV m -> In st vm_tab -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 55 ->
+    INV m -> In st vm_tab -> Qs st -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 55 ->
     Genv.find_symbol G object_list_processor._gFreeObjectList = Some fl ->
     OW.free_list m pool fl = Some fs -> fs <> [].
 
@@ -7324,7 +7332,7 @@ Section Link.
       /\ Mem.load Mint32 m bp 4 = Some (Vptr bwd Ptrofs.zero).
 
   Definition wd_keep : Prop := forall m st w la fl bpg bwd n rs k fs' m',
-    INV m -> In st vm_tab -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 55 ->
+    INV m -> In st vm_tab -> Qs st -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 55 ->
     Genv.find_symbol G object_list_processor._gObjectListArray = Some la ->
     Genv.find_symbol G object_list_processor._gFreeObjectList = Some fl ->
     Genv.find_symbol G area._gObjParentGraphNode = Some bpg ->
@@ -7343,7 +7351,7 @@ Section Link.
 
   Lemma row_spawn_water_droplet : wd_pre -> wd_free -> wd_dp -> wd_keep -> cmd_row_op 55.
   Proof.
-    intros Hpre Hfr Hdp Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hpre Hfr Hdp Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 55) = Some BS._bhv_cmd_spawn_water_droplet)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -7354,7 +7362,7 @@ Section Link.
     assert (Hpl : pool <> la) by (apply (ObjAlloc.sym_ne lp _ _ _ _ Hpool Hla); RA.neq).
     assert (Hpf : pool <> fl) by (apply (ObjAlloc.sym_ne lp _ _ _ _ Hpool Hfl); RA.neq).
     assert (Hpb : pool <> bpg) by (apply (ObjAlloc.sym_ne lp _ _ _ _ Hpool Hbpg); RA.neq).
-    destruct (Hpre m st w la fl gol HI Hst Hw Ho Hla Hfl Hgol)
+    destruct (Hpre m st w la fl gol HI Hst HQs Hw Ho Hla Hfl Hgol)
       as (rs & fs & kc & Hr & Hf & Hnd & Hg & Hgl & Ekc & Hkc).
     destruct (wd_w st w Hst Hw Ho) as (p & Hp1 & Hpin).
     destruct wd_child as (n & Hcin & Hn0 & H13 & H4 & H5 & H10).
@@ -7382,7 +7390,7 @@ Section Link.
                 (Vptr pool (Ptrofs.repr oc)) t m' vr
                 Hr Hf Hnd Hg Hgl Hcm (Hinv_cur m HI) L4 P4 Hln H13 H4 H5 H10 Hev)
       as [E0 | (k & fs' & -> & Hk' & -> & Lbc & R' & F' & G' & U & HF)].
-    { exfalso. exact (Hfr m st w fl fs HI Hst Hw Ho Hfl Hf E0). }
+    { exfalso. exact (Hfr m st w fl fs HI Hst HQs Hw Ho Hfl Hf E0). }
     assert (Hne : k <> kc).
     { intros ->. apply (nd_app_disj _ _ kc Hnd Hkc). left. reflexivity. }
     assert (Vc : Vcmd m' (v_s st) (v_i st + 2)).
@@ -7402,7 +7410,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - exact (V_mk m' st (v_s st) (v_i st + 2) (v_k st) Vc HS').
     - split; [ | left; reflexivity ].
-      exact (Hk m st w la fl bpg bwd n rs k fs' m' HI Hst Hw Ho Hla Hfl Hbpg Hbwd Hn0 Hr Hf Hk' R' F' G' U HF Vc).
+      exact (Hk m st w la fl bpg bwd n rs k fs' m' HI Hst HQs Hw Ho Hla Hfl Hbpg Hbwd Hn0 Hr Hf Hk' R' F' G' U HF Vc).
   Qed.
 
   (* ---- ANIMATE (opcode 0x28 = 40): the REAL bhv_cmd_animate ----
@@ -7627,12 +7635,12 @@ Section Link.
      animAccel @72, animYTrans @58).  Pinned: an_keep -- INV survives those
      four stores (obj_w reads no animInfo cell; PhiW pins Mario's, and no
      user is Mario) *)
-  Definition an_keep : Prop := forall m st w m1, INV m -> In st vm_tab ->
+  Definition an_keep : Prop := forall m st w m1, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 40 -> an_post m m1 w -> INV m1.
 
   Lemma row_animate : an_keep -> cmd_row_op 40.
   Proof.
-    intros Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 40) = Some BS._bhv_cmd_animate)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -7642,7 +7650,7 @@ Section Link.
     destruct (hd_animate _ _ _ _ _ _ Hst (proj1 (Hinv m HI)) HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & m1 & Hp & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ HI Hst Hw Ho Hp) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ HI Hst HQs Hw Ho Hp) U).
     - left. reflexivity.
   Qed.
 
@@ -7902,12 +7910,12 @@ Section Link.
      partition lists well formed off the statics; ObjWorld's surface
      clause) -- and dtf_keep -- INV survives dtf_post *)
   Definition dtf_ff : Prop := forall m, INV m -> ObjFloorH.ff_ok G m.
-  Definition dtf_keep : Prop := forall m st w m1, INV m -> In st vm_tab ->
+  Definition dtf_keep : Prop := forall m st w m1, INV m -> In st vm_tab -> Qs st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 30 -> dtf_post m m1 -> INV m1.
 
   Lemma row_drop_to_floor : dtf_ff -> dtf_keep -> cmd_row_op 30.
   Proof.
-    intros Hf Hk m st w id hb fd t m' vr Hst HV HI Hw Ho Hid Hhb Hfd Hev.
+    intros Hf Hk m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
     assert (E : nth_error ObjCensus.cmd_handlers (Z.to_nat 30) = Some BS._bhv_cmd_drop_to_floor)
       by (vm_compute; reflexivity).
     rewrite E in Hid. injection Hid as <-.
@@ -7917,7 +7925,7 @@ Section Link.
     destruct (hd_drop_to_floor _ _ _ _ _ _ Hst (Hf m HI) HV (Hinv_cur m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & m1 & Hp & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_frame _ _ (Hk _ _ _ _ HI Hst Hw Ho Hp) U).
+    - exact (Hinv_frame _ _ (Hk _ _ _ _ HI Hst HQs Hw Ho Hp) U).
     - left. reflexivity.
   Qed.
 
@@ -7948,8 +7956,8 @@ Section Link.
 
   Theorem dloop_done : row_keeps ->
     forall le m t le' m' out, exec_stmt function_entry2 G empty_env le m DLOOP t le' m' out ->
-    forall st, In st vm_tab -> V m st -> INV m ->
-    out = Out_normal /\ exists st', In st' vm_tab /\ V m' st' /\ INV m'.
+    forall st, In st vm_tab -> Qs st -> V m st -> INV m ->
+    out = Out_normal /\ exists st', In st' vm_tab /\ Qs st' /\ V m' st' /\ INV m'.
   Proof.
     intros Hk. apply dloop_used. intros op Hu Hn. exact (done_rows Hk op (used_done op Hu)).
   Qed.
@@ -8035,20 +8043,20 @@ Section Link.
      (used_done); what remains is row_keeps, premises about INV *)
   Theorem seg : row_keeps ->
     forall le0 m0 t1 le1 m1 out1 t2 le2 m2 out2 t3 le3 m3 out3 st,
-    In st vm_tab -> Vo m0 st -> INV m0 ->
+    In st vm_tab -> Qs st -> Vo m0 st -> INV m0 ->
     exec_stmt function_entry2 G empty_env le0 m0 COPYIN t1 le1 m1 out1 ->
     exec_stmt function_entry2 G empty_env le1 m1 DLOOP t2 le2 m2 out2 ->
     exec_stmt function_entry2 G empty_env le2 m2 COPYOUT t3 le3 m3 out3 ->
     out1 = Out_normal /\ out2 = Out_normal /\ out3 = Out_normal
-    /\ exists st', In st' vm_tab /\ Vo m3 st' /\ INV m3.
+    /\ exists st', In st' vm_tab /\ Qs st' /\ Vo m3 st' /\ INV m3.
   Proof.
-    intros Hk le0 m0 t1 le1 m1 out1 t2 le2 m2 out2 t3 le3 m3 out3 st Hst HV HI X1 X2 X3.
+    intros Hk le0 m0 t1 le1 m1 out1 t2 le2 m2 out2 t3 le3 m3 out3 st Hst HQ HV HI X1 X2 X3.
     destruct (copyin _ _ _ _ _ _ _ X1 (Hinv_cur _ HI) HV) as (-> & HV1 & U1).
     pose proof (Hinv_frame _ _ HI U1) as HI1.
-    destruct (dloop_done Hk _ _ _ _ _ _ X2 st Hst HV1 HI1) as (-> & st2 & Hst2 & HV2 & HI2).
+    destruct (dloop_done Hk _ _ _ _ _ _ X2 st Hst HQ HV1 HI1) as (-> & st2 & Hst2 & HQ2 & HV2 & HI2).
     destruct (copyout _ _ _ _ _ _ _ X3 (Hinv_cur _ HI2) HV2) as (-> & HV3 & U3).
     split; [ reflexivity | split; [ reflexivity | split; [ reflexivity | ] ] ].
-    exact (ex_intro _ st2 (conj Hst2 (conj HV3 (Hinv_frame _ _ HI2 U3)))).
+    exact (ex_intro _ st2 (conj Hst2 (conj HQ2 (conj HV3 (Hinv_frame _ _ HI2 U3))))).
   Qed.
 
   (* ---- the whole REAL cur_obj_update (W1, 2026-11-07) ---- *)
@@ -8095,11 +8103,11 @@ Section Link.
      reachable state -- given row_keeps (the dispatch loop's premises), the
      code around the segment (pre_keep / post_keep) and inv_free *)
   Theorem cou_real : row_keeps -> pre_keep -> post_keep -> inv_free ->
-    forall m t m' vr st, In st vm_tab -> Vo m st -> INV m ->
+    forall m t m' vr st, In st vm_tab -> Qs st -> Vo m st -> INV m ->
     eval_funcall function_entry2 G m (Internal BS.f_cur_obj_update) [] t m' vr ->
-    exists st', In st' vm_tab /\ Vo m' st' /\ INV m'.
+    exists st', In st' vm_tab /\ Qs st' /\ Vo m' st' /\ INV m'.
   Proof.
-    intros Hk Hpre Hpost Hfree m t m' vr st Hst HV HI H.
+    intros Hk Hpre Hpost Hfree m t m' vr st Hst HQ HV HI H.
     destruct cou_nofv as (N1 & N2 & N3).
     inv H.
     match goal with He : function_entry2 _ _ _ _ _ _ _ |- _ => inv He end.
@@ -8124,14 +8132,14 @@ Section Link.
     apply RA.seq_inv in Y2 as [(r3 & re3 & rm3 & r4 & Y3 & Y4) | (Y3 & Xn)].
     2: { exfalso. destruct (copyin _ _ _ _ _ _ _ N1 (Hinv_cur _ HI1) HV1) as (_ & HVc & Uc).
          apply (EnvSwap.exec_swap _ _ _ _ _ _ _ _ _ _ _ Y3 (cou_ag bF)) in N2.
-         destruct (dloop_done Hk _ _ _ _ _ _ N2 st Hst HVc (Hinv_frame _ _ HI1 Uc)) as (Eo & _).
+         destruct (dloop_done Hk _ _ _ _ _ _ N2 st Hst HQ HVc (Hinv_frame _ _ HI1 Uc)) as (Eo & _).
          exact (Xn Eo). }
     apply (EnvSwap.exec_swap _ _ _ _ _ _ _ _ _ _ _ Y3 (cou_ag bF)) in N2.
     apply RA.seq_inv in Y4 as [(r5 & re5 & rm5 & r6 & Y5 & Y6) | (Y5 & Xn)];
       [ | exfalso; exact (Xn (ObjLoop.plain_out _ _ _ _ _ _ _ _ _ Y5 eq_refl)) ].
     apply (EnvSwap.exec_swap _ _ _ _ _ _ _ _ _ _ _ Y5 (cou_ag bF)) in N3.
-    destruct (seg Hk _ _ _ _ _ _ _ _ _ _ _ _ _ _ st Hst HV1 HI1 N1 N2 N3)
-      as (_ & _ & _ & st' & Hst' & HV2 & HI2).
+    destruct (seg Hk _ _ _ _ _ _ _ _ _ _ _ _ _ _ st Hst HQ HV1 HI1 N1 N2 N3)
+      as (_ & _ & _ & st' & Hst' & HQ' & HV2 & HI2).
     destruct (Hpost bF _ _ _ _ _ _ st' HI2 HV2 Hst' Y6) as (HI3 & HV3).
     (* the local is freed *)
     match goal with Hf : Mem.free_list ?M _ = Some ?R |- _ =>
@@ -8141,7 +8149,7 @@ Section Link.
     { intros E. subst bF. apply HnF. destruct HV as ((b & _ & Hl) & _).
       pose proof (Mem.load_valid_access _ _ _ _ _ Hl) as Ha. eapply Mem.valid_access_valid_block.
       eapply Mem.valid_access_implies; [ exact Ha | constructor ]. }
-    exists st'. split; [ exact Hst' | split ].
+    exists st'. split; [ exact Hst' | split; [ exact HQ' | split ] ].
     - refine (Vo_unch (fun b _ => b <> bF) _ _ _ _ (fun _ => Hpf) HV3).
       eapply Mem.free_unchanged_on; [ exact F1 | ]. intros i _ Hn. exact (Hn eq_refl).
     - exact (Hfree m _ bF _ HI HnF HI3 F1).

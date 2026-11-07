@@ -951,6 +951,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
        COU_POST pinned by cou_split, vm); EnvSwap.exec_swap moves the segment out of
        the filler env. TRAP: a wrong `_` count before a named arg made Coq unify a
        vst with `In ?st vm_tab` -- a silent 20-min hang (count section args!).
+       FOUND 2026-11-07: the field keeps took st from all of vm_tab, untied to slot k's
+       script (bhvPoleGrabbing's SET_INT(oInteractType, POLE) on a generic slot breaks
+       ow_cls). REPAIR STARTED: section `Qs` (closed under succs, Hqs_cl) threaded through
+       cmd_row_op, every keep, dloop*, seg, cou_real; concrete Qs = slot k's family in W2.
+       Trap: a section Hypothesis named like a proof's intro name ("HQs is already used").
        Next (W2/W3, coordinator OK'd INV_k = Pobjl with ow_vm relaxed at slot k + cur):
        Hinv/Hinv_cur/Hinv_frame for INV_k; discharge row_keeps (phantom rule: a keep
        false without a script tie => strengthen INV with script-tied pins, checked on
