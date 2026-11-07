@@ -112,10 +112,15 @@ Definition pmvok (P : block -> Prop) (mv : memval) : Prop :=
 Definition pvok (P : block -> Prop) (v : val) : Prop :=
   match v with Vptr bp _ => P bp | _ => True end.
 
-Definition nvB (P : block -> Prop) (m m' : mem) : Prop :=
+(* nvC: the contents side; pback: an old block's permissions are the same
+   in m and m' (a byte left unchanged is readable in m iff in m') *)
+Definition nvC (P : block -> Prop) (m m' : mem) : Prop :=
   forall b ofs, Plt b (Mem.nextblock m) ->
     ZMap.get ofs ((Mem.mem_contents m') !! b) <> ZMap.get ofs ((Mem.mem_contents m) !! b) ->
     pmvok P (ZMap.get ofs ((Mem.mem_contents m') !! b)).
+Definition pback (m m' : mem) : Prop :=
+  forall b ofs k p, Plt b (Mem.nextblock m) -> (Mem.perm m' b ofs k p <-> Mem.perm m b ofs k p).
+Definition nvB (P : block -> Prop) (m m' : mem) : Prop := pback m m' /\ nvC P m m'.
 
 Lemma memval_eq_dec : forall x y : memval, {x = y} + {x <> y}.
 Proof.
@@ -123,21 +128,27 @@ Proof.
 Defined.
 
 Lemma nvB_refl : forall P m, nvB P m m.
-Proof. intros P m b ofs _ H. exfalso. apply H. reflexivity. Qed.
+Proof.
+  intros P m. split; [ intros b ofs k p _; apply iff_refl | ].
+  intros b ofs _ H. exfalso. apply H. reflexivity.
+Qed.
 
 Lemma nvB_trans : forall P m1 m2 m3, nvB P m1 m2 -> nvB P m2 m3 ->
   Ple (Mem.nextblock m1) (Mem.nextblock m2) -> nvB P m1 m3.
 Proof.
-  intros P m1 m2 m3 A B L b ofs Hb Hne.
-  destruct (memval_eq_dec (ZMap.get ofs ((Mem.mem_contents m3) !! b))
-                          (ZMap.get ofs ((Mem.mem_contents m2) !! b))) as [E | E].
-  - rewrite E in Hne |- *. exact (A b ofs Hb Hne).
-  - exact (B b ofs (Plt_Ple_trans _ _ _ Hb L) E).
+  intros P m1 m2 m3 (A1 & A) (B1 & B) L. split.
+  - intros b ofs k p Hb. exact (iff_trans (B1 b ofs k p (Plt_Ple_trans _ _ _ Hb L)) (A1 b ofs k p Hb)).
+  - intros b ofs Hb Hne.
+    destruct (memval_eq_dec (ZMap.get ofs ((Mem.mem_contents m3) !! b))
+                            (ZMap.get ofs ((Mem.mem_contents m2) !! b))) as [E | E].
+    + rewrite E in Hne |- *. exact (A b ofs Hb Hne).
+    + exact (B b ofs (Plt_Ple_trans _ _ _ Hb L) E).
 Qed.
 
 Lemma nvB_mono : forall (P Q : block -> Prop) m m', (forall b, P b -> Q b) -> nvB P m m' -> nvB Q m m'.
 Proof.
-  intros P Q m m' PQ A b ofs Hb Hne. specialize (A b ofs Hb Hne).
+  intros P Q m m' PQ (A1 & A). split; [ exact A1 | ].
+  intros b ofs Hb Hne. specialize (A b ofs Hb Hne).
   destruct (ZMap.get ofs ((Mem.mem_contents m') !! b)) as [ | | v q n ]; cbn in *; auto.
   destruct v; auto.
 Qed.
@@ -146,30 +157,6 @@ Lemma in_inj_value_rec : forall n v q mv, In mv (inj_value_rec n v q) -> exists 
 Proof.
   induction n; cbn; intros v q mv H; [ contradiction | ].
   destruct H as [ <- | H ]; [ eauto | exact (IHn v q mv H) ].
-Qed.
-
-Lemma encode_pvok : forall P ch v mv, pvok P v -> In mv (encode_val ch v) -> pmvok P mv.
-Proof.
-  intros P ch v mv Hv H.
-  assert (Hb : forall l, In mv (inj_bytes l) -> pmvok P mv).
-  { intros l Hl. unfold inj_bytes in Hl. apply in_map_iff in Hl as (x & <- & _). exact I. }
-  assert (Hu : forall n, In mv (List.repeat Undef n) -> pmvok P mv).
-  { intros n Hl. apply repeat_spec in Hl. subst. exact I. }
-  assert (Hi : forall q, In mv (inj_value q v) -> pmvok P mv).
-  { intros q Hl. apply in_inj_value_rec in Hl as (q' & n' & ->). cbn. destruct v; auto. }
-  unfold encode_val in H. destruct v, ch; try destruct Archi.ptr64; eauto.
-Qed.
-
-Lemma nvB_store : forall P ch m b ofs v m', Mem.store ch m b ofs v = Some m' -> pvok P v -> nvB P m m'.
-Proof.
-  intros P ch m b ofs v m' S Hv b0 o0 _ Hne.
-  pose proof (Mem.store_mem_contents _ _ _ _ _ _ S) as C. rewrite C in Hne |- *.
-  rewrite PMap.gsspec in Hne |- *. destruct (peq b0 b) as [ -> | ]; [ | exfalso; exact (Hne eq_refl) ].
-  destruct (zle ofs o0) as [L | L];
-    [ destruct (zlt o0 (ofs + Z.of_nat (List.length (encode_val ch v)))) as [L' | L'] | ].
-  - apply (encode_pvok P ch v); [ exact Hv | ]. apply Mem.setN_in. lia.
-  - exfalso. apply Hne. apply Mem.setN_outside. lia.
-  - exfalso. apply Hne. apply Mem.setN_outside. lia.
 Qed.
 
 (* a store through a chunk narrower than a pointer writes no fragment *)
@@ -190,7 +177,9 @@ Qed.
 
 Lemma nvB_store_c : forall P ch m b ofs v m', Mem.store ch m b ofs v = Some m' -> cvok P ch v -> nvB P m m'.
 Proof.
-  intros P ch m b ofs v m' S Hv b0 o0 _ Hne.
+  intros P ch m b ofs v m' S Hv. split.
+  { intros b0 o0 k p _. split; [ apply (Mem.perm_store_2 _ _ _ _ _ _ S) | apply (Mem.perm_store_1 _ _ _ _ _ _ S) ]. }
+  intros b0 o0 _ Hne.
   pose proof (Mem.store_mem_contents _ _ _ _ _ _ S) as C. rewrite C in Hne |- *.
   rewrite PMap.gsspec in Hne |- *. destruct (peq b0 b) as [ -> | ]; [ | exfalso; exact (Hne eq_refl) ].
   destruct (zle ofs o0) as [L | L];
@@ -208,19 +197,110 @@ Proof.
 Qed.
 
 Local Transparent Mem.alloc Mem.free Mem.unchecked_free.
-Lemma nvB_alloc :forall P m lo hi m' b, Mem.alloc m lo hi = (m', b) -> nvB P m m'.
+Lemma nvB_alloc : forall P m lo hi m' b, Mem.alloc m lo hi = (m', b) -> nvB P m m'.
 Proof.
-  intros P m lo hi m' b A b0 o0 Hb Hne. exfalso. apply Hne.
+  intros P m lo hi m' b A. split.
+  { intros b0 o0 k p Hb. split; [ | apply (Mem.perm_alloc_1 _ _ _ _ _ A) ].
+    intros Hp. apply (Mem.perm_alloc_4 _ _ _ _ _ A _ _ _ _ Hp).
+    intro E. subst b0. apply (Mem.fresh_block_alloc _ _ _ _ _ A). exact Hb. }
+  intros b0 o0 Hb Hne. exfalso. apply Hne.
   unfold Mem.alloc in A. injection A as <- _. cbn [Mem.mem_contents].
   rewrite PMap.gso; [ reflexivity | apply Plt_ne; exact Hb ].
 Qed.
 
-Lemma nvB_free : forall P m b lo hi m', Mem.free m b lo hi = Some m' -> nvB P m m'.
+(* freeing a block born after m0 *)
+Lemma nvB_free_new : forall P m0 m b lo hi m', nvB P m0 m -> ~ Plt b (Mem.nextblock m0) ->
+  Ple (Mem.nextblock m0) (Mem.nextblock m) -> Mem.free m b lo hi = Some m' -> nvB P m0 m'.
 Proof.
-  intros P m b lo hi m' F b0 o0 _ Hne. exfalso. apply Hne.
-  pose proof (Mem.free_result _ _ _ _ _ F) as E. subst m'. reflexivity.
+  intros P m0 m b lo hi m' (A1 & A) Hn L F. split.
+  - intros b0 o0 k p Hb. apply (iff_trans (B := Mem.perm m b0 o0 k p)); [ | exact (A1 b0 o0 k p Hb) ].
+    split; [ apply (Mem.perm_free_3 _ _ _ _ _ F) | apply (Mem.perm_free_1 _ _ _ _ _ F) ].
+    left. intro E. subst b0. exact (Hn Hb).
+  - pose proof (Mem.free_result _ _ _ _ _ F) as E. subst m'. exact A.
 Qed.
 Local Opaque Mem.alloc Mem.free Mem.unchecked_free.
+
+(* ---- 1c. load-closedness (MWF R7's shape) through an nvB step ---- *)
+Lemma check_value_frag : forall n v q vl mv, check_value n v q vl = true -> In mv vl ->
+  exists q' n', mv = Fragment v q' n'.
+Proof.
+  induction n as [| n IH]; intros v q vl mv H Hin; destruct vl as [| x vl]; cbn in H;
+    try discriminate; [ contradiction | ].
+  destruct x as [ | | v' q' n' ]; try discriminate.
+  apply andb_prop in H as [H H4]. apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
+  destruct (Val.eq v v'); [ subst v' | discriminate ].
+  destruct Hin as [ <- | Hin ]; [ eauto | exact (IH _ _ _ _ H4 Hin) ].
+Qed.
+
+Lemma proj_value_frag : forall q vl b o mv, proj_value q vl = Vptr b o -> In mv vl ->
+  exists q' n', mv = Fragment (Vptr b o) q' n'.
+Proof.
+  intros q vl b o mv H Hin. unfold proj_value in H.
+  destruct vl as [| x vl']; [ discriminate | ].
+  destruct x as [ | | v q' n' ]; try discriminate.
+  destruct (check_value (size_quantity_nat q) v q (Fragment v q' n' :: vl')) eqn:C; [ | discriminate ].
+  subst v. exact (check_value_frag _ _ _ _ _ C Hin).
+Qed.
+
+Lemma load_result_ptr : forall ch v b o, Val.load_result ch v = Vptr b o -> v = Vptr b o.
+Proof.
+  intros ch v b o H. destruct ch, v; unfold Val.load_result, Val.norm_bool in H;
+    repeat (match type of H with context [ if ?c then _ else _ ] => destruct c end);
+    first [ discriminate | exact H ].
+Qed.
+
+Lemma decode_ptr_frag : forall ch vl b o mv, decode_val ch vl = Vptr b o -> In mv vl ->
+  exists q' n', mv = Fragment (Vptr b o) q' n'.
+Proof.
+  intros ch vl b o mv H Hin. unfold decode_val in H.
+  destruct (proj_bytes vl).
+  - destruct ch; try unfold Val.norm_bool in H;
+      repeat (match type of H with context [ if ?c then _ else _ ] => destruct c end);
+      discriminate H.
+  - destruct ch; try discriminate; try destruct Archi.ptr64; try discriminate;
+      apply load_result_ptr in H; exact (proj_value_frag _ _ _ _ _ H Hin).
+Qed.
+
+Lemma range_eq_or : forall (c1 c2 : ZMap.t memval) n z,
+  (forall i, z <= i < z + Z.of_nat n -> ZMap.get i c1 = ZMap.get i c2)
+  \/ (exists i, z <= i < z + Z.of_nat n /\ ZMap.get i c1 <> ZMap.get i c2).
+Proof.
+  intros c1 c2. induction n as [| n IH]; intros z.
+  - left. intros i Hi. lia.
+  - destruct (memval_eq_dec (ZMap.get z c1) (ZMap.get z c2)) as [E | E].
+    + destruct (IH (z + 1)) as [A | (i & Hi & Ne)].
+      * left. intros i Hi. destruct (Z.eq_dec i z) as [-> | Hne]; [ exact E | apply A; lia ].
+      * right. exists i. split; [ lia | exact Ne ].
+    + right. exists z. split; [ lia | exact E ].
+Qed.
+
+(* if g is load-closed for S (MWF R7's shape), so is m: an unchanged
+   pointer load is g's (pback gives g the permissions), a changed one has
+   a changed byte, a fragment of the loaded pointer, which nvB puts in P *)
+Lemma closed_nvB : forall (S P : block -> Prop) g m,
+  nvB P g m -> (forall b, P b -> S b) -> (forall b, S b -> Plt b (Mem.nextblock g)) ->
+  (forall b ofs b' o', S b -> Mem.loadv Mptr g (Vptr b ofs) = Some (Vptr b' o') -> S b') ->
+  forall b ofs b' o', S b -> Mem.loadv Mptr m (Vptr b ofs) = Some (Vptr b' o') -> S b'.
+Proof.
+  intros S P g m (PB & NC) PS Sv R7 b ofs b' o' Hb L.
+  cbn [Mem.loadv] in L. remember (Ptrofs.unsigned ofs) as z eqn:Ez.
+  pose proof (Mem.load_result _ _ _ _ _ L) as D.
+  destruct (range_eq_or ((Mem.mem_contents m) !! b) ((Mem.mem_contents g) !! b) (size_chunk_nat Mptr) z)
+    as [A | (i & Hi & Ne)].
+  - apply (R7 b ofs b' o' Hb). cbn [Mem.loadv]. rewrite <- Ez.
+    pose proof (Mem.load_valid_access _ _ _ _ _ L) as (Rp & Al).
+    assert (Vg : Mem.valid_access g Mptr b z Readable).
+    { split; [ | exact Al ]. intros j Hj. exact (proj1 (PB b j Cur Readable (Sv b Hb)) (Rp j Hj)). }
+    destruct (Mem.valid_access_load _ _ _ _ Vg) as (v & Lg).
+    pose proof (Mem.load_result _ _ _ _ _ Lg) as Dg.
+    rewrite (Mem.getN_exten _ _ _ _ A) in D. rewrite Lg, Dg, <- D. reflexivity.
+  - pose proof (NC b i (Sv b Hb) Ne) as Ok.
+    assert (Hin : In (ZMap.get i ((Mem.mem_contents m) !! b))
+                     (Mem.getN (size_chunk_nat Mptr) z ((Mem.mem_contents m) !! b)))
+      by (apply Mem.getN_in; exact Hi).
+    destruct (decode_ptr_frag _ _ _ _ _ (eq_sym D) Hin) as (q' & n' & E).
+    rewrite E in Ok. cbn in Ok. exact (PS _ Ok).
+Qed.
 
 (* ---- 2. the script content (ObjWorld.scr_ok, obj_w's ow_scr since
    2026-11-03: the script blocks hold their initializers) and the VM

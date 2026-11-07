@@ -178,8 +178,9 @@ Section Inv.
       pose proof (sym_valid g _ _ Hg Hgo) as Vg. unfold Mem.valid_block in *.
       exact (Plt_Ple_trans _ _ _ (Plt_Ple_trans _ _ _ Vg Hgn) Hn0).
     - exists g. split; [ exact Hg | split; [ exact HV | split; [ exact Hgn | split ] ] ].
-      2: { apply (BhvStep.nvB_trans _ _ _ _ NV (BhvStep.nvB_free _ _ _ _ _ _ F)).
-           exact (Mem.unchanged_on_nextblock _ _ _ U). }
+      2: { refine (BhvStep.nvB_free_new _ _ _ _ _ _ _ NV _ (Mem.unchanged_on_nextblock _ _ _ U) F).
+           intros Vb. apply Hnv. unfold Mem.valid_block in *.
+           exact (Plt_Ple_trans _ _ _ (Plt_Ple_trans _ _ _ Vb Hgn) Hn0). }
       apply unch_valid. apply (Mem.unchanged_on_trans _ _ m).
       + exact (Mem.unchanged_on_implies _ _ _ _ U (fun b0 z0 H _ => proj1 H)).
       + apply (Mem.free_unchanged_on _ _ _ _ _ _ F). intros i _ (_ & Vb). apply Hnv. unfold Mem.valid_block in *.
