@@ -177,7 +177,7 @@ Section NoAImpliesNoFlyFrame.
      them) *)
   Hypothesis Hcam_ow_res : forall m m', LevelFlank.cam_step lp m m' ->
     mem_ok_lp bm MWF m -> Phi m ->
-    forall z, z = 136 \/ In z [120; 124; 128; 132; 96; 100; 104] ->
+    forall z, z = 136 \/ In z [120; 124; 128; 132; 96; 100; 104; 12] ->
       Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z.
 
   (* THE CAPSTONE: GOAL 1 over GOAL 2's real frame *)

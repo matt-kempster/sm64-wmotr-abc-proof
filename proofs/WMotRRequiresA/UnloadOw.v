@@ -240,7 +240,7 @@ Theorem obj_w_unload : forall (ge : genv) bm pool la fl gol gmo sdp gdi m m' rs 
   (* the dynamic blocks *)
   (forall b, Ple (Genv.genv_next ge) b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
   (* Mario's cells *)
-  (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132; 96; 100; 104] ->
+  (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132; 96; 100; 104; 12] ->
      Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z) ->
   (* the scripts *)
   (forall s b, In s (map BhvVM.v_s BhvVM.vm_tab) -> Genv.find_symbol ge s = Some b ->
@@ -251,7 +251,7 @@ Proof.
   intros ge bm pool la fl gol gmo sdp gdi m m' rs fs i l1 k l2 S1 S2 S3 S4 S5 S6 S7 C Hi El Ina R' F' G' A'
     K KN Kbm KSc Ku.
   destruct C as [Cg Cr Cf Cp Cfo Cm Cs Ca Crd Cdb Cst Co Cd12 Cct Cvm Csp Cso Cco Cctr Cter Cscr Cmact Cresp Cgfx Cmsurf Cpar
-                 Cmvm Canim Ccls Cdp Cnco Cmco].
+                 Cmvm Canim Ccls Cdp Cnco Cmco Ctie].
   assert (Hpl : pool <> la).
   { intros E. subst la. refine (Genv.global_addresses_distinct ge _ S1 S2 eq_refl). vm_compute. discriminate. }
   pose proof (proj1 (ObjRing.rings_iff pool m la rs Hpl) Cr) as (Hlen & Henc).
@@ -300,7 +300,7 @@ Proof.
   - destruct Cdb as (Cd1 & Cd2). split; [ rewrite Ks; exact Cd1 | ].
     apply (OW.dflags_ok_ext ge m m'); [ | exact Cd2 ]. intros b Sb.
     exact (K debug._gDebugInfoFlags b PollKeep.dflags_in_ow ltac:(vm_compute; reflexivity) Sb _ _).
-  - intros z Hz. assert (Hz' : In z [120; 124; 128; 132; 96; 100; 104]) by (cbn [In] in Hz |- *; tauto).
+  - intros z Hz. assert (Hz' : In z [120; 124; 128; 132; 96; 100; 104; 12]) by (cbn [In] in Hz |- *; tauto).
     rewrite (Kbm z (or_intror Hz')). exact (Cst z Hz).
   - destruct Co as (b & Sb & L). exists b. split; [ exact Sb | ].
     intros j Hj. rewrite (K object_list_processor._sObjectListUpdateOrder b ltac:(unfold PollKeep.ow_ids; cbn [In]; auto 10) ltac:(vm_compute; reflexivity) Sb). exact (L j Hj).
@@ -406,7 +406,7 @@ Proof.
     + intros Et. destruct (R2 Et) as (b & o & Lr & Hor). exists b, o.
       rewrite (SK pool k m m' Ku j Nj) by ks. exact (conj Lr Hor).
   - exact G'.
-  - intros z v Hz L. assert (Hz' : In z [120; 124; 128; 132; 96; 100; 104])
+  - intros z v Hz L. assert (Hz' : In z [120; 124; 128; 132; 96; 100; 104; 12])
       by (unfold OW.MSURF, WALL_OFF, CEIL_OFF, FLOOR_OFF in Hz; cbn [In] in Hz |- *; tauto).
     rewrite (Kbm z (or_intror Hz')) in L.
     destruct (Cmsurf z v Hz L) as [E | (b & o & E & Hs)]; [ left; exact E | right ].
@@ -457,4 +457,13 @@ Proof.
     subst j. destruct (Cmco km Hj Lg' a Ha) as (v & Lv & Sv).
     exists v. unfold OW.O_COLLS in *. rewrite <- !Z.add_assoc in Lv |- *.
     rewrite (SK pool k m m' Ku km Nkm) by ks. exact (conj Lv Sv).
+  - (* TIE: the surviving slots' behavior cells; every slot's VM cells
+       (sp_vm_all); Mario's action and usedObj are Kbm cells *)
+    destruct Ctie as (T1 & T3). split.
+    + intros j bh Hj Hb Hib. pose proof (Nn j Hj) as Nj.
+      exact (sp_vm_all ge pool k m m' Ku j (T1 j bh (Inw j Hj) Hb (is_bhv_u' ge pool k m m' Ku j Nj bh Hib))).
+    + intros a La Ha. rewrite (Kbm 12 ltac:(right; cbn [In]; repeat (first [ left; reflexivity | right ]))) in La.
+      destruct (T3 a La Ha) as (j & Rj & Lu & Sj). exists j. split; [ exact Rj | split ].
+      * erewrite Kbm; [ exact Lu | right; cbn [In]; repeat (first [ left; reflexivity | right ]) ].
+      * exact (sp_vm_all ge pool k m m' Ku j Sj).
 Qed.

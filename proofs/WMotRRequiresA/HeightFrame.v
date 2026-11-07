@@ -1642,7 +1642,9 @@ Section HeightLinked12.
         repeat (destruct Hin as [E | Hin]; [ vm_compute in E; discriminate E | ]). exact Hin.
       + intro E. subst id. unfold PollKeep.ow_ids in Hin. cbn [In] in Hin.
         repeat (destruct Hin as [E | Hin]; [ vm_compute in E; discriminate E | ]). exact Hin.
-    - intros z Hz. apply LM. right. left. unfold MARIOOBJ_OFF in Hz. cbn [In] in Hz. lia.
+    - intros z Hz. apply LM. unfold MARIOOBJ_OFF in Hz. cbn [In] in Hz.
+      assert (Ez : z + 4 <= 60 \/ 72 <= z) by lia.
+      destruct Ez as [Ez | Ez]; [ left; cbn [size_chunk]; exact Ez | right; left; exact Ez ].
     - (* the scripts (ow_scr): neither written global is a script *)
       intros s b Hin Hs ch z. apply (LG s b Hs);
         intro E; subst s; refine (PollKeep.not_in_of_existsb _ _ _ Hin); vm_compute; reflexivity.
@@ -1708,10 +1710,15 @@ Section HeightLinked12.
        the footprint (CamRows.cam_surf_keep), so it left this row.
      - (2026-11-03) Mario's wall / ceil / floor cells (96, 100, 104), which
        obj_w's new clause ow_msurf reads: set_mario_npc_dialog's
-       set_mario_action (the cutscene arm) writes neither. *)
+       set_mario_action (the cutscene arm) writes neither.
+     - (2026-11-07) Mario's action (12), which obj_w's ow_tie reads (T3:
+       in a pole / cannon action usedObj runs a special script): the
+       camera's one writer of it is set_mario_npc_dialog's
+       set_mario_action, outside the live closure over cam_w states
+       (CamCutCensus.uc_wmotr), as for usedObj (128). *)
   Hypothesis Hcam_ow_res : forall m m', LevelFlank.cam_step lp m m' ->
     mem_ok_lp bm MWF m -> Phi m ->
-    forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132; 96; 100; 104] ->
+    forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132; 96; 100; 104; 12] ->
       Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z.
 
   (* PROVED (step (a), 2026-11-02; the surface clause 2026-11-03): the
@@ -1722,7 +1729,7 @@ Section HeightLinked12.
     mem_ok_lp bm MWF m -> Phi m ->
     (forall id b, In id PollKeep.ow_ids -> Genv.find_symbol (lp_ge lp) id = Some b ->
        forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
-    /\ (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132; 96; 100; 104] ->
+    /\ (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132; 96; 100; 104; 12] ->
        Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z)
     /\ PollKeep.surf_keep m m' (lp_ge lp)
     (* 2026-11-03: the script blocks (ow_scr) *)

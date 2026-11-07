@@ -1243,6 +1243,28 @@ Lemma dflags_ok_ext : forall (ge : genv) m m',
   dflags_ok ge m -> dflags_ok ge m'.
 Proof. intros ge m m' K D b Hs. rewrite (K b Hs). exact (D b Hs). Qed.
 
+(* TIE (2026-11-07, for the generic frame keep of GOAL 2's object step):
+   the slots whose fields obj_w reads by behavior run a special script.
+   T1: a slot whose behavior is one of the act_pairs behaviors or the
+   hidden red-coin star (act_ok / red_ok / coll_ok read its oAction,
+   oHiddenStarTriggerCounter, position) runs an sp_scripts state.  In the
+   game: a spawn sets the behavior and the script together, and every VM
+   step keeps the script's class (ObjFamily.fam_chk_ok).
+   T3: in a pole or cannon action (used_acts, Mario's action at bm 12),
+   usedObj (bm 128) is a slot running an sp_scripts state.  In the game:
+   only interact_pole / interact_cannon_base enter those actions, with
+   usedObj the POLE / CANNON_BASE object, which runs a special state
+   (ow_cls).  Both are checked on the boot witness (tie_b, in ow_chk). *)
+Definition tie_bhvs : list ident :=
+  [behavior_data._bhvJumpingBox; behavior_data._bhvCannon; behavior_data._bhvExclamationBox;
+   behavior_data._bhvHiddenRedCoinStar].
+
+Definition tie_ok (ge : genv) (pool bm : block) (m : mem) (rs : list (list Z)) : Prop :=
+  (forall k bh, In k (concat rs) -> In bh tie_bhvs -> is_bhv ge pool m k bh -> sp_vm ge pool m k)
+  /\ (forall a, Mem.load Mint32 m bm 12 = Some (Vint a) -> In (Int.unsigned a) used_acts ->
+        exists k, 0 <= k < NSLOT /\ Mem.load Mint32 m bm USED_OFF = Some (slot_v pool k)
+                  /\ sp_vm ge pool m k).
+
 Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
     (rs : list (list Z)) (fs : list Z) : Prop := {
   ow_gol : Mem.load Mint32 m gol 0 = Some (Vptr la Ptrofs.zero);
@@ -1293,7 +1315,9 @@ Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
   ow_dp : dp_ok ge m;
   (* 3j, 2026-11-03 *)
   ow_ncoll : ncoll_ok pool m rs;
-  ow_mcoll : mcoll_ok pool gmo m
+  ow_mcoll : mcoll_ok pool gmo m;
+  (* 2026-11-07 *)
+  ow_tie : tie_ok ge pool bm m rs
 }.
 
 Definition obj_w (ge : genv) (bm : block) (m : mem) : Prop :=
@@ -2485,6 +2509,53 @@ Section Chk3h.
   Qed.
 End Chk3h.
 
+(* TIE's checker (2026-11-07) *)
+Section ChkTie.
+  Variable ge : genv.
+  Variables pool bm : block.
+  Variable m : mem.
+
+  Lemma is_bhv_b_true : forall k id, is_bhv ge pool m k id -> is_bhv_b ge pool m id k = true.
+  Proof.
+    intros k id (b & Hs & L). unfold is_bhv_b, ld32. rewrite Hs, CM.load_eq, L. unfold veqb.
+    destruct (Val.eq _ _) as [_ | N]; [ reflexivity | contradiction N; reflexivity ].
+  Qed.
+
+  Definition tie_b (vt : list BhvVM.vst) (sp : list ident) (rs : list (list Z)) : bool :=
+    forallb (fun k => forallb (fun bh => negb (is_bhv_b ge pool m bh k) || sp_b ge pool m vt sp k) tie_bhvs)
+      (concat rs)
+    && match ld32 m bm 12 with
+       | Some (Vint a) =>
+           negb (existsb (Z.eqb (Int.unsigned a)) used_acts)
+           || match ld32 m bm USED_OFF with
+              | Some (Vptr b o) =>
+                  (if eq_block b pool then true else false)
+                  && match slot_of (Ptrofs.unsigned o) with Some k => sp_b ge pool m vt sp k | None => false end
+              | _ => false
+              end
+       | _ => true
+       end.
+
+  Lemma tie_b_sound : forall rs, tie_b BhvVM.vm_tab sp_scripts rs = true -> tie_ok ge pool bm m rs.
+  Proof.
+    intros rs H. unfold tie_b in H. apply andb_prop in H as [H1 H2]. split.
+    - intros k bh Hk Hb Hi.
+      pose proof (proj1 (forallb_forall _ _) H1 k Hk) as E. cbv beta in E.
+      pose proof (proj1 (forallb_forall _ _) E bh Hb) as E2. cbv beta in E2.
+      rewrite (is_bhv_b_true k bh Hi) in E2. cbn [negb orb] in E2. exact (sp_b_sound ge pool m k E2).
+    - intros a La Ha. unfold ld32 in H2. rewrite !CM.load_eq, La in H2.
+      assert (Ea : existsb (Z.eqb (Int.unsigned a)) used_acts = true)
+        by (apply existsb_exists; exists (Int.unsigned a); split; [ exact Ha | apply Z.eqb_refl ]).
+      rewrite Ea in H2. cbn [negb orb] in H2.
+      destruct (Mem.load Mint32 m bm USED_OFF) as [[| | | | | b o]|]; try discriminate H2.
+      destruct (eq_block b pool) as [-> | _]; [ | discriminate H2 ]. cbn [andb] in H2.
+      destruct (slot_of (Ptrofs.unsigned o)) as [k|] eqn:Hk; [ | discriminate H2 ].
+      destruct (slot_of_spec _ _ Hk) as (Rk & Eo).
+      exists k. split; [ exact Rk | split; [ | exact (sp_b_sound ge pool m k H2) ] ].
+      unfold slot_v. rewrite <- Eo, Ptrofs.repr_unsigned. reflexivity.
+  Qed.
+End ChkTie.
+
 Definition dflags_b (ge : genv) (m : mem) : bool :=
   match Genv.find_symbol ge debug._gDebugInfoFlags with
   | Some b => match CM.load Mint32 m b 0 with
@@ -2528,6 +2599,7 @@ Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : 
       && msurf_b ge bm m && par_b ge pool m rs
       && mvm_b ge pool m BhvVM.vm_tab k && anim_b ge m && cls_b ge pool m BhvVM.vm_tab sp_scripts rs
       && dp_b ge m && ncoll_b pool m rs && mcoll_b pool m k
+      && tie_b ge pool bm m BhvVM.vm_tab sp_scripts rs
       | None => false
       end
   | _, _, _ => false
@@ -2558,6 +2630,7 @@ Proof.
   destruct (ld32 m gmo 0) as [[| | | | | pb po]|] eqn:Hg;
     [ discriminate H .. | | discriminate H ].
   destruct (slot_of (Ptrofs.unsigned po)) as [k|] eqn:Hk; [ | discriminate H ].
+  apply andb_prop in H as [H Htie].
   apply andb_prop in H as [H Hmco]. apply andb_prop in H as [H Hnco].
   apply andb_prop in H as [H Hdp].
   apply andb_prop in H as [H Hcls]. apply andb_prop in H as [H Hanim]. apply andb_prop in H as [H Hmvm].
@@ -2629,6 +2702,7 @@ Proof.
   - exact (ncoll_b_sound _ _ _ Hnco).
   - apply (mcoll_b_sound _ _ _ k (proj1 (slot_of_spec _ _ Hk))); [ | exact Hmco ].
     apply veqb_eq in Hpo. rewrite <- Hpo. unfold ld32 in Hg. rewrite CM.load_eq in Hg. exact Hg.
+  - exact (tie_b_sound _ _ _ _ _ Htie).
 Qed.
 
 Definition ow_chk (ge : genv) (bm : block) (m : mem) : bool :=
