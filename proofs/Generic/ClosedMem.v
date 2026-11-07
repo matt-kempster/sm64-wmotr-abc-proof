@@ -96,18 +96,22 @@ Theorem ext_call_closed :
     closed_by g m -> symbols_inject g ge ge -> Val.inject_list g vargs vargs ->
     external_call ef ge vargs m t vres m' ->
     exists g', closed_by g' m' /\ inject_incr g g' /\ Val.inject g' vres vres
-               /\ Mem.unchanged_on (loc_unmapped g) m m'.
+               /\ Mem.unchanged_on (loc_unmapped g) m m'
+               /\ (forall b, Mem.valid_block m b -> g b = None -> g' b = None).
 Proof.
   intros ef ge vargs m t vres m' g (Hflat & Hi) Hsym Hargs Hx.
   destruct (@external_call_mem_inject_gen ef ge ge vargs m t vres m' g m vargs
               Hsym Hx Hi Hargs)
-    as (f' & vres' & m2' & Hx' & Hvi & Hi' & Hun & _ & Hinc & _).
+    as (f' & vres' & m2' & Hx' & Hvi & Hi' & Hun & _ & Hinc & Hsep).
   destruct (@external_call_determ ef ge vargs m t vres m' t vres' m2' Hx Hx')
     as (_ & Heq).
   destruct (Heq eq_refl) as (<- & <-).
   exists (flatten f'). split; [split; [apply flatten_flat | exact (flatten_inject _ _ Hi')] |].
   split; [exact (flatten_incr _ _ Hflat Hinc) |].
-  split; [exact (flatten_val _ _ _ Hvi) | exact Hun].
+  split; [exact (flatten_val _ _ _ Hvi) | split; [exact Hun |]].
+  (* a block valid before the call and unmapped stays unmapped *)
+  intros b Hv Hgb. unfold flatten. destruct (f' b) as [[b2 d]|] eqn:F; [| reflexivity].
+  destruct (Hsep _ _ _ Hgb F) as (Hn & _). contradiction.
 Qed.
 
 (* ---- the internal memory operations ---- *)
