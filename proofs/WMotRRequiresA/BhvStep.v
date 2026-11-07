@@ -101,6 +101,127 @@ Proof.
   rewrite forallb_forall in C. exact (memv_in _ _ (C st' Hin)).
 Qed.
 
+(* ---- 1b. the frame's VALUE side, byte level (2026-11-07) ----
+   nvB P m m': every byte of an old block that m' changes holds no pointer
+   fragment except into a P block.  Byte level on purpose: the closedness
+   facts it feeds (MWF R7, Mem.inject) read bytes, and stale stack words
+   above the VM depth are bytes nobody re-reads as a frame. *)
+Definition pmvok (P : block -> Prop) (mv : memval) : Prop :=
+  match mv with Fragment (Vptr bp _) _ _ => P bp | _ => True end.
+
+Definition pvok (P : block -> Prop) (v : val) : Prop :=
+  match v with Vptr bp _ => P bp | _ => True end.
+
+Definition nvB (P : block -> Prop) (m m' : mem) : Prop :=
+  forall b ofs, Plt b (Mem.nextblock m) ->
+    ZMap.get ofs ((Mem.mem_contents m') !! b) <> ZMap.get ofs ((Mem.mem_contents m) !! b) ->
+    pmvok P (ZMap.get ofs ((Mem.mem_contents m') !! b)).
+
+Lemma memval_eq_dec : forall x y : memval, {x = y} + {x <> y}.
+Proof.
+  decide equality; first [ apply Byte.eq_dec | apply Val.eq | apply quantity_eq | apply Nat.eq_dec ].
+Defined.
+
+Lemma nvB_refl : forall P m, nvB P m m.
+Proof. intros P m b ofs _ H. exfalso. apply H. reflexivity. Qed.
+
+Lemma nvB_trans : forall P m1 m2 m3, nvB P m1 m2 -> nvB P m2 m3 ->
+  Ple (Mem.nextblock m1) (Mem.nextblock m2) -> nvB P m1 m3.
+Proof.
+  intros P m1 m2 m3 A B L b ofs Hb Hne.
+  destruct (memval_eq_dec (ZMap.get ofs ((Mem.mem_contents m3) !! b))
+                          (ZMap.get ofs ((Mem.mem_contents m2) !! b))) as [E | E].
+  - rewrite E in Hne |- *. exact (A b ofs Hb Hne).
+  - exact (B b ofs (Plt_Ple_trans _ _ _ Hb L) E).
+Qed.
+
+Lemma nvB_mono : forall (P Q : block -> Prop) m m', (forall b, P b -> Q b) -> nvB P m m' -> nvB Q m m'.
+Proof.
+  intros P Q m m' PQ A b ofs Hb Hne. specialize (A b ofs Hb Hne).
+  destruct (ZMap.get ofs ((Mem.mem_contents m') !! b)) as [ | | v q n ]; cbn in *; auto.
+  destruct v; auto.
+Qed.
+
+Lemma in_inj_value_rec : forall n v q mv, In mv (inj_value_rec n v q) -> exists q' n', mv = Fragment v q' n'.
+Proof.
+  induction n; cbn; intros v q mv H; [ contradiction | ].
+  destruct H as [ <- | H ]; [ eauto | exact (IHn v q mv H) ].
+Qed.
+
+Lemma encode_pvok : forall P ch v mv, pvok P v -> In mv (encode_val ch v) -> pmvok P mv.
+Proof.
+  intros P ch v mv Hv H.
+  assert (Hb : forall l, In mv (inj_bytes l) -> pmvok P mv).
+  { intros l Hl. unfold inj_bytes in Hl. apply in_map_iff in Hl as (x & <- & _). exact I. }
+  assert (Hu : forall n, In mv (List.repeat Undef n) -> pmvok P mv).
+  { intros n Hl. apply repeat_spec in Hl. subst. exact I. }
+  assert (Hi : forall q, In mv (inj_value q v) -> pmvok P mv).
+  { intros q Hl. apply in_inj_value_rec in Hl as (q' & n' & ->). cbn. destruct v; auto. }
+  unfold encode_val in H. destruct v, ch; try destruct Archi.ptr64; eauto.
+Qed.
+
+Lemma nvB_store : forall P ch m b ofs v m', Mem.store ch m b ofs v = Some m' -> pvok P v -> nvB P m m'.
+Proof.
+  intros P ch m b ofs v m' S Hv b0 o0 _ Hne.
+  pose proof (Mem.store_mem_contents _ _ _ _ _ _ S) as C. rewrite C in Hne |- *.
+  rewrite PMap.gsspec in Hne |- *. destruct (peq b0 b) as [ -> | ]; [ | exfalso; exact (Hne eq_refl) ].
+  destruct (zle ofs o0) as [L | L];
+    [ destruct (zlt o0 (ofs + Z.of_nat (List.length (encode_val ch v)))) as [L' | L'] | ].
+  - apply (encode_pvok P ch v); [ exact Hv | ]. apply Mem.setN_in. lia.
+  - exfalso. apply Hne. apply Mem.setN_outside. lia.
+  - exfalso. apply Hne. apply Mem.setN_outside. lia.
+Qed.
+
+(* a store through a chunk narrower than a pointer writes no fragment *)
+Definition cvok (P : block -> Prop) (ch : memory_chunk) (v : val) : Prop :=
+  match ch with Mint32 | Mint64 | Many32 | Many64 => pvok P v | _ => True end.
+
+Lemma encode_cvok : forall P ch v mv, cvok P ch v -> In mv (encode_val ch v) -> pmvok P mv.
+Proof.
+  intros P ch v mv Hv H.
+  assert (Hb : forall l, In mv (inj_bytes l) -> pmvok P mv).
+  { intros l Hl. unfold inj_bytes in Hl. apply in_map_iff in Hl as (x & <- & _). exact I. }
+  assert (Hu : forall n, In mv (List.repeat Undef n) -> pmvok P mv).
+  { intros n Hl. apply repeat_spec in Hl. subst. exact I. }
+  unfold encode_val in H. destruct v, ch; cbn [cvok pvok] in Hv; try destruct Archi.ptr64;
+    first [ exact (Hb _ H) | exact (Hu _ H)
+          | apply in_inj_value_rec in H as (q' & n' & ->); cbn; auto ].
+Qed.
+
+Lemma nvB_store_c : forall P ch m b ofs v m', Mem.store ch m b ofs v = Some m' -> cvok P ch v -> nvB P m m'.
+Proof.
+  intros P ch m b ofs v m' S Hv b0 o0 _ Hne.
+  pose proof (Mem.store_mem_contents _ _ _ _ _ _ S) as C. rewrite C in Hne |- *.
+  rewrite PMap.gsspec in Hne |- *. destruct (peq b0 b) as [ -> | ]; [ | exfalso; exact (Hne eq_refl) ].
+  destruct (zle ofs o0) as [L | L];
+    [ destruct (zlt o0 (ofs + Z.of_nat (List.length (encode_val ch v)))) as [L' | L'] | ].
+  - apply (encode_cvok P ch v); [ exact Hv | ]. apply Mem.setN_in. lia.
+  - exfalso. apply Hne. apply Mem.setN_outside. lia.
+  - exfalso. apply Hne. apply Mem.setN_outside. lia.
+Qed.
+
+Lemma nvB_store_trans : forall P ch m b ofs v m1 m', Mem.store ch m b ofs v = Some m1 -> cvok P ch v ->
+  nvB P m1 m' -> nvB P m m'.
+Proof.
+  intros. eapply nvB_trans; [ eapply nvB_store_c; eassumption | eassumption | ].
+  rewrite (Mem.nextblock_store _ _ _ _ _ _ H). apply Ple_refl.
+Qed.
+
+Local Transparent Mem.alloc Mem.free Mem.unchecked_free.
+Lemma nvB_alloc :forall P m lo hi m' b, Mem.alloc m lo hi = (m', b) -> nvB P m m'.
+Proof.
+  intros P m lo hi m' b A b0 o0 Hb Hne. exfalso. apply Hne.
+  unfold Mem.alloc in A. injection A as <- _. cbn [Mem.mem_contents].
+  rewrite PMap.gso; [ reflexivity | apply Plt_ne; exact Hb ].
+Qed.
+
+Lemma nvB_free : forall P m b lo hi m', Mem.free m b lo hi = Some m' -> nvB P m m'.
+Proof.
+  intros P m b lo hi m' F b0 o0 _ Hne. exfalso. apply Hne.
+  pose proof (Mem.free_result _ _ _ _ _ F) as E. subst m'. reflexivity.
+Qed.
+Local Opaque Mem.alloc Mem.free Mem.unchecked_free.
+
 (* ---- 2. the script content (ObjWorld.scr_ok, obj_w's ow_scr since
    2026-11-03: the script blocks hold their initializers) and the VM
    cells ---- *)
@@ -2026,6 +2147,52 @@ Section Link.
   Definition Pfr (b : block) (z : Z) : Prop :=
     b <> bc /\ ~ (b = pool /\ oc + OW.O_CMD <= z < oc + OW.O_STK + 34).
 
+  (* ... and the VALUES it may leave there (2026-11-07): a changed byte
+     holds a pointer only into a reachable script's block (the command
+     pointer, pushed return addresses).  Byte level (nvB), so stale stack
+     words above the depth are covered too *)
+  Definition scr_b (bp : block) : Prop :=
+    exists s, In s (map v_s vm_tab) /\ Genv.find_symbol G s = Some bp.
+  Definition PfrN (m m' : mem) : Prop := Mem.unchanged_on Pfr m m' /\ nvB scr_b m m'.
+
+  Lemma PfrN_refl : forall m, PfrN m m.
+  Proof. intros m. split; [ apply Mem.unchanged_on_refl | apply nvB_refl ]. Qed.
+
+  Lemma PfrN_trans : forall m1 m2 m3, PfrN m1 m2 -> PfrN m2 m3 -> PfrN m1 m3.
+  Proof.
+    intros m1 m2 m3 (U1 & N1) (U2 & N2). split; [ exact (Mem.unchanged_on_trans _ _ _ _ U1 U2) | ].
+    exact (nvB_trans _ _ _ _ N1 N2 (Mem.unchanged_on_nextblock _ _ _ U1)).
+  Qed.
+
+  Lemma scr_b_st : forall st b, In st vm_tab -> Genv.find_symbol G (v_s st) = Some b -> scr_b b.
+  Proof. intros st b Hst Hb. exists (v_s st). split; [ exact (in_map v_s vm_tab st Hst) | exact Hb ]. Qed.
+
+  Lemma scr_b_in : forall st l s b, In st vm_tab -> succs st = Some l -> In s (map v_s l) ->
+    Genv.find_symbol G s = Some b -> scr_b b.
+  Proof.
+    intros st l s b Hst Hl Hin Hb. exists s. split; [ | exact Hb ].
+    destruct (proj1 (in_map_iff v_s l s) Hin) as (st' & E & Hin'). subst s.
+    exact (in_map v_s vm_tab st' (vm_succ_in st l st' Hst Hl Hin')).
+  Qed.
+
+  (* the value side of a run of stores: each stored value is an int or a
+     script pointer (the current script, or a successor's) *)
+  Ltac vokt := cbn [cvok pvok]; first
+    [ exact I
+    | match goal with H : Genv.find_symbol _ _ = Some ?b |- scr_b ?b =>
+        match goal with Hs : In ?st vm_tab |- _ => exact (scr_b_st st b Hs H) end end
+    | match goal with H : Genv.find_symbol _ ?s = Some ?b |- scr_b ?b =>
+        match goal with Hl : succs ?st = Some ?l, Hs : In ?st vm_tab |- _ =>
+          apply (scr_b_in st l s b Hs Hl); [ cbn [map In]; repeat (first [ left; reflexivity | right ]) | exact H ]
+        end end ].
+  (* TRAP: never `eassumption` here -- unifying a store goal against
+     `In st vm_tab` whnf-reduces In over the computed vm_tab (~115s per try).
+     Match the store hypothesis syntactically instead. *)
+  Ltac nvs := match goal with |- nvB _ ?m _ =>
+                match goal with H : Mem.store _ m _ _ _ = Some _ |- _ =>
+                  apply (nvB_store_trans _ _ _ _ _ _ _ _ H); [ vokt | ] end end.
+  Ltac nvc := repeat nvs; apply nvB_refl.
+
   Lemma ld_cmd : forall le m t le' m' out x v,
     exec_stmt function_entry2 G empty_env le m (Sset x (Evar BS._gCurBhvCommand (tptr tuint))) t le' m' out ->
     Mem.load Mint32 m bc 0 = Some v -> le' = PTree.set x v le /\ m' = m /\ out = Out_normal.
@@ -2390,7 +2557,7 @@ Section Link.
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 4 ->
     eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_goto) [] t m' vr ->
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m'
-      /\ vr = Vint (Int.repr 0) /\ Mem.unchanged_on Pfr m m'.
+      /\ vr = Vint (Int.repr 0) /\ PfrN m m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & _ & l & Hl & _).
@@ -2453,7 +2620,7 @@ Section Link.
       + intros z. rewrite Hp2, Hp1. reflexivity.
       + exact (Mem.load_store_same _ _ _ _ _ _ Hs2).
     - split; [ exact Hc2 | split; [ reflexivity | ] ].
-      exact (Mem.unchanged_on_trans _ _ _ _ U1 U2).
+      split; [ exact (Mem.unchanged_on_trans _ _ _ _ U1 U2) | nvc ].
   Qed.
 
   Ltac stk_bounds := unfold OW.O_SIDX, OW.O_STK; lia.
@@ -2464,7 +2631,7 @@ Section Link.
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 8 ->
     eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_begin_loop) [] t m' vr ->
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m'
-      /\ vr = Vint (Int.repr 0) /\ Mem.unchanged_on Pfr m m'.
+      /\ vr = Vint (Int.repr 0) /\ PfrN m m'.
   Proof.
     intros m st w t m' vr Hst HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & _ & l & Hl & Hcl).
@@ -2508,7 +2675,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs7 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs7) ].
     - split; [ exact (Hc7 (Hc6 (Hc5 Hc))) | split; [ reflexivity | ] ].
-      exact (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ U5 U6) U7).
+      split; [ exact (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ U5 U6) U7) | nvc ].
   Qed.
 
   (* ---- END_LOOP (0x09) ---- *)
@@ -2517,7 +2684,7 @@ Section Link.
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 9 ->
     eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_end_loop) [] t m' vr ->
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m'
-      /\ vr = Vint (Int.repr 1) /\ Mem.unchanged_on Pfr m m'.
+      /\ vr = Vint (Int.repr 1) /\ PfrN m m'.
   Proof.
     intros m st w t m' vr Hst HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -2561,8 +2728,8 @@ Section Link.
     - apply V_mk; [ | exact HS7 ].
       exact (Vcmd_pool _ _ _ _ _ _ (Vcmd_pool _ _ _ _ _ _ (Vcmd_bc _ _ _ _ _ Hs5 Hbt) Hs6) Hs7).
     - split; [ exact (Hc7 (Hc6 (Hc5 (Hc4 Hc)))) | split; [ reflexivity | ] ].
-      exact (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _
-               (Mem.unchanged_on_trans _ _ _ _ U4 U5) U6) U7).
+      split; [ exact (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _
+               (Mem.unchanged_on_trans _ _ _ _ U4 U5) U6) U7) | nvc ].
   Qed.
 
   (* ---- RETURN (0x03) ---- *)
@@ -2571,7 +2738,7 @@ Section Link.
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 3 ->
     eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_return) [] t m' vr ->
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m'
-      /\ vr = Vint (Int.repr 0) /\ Mem.unchanged_on Pfr m m'.
+      /\ vr = Vint (Int.repr 0) /\ PfrN m m'.
   Proof.
     intros m st w t m' vr Hst HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -2599,7 +2766,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs5 Hbt) | exact (Vstk_bc _ _ _ _ HS4 Hs5) ].
     - split; [ exact (Hc5 (Hc4 Hc)) | split; [ reflexivity | ] ].
-      exact (Mem.unchanged_on_trans _ _ _ _ U4 U5).
+      split; [ exact (Mem.unchanged_on_trans _ _ _ _ U4 U5) | nvc ].
   Qed.
 
   (* ---- CALL (0x02) ---- *)
@@ -2608,7 +2775,7 @@ Section Link.
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 2 ->
     eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_call) [] t m' vr ->
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m'
-      /\ vr = Vint (Int.repr 0) /\ Mem.unchanged_on Pfr m m'.
+      /\ vr = Vint (Int.repr 0) /\ PfrN m m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & _ & l & Hl & Hcl).
@@ -2686,8 +2853,8 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs7 Hbt) | exact (Vstk_bc _ _ _ _ HS6 Hs7) ].
     - split; [ exact (Hc7 (Hc6 (Hc5 Hc1))) | split; [ reflexivity | ] ].
-      exact (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _
-               (Mem.unchanged_on_trans _ _ _ _ U1 U5) U6) U7).
+      split; [ exact (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _
+               (Mem.unchanged_on_trans _ _ _ _ U1 U5) U6) U7) | nvc ].
   Qed.
 
   Ltac uchain := repeat (eapply Mem.unchanged_on_trans; [ eassumption | ]); eassumption.
@@ -2699,7 +2866,7 @@ Section Link.
     In st vm_tab -> V m st -> cur m -> word_at (v_s st) (v_i st) = Some w ->
     eval_funcall function_entry2 G m (Internal f) [] t m' vr ->
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m'
-      /\ vr = Vint (Int.repr 1) /\ Mem.unchanged_on Pfr m m'.
+      /\ vr = Vint (Int.repr 1) /\ PfrN m m'.
   Proof.
     intros f m st w t m' vr Hf Ho Hst HV Hc Hw H.
     destruct (st_facts st Hst) as (_ & _ & _ & l & Hl & _).
@@ -2712,7 +2879,7 @@ Section Link.
     apply RA.ret_inv in X as (-> & rv & Erv & ->). apply RA.ev_const in Erv. subst rv.
     cbn in Hor. destruct Hor as (_ & Hor). cbn in Hor. injection Hor as <-.
     exists [st], st. split; [ exact Hl | split; [ left; reflexivity | ] ].
-    split; [ exact HV | split; [ exact Hc | split; [ reflexivity | apply Mem.unchanged_on_refl ] ] ].
+    split; [ exact HV | split; [ exact Hc | split; [ reflexivity | apply PfrN_refl ] ] ].
   Qed.
 
   (* ---- BEGIN_REPEAT (0x05) ---- *)
@@ -2721,7 +2888,7 @@ Section Link.
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 5 ->
     eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_begin_repeat) [] t m' vr ->
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m'
-      /\ vr = Vint (Int.repr 0) /\ Mem.unchanged_on Pfr m m'.
+      /\ vr = Vint (Int.repr 0) /\ PfrN m m'.
   Proof.
     intros m st w t m' vr Hst HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & _ & l & Hl & Hcl).
@@ -2790,7 +2957,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs10 Hsb) | exact (Vstk_bc _ _ _ _ HS9 Hs10) ].
     - split; [ exact (Hc10 (Hc9 (Hc8 (Hc7 (Hc6 Hc))))) | split; [ reflexivity | ] ].
-      exact (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ U6 U7) U8) U9) U10).
+      split; [ exact (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ U6 U7) U8) U9) U10) | nvc ].
   Qed.
 
   (* ---- END_REPEAT (0x06) / END_REPEAT_CONTINUE (0x07) ---- *)
@@ -2801,7 +2968,7 @@ Section Link.
     word_at (v_s st) (v_i st) = Some w ->
     eval_funcall function_entry2 G m (Internal f) [] t m' vr ->
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m'
-      /\ vr = Vint (Int.repr rc) /\ Mem.unchanged_on Pfr m m'.
+      /\ vr = Vint (Int.repr rc) /\ PfrN m m'.
   Proof.
     intros f rc m st w t m' vr Hf Hst HV Hc Hw H.
     assert (Eb : fn_body f = er_body rc /\ fn_vars f = [] /\ fn_params f = [] /\ fn_return f = tint
@@ -2889,7 +3056,7 @@ Section Link.
         exact (Vcmd_pool _ _ _ _ _ _ (Vcmd_pool _ _ _ _ _ _ (Vcmd_pool _ _ _ _ _ _
                  (Vcmd_pool _ _ _ _ _ _ (Vcmd_bc _ _ _ _ _ Hs6 Hbt) Hs7) Hs8) Hs9) Hs10).
       + split; [ exact (Hc10 (Hc9 (Hc8 (Hc7 (Hc6 (Hc5 (Hc4 Hc))))))) | split; [ reflexivity | ] ].
-        exact (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ U4 U5) U6) U7) U8) U9) U10).
+        split; [ exact (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ U4 U5) U6) U7) U8) U9) U10) | nvc ].
     - (* count == 0: drop the loop frame, step past *)
       apply RA.seq_inv in Y3 as [(u5 & ke5 & n5 & u6 & Y5 & Y6) | (Y5 & Xn)]; [ | kill_sq Y5 Xn ].
       destruct (pop_call_none _ _ (Z.of_nat (List.length k')) _ _ _ _ Y5 (Hc4 Hc) (Vstk_sidx1 _ _ _ HS4) ltac:(lia))
@@ -2909,7 +3076,7 @@ Section Link.
       eexists _, _. split; [ exact Hl | split; [ right; left; reflexivity | split ] ].
       + apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs6 Hsb) | exact (Vstk_bc _ _ _ _ HS5 Hs6) ].
       + split; [ exact (Hc6 (Hc5 (Hc4 Hc))) | split; [ reflexivity | ] ].
-        exact (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ U4 U5) U6).
+        split; [ exact (Mem.unchanged_on_trans _ _ _ _ (Mem.unchanged_on_trans _ _ _ _ U4 U5) U6) | nvc ].
   Qed.
 
   (* the slot's bhvDelayTimer store *)
@@ -2953,7 +3120,7 @@ Section Link.
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 1 ->
     eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_delay) [] t m' vr ->
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m'
-      /\ vr = Vint (Int.repr 1) /\ Mem.unchanged_on Pfr m m'.
+      /\ vr = Vint (Int.repr 1) /\ PfrN m m'.
   Proof.
     intros m st w t m' vr Hst HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -2996,7 +3163,7 @@ Section Link.
       split; [ exact Hl | split; [ left; reflexivity | split ] ].
       + apply V_iff. split; [ exists b; split; [ exact Hsb | rewrite Lb1; subst I4; exact Hcm ] | ].
         exact (Vk1 _ HS Hd).
-      + split; [ exact (Hc1 Hc) | split; [ reflexivity | exact U1 ] ].
+      + split; [ exact (Hc1 Hc) | split; [ reflexivity | (split; [ exact U1 | nvc ]) ] ].
     - (* timer = 0; cmd = cmd + 1 *)
       apply RA.seq_inv in Y6 as [(u7 & ke7 & n7 & u8 & Y7 & Y8) | (Y7 & Xn)]; [ | kill_sq Y7 Xn ].
       apply RA.seq_inv in Y7 as [(u9 & ke9 & n9 & u10 & Y9 & Y10) | (Y9 & Xn)]; [ | kill_sq Y9 Xn ].
@@ -3015,7 +3182,7 @@ Section Link.
       destruct (bc_store _ _ _ Hs2) as (Hc2 & _ & U2).
       eexists _, _. split; [ exact Hl | split; [ right; left; reflexivity | split ] ].
       + apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ (Vk1 _ HS Hd) Hs2) ].
-      + split; [ exact (Hc2 (Hc1 Hc)) | split; [ reflexivity | exact (Mem.unchanged_on_trans _ _ _ _ U1 U2) ] ].
+      + split; [ exact (Hc2 (Hc1 Hc)) | split; [ reflexivity | (split; [ exact (Mem.unchanged_on_trans _ _ _ _ U1 U2) | nvc ]) ] ].
   Qed.
 
   (* ---- DELAY_VAR (0x25): DELAY, with the count read from the field
@@ -3026,7 +3193,7 @@ Section Link.
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 37 ->
     eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_delay_var) [] t m' vr ->
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m'
-      /\ vr = Vint (Int.repr 1) /\ Mem.unchanged_on Pfr m m'.
+      /\ vr = Vint (Int.repr 1) /\ PfrN m m'.
   Proof.
     intros m st w t m' vr Hst HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -3074,7 +3241,7 @@ Section Link.
       split; [ exact Hl | split; [ left; reflexivity | split ] ].
       + apply V_iff. split; [ exists b; split; [ exact Hsb | rewrite Lb1; subst I4; exact Hcm ] | ].
         exact (Vk1 _ HS Hd).
-      + split; [ exact (Hc1 Hc) | split; [ reflexivity | exact U1 ] ].
+      + split; [ exact (Hc1 Hc) | split; [ reflexivity | (split; [ exact U1 | nvc ]) ] ].
     - (* timer = 0; cmd = cmd + 1 *)
       apply RA.seq_inv in Y6 as [(u7 & ke7 & n7 & u8 & Y7 & Y8) | (Y7 & Xn)]; [ | kill_sq Y7 Xn ].
       apply RA.seq_inv in Y7 as [(u9 & ke9 & n9 & u10 & Y9 & Y10) | (Y9 & Xn)]; [ | kill_sq Y9 Xn ].
@@ -3093,7 +3260,7 @@ Section Link.
       destruct (bc_store _ _ _ Hs2) as (Hc2 & _ & U2).
       eexists _, _. split; [ exact Hl | split; [ right; left; reflexivity | split ] ].
       + apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ (Vk1 _ HS Hd) Hs2) ].
-      + split; [ exact (Hc2 (Hc1 Hc)) | split; [ reflexivity | exact (Mem.unchanged_on_trans _ _ _ _ U1 U2) ] ].
+      + split; [ exact (Hc2 (Hc1 Hc)) | split; [ reflexivity | (split; [ exact (Mem.unchanged_on_trans _ _ _ _ U1 U2) | nvc ]) ] ].
   Qed.
 
   (* *(cmd + 0): the command word *)
@@ -3190,7 +3357,7 @@ Section Link.
     eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_set_int) [] t m' vr ->
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
       /\ exists m1, Mem.store Mint32 m pool (oc + 136 + 4 * byte2 w) (Vint (s16_of w)) = Some m1
-         /\ Mem.unchanged_on Pfr m1 m'.
+         /\ PfrN m1 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -3285,7 +3452,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
     - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc)) | split; [ reflexivity | ] ].
-      exists n7. split; [ | exact U2 ]. rewrite Ev.
+      exists n7. split; [ | (split; [ exact U2 | nvc ]) ]. rewrite Ev.
       rewrite Int.sign_ext_idem in Hs1 by lia. exact Hs1.
   Qed.
 
@@ -3300,7 +3467,7 @@ Section Link.
     eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_set_float) [] t m' vr ->
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
       /\ exists m1, Mem.store Mfloat32 m pool (oc + 136 + 4 * byte2 w) (Vsingle (f32_of w)) = Some m1
-         /\ Mem.unchanged_on Pfr m1 m'.
+         /\ PfrN m1 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -3396,7 +3563,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
     - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc)) | split; [ reflexivity | ] ].
-      exists n7. split; [ | exact U2 ]. rewrite Ev.
+      exists n7. split; [ | (split; [ exact U2 | nvc ]) ]. rewrite Ev.
       try (rewrite Int.sign_ext_idem in Hs1 by lia). exact Hs1.
   Qed.
 
@@ -3465,7 +3632,7 @@ Section Link.
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
       /\ exists old m1, Mem.load Mint32 m pool (oc + 136 + 4 * byte2 w) = Some (Vint old)
          /\ Mem.store Mint32 m pool (oc + 136 + 4 * byte2 w) (Vint (Int.add old (s16_of w))) = Some m1
-         /\ Mem.unchanged_on Pfr m1 m'.
+         /\ PfrN m1 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -3574,7 +3741,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
     - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc)) | split; [ reflexivity | ] ].
-      exists old, n7. split; [ exact Hld | split; [ | exact U2 ] ]. rewrite Ev.
+      exists old, n7. split; [ exact Hld | split; [ | (split; [ exact U2 | nvc ]) ] ]. rewrite Ev.
       rewrite Int.sign_ext_idem in Hs1 by lia. exact Hs1.
   Qed.
 
@@ -3586,7 +3753,7 @@ Section Link.
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
       /\ exists old m1, Mem.load Mfloat32 m pool (oc + 136 + 4 * byte2 w) = Some (Vsingle old)
          /\ Mem.store Mfloat32 m pool (oc + 136 + 4 * byte2 w) (Vsingle (Float32.add old (f32_of w))) = Some m1
-         /\ Mem.unchanged_on Pfr m1 m'.
+         /\ PfrN m1 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -3696,7 +3863,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
     - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc)) | split; [ reflexivity | ] ].
-      exists old, n7. split; [ exact Hld | split; [ | exact U2 ] ]. rewrite Ev.
+      exists old, n7. split; [ exact Hld | split; [ | (split; [ exact U2 | nvc ]) ] ]. rewrite Ev.
       try (rewrite Int.sign_ext_idem in Hs1 by lia). exact Hs1.
   Qed.
 
@@ -3752,7 +3919,7 @@ Section Link.
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
       /\ exists a m1, word_at (v_s st) (v_i st + 1) = Some (Int.unsigned a)
          /\ Mem.store Mint32 m pool (oc + 136 + 4 * 42) (Vint a) = Some m1
-         /\ Mem.unchanged_on Pfr m1 m'.
+         /\ PfrN m1 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -3814,7 +3981,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
     - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc)) | split; [ reflexivity | ] ].
-      exists a, m1. split; [ rewrite <- Eza; exact Hz | split; [ exact Hs1 | exact U2 ] ].
+      exists a, m1. split; [ rewrite <- Eza; exact Hz | split; [ exact Hs1 | (split; [ exact U2 | nvc ]) ] ].
   Qed.
 
   (* ---- SET_RANDOM_FLOAT (0x14):
@@ -3831,7 +3998,7 @@ Section Link.
          /\ Mem.unchanged_on Psd m m1
          /\ Mem.store Mfloat32 m1 pool (oc + 136 + 4 * byte2 w)
               (Vsingle (Float32.add (Float32.mul (rng_of z) (rf_of u)) (f32_of w))) = Some m2
-         /\ Mem.unchanged_on Pfr m2 m'.
+         /\ PfrN m2 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -3961,7 +4128,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsbs) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
     - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc1)) | split; [ reflexivity | ] ].
-      exists z, u, rm1, qm1. split; [ exact Hz | split; [ exact Hu | split; [ exact Ur | split; [ | exact U2 ] ] ] ].
+      exists z, u, rm1, qm1. split; [ exact Hz | split; [ exact Hu | split; [ exact Ur | split; [ | (split; [ exact U2 | nvc ]) ] ] ] ].
       rewrite Ev. repeat (rewrite Int.sign_ext_idem in Hs1 by lia). exact Hs1.
   Qed.
 
@@ -3979,7 +4146,7 @@ Section Link.
          /\ Float32.to_int (Float32.mul (Float32.of_int (rngi_of z)) (rf_of u)) = Some ri
          /\ Mem.unchanged_on Psd m m1
          /\ Mem.store Mint32 m1 pool (oc + 136 + 4 * byte2 w) (Vint (Int.add ri (s16_of w))) = Some m2
-         /\ Mem.unchanged_on Pfr m2 m'.
+         /\ PfrN m2 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -4114,7 +4281,7 @@ Section Link.
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsbs) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
     - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc1)) | split; [ reflexivity | ] ].
       exists z, u, ri, rm1, qm1.
-      split; [ exact Hz | split; [ exact Hu | split; [ rewrite Er; exact Eri | split; [ exact Ur | split; [ | exact U2 ] ] ] ] ].
+      split; [ exact Hz | split; [ exact Hu | split; [ rewrite Er; exact Eri | split; [ exact Ur | split; [ | (split; [ exact U2 | nvc ]) ] ] ] ] ].
       rewrite Em. exact Hs1.
   Qed.
 
@@ -4130,7 +4297,7 @@ Section Link.
          /\ Int.ltu (rngi_of z) Int.iwordsize = true /\ ri = Int.shr u (rngi_of z)
          /\ Mem.unchanged_on Psd m m1
          /\ Mem.store Mint32 m1 pool (oc + 136 + 4 * byte2 w) (Vint (Int.add ri (s16_of w))) = Some m2
-         /\ Mem.unchanged_on Pfr m2 m'.
+         /\ PfrN m2 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -4261,7 +4428,7 @@ Section Link.
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsbs) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
     - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc1)) | split; [ reflexivity | ] ].
       exists z, u, (Int.shr u (rngi_of z)), rm1, qm1.
-      split; [ exact Hz | split; [ exact Hu | split; [ rewrite Er; exact Elu | split; [ reflexivity | split; [ exact Ur | split; [ | exact U2 ] ] ] ] ] ].
+      split; [ exact Hz | split; [ exact Hu | split; [ rewrite Er; exact Elu | split; [ reflexivity | split; [ exact Ur | split; [ | (split; [ exact U2 | nvc ]) ] ] ] ] ] ].
       rewrite Em, Er. exact Hs1.
   Qed.
 
@@ -4282,7 +4449,7 @@ Section Link.
          /\ Mem.load Mint32 m pool (po + 136 + 4 * byte2 w) = Some (Vint old)
          /\ Mem.store Mint32 m pool (po + 136 + 4 * byte2 w)
               (Vint (Int.and old (Int.xor a (Int.repr (-1))))) = Some m1
-         /\ Mem.unchanged_on Pfr m1 m'.
+         /\ PfrN m1 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho Hpar H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -4406,7 +4573,7 @@ Section Link.
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsbs) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
     - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc)) | split; [ reflexivity | ] ].
       exists po, n1, old, qm1.
-      split; [ exact Ev3 | split; [ rewrite <- Ezn; exact Hz | split; [ exact Hld | split; [ exact Hs1 | exact U2 ] ] ] ].
+      split; [ exact Ev3 | split; [ rewrite <- Ezn; exact Hz | split; [ exact Hld | split; [ exact Hs1 | (split; [ exact U2 | nvc ]) ] ] ] ].
   Qed.
 
   (* ---- ANIMATE_TEXTURE (0x34):
@@ -4420,7 +4587,7 @@ Section Link.
       /\ exists m1, (m1 = m \/ exists old, Mem.load Mint32 m pool (oc + 136 + 4 * byte2 w) = Some (Vint old)
                        /\ Mem.store Mint32 m pool (oc + 136 + 4 * byte2 w)
                             (Vint (Int.add old (Int.repr 1))) = Some m1)
-         /\ Mem.unchanged_on Pfr m1 m'.
+         /\ PfrN m1 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -4532,7 +4699,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
     - split; [ exact (Hc2 Hc1) | split; [ reflexivity | ] ].
-      exists qm1. split; [ exact Hq | exact U2 ].
+      exists qm1. split; [ exact Hq | (split; [ exact U2 | nvc ]) ].
   Qed.
 
   (* ---- BILLBOARD (0x21): o->header.gfx.node.flags |= GRAPH_RENDER_BILLBOARD; cmd += 1 ---- *)
@@ -4543,7 +4710,7 @@ Section Link.
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
       /\ exists old m1, Mem.load Mint16signed m pool (oc + 2) = Some (Vint old)
          /\ Mem.store Mint16signed m pool (oc + 2) (Vint (Int.sign_ext 16 (Int.or old (Int.shl (Int.repr 1) (Int.repr 2))))) = Some m1
-         /\ Mem.unchanged_on Pfr m1 m'.
+         /\ PfrN m1 m'.
   Proof.
     intros m st w t m' vr Hst HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -4604,7 +4771,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
     - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc)) | split; [ reflexivity | ] ].
-      exists old, m1. split; [ exact Hld | split; [ exact Hs1 | exact U2 ] ].
+      exists old, m1. split; [ exact Hld | split; [ exact Hs1 | (split; [ exact U2 | nvc ]) ] ].
   Qed.
 
   (* ---- DISABLE_RENDERING (0x35): o->header.gfx.node.flags &= ~GRAPH_RENDER_ACTIVE; cmd += 1 ---- *)
@@ -4615,7 +4782,7 @@ Section Link.
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
       /\ exists old m1, Mem.load Mint16signed m pool (oc + 2) = Some (Vint old)
          /\ Mem.store Mint16signed m pool (oc + 2) (Vint (Int.sign_ext 16 (Int.and old (Int.not (Int.shl (Int.repr 1) (Int.repr 0)))))) = Some m1
-         /\ Mem.unchanged_on Pfr m1 m'.
+         /\ PfrN m1 m'.
   Proof.
     intros m st w t m' vr Hst HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -4678,7 +4845,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
     - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc)) | split; [ reflexivity | ] ].
-      exists old, m1. split; [ exact Hld | split; [ exact Hs1 | exact U2 ] ].
+      exists old, m1. split; [ exact Hld | split; [ exact Hs1 | (split; [ exact U2 | nvc ]) ] ].
   Qed.
 
   (* ---- SET_HITBOX (0x23): o->hitboxRadius = (s16)(w1 >> 16);
@@ -4691,7 +4858,7 @@ Section Link.
       /\ exists z m1 m2, word_at (v_s st) (v_i st + 1) = Some z
          /\ Mem.store Mfloat32 m pool (oc + 504) (Vsingle (Float32.of_int (rngi_of z))) = Some m1
          /\ Mem.store Mfloat32 m1 pool (oc + 508) (Vsingle (Float32.of_int (s16_of z))) = Some m2
-         /\ Mem.unchanged_on Pfr m2 m'.
+         /\ PfrN m2 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -4791,7 +4958,7 @@ Section Link.
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs9 Hsbs) | exact (Vstk_bc _ _ _ _ HSx Hs9) ].
     - split; [ exact (Hc9 Hc2) | split; [ reflexivity | ] ].
       exists z, pm3, pm5. rewrite Er, Em.
-      split; [ exact Hz | split; [ exact Hs1 | split; [ exact Hs2 | exact U9 ] ] ].
+      split; [ exact Hz | split; [ exact Hs1 | split; [ exact Hs2 | (split; [ exact U9 | nvc ]) ] ] ].
   Qed.
 
   (* ---- SET_HITBOX_WITH_OFFSET (0x2B): as SET_HITBOX, and
@@ -4806,7 +4973,7 @@ Section Link.
          /\ Mem.store Mfloat32 m pool (oc + 504) (Vsingle (Float32.of_int (rngi_of z))) = Some m1
          /\ Mem.store Mfloat32 m1 pool (oc + 508) (Vsingle (Float32.of_int (s16_of z))) = Some m2
          /\ Mem.store Mfloat32 m2 pool (oc + 520) (Vsingle (Float32.of_int (rngi_of z2))) = Some m3
-         /\ Mem.unchanged_on Pfr m3 m'.
+         /\ PfrN m3 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -4939,7 +5106,7 @@ Section Link.
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs9 Hsbs) | exact (Vstk_bc _ _ _ _ HSx Hs9) ].
     - split; [ exact (Hc9 Hc3) | split; [ reflexivity | ] ].
       exists z, z2, pm3, pm5, pm9. rewrite Er, Er2, Em.
-      split; [ exact Hz | split; [ exact Hz2 | split; [ exact Hs1 | split; [ exact Hs2 | split; [ exact Hs3 | exact U9 ] ] ] ] ].
+      split; [ exact Hz | split; [ exact Hz2 | split; [ exact Hs1 | split; [ exact Hs2 | split; [ exact Hs3 | (split; [ exact U9 | nvc ]) ] ] ] ] ].
   Qed.
 
   (* ---- SET_HOME (0x2D): o->oHomeX/Y/Z (fields 55-57) = o->oPosX/Y/Z
@@ -4956,7 +5123,7 @@ Section Link.
          /\ Mem.store Mfloat32 m1 pool (oc + 136 + 4 * 56) (Vsingle f2) = Some m2
          /\ Mem.load Mfloat32 m2 pool (oc + 136 + 4 * 8) = Some (Vsingle f3)
          /\ Mem.store Mfloat32 m2 pool (oc + 136 + 4 * 57) (Vsingle f3) = Some m3
-         /\ Mem.unchanged_on Pfr m3 m'.
+         /\ PfrN m3 m'.
   Proof.
     intros m st w t m' vr Hst HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -5086,7 +5253,7 @@ Section Link.
     - split; [ exact (Hc9 Hc3) | split; [ reflexivity | ] ].
       exists fx, fy, fz, m1, m3, m5.
       split; [ exact Hldx | split; [ exact Hsx | split; [ exact Hldy | split; [ exact Hsy |
-        split; [ exact Hldz | split; [ exact Hsz | exact U9 ] ] ] ] ] ].
+        split; [ exact Hldz | split; [ exact Hsz | (split; [ exact U9 | nvc ]) ] ] ] ] ] ].
   Qed.
 
   (* ---- SET_OBJ_PHYSICS (0x30): oWallHitboxRadius (40) = (s16)(w1 >> 16);
@@ -5109,7 +5276,7 @@ Section Link.
          /\ Mem.store Mfloat32 m3 pool (oc + 136 + 4 * 41) (Vsingle (pdiv (s16_of z2))) = Some m4
          /\ Mem.store Mfloat32 m4 pool (oc + 136 + 4 * 58) (Vsingle (pdiv (rngi_of z3))) = Some m5
          /\ Mem.store Mfloat32 m5 pool (oc + 136 + 4 * 59) (Vsingle (pdiv (s16_of z3))) = Some m6
-         /\ Mem.unchanged_on Pfr m6 m'.
+         /\ PfrN m6 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -5381,7 +5548,7 @@ Section Link.
       exists z1, z2, z3, mb1, mb2, mb3, mb4, mb5, mb6. unfold pdiv.
       rewrite Er1, Em1, Er2, Em2, Er3, Em3.
       split; [ exact Hz1 | split; [ exact Hz2 | split; [ exact Hz3 | split; [ exact Hs1 | split; [ exact Hs2 |
-        split; [ exact Hs3 | split; [ exact Hs4 | split; [ exact Hs5 | split; [ exact Hs6 | exact U9 ] ] ] ] ] ] ] ] ].
+        split; [ exact Hs3 | split; [ exact Hs4 | split; [ exact Hs5 | split; [ exact Hs6 | (split; [ exact U9 | nvc ]) ] ] ] ] ] ] ] ] ].
   Qed.
 
   (* ---- LOAD_ANIMATIONS (0x27): o->rawData.asVoidPtr[byte2 w] = (void * ) w1
@@ -5394,7 +5561,7 @@ Section Link.
       /\ exists ta oa bt m1, nth_error (words (v_s st)) (v_i st + 1) = Some (Init_addrof ta oa)
          /\ Genv.find_symbol G ta = Some bt
          /\ Mem.store Mint32 m pool (oc + 136 + 4 * byte2 w) (Vptr bt oa) = Some m1
-         /\ Mem.unchanged_on Pfr m1 m'.
+         /\ PfrN m1 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -5483,7 +5650,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
     - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc)) | split; [ reflexivity | ] ].
-      exists ta, oa, bt, mm1. split; [ exact Ha | split; [ exact Hbt | split; [ exact Hs1 | exact U2 ] ] ].
+      exists ta, oa, bt, mm1. split; [ exact Ha | split; [ exact Hbt | split; [ exact Hs1 | (split; [ exact U2 | nvc ]) ] ] ].
   Qed.
 
   (* ---- LOAD_COLLISION_DATA (0x2A): o->collisionData = segmented_to_virtual(w1)
@@ -5496,7 +5663,7 @@ Section Link.
       /\ exists ta oa bt m1, nth_error (words (v_s st)) (v_i st + 1) = Some (Init_addrof ta oa)
          /\ Genv.find_symbol G ta = Some bt
          /\ Mem.store Mint32 m pool (oc + 536) (Vptr bt oa) = Some m1
-         /\ Mem.unchanged_on Pfr m1 m'.
+         /\ PfrN m1 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -5562,7 +5729,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
     - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc)) | split; [ reflexivity | ] ].
-      exists ta, oa, bt, mm1. split; [ exact Ha | split; [ exact Hbt | split; [ exact Hs1 | exact U2 ] ] ].
+      exists ta, oa, bt, mm1. split; [ exact Ha | split; [ exact Hbt | split; [ exact Hs1 | (split; [ exact U2 | nvc ]) ] ] ].
   Qed.
 
   (* ---- SCALE (0x32): cur_obj_scale((s16)(w & 0xFFFF) / 100.0f), i.e. the
@@ -5576,7 +5743,7 @@ Section Link.
            Mem.store Mfloat32 m pool (oc + 44 + 4 * 0) (Vsingle (pdiv (s16_of w))) = Some m1
          /\ Mem.store Mfloat32 m1 pool (oc + 44 + 4 * 1) (Vsingle (pdiv (s16_of w))) = Some m2
          /\ Mem.store Mfloat32 m2 pool (oc + 44 + 4 * 2) (Vsingle (pdiv (s16_of w))) = Some m3
-         /\ Mem.unchanged_on Pfr m3 m'.
+         /\ PfrN m3 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -5692,7 +5859,7 @@ Section Link.
     - split; [ exact (Hc9 Hc2) | split; [ reflexivity | ] ].
       exists gm1, gm3, n7. unfold pdiv. rewrite Ev.
       rewrite Int.sign_ext_idem in Hs0, Hs1, Hs2 by lia.
-      split; [ exact Hs0 | split; [ exact Hs1 | split; [ exact Hs2 | exact U9 ] ] ].
+      split; [ exact Hs0 | split; [ exact Hs1 | split; [ exact Hs2 | (split; [ exact U9 | nvc ]) ] ] ].
   Qed.
 
   (* ---- BEGIN (0x00): three cur_obj_has_behavior tests (bhvHauntedChair,
@@ -5708,7 +5875,7 @@ Section Link.
        exists bs, Genv.find_symbol G id = Some bs /\ bs <> bb /\ Mem.valid_pointer m bs 0 = true) ->
     eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_begin) [] t m' vr ->
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
-      /\ Mem.unchanged_on Pfr m m'.
+      /\ PfrN m m'.
   Proof.
     intros m st w t m' vr bb ob Hst HV Hc Hw Ho Hbh Hvb Hsy H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -5759,7 +5926,7 @@ Section Link.
     cbn in Hor. destruct Hor as (_ & Hor). cbn in Hor. injection Hor as <-.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs9 Hsb) | exact (Vstk_bc _ _ _ _ HS Hs9) ].
-    - split; [ exact (Hc9 Hc) | split; [ reflexivity | exact U9 ] ].
+    - split; [ exact (Hc9 Hc) | split; [ reflexivity | (split; [ exact U9 | nvc ]) ] ].
   Qed.
 
 
@@ -5773,7 +5940,7 @@ Section Link.
       /\ exists a1 a2 m1, Mem.load Mfloat32 m pool (oc + 136 + 4 * byte3 w) = Some (Vsingle a1)
          /\ Mem.load Mfloat32 m pool (oc + 136 + 4 * byte4 w) = Some (Vsingle a2)
          /\ Mem.store Mfloat32 m pool (oc + 136 + 4 * byte2 w) (Vsingle (Float32.add a1 a2)) = Some m1
-         /\ Mem.unchanged_on Pfr m1 m'.
+         /\ PfrN m1 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -5912,7 +6079,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
     - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc)) | split; [ reflexivity | ] ].
-      exists a1, a2, n1. split; [ exact Hld1 | split; [ exact Hld2 | split; [ exact Hs1 | exact U2 ] ] ].
+      exists a1, a2, n1. split; [ exact Hld1 | split; [ exact Hld2 | split; [ exact Hs1 | (split; [ exact U2 | nvc ]) ] ] ].
   Qed.
 
   (* ---- OR_INT (0x11): o->rawData.asS32[byte2 w] |= ((s16)(w & 0xFFFF)) & 0xFFFF ---- *)
@@ -5925,7 +6092,7 @@ Section Link.
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
       /\ exists old m1, Mem.load Mint32 m pool (oc + 136 + 4 * byte2 w) = Some (Vint old)
          /\ Mem.store Mint32 m pool (oc + 136 + 4 * byte2 w) (Vint (Int.or old (u16_of w))) = Some m1
-         /\ Mem.unchanged_on Pfr m1 m'.
+         /\ PfrN m1 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -6041,7 +6208,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
     - split; [ exact (Hc2 (cur_store _ _ _ _ _ Hs1 Hc)) | split; [ reflexivity | ] ].
-      exists old, n7. split; [ exact Hld | split; [ | exact U2 ] ]. rewrite Ev.
+      exists old, n7. split; [ exact Hld | split; [ | (split; [ exact U2 | nvc ]) ] ]. rewrite Ev.
       exact Hs1.
   Qed.
 
@@ -6068,7 +6235,7 @@ Section Link.
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = op ->
     eval_funcall function_entry2 G m (Internal f) [] t m' vr ->
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m'
-      /\ vr = Vint (Int.repr rc) /\ Mem.unchanged_on Pfr m m'.
+      /\ vr = Vint (Int.repr rc) /\ PfrN m m'.
   Proof.
     intros op f rc m st w t m' vr Hh Hst Hscr HV Hc Hw Ho H.
     destruct Hh as [(-> & -> & ->) | [(-> & -> & ->) | [(-> & -> & ->) | [(-> & -> & ->) |
@@ -6206,7 +6373,7 @@ Section Link.
 
   (* the control opcodes discharge their rows *)
   Hypothesis Hinv_cur : forall m, INV m -> cur m.
-  Hypothesis Hinv_frame : forall m m', INV m -> Mem.unchanged_on Pfr m m' -> INV m'.
+  Hypothesis Hinv_frame : forall m m', INV m -> PfrN m m' -> INV m'.
 
   Lemma ctl_id : forall op f rc, ctl_handler op f rc ->
     exists id, nth_error ObjCensus.cmd_handlers (Z.to_nat op) = Some id
@@ -6984,9 +7151,10 @@ Section Link.
      bulk natives store ints / floats, pool and surface pointers, data
      symbols; to be discharged by a value-tracking SFR' walk) *)
   Variable PV : mem -> block -> Prop.
-  Definition nvals (m m1 : mem) : Prop :=
-    forall b z bp op, Plt b (Mem.nextblock m) -> Mem.load Mint32 m1 b z = Some (Vptr bp op) ->
-      Mem.load Mint32 m b z <> Some (Vptr bp op) -> PV m bp.
+  (* byte level since 2026-11-07 (was: changed Mint32 loads), like the
+     handlers' own frame PfrN: every byte of an old block the call changes
+     holds no pointer fragment except into a PV block *)
+  Definition nvals (m m1 : mem) : Prop := nvB (PV m) m m1.
 
   Definition sfr_keep : Prop := forall m m1 st,
     INV m -> V m st -> In st vm_tab -> Qs st -> existsb (Pos.eqb (v_s st)) sp_scripts = false ->
@@ -7157,7 +7325,7 @@ Section Link.
     cbn in Hor. destruct Hor as (_ & Hor). cbn in Hor. injection Hor as <-.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs9 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs9) ].
-    - split; [ exact (Hinv_frame _ _ HI1 U9) | left; reflexivity ].
+    - split; [ exact (Hinv_frame _ _ HI1 (conj U9 (nvB_store_trans _ _ _ _ _ _ _ _ Hs9 (scr_b_st st b Hst Hsb) (nvB_refl _ _)))) | left; reflexivity ].
   Qed.
 
   (* ---- SPAWN_CHILD (opcode 28): the REAL bhv_cmd_spawn_child ---- *)
@@ -7538,7 +7706,7 @@ Section Link.
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 40 ->
     eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_animate) [] t m' vr ->
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
-      /\ exists m1, an_post m m1 w /\ Mem.unchanged_on Pfr m1 m'.
+      /\ exists m1, an_post m m1 w /\ PfrN m1 m'.
   Proof.
     intros m st w t m' vr Hst Hscr HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -7647,7 +7815,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs2 Hsb) | exact (Vstk_bc _ _ _ _ HS1 Hs2) ].
     - split; [ exact (Hc2 Hc5) | split; [ reflexivity | ] ].
-      exists mm5. exact (conj Hpost U2).
+      exists mm5. split; [ exact Hpost | split; [ exact U2 | nvc ] ].
   Qed.
 
   (* ANIMATE's row (opcode 40).  Computed reachable users (vm_animate_users):
@@ -7761,7 +7929,7 @@ Section Link.
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 30 ->
     eval_funcall function_entry2 G m (Internal BS.f_bhv_cmd_drop_to_floor) [] t m' vr ->
     exists l st', succs st = Some l /\ In st' l /\ V m' st' /\ cur m' /\ vr = Vint (Int.repr 0)
-      /\ exists m1, dtf_post m m1 /\ Mem.unchanged_on Pfr m1 m'.
+      /\ exists m1, dtf_post m m1 /\ PfrN m1 m'.
   Proof.
     intros m st w t m' vr Hst Hff HV Hc Hw Ho H.
     destruct (st_facts st Hst) as (Hlen & _ & Hd & l & Hl & Hcl).
@@ -7921,7 +8089,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - apply V_mk; [ exact (Vcmd_bc _ _ _ _ _ Hs9 Hsbs) | exact (Vstk_bc _ _ _ _ HSx Hs9) ].
     - split; [ exact (Hc9 Hc3) | split; [ reflexivity | ] ].
-      eexists. split; [ | exact U9 ].
+      eexists. split; [ | (split; [ exact U9 | nvc ]) ].
       exists fx, fy, fz. eexists. exists cm1, h. eexists. exists fl.
       split; [ exact Hldx | split; [ exact Hldy | split; [ exact Hldz | split; [ exact Hcall |
         split; [ exact U1 | split; [ exact Hperm | split; [ exact Hsy | split; [ exact Hldmf | exact Hsfl ] ] ] ] ] ] ] ].
@@ -8010,10 +8178,10 @@ Section Link.
   Qed.
 
   Lemma copyin : forall le m t le' m' out st,
-    exec_stmt function_entry2 G empty_env le m COPYIN t le' m' out -> cur m -> Vo m st ->
-    out = Out_normal /\ V m' st /\ Mem.unchanged_on Pfr m m'.
+    exec_stmt function_entry2 G empty_env le m COPYIN t le' m' out -> cur m -> Vo m st -> In st vm_tab ->
+    out = Out_normal /\ V m' st /\ PfrN m m'.
   Proof.
-    intros le m t le' m' out st H Hc ((b & Hb & Hl) & Hk). unfold COPYIN in H.
+    intros le m t le' m' out st H Hc ((b & Hb & Hl) & Hk) Hst. unfold COPYIN in H.
     apply RA.seq_inv in H as [(t1 & le1 & m1 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
     apply ld_cur in X1 as (-> & -> & _); [ | exact Hc ].
     apply RA.seq_inv in X2 as [(t3 & le3 & m3 & t4 & X3 & X4) | (X3 & Xn)]; [ | kill_sq X3 Xn ].
@@ -8026,16 +8194,16 @@ Section Link.
     apply RA.ev_temp in Ev2. rewrite PTree.gss in Ev2. injection Ev2 as <-.
     cbn [typeof] in Hcast. rewrite cast_pp in Hcast. injection Hcast as <-.
     destruct (bc_store _ _ _ Hs) as (_ & _ & U).
-    split; [ reflexivity | split; [ apply V_iff; split | exact U ] ].
+    split; [ reflexivity | split; [ apply V_iff; split | (split; [ exact U | nvc ]) ] ].
     - exact (Vcmd_bc _ _ _ _ _ Hs Hb).
     - exact (Vstk_bc _ _ _ _ Hk Hs).
   Qed.
 
   Lemma copyout : forall le m t le' m' out st,
-    exec_stmt function_entry2 G empty_env le m COPYOUT t le' m' out -> cur m -> V m st ->
-    out = Out_normal /\ Vo m' st /\ Mem.unchanged_on Pfr m m'.
+    exec_stmt function_entry2 G empty_env le m COPYOUT t le' m' out -> cur m -> V m st -> In st vm_tab ->
+    out = Out_normal /\ Vo m' st /\ PfrN m m'.
   Proof.
-    intros le m t le' m' out st H Hc HV. apply V_iff in HV as ((b & Hb & Hl) & (Hsi & Hk)).
+    intros le m t le' m' out st H Hc HV Hst. apply V_iff in HV as ((b & Hb & Hl) & (Hsi & Hk)).
     unfold COPYOUT in H.
     apply RA.seq_inv in H as [(t1 & le1 & m1 & t2 & X1 & X2) | (X1 & Xn)]; [ | kill_sq X1 Xn ].
     apply ld_cur in X1 as (-> & -> & _); [ | exact Hc ].
@@ -8056,7 +8224,7 @@ Section Link.
       assert (Hnl : (n < List.length (v_k st))%nat) by (apply nth_error_Some; rewrite Hn; discriminate).
       rewrite (Mem.load_store_other _ _ _ _ _ _ Hs); [ exact (Hk n f Hn) | ].
       right. right. change (size_chunk Mint32) with 4. unfold OW.O_CMD, OW.O_STK. lia.
-    - apply (Mem.store_unchanged_on _ _ _ _ _ _ _ Hs). intros i Hi [_ Hn]. apply Hn.
+    - split; [ | nvc ]. apply (Mem.store_unchanged_on _ _ _ _ _ _ _ Hs). intros i Hi [_ Hn]. apply Hn.
       split; [ reflexivity | ]. change (size_chunk Mint32) with 4 in Hi.
       unfold OW.O_CMD, OW.O_STK in *. lia.
   Qed.
@@ -8075,10 +8243,10 @@ Section Link.
     /\ exists st', In st' vm_tab /\ Qs st' /\ Vo m3 st' /\ INV m3.
   Proof.
     intros Hk le0 m0 t1 le1 m1 out1 t2 le2 m2 out2 t3 le3 m3 out3 st Hst HQ HV HI X1 X2 X3.
-    destruct (copyin _ _ _ _ _ _ _ X1 (Hinv_cur _ HI) HV) as (-> & HV1 & U1).
+    destruct (copyin _ _ _ _ _ _ _ X1 (Hinv_cur _ HI) HV Hst) as (-> & HV1 & U1).
     pose proof (Hinv_frame _ _ HI U1) as HI1.
     destruct (dloop_done Hk _ _ _ _ _ _ X2 st Hst HQ HV1 HI1) as (-> & st2 & Hst2 & HQ2 & HV2 & HI2).
-    destruct (copyout _ _ _ _ _ _ _ X3 (Hinv_cur _ HI2) HV2) as (-> & HV3 & U3).
+    destruct (copyout _ _ _ _ _ _ _ X3 (Hinv_cur _ HI2) HV2 Hst2) as (-> & HV3 & U3).
     split; [ reflexivity | split; [ reflexivity | split; [ reflexivity | ] ] ].
     exact (ex_intro _ st2 (conj Hst2 (conj HQ2 (conj HV3 (Hinv_frame _ _ HI2 U3))))).
   Qed.
@@ -8142,7 +8310,7 @@ Section Link.
       rename b1 into bF, A1 into HA, M1 into mA end.
     assert (HnF : ~ Mem.valid_block m bF) by exact (Mem.fresh_block_alloc _ _ _ _ _ HA).
     pose proof (Mem.alloc_unchanged_on (fun _ _ => True) _ _ _ _ _ HA) as UA.
-    assert (HIA : INV mA) by exact (Hinv_frame _ _ HI (Mem.unchanged_on_implies _ _ _ _ UA (fun _ _ _ _ => I))).
+    assert (HIA : INV mA) by exact (Hinv_frame _ _ HI (conj (Mem.unchanged_on_implies _ _ _ _ UA (fun _ _ _ _ => I)) (nvB_alloc _ _ _ _ _ _ HA))).
     pose proof (Vo_unch _ _ _ _ UA (fun _ => I) HV) as HVA.
     match goal with Hx : exec_stmt _ _ _ _ _ (fn_body _) _ _ _ _ |- _ => rename Hx into X end.
     rewrite cou_split in X.
@@ -8154,7 +8322,7 @@ Section Link.
       [ | exfalso; exact (Xn (ObjLoop.plain_out _ _ _ _ _ _ _ _ _ Y1 eq_refl)) ].
     apply (EnvSwap.exec_swap _ _ _ _ _ _ _ _ _ _ _ Y1 (cou_ag bF)) in N1.
     apply RA.seq_inv in Y2 as [(r3 & re3 & rm3 & r4 & Y3 & Y4) | (Y3 & Xn)].
-    2: { exfalso. destruct (copyin _ _ _ _ _ _ _ N1 (Hinv_cur _ HI1) HV1) as (_ & HVc & Uc).
+    2: { exfalso. destruct (copyin _ _ _ _ _ _ _ N1 (Hinv_cur _ HI1) HV1 Hst) as (_ & HVc & Uc).
          apply (EnvSwap.exec_swap _ _ _ _ _ _ _ _ _ _ _ Y3 (cou_ag bF)) in N2.
          destruct (dloop_done Hk _ _ _ _ _ _ N2 st Hst HQ HVc (Hinv_frame _ _ HI1 Uc)) as (Eo & _).
          exact (Xn Eo). }

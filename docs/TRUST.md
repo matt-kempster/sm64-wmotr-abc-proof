@@ -1402,7 +1402,11 @@ without pressing A".*
   13 called from special states (Mario's three included).
   VALUE SIDE (`native_vals`, to be named `Hnative_vals` where the rows are wired):
   a bulk native at a generic state stores into old blocks only pointers to blocks
-  `PV` names at entry (`nvals`; the instance is a SafeB block). It sits beside
+  `PV` names at entry (`nvals`; the instance is a SafeB block). Since 2026-11-07
+  `nvals` is BYTE level (`nvB (PV m) m m1`: every changed byte of an old block is no
+  pointer fragment, or a fragment of a PV pointer), a strengthening of this
+  undischarged premise that is still true in the game (the natives' pointer stores
+  write whole PV pointers); it matches the handlers' own frame `PfrN` below. It sits beside
   `native_res` among the residuals. TRUE IN THE GAME: bulk natives store ints /
   floats, pool and surface pointers (oFloor into the main-pool block, SafeB by
   StartSat's SB1) and data-symbol pointers. To be DISCHARGED by a value-tracking SFR'
@@ -1413,7 +1417,19 @@ without pressing A".*
   (R7: the pool is SafeB, and SafeB is load-closed) or PhiW's closedness. REPAIRED:
   `sfr_keep` takes the value premise `nvals m m1`, and the natives' side is the
   separate premise `native_vals` above. This splits an undischarged premise into a
-  true one; no capstone row moves. BhvStep now also takes
+  true one; no capstone row moves.
+  **FOUND / REPAIRED (2026-11-07, the handlers' frame had no value side).** `Pfr`
+  (everything but gCurBhvCommand and the slot's VM cells) said where the control
+  handlers write, not what; the VM cells' new contents were invisible to INV, so the
+  exit could not re-establish MWF R7 there (stale stack words included). REPAIRED,
+  PROVED (no premise): every handler producer now returns `PfrN m m' :=
+  unchanged_on Pfr m m' /\ nvB scr_b m m'` -- each changed byte holds no pointer
+  except into a reachable script's block -- by the generic byte lemmas
+  (`nvB_store_trans`, `encode_cvok`: a store narrower than a pointer writes no
+  fragment) and the `nvc` tactic over the handler's own stores; `Hinv_frame` takes
+  `PfrN`. INV_k (Unwired/ObjInv) carries `nvB (scr_b \/ SafeB) g m` against its ghost
+  g, the frame-start memory, so R7 at exit rests on R7 g, which the start theorem
+  proves from boot (scripts are SafeB by StartSat's SB1). BhvStep now also takes
   `Hsq` (sqrtf_spec, the FPU floor row already in the ledger) and `Hpool` (the current
   slot lives in gObjectPool). No new trust row; ObjFrame's whole-walk frame (ls_frame)
   is not used. The pinned premises are bundled as `row_keeps`.

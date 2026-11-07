@@ -982,11 +982,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
        keeper by Qfam bits -- DONE: Unwired/ObjVmSwap.v obj_w_vm_swap, with
        ObjFamily's Mario bit (Qfam s0 st: s0 = bhvMario -> v_s st = bhvMario;
        own_chk vm-checked closure, mario_step / mario_frames)), the row keeps
-       (ghost stores) and sfr_keep (nvals).  IN PROGRESS: BhvStep's frame gains the
-       VALUE side (PfrN = unchanged_on Pfr /\ nvB scr_b, byte level); INV_k's clause
-       nvB (scr_b \/ SafeB) g m, ghost g = the frame-start memory, so R7 at exit
-       rests on R7 g, proved from boot (coordinator 2026-11-07: no fresh R7
-       hypothesis).  TRAP: `Hypothesis H : In st vm_tab` in a Section costs ~115s
+       (ghost stores) and sfr_keep (nvals).  DONE 2026-11-07: BhvStep's frame has the
+       VALUE side (PfrN = unchanged_on Pfr /\ nvB scr_b, byte level, every producer
+       proves it via `nvc`; Hinv_frame takes PfrN; nvals is byte level nvB (PV m));
+       INV_k's clause nvB (scr_b \/ SafeB) g m, ghost g = the frame-start memory, so
+       R7 at exit rests on R7 g, proved from boot (coordinator 2026-11-07: no fresh
+       R7 hypothesis).  TRAP: `eassumption` against a goal while `In st vm_tab` is
+       in scope whnf-reduces In over the computed vm_tab (~115s per try); `nvc`
+       matches store hypotheses syntactically.  TRAP: Ltac patterns
+       `find_symbol G (v_s ?st)` do not match (projection form) -- match `_ _`.  TRAP: `Hypothesis H : In st vm_tab` in a Section costs ~115s
        per declaration (even List.In st BhvVM.vm_tab); `congruence` with such
        hypotheses in scope can take minutes -- rewrite + discriminate.
        TRAP: `apply in_map_iff in H as ...` on a vm_tab map hung >1200s; use
