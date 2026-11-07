@@ -150,8 +150,8 @@ Section NoAImpliesNoFlyFrame.
     ObjPhase.noref b m -> Mem.unchanged_on (fun b' _ => b' <> b) m m' -> Pobjl m'.
   Hypothesis Hobj_fresh : forall sz m m1 b, Pobjl m -> Mem.alloc m 0 sz = (m1, b) ->
     Ple (Genv.genv_next (lp_ge lp)) b /\ ObjPhase.noref b m1.
-  Hypothesis Hobj_noref : forall b f, In f ObjPhase.uo_callees -> Ple (Genv.genv_next (lp_ge lp)) b ->
-    ObjPhase.call_keeps (lp_ge lp) (ObjPhase.noref b) f.
+  Hypothesis Hobj_noref : forall b f, In f ObjPhase.nr_callees -> Ple (Genv.genv_next (lp_ge lp)) b ->
+    ObjPhase.call_keeps (lp_ge lp) (ObjPhase.nrv b) f.
   Hypothesis Hobj_debug :
     ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._reset_debug_objectinfo
     /\ ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._stub_debug_5

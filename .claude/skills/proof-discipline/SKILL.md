@@ -640,7 +640,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
     OBJECTS (2026-10-26, `ObjPhase.v` / `ObjWorld.v`): the objects segment is ONE real
     `area_update_objects` call (`ObjPhase.objects_call`), with `execute_mario_action` as the
     hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
-    rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref,
+    rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref
+    (2026-11-07 FOUND + REPAIRED: Hobj_noref was over noref b alone, b possibly the next
+    fresh block, a phantom forall; now over ObjPhase.nrv b, b allocated; UnloadKeep carries
+    filler's nrv through its body and uses the row for unload_deactivated_objects_in_list),
     Hobj_debug
     (2026-11-07: Hobj_collisions is PROVED, HeightFrame.obj_collisions_linked12 from
     CollWalk.detect_keeps, the walk of the real detect_object_collisions; each store is kept
