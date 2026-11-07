@@ -900,10 +900,16 @@ all in `Unwired/`, and the theorem moved nowhere. See
        exhaustion, NAMED) / sc_keep joined row_keeps; 28 is in done_ops.
        Traps: `auto` on a goal with `In c (map v_s vm_tab)` hangs (unfolds vm_tab) -- use
        explicit conj; destruct of a non-dependent subterm rewrites the goal, so use eq_refl.
-       Next: spawn_water_droplet (spawn_object + random_u16 / random_f32_around_zero + obj_scale);
-       then rows 28 / 55 with a spawn_post carrying the ring / free-list /
-       slot changes into INV, and the ~50 residual natives; then the 6 value-contract
-       natives, then 30 / 40;
+       DONE 2026-11-03 (row 55): ObjDroplet.v -- wd_real walks the REAL
+       bhv_cmd_spawn_water_droplet -> spawn_water_droplet (spawn_object, then every params
+       flag branch). fxc = the slot walker plus calls and returns: seed callees (random_*,
+       find_water_level) touch only gRandomSeed16, and slot callees go through fcall_fxc.
+       BhvStep.row_spawn_water_droplet adds wd_pre / wd_free (NAMED) / wd_dp / wd_keep to
+       row_keeps; wd_dp (params byte 4 = &bhvWaterDroplet, dparams_init) is batched for
+       the StartTerrain recheck. Route 1 (believed unreachable: terrainSoundAddend guard)
+       is in the row comment and TRUST as a note only.
+       Next: rows 30 / 40 and the CALL_NATIVE residual; then the loop INV = obj_w minus
+       the current slot's ow_vm, and wiring dloop into Hobj_step_rest (PRIORITY);
        the pre-/post-loop code of cur_obj_update; the loop INV = obj_w minus the current
        slot's ow_vm; then narrow Hobj_step_rest.
        DONE 2026-11-03 (ObjWorld 3e): obj_w gains ow_mact (Mario ACTIVE + in bhvMario),
