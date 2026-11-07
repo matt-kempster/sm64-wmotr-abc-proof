@@ -44,6 +44,9 @@ Definition plat_call (lp : Clight.program) (m m' : mem) : Prop :=
   exists t vres, eval_funcall function_entry2 (lp_ge lp) m
     (Internal PD.f_apply_mario_platform_displacement) [] t m' vres.
 
+(* gObjectPool's slots: 240 objects of 608 bytes *)
+Definition plat_al (po : ptrofs) : Prop := exists j, 0 <= j < 240 /\ Ptrofs.unsigned po = j * 608.
+
 (* its premise: the platform Mario rides is NULL or does not rotate *)
 Definition plat_still (lp : Clight.program) (m : mem) : Prop :=
   forall bp v, Genv.find_symbol (lp_ge lp) PD._gMarioPlatform = Some bp ->
@@ -53,8 +56,11 @@ Definition plat_still (lp : Clight.program) (m : mem) : Prop :=
          (* an object of gObjectPool (update_mario_platform takes it from a
             floor's object; every object is a gObjectPool slot) *)
          /\ Genv.find_symbol (lp_ge lp) object_list_processor._gObjectPool = Some pb
-         /\ forall k, In k [35; 36; 37] ->
-         Mem.loadv Mint32 m (Vptr pb (Ptrofs.add po (Ptrofs.repr (136 + 4 * k)))) = Some (Vint Int.zero).
+         /\ (forall k, In k [35; 36; 37] ->
+         Mem.loadv Mint32 m (Vptr pb (Ptrofs.add po (Ptrofs.repr (136 + 4 * k)))) = Some (Vint Int.zero))
+         (* 2026-11-06: a slot (FOUND: unpinned, a misaligned pointer's cells
+            could overlap the slot links unload_object rewrites) *)
+         /\ plat_al po.
 
 (* the global the step writes *)
 Definition plat_gvars : list ident := [PD._D_8032FEC0].
@@ -120,7 +126,7 @@ Section Link.
     - exact (Plt_Ple_trans _ _ _ (Genv.genv_symb_range _ _ Hbm_sym) Hgn).
     - exact (Plt_Ple_trans _ _ _ (Genv.genv_symb_range _ _ HbD) Hgn).
     - exact (bm_bD bD HbD).
-    - intros v Hl. destruct (Hst bp v Hbp Hl) as [Hz | (pb & po & -> & _ & Hk)]; [ left; exact Hz | right ].
+    - intros v Hl. destruct (Hst bp v Hbp Hl) as [Hz | (pb & po & -> & _ & Hk & _)]; [ left; exact Hz | right ].
       exists pb, po. split; [ reflexivity | exact Hk ].
     - exact Hev.
   Qed.
@@ -218,8 +224,8 @@ Section Link.
     assert (Nm : bp <> bm)
       by (intro E; subst bp; refine (Genv.global_addresses_distinct G _ Hbp Hbm_sym eq_refl); vm_compute; discriminate).
     rewrite (LD _ _ _ Nd Nm) in Hl.
-    destruct (Hst bp v Hbp Hl) as [Hz | (pb & po & -> & Hpb & Hk)]; [ left; exact Hz | right ].
-    exists pb, po. split; [ reflexivity | split; [ exact Hpb | ] ].
+    destruct (Hst bp v Hbp Hl) as [Hz | (pb & po & -> & Hpb & Hk & Hal)]; [ left; exact Hz | right ].
+    exists pb, po. split; [ reflexivity | split; [ exact Hpb | split; [ | exact Hal ] ] ].
     assert (Pd : pb <> bD)
       by (intro E; subst pb; refine (Genv.global_addresses_distinct G _ Hpb HbD eq_refl); vm_compute; discriminate).
     assert (Pm : pb <> bm)

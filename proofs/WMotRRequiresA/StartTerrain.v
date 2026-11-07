@@ -1036,6 +1036,7 @@ Definition plat_still_b (ge : genv) (m : mem) : bool :=
               Pos.eqb pb pb'
               && forallb (fun k => match CM.loadv Mint32 m (Vptr pb (Ptrofs.add po (Ptrofs.repr (136 + 4 * k)))) with
                                    | Some (Vint j) => Int.eq j Int.zero | _ => false end) [35; 36; 37]
+              && Z.eqb (Ptrofs.unsigned po mod 608) 0 && Z.ltb (Ptrofs.unsigned po) (240 * 608)
           | None => false
           end
       | _ => false

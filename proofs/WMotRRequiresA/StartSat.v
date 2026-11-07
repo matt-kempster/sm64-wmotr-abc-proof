@@ -523,8 +523,13 @@ Proof.
   destruct v as [| i | | | | pb po]; try discriminate H.
   - left. apply Int.same_if_eq in H. subst i. reflexivity.
   - right. destruct (Genv.find_symbol (lp_ge lp) object_list_processor._gObjectPool) as [pb'|] eqn:Hp; [ | discriminate H ].
+    apply andb_prop in H as [H Ha]. apply andb_prop in H as [H Hm].
     apply andb_prop in H as [E H]. apply Pos.eqb_eq in E. subst pb'.
-    exists pb, po. split; [ reflexivity | split; [ first [ exact Hp | reflexivity ] | ] ].
+    exists pb, po. split; [ reflexivity | split; [ first [ exact Hp | reflexivity ] | split ] ].
+    2: { exists (Ptrofs.unsigned po / 608). apply Z.eqb_eq in Hm. apply Z.ltb_lt in Ha.
+         pose proof (Ptrofs.unsigned_range po) as Rp.
+         pose proof (Z.div_mod (Ptrofs.unsigned po) 608 ltac:(lia)) as Dm. rewrite Hm in Dm.
+         split; [ split; [ apply Z.div_pos; lia | apply Z.div_lt_upper_bound; lia ] | lia ]. }
     intros k Hk. pose proof (proj1 (forallb_forall _ _) H k Hk) as Hz. cbv beta in Hz.
     rewrite CM.loadv_eq in Hz.
     destruct (Mem.loadv Mint32 m _) as [[| j | | | |]|]; try discriminate Hz.

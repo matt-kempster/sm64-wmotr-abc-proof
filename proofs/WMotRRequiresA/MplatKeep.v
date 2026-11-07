@@ -648,11 +648,13 @@ Section MK.
       intros bp v Hbp Hl. rewrite Hgp in Hbp. injection Hbp as <-.
       destruct E5 as [Lall | PV].
       - rewrite Lall in Hl.
-        destruct (Hst bgp v Hgp Hl) as [Hz | (pb & po & -> & Hpb & Hk)]; [ left; exact Hz | right ].
-        exists pb, po. split; [ reflexivity | split; [ exact Hpb | ] ].
+        destruct (Hst bgp v Hgp Hl) as [Hz | (pb & po & -> & Hpb & Hk & Hal)]; [ left; exact Hz | right ].
+        exists pb, po. split; [ reflexivity | split; [ exact Hpb | split; [ | exact Hal ] ] ].
         intros k0 Hk0. cbn [Mem.loadv] in *. rewrite Lall. exact (Hk k0 Hk0).
       - destruct (PV v Hl) as [Hz | (k' & Hk' & -> & ANG)]; [ left; exact Hz | right ].
-        exists pool, (Ptrofs.repr (k' * OW.OSZ)). split; [ reflexivity | split; [ exact S1 | ] ].
+        exists pool, (Ptrofs.repr (k' * OW.OSZ)). split; [ reflexivity | split; [ exact S1 | split ] ].
+        2: { exists k'. split; [ unfold OW.NSLOT in Hk'; lia | ].
+             apply Ptrofs.unsigned_repr. unfold OW.OSZ, OW.NSLOT in *. change Ptrofs.max_unsigned with 4294967295. lia. }
         intros j Hj. cbn [Mem.loadv].
         assert (Hj' : 35 <= j <= 37) by (cbn in Hj; lia).
         rewrite uadd by (unfold OW.OSZ, OW.NSLOT in *; change Ptrofs.max_unsigned with 4294967295; lia).

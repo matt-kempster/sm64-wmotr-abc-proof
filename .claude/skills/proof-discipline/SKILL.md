@@ -641,14 +641,14 @@ all in `Unwired/`, and the theorem moved nowhere. See
     `area_update_objects` call (`ObjPhase.objects_call`), with `execute_mario_action` as the
     hole (`HeightFrame.mario_hole`, filled by Hframe_action + seg_action_phi). Open, labeled
     rows over the real stages: Hobj_blind / Hobj_fresh / Hobj_noref,
-    Hobj_debug, Hobj_collisions, Hobj_unload_si / Hobj_unload_plat
+    Hobj_debug, Hobj_collisions, Hobj_unload_si
     (2026-11-03: Hobj_unload narrowed; the loops are PROVED, HeightFrame.obj_unload_linked12
     from UnloadKeep.unload_outer + UnloadLoop.inlist_ok via UnloadRows; the real
     unload_object keeps mem_ok / PhiW / a_down / obj_w, UnloadPc.unl_row_proved (sharp
     footprint UnloadSharp, RenderKeep's owinq, UnloadOw.obj_w_unload, PermWalk over the call
-    tree); open: si_row (the respawn OR into a SpawnInfo cell of the main pool block) and
-    unl_plat_row (plat_still after unload_object; FOUND phantom: plat_still allows a
-    misaligned gMarioPlatform; fix: pin it to a slot).
+    tree), and plat_still since 2026-11-06 (FOUND phantom: plat_still allowed a
+    misaligned gMarioPlatform; REPAIRED: plat_al pins it to a slot, boot-checked); open:
+    si_row (the respawn OR into a SpawnInfo cell of the main pool block).
     Hobj_unload groundwork 2026-11-03, `ObjUnload.v`, kept, no spine consumer yet: the
     real deallocate_object walked -- dealloc_rings (ObjRing surgery: l1++k::l2 -> l1++l2,
     fs -> k::fs), dealloc_ok (Clight body, only ObjAlloc.RCELL cells change), dealloc_real

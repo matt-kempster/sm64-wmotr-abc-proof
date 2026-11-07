@@ -540,11 +540,11 @@ Section Link.
       by (refine (Genv.global_addresses_distinct G _ Hbp Hbm_sym); ne).
     rewrite (fx_load lp bm Xs m m' Mint32 bp 0 Hfx) in Hl
       by (intros i _ [Hb | (Hb & _)]; [ exact (not_lvl Xs _ _ Hbp Hn Hb) | exact (Nbp Hb) ]).
-    destruct (Hst bp v Hbp Hl) as [Hz | (pb & po & -> & Hpool & Hk)]; [ left; exact Hz | right ].
+    destruct (Hst bp v Hbp Hl) as [Hz | (pb & po & -> & Hpool & Hk & Hal)]; [ left; exact Hz | right ].
     assert (Np : ~ lvl_blk lp Xs pb) by exact (not_lvl Xs _ _ Hpool Hnp).
     assert (Npm : pb <> bm)
       by (refine (Genv.global_addresses_distinct G _ Hpool Hbm_sym); ne).
-    exists pb, po. split; [ reflexivity | split; [ exact Hpool | ] ].
+    exists pb, po. split; [ reflexivity | split; [ exact Hpool | split; [ | exact Hal ] ] ].
     intros k Hk'. specialize (Hk k Hk'). cbn [Mem.loadv] in *.
     rewrite (fx_load lp bm Xs m m' Mint32 pb _ Hfx)
       by (intros i _ [Hb | (Hb & _)]; [ exact (Np Hb) | exact (Npm Hb) ]).

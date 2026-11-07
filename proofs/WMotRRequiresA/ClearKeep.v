@@ -559,10 +559,10 @@ Section GS.
     split.
     { intros bp v' Hbp Hl0. rewrite Hgp in Hbp. injection Hbp as <-.
       rewrite (LO _ _ _ Ngp) in Hl0.
-      destruct (Hst bgp v' Hgp Hl0) as [Hz | (pb & po & -> & Hpb & Hk)]; [ left; exact Hz | right ].
+      destruct (Hst bgp v' Hgp Hl0) as [Hz | (pb & po & -> & Hpb & Hk & Hal)]; [ left; exact Hz | right ].
       assert (Npb : pb <> bg)
         by (refine (symne _ _ _ _ Hpb Hs (not_eq_sym (ne_of_ex _ _ _ Hx _))); apply In_of_ex; vm_compute; reflexivity).
-      exists pb, po. split; [ reflexivity | split; [ exact Hpb | ] ].
+      exists pb, po. split; [ reflexivity | split; [ exact Hpb | split; [ | exact Hal ] ] ].
       intros k Hk0. cbn [Mem.loadv] in *. rewrite (LO _ _ _ Npb). exact (Hk k Hk0). }
     exact LO.
   Qed.
@@ -737,8 +737,8 @@ Section CK.
       rewrite (Hld _ _ _ (NX _ _ Hbc_sym eq_refl)). reflexivity. }
     split.
     { intros bp v' Hbp Hl0. rewrite (Hld _ _ _ (NX _ _ Hbp eq_refl)) in Hl0.
-      destruct (Hst bp v' Hbp Hl0) as [Hz | (pb & po & -> & Hpb & Hk)]; [ left; exact Hz | right ].
-      exists pb, po. split; [ reflexivity | split; [ exact Hpb | ] ].
+      destruct (Hst bp v' Hbp Hl0) as [Hz | (pb & po & -> & Hpb & Hk & Hal)]; [ left; exact Hz | right ].
+      exists pb, po. split; [ reflexivity | split; [ exact Hpb | split; [ | exact Hal ] ] ].
       intros k Hk0. cbn [Mem.loadv] in *. rewrite (Hld _ _ _ (NX _ _ Hpb eq_refl)). exact (Hk k Hk0). }
     apply (PollKeep.obj_w_slots_g m m2 G bm); [ | | | | | | exact How ].
     - intros id b Hin Hn Hs ch z. apply Hld. apply (NX id b Hs).

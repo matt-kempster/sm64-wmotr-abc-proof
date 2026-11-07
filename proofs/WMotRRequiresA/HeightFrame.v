@@ -1547,18 +1547,17 @@ Section HeightLinked12.
      (UnloadKeep.unload_outer) and the real in-list loop (UnloadLoop.inlist_ok)
      are PROVED, with gTimeStopState &= ~1, gCurrentObject = obj and the
      respawn OR into gPlayerSpawnInfos / a macro entry (UnloadRows); what
-     stays open are the two narrow rows below (was the whole-call row
+     stays open is the narrow row below (was the whole-call row
      Hobj_unload).  Hobj_unload_si: the respawn OR into a SpawnInfo
-     behaviorArg cell of the main pool block (UnloadRows.si_row).
-     Hobj_unload_plat: gMarioPlatform's fact across the real unload_object
-     on an inactive slot of a walked ring (UnloadPc.unl_plat_row); the
-     rest of that call (mem_ok, PhiW, the A-held bit, obj_w) is PROVED,
-     UnloadPc.unl_row_proved.  TRUTH at each row's definition. *)
+     behaviorArg cell of the main pool block (UnloadRows.si_row).  The real
+     unload_object on an inactive slot of a walked ring keeps the whole
+     invariant (mem_ok, PhiW, the A-held bit, plat_still, obj_w): PROVED,
+     UnloadPc.unl_row_proved (plat_still since 2026-11-06, once it pins
+     gMarioPlatform to a slot).  TRUTH at the row's definition. *)
   Hypothesis Hobj_unload_si : UnloadRows.si_row lp bm bc oc0 SafeB.
-  Hypothesis Hobj_unload_plat : UnloadPc.unl_plat_row lp bm bc oc0 SafeB.
   Lemma Hobj_unload_obj : UnloadRows.unl_row lp bm bc oc0 SafeB.
   Proof.
-    exact (UnloadPc.unl_row_proved lp H12 bm Hbm_sym bc oc0 SafeB HSafeB_syms Hbc_sym Hoc0 Hobj_unload_plat).
+    exact (UnloadPc.unl_row_proved lp H12 bm Hbm_sym bc oc0 SafeB HSafeB_syms Hbc_sym Hoc0).
   Qed.
   Lemma obj_unload_linked12 :
     ObjPhase.call_keeps (lp_ge lp) Pobjl object_list_processor._unload_deactivated_objects.

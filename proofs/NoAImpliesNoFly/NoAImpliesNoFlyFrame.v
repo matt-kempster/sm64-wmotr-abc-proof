@@ -64,11 +64,10 @@
 (*  (Hobj_surfaces, clear_dynamic_surfaces with the post-clear fact,   *)
 (*    is PROVED since 2026-11-03: HeightFrame.obj_surfaces_linked12,     *)
 (*    from the real body, ClearRun / ClearKeep.)                         *)
-(*  - Hobj_unload_si / Hobj_unload_plat (unload_deactivated_objects:    *)
-(*    the loops and the real unload_object's mem_ok / PhiW / obj_w are  *)
-(*    PROVED since 2026-11-03, HeightFrame.obj_unload_linked12,         *)
-(*    UnloadPc): the respawn OR into a SpawnInfo cell keeps the         *)
-(*    invariant, and gMarioPlatform's fact survives unload_object.      *)
+(*  - Hobj_unload_si (unload_deactivated_objects: the loops and the    *)
+(*    real unload_object are PROVED, HeightFrame.obj_unload_linked12,   *)
+(*    UnloadPc, plat_still since 2026-11-06): the respawn OR into a     *)
+(*    SpawnInfo cell keeps the invariant.                               *)
 (*  (Hobj_mplat, update_mario_platform, is PROVED since 2026-11-03:     *)
 (*    HeightFrame.obj_mplat_linked12, from the real body, MplatKeep.)    *)
 (*  - Hobj_debug, Hobj_blind / Hobj_fresh / Hobj_noref: the debug      *)
@@ -183,7 +182,6 @@ Section NoAImpliesNoFlyFrame.
       object_list_processor.f_update_objects_during_time_stop.
 
   Hypothesis Hobj_unload_si : UnloadRows.si_row lp bm bc oc0 SafeB.
-  Hypothesis Hobj_unload_plat : UnloadPc.unl_plat_row lp bm bc oc0 SafeB.
   (* the camera statement's object-world footprint, its residual part
      (HeightFrame.Hcam_ow_res: Mario's object-pointer cells and, since
      2026-11-03, his wall / ceil / floor cells (obj_w's ow_msurf); the
@@ -210,7 +208,7 @@ Section NoAImpliesNoFlyFrame.
                     Hcam_phi Hobj_blind Hobj_fresh Hobj_noref Hobj_debug
                     Hobj_collisions Hobj_step_act_terrain Hobj_step_rest_terrain
                     Hobj_step_act_nonterrain Hobj_step_rest_nonterrain
-                    Hobj_unload_si Hobj_unload_plat Hcam_ow_res
+                    Hobj_unload_si Hcam_ow_res
                     init is m Hok Hphi Hst How HA Hr)).
   Qed.
 End NoAImpliesNoFlyFrame.

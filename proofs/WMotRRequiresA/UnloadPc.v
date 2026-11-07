@@ -16,11 +16,12 @@
 (*            as AudioInv);                                                *)
 (*   a_down   gMarioStates and the controllers are untouched;              *)
 (*   obj_w    UnloadOw.obj_w_unload.                                       *)
-(* OPEN, narrowed: plat_still (unl_plat_row).  FOUND (phantom forall):     *)
-(* plat_still lets gMarioPlatform point anywhere in the pool block, and a  *)
-(* misaligned pointer's checked cells (+276 .. +288) can overlap a slot's  *)
-(* list or graph links, which the call rewrites.  In the game it is NULL   *)
-(* or a slot (update_mario_platform takes it from a floor's object).       *)
+(*   plat_still  gMarioPlatform is untouched; it is NULL or a slot        *)
+(*            (PlatformKeep.plat_al, 2026-11-06), whose cells +276..+288   *)
+(*            no write of the call reaches.  FOUND (phantom forall) before *)
+(*            the pin: a misaligned pointer's cells could overlap a slot's *)
+(*            links, which the call rewrites.  REPAIRED: StartTerrain      *)
+(*            checks the pin at boot.                                      *)
 (* ====================================================================== *)
 
 From Coq Require Import ZArith Lia List Bool.
@@ -153,16 +154,6 @@ Section UP.
   Lemma HXs : forall id, In id unl_ws -> existsb (Pos.eqb id) core_ids = false.
   Proof. exact (avoid_of unl_ws core_ids ltac:(vm_compute; reflexivity)). Qed.
 
-  (* THE RESIDUAL ROW *)
-  Definition unl_plat_row : Prop := forall pool la m rs i l1 k l2 t m' vr,
-    Genv.find_symbol G OLP._gObjectPool = Some pool ->
-    Genv.find_symbol G OLP._gObjectListArray = Some la ->
-    Pc m -> OW.rings m pool la = Some rs -> (i < OW.NLIST)%nat -> nth i rs [] = l1 ++ k :: l2 ->
-    UnloadLoop.inactive pool m k ->
-    eval_funcall function_entry2 G m (Internal SO.f_unload_object) [OW.slot_v pool k] t m' vr ->
-    PlatformKeep.plat_still lp m'.
-  Hypothesis Hplat : unl_plat_row.
-
   Ltac sz := unfold OW.OSZ, OW.NSLOT, ObjWorld.G_PREV, ObjWorld.G_CHILD, ObjWorld.O_NEXT, ObjWorld.O_PREV in *;
              cbn [size_chunk] in *.
 
@@ -244,6 +235,27 @@ Section UP.
         sz. destruct (Z.eq_dec j k) as [-> | Ne].
         + repeat (destruct Hin as [E | Hin]; [ injection E as <- <-; lia | ]). destruct Hin.
         + destruct (Z.lt_trichotomy j k) as [Hlt | [Heq | Hgt]]; [ left; nia | contradiction | right; nia ].
+      - intros j'. sz. destruct (Z.lt_trichotomy j' j) as [Hlt | [-> | Hgt]]; [ right; nia | right; lia | left; nia ].
+      - intros j'. sz. destruct (Z.lt_trichotomy j' j) as [Hlt | [-> | Hgt]]; [ right; nia | right; lia | left; nia ]. }
+    (* plat_still: gMarioPlatform is untouched and points at a slot's
+       angular velocity, which no write of the call reaches *)
+    assert (Hst' : PlatformKeep.plat_still lp m').
+    { intros bp v Hbp Hl0.
+      rewrite (LGs _ _ Hbp ltac:(vm_compute; reflexivity) ltac:(vm_compute; reflexivity)) in Hl0.
+      destruct (Hst bp v Hbp Hl0) as [Hz | (pb & po & -> & Hpb0 & Hk & Hal)]; [ left; exact Hz | right ].
+      rewrite Hp in Hpb0. injection Hpb0 as <-.
+      exists pool, po. split; [ reflexivity | split; [ exact Hp | split; [ | exact Hal ] ] ].
+      intros k0 Hk0. destruct Hal as (j & Hj & Ej).
+      assert (Hk0' : 35 <= k0 <= 37) by (cbn in Hk0; lia).
+      specialize (Hk k0 Hk0). cbn [Mem.loadv] in Hk |- *.
+      assert (Eu : Ptrofs.unsigned (Ptrofs.add po (Ptrofs.repr (136 + 4 * k0))) = j * 608 + (136 + 4 * k0)).
+      { rewrite Ptrofs.add_unsigned, Ej, (Ptrofs.unsigned_repr (136 + 4 * k0))
+          by (change Ptrofs.max_unsigned with 4294967295; lia).
+        apply Ptrofs.unsigned_repr. change Ptrofs.max_unsigned with 4294967295; lia. }
+      rewrite Eu in Hk |- *. rewrite LP; [ exact Hk | ].
+      intros z' Hz'. cbn [size_chunk] in Hz'. split; [ | split ].
+      - intros d n Hin. pose proof (UWLi d n Hin) as Hd. sz.
+        destruct (Z.lt_trichotomy j k) as [Hlt | [-> | Hgt]]; [ left; nia | right; lia | right; nia ].
       - intros j'. sz. destruct (Z.lt_trichotomy j' j) as [Hlt | [-> | Hgt]]; [ right; nia | right; lia | left; nia ].
       - intros j'. sz. destruct (Z.lt_trichotomy j' j) as [Hlt | [-> | Hgt]]; [ right; nia | right; lia | left; nia ]. }
     (* Mario's slot *)
@@ -407,7 +419,6 @@ Section UP.
             by (vm_compute; reflexivity).
           exact (proj1 (negb_true_iff _) (proj1 (forallb_forall _ _) A s Hin)).
       - exact Ku. }
-    exact (conj Ok' (conj Phi' (conj HD' (conj (Hplat pool la m rs i l1 k l2 t m' vr Hp Hl HP
-             (OW.ow_rings _ _ _ _ _ _ _ _ _ _ _ _ C) Hi El Ina H) How')))).
+    exact (conj Ok' (conj Phi' (conj HD' (conj Hst' How')))).
   Qed.
 End UP.
