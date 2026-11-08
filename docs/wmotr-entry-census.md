@@ -143,7 +143,7 @@ plus the residue and the layout of §4 (not parametrised: a whole-castle fact).
 
 | Part | Plan |
 |---|---|
-| act 1..6, cap, Mario's scalars, carried int globals | Generalise the start theorem: the witness memory with those cells set to any value still meets the premise (store-keeps lemmas). The entry code's only reads of them are `place_object` (act, mask 0x1F) and `init_mario` (cap). |
+| act 1..6, cap, Mario's scalars, carried int globals | **Done** (`StartCarry.goal2_start_carried`). The real-entry witness, after any sequence of int stores into Mario's flags / coins / stars / keys / lives / health / unkB0 / prevNumStarsForDialog and into `gCurrActNum` / `gCurrSaveFileNum` / `gCurrCourseStarFlags`, still meets the capstone's start premise. `object_masks` checks that every OBJECT in WMotR's script has mask 0x1F, so every act places the same objects. |
 | act 0 | FOUND (B1). Needs approval. |
 | wall / ceil | OPEN. Needs a restated start premise; for main. |
 | residue / layout | OPEN. Needs a pre-entry invariant or a block-model change; for main. |

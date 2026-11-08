@@ -2202,6 +2202,7 @@ without pressing A".*
   - **Ways in.** There is one real way into WMotR: castle area 2's warp node 0x0A, i.e. `initiate_warp(31, 1, 0x0A, 0)`. So Mario's spawn cells are the same on every entry.
   - **FOUND: act 0 has no execution.** Entries with `gCurrActNum` = 0 (power-on, no act select yet) are real. On them `level_cmd_place_object`'s `1 << (gCurrActNum - 1)` is UB and has no Clight execution. Stand-in S2 (act 1) is kept and flagged. The repair (a rewrite or a scope line) awaits the user's decision; no trust is added yet.
   - **OPEN: stale wall / ceil.** On a real entry `m->wall` / `m->ceil` are the castle's stale pointers, while the witness has NULL. `wmotr_world` constrains both. Approved repair: leave them unconstrained at the start, and prove that frame 1 re-establishes them.
+  - **Carried scalars covered** (`StartCarry.goal2_start_carried`): the start premise holds with any values in Mario's carried fields and in the act / save-slot / course-star globals.
   - **OPEN: residue and layout.** Free-slot and pool residue (MWF R7) and the anim buffer's block (S7) are not shown to meet the premise on a real entry.
 - **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by
   `NoAImpliesNoFlyTwelve.noA_never_flying_from_boot`). The memory `Genv.init_mem lp` of any
