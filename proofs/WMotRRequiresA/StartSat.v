@@ -197,9 +197,10 @@ Lemma safeb_wit_sat_le :
     (forall b, objblks b -> Ple (Genv.genv_next (lp_ge lp)) b) ->
     (forall id, symok id -> mem_id id non_safeb_syms = false) ->
     (forall id, mem_id id safe_ptr_syms = true -> symok id) ->
+    (forall id, mem_id id bhv_data_syms = true -> symok id) ->
     SafeB_syms_ok lp (SafeB_wit lp objblks symok).
 Proof.
-  intros lp objblks symok Hfresh Hok Hgobj. split; [ | split ].
+  intros lp objblks symok Hfresh Hok Hgobj Hbhv. split; [ | split; [ | split ] ].
   - intros id b Hs [Hobj | (id' & Hid' & Hs')].
     + exfalso. apply (Plt_strict b).
       eapply Plt_Ple_trans; [ eapply Genv.genv_symb_range; exact Hs | apply Hfresh; exact Hobj ].
@@ -209,6 +210,8 @@ Proof.
     split; [ right; reflexivity | exact Hs ].
   - intros id b Hg Hs. right. exists id.
     split; [ left; exact (Hgobj id Hg) | exact Hs ].
+  - intros id b Hg Hs. right. exists id.
+    split; [ left; exact (Hbhv id Hg) | exact Hs ].
 Qed.
 
 (* widening SafeB by blocks that hold no pointer *)
@@ -1001,14 +1004,14 @@ Section Witness.
     Proof.
       apply safeb_wit_sat_le;
         [ intros b ->; rewrite genv_next_eq; exact bpl_ge
-        | intros id H; exact H | exact gobj_not_nonsafe ].
+        | intros id H; exact H | exact gobj_not_nonsafe | exact bhv_not_nonsafe ].
     Qed.
     Lemma Sy_w : SafeB_syms_ok lp SBw.
     Proof.
       apply safeb_wit_sat_le;
         [ intros b [-> | [-> | ->]]; rewrite genv_next_eq;
           [ exact bpl_ge | exact (fresh_ge _ (or_introl eq_refl)) | exact bd_ge ]
-        | intros id H; exact H | exact gobj_not_nonsafe ].
+        | intros id H; exact H | exact gobj_not_nonsafe | exact bhv_not_nonsafe ].
     Qed.
 
     Lemma Hsp : spawn_ok lp m0 bm bc Ptrofs.zero.

@@ -32,7 +32,7 @@
 From Coq Require Import List.
 From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs
   Ctypes Clight Linking.
-From SM64.Generated Require mario level_update interaction mario_actions_moving game_init.
+From SM64.Generated Require mario level_update interaction mario_actions_moving game_init behavior_data.
 From SM64.Proofs Require Import SymbolicLinking RealFrameLinked CensusV2 MWFReal
   LinkedTwelve.
 Import ListNotations.
@@ -328,6 +328,14 @@ Definition non_safeb_syms : list ident :=
    drop the variables an individual lemma does not use, giving each a
    different arity and breaking the capstone's `exact` applications. *)
 
+(* (d)'s symbols (2026-11-07): behavior_data.c's defined globals -- the
+   behavior scripts and their data.  Every script the objects step runs is
+   one (WMotRRequiresA/ObjStep.scr_bd, vm). *)
+Definition bhv_data_syms : list ident :=
+  map fst (filter (fun d => match snd d with
+                            | Gvar v => match gvar_init v with nil => false | _ => true end
+                            | _ => false end) (prog_defs behavior_data.prog)).
+
 Definition SafeB_syms_ok (lp : Clight.program) (SafeB : block -> Prop) : Prop :=
   (forall id b,
      Genv.find_symbol (lp_ge lp) id = Some b ->
@@ -339,6 +347,14 @@ Definition SafeB_syms_ok (lp : Clight.program) (SafeB : block -> Prop) : Prop :=
      are SafeB blocks, so MWF's R7 keeps what they hold SafeB
      (CensusV2.safe_ptr_syms). *)
   /\ (forall id b, mem_id id safe_ptr_syms = true ->
+     Genv.find_symbol (lp_ge lp) id = Some b -> SafeB b)
+  (* (d) 2026-11-07: behavior_data's globals -- the behavior scripts -- are
+     SafeB.  The objects step's VM cells and cursor hold script pointers,
+     and its exit re-establishes MWF's R7 there (WMotRRequiresA/ObjExit).
+     Held by the chase closure of a real memory (objects point at their
+     scripts) and by every witness (no script is a non_safeb_syms symbol,
+     bhv_not_nonsafe, vm). *)
+  /\ (forall id b, mem_id id bhv_data_syms = true ->
      Genv.find_symbol (lp_ge lp) id = Some b -> SafeB b).
 
 (* accessors (2026-11-07): consumers read SafeB_syms_ok's clauses through
@@ -357,7 +373,11 @@ Section SBS.
   (* (c) the safe_ptr_syms are SafeB *)
   Lemma sbs_ptr : forall id b, mem_id id safe_ptr_syms = true ->
     Genv.find_symbol (lp_ge lp) id = Some b -> SafeB b.
-  Proof. exact (proj2 (proj2 H)). Qed.
+  Proof. exact (proj1 (proj2 (proj2 H))). Qed.
+  (* (d) behavior_data's globals (the scripts) are SafeB *)
+  Lemma sbs_bhv : forall id b, mem_id id bhv_data_syms = true ->
+    Genv.find_symbol (lp_ge lp) id = Some b -> SafeB b.
+  Proof. exact (proj2 (proj2 (proj2 H))). Qed.
 End SBS.
 
 (* the ~SafeB micro-brick: a non_safeb_syms symbol is not SafeB *)
@@ -537,9 +557,10 @@ Lemma safeb_wit_sat :
     (forall b, objblks b -> Plt (Genv.genv_next (lp_ge lp)) b) ->
     (forall id, symok id -> mem_id id non_safeb_syms = false) ->
     (forall id, mem_id id safe_ptr_syms = true -> symok id) ->
+    (forall id, mem_id id bhv_data_syms = true -> symok id) ->
     SafeB_syms_ok lp (SafeB_wit lp objblks symok).
 Proof.
-  intros lp objblks symok Hfresh Hok Hgobj. split; [ | split ].
+  intros lp objblks symok Hfresh Hok Hgobj Hbhv. split; [ | split; [ | split ] ].
   - intros id b Hs [Hobj | (id' & Hid' & Hs')].
     + (* objblks b => b >= genv_next, but Hs gives b < genv_next: impossible *)
       exfalso. apply (Plt_strict b).
@@ -550,6 +571,29 @@ Proof.
     split; [ right; reflexivity | exact Hs ].
   - intros id b Hg Hs. right. exists id.
     split; [ left; exact (Hgobj id Hg) | exact Hs ].
+  - intros id b Hg Hs. right. exists id.
+    split; [ left; exact (Hbhv id Hg) | exact Hs ].
+Qed.
+
+(* no behavior_data global is a non_safeb_syms symbol (vm) *)
+Lemma bhv_not_nonsafe_b : forallb (fun id => negb (mem_id id non_safeb_syms)) bhv_data_syms = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* generic in the list, so no conversion ever unfolds a computed list
+   (bhv_data_syms is read off behavior_data.prog: the kernel unfolding it
+   hung for hours) *)
+Lemma mem_forallb : forall (P : ident -> bool) (l : list ident), forallb P l = true ->
+    forall id, mem_id id l = true -> P id = true.
+Proof.
+  intros P l H id Hm. unfold mem_id in Hm. apply existsb_exists in Hm as (y & Hy & E).
+  apply Pos.eqb_eq in E. subst y. exact (proj1 (forallb_forall P l) H id Hy).
+Qed.
+
+Lemma bhv_not_nonsafe : forall id,
+    mem_id id bhv_data_syms = true -> mem_id id non_safeb_syms = false.
+Proof.
+  intros id H. apply negb_true_iff.
+  exact (mem_forallb (fun id => negb (mem_id id non_safeb_syms)) bhv_data_syms bhv_not_nonsafe_b id H).
 Qed.
 
 (* the gobj symbols are permitted SafeB symbols *)

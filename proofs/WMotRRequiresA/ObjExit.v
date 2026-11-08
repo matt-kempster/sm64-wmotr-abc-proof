@@ -35,8 +35,7 @@ From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
 From SM64.Proofs Require Import HeightInvariant WMotRWorld FrameSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld AnimData AnimWorld RenderKeep BhvVM.
 From SM64.Proofs.WMotRRequiresA Require ObjWorld ObjRing PollKeep PlatformKeep ClearKeep BhvStep ObjFamily.
-From SM64.Proofs.WMotRRequiresA.Unwired Require ObjVmSwap NewKeep ObjInv.
-From SM64.Proofs.WMotRRequiresA Require HeightFrame.
+From SM64.Proofs.WMotRRequiresA Require ObjVmSwap NewKeep ObjInv.
 Import ListNotations.
 Local Open Scope Z_scope.
 Local Transparent Archi.ptr64.
@@ -564,7 +563,7 @@ Theorem inv_exit : forall lp bm bc oc0 SafeB go pool bcc k0 st0 nb0 X m' st',
   In st0 vm_tab -> In st' vm_tab -> ObjFamily.Qfam (v_s st0) st' ->
   ObjInv.INVk lp bm bc oc0 SafeB go pool (k0 * OW.OSZ) bcc st0 nb0 X m' ->
   BhvStep.Vo lp pool (k0 * OW.OSZ) m' st' ->
-  HeightFrame.Pobj lp bm (MWF_real lp bm bc oc0 SafeB) (HeightFrame.PhiW lp bm) (OW.obj_w (lp_ge lp) bm) m'.
+  ClearKeep.Pobjc lp bm bc oc0 SafeB m'.
 Proof.
   intros lp bm bc oc0 SafeB go pool bcc k0 st0 nb0 X m' st' Sbm Sbc Sp Sbcc HSc H0 H1 HQ
     (_ & _ & g & (Ok & Phi & HD & Hst & _ & How) & HV & _ & U & NV & _) HV'.

@@ -26,8 +26,8 @@ From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs C
 From SM64.Proofs Require Import RealFrameLinked LinkedTwelve MWFReal.
 From SM64.Proofs.WMotRRequiresA Require Import BhvVM.
 From SM64.Generated Require behavior_script.
-From SM64.Proofs.WMotRRequiresA Require BhvStep HeightFrame ObjWorld ObjFamily ObjSelf ObjFrame.
-From SM64.Proofs.WMotRRequiresA.Unwired Require ObjInv ObjExit.
+From SM64.Proofs.WMotRRequiresA Require BhvStep ClearKeep ObjWorld ObjFamily ObjSelf ObjFrame.
+From SM64.Proofs.WMotRRequiresA Require ObjInv ObjExit.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -230,7 +230,7 @@ Section Rows.
   Notation G := (lp_ge lp).
   Variables (bm bc0 : block) (oc0 : ptrofs) (SafeB : block -> Prop).
   Notation MWF := (MWF_real lp bm bc0 oc0 SafeB).
-  Notation Pobjl := (HeightFrame.Pobj lp bm MWF (HeightFrame.PhiW lp bm) (OW.obj_w G bm)).
+  Notation Pobjl := (ClearKeep.Pobjc lp bm bc0 oc0 SafeB).
 
   Variables (go pool : block) (oc : Z) (bcc sb : block).
   Hypothesis Hgo : Genv.find_symbol G BhvStep.BS._gCurrentObject = Some go.
