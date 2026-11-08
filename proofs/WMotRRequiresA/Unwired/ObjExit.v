@@ -555,19 +555,19 @@ Proof.
   intros lp pool k m st (Hc & Hsi & Hk). split; [ exact Hc | split; [ exact Hsi | unfold OW.stk_cell; exact Hk ] ].
 Qed.
 
-Theorem inv_exit : forall lp bm bc oc0 SafeB go pool bcc k0 st0 nb0 m' st',
+Theorem inv_exit : forall lp bm bc oc0 SafeB go pool bcc k0 st0 nb0 X m' st',
   Genv.find_symbol (lp_ge lp) level_update._gMarioStates = Some bm ->
   Genv.find_symbol (lp_ge lp) mario._gControllers = Some bc ->
   Genv.find_symbol (lp_ge lp) OLP._gObjectPool = Some pool ->
   Genv.find_symbol (lp_ge lp) BhvStep.BS._gCurBhvCommand = Some bcc ->
   (forall b, BhvStep.scr_b lp b -> SafeB b) ->
   In st0 vm_tab -> In st' vm_tab -> ObjFamily.Qfam (v_s st0) st' ->
-  ObjInv.INVk lp bm bc oc0 SafeB go pool (k0 * OW.OSZ) bcc st0 nb0 m' ->
+  ObjInv.INVk lp bm bc oc0 SafeB go pool (k0 * OW.OSZ) bcc st0 nb0 X m' ->
   BhvStep.Vo lp pool (k0 * OW.OSZ) m' st' ->
   HeightFrame.Pobj lp bm (MWF_real lp bm bc oc0 SafeB) (HeightFrame.PhiW lp bm) (OW.obj_w (lp_ge lp) bm) m'.
 Proof.
-  intros lp bm bc oc0 SafeB go pool bcc k0 st0 nb0 m' st' Sbm Sbc Sp Sbcc HSc H0 H1 HQ
-    (_ & _ & g & (Ok & Phi & HD & Hst & _ & How) & HV & _ & U & NV) HV'.
+  intros lp bm bc oc0 SafeB go pool bcc k0 st0 nb0 X m' st' Sbm Sbc Sp Sbcc HSc H0 H1 HQ
+    (_ & _ & g & (Ok & Phi & HD & Hst & _ & How) & HV & _ & U & NV & _) HV'.
   destruct (exit_pc lp bm Sbm bc oc0 SafeB Sbc pool bcc k0 Sp Sbcc HSc g m'
               (conj Ok (conj Phi (conj HD (conj Hst How)))) U NV st0 st' H0 H1
               (Vo_vm_at _ _ _ _ _ HV) (Vo_vm_at _ _ _ _ _ HV') HQ) as (Ok' & Phi' & HD' & Hst' & How').

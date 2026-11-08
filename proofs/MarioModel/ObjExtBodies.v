@@ -640,7 +640,7 @@ Section ObjExtRows.
         * match goal with Ha : access_mode _ = By_value _ |- _ => cbn in Ha; injection Ha as <- end.
           match goal with Hs : Genv.find_symbol _ _ = Some ?gb,
                           Hld : Mem.loadv _ _ _ = Some (Vptr b o) |- _ =>
-            pose proof (proj2 (proj2 HSafeB_syms) _ _ gco_safe_sym Hs) as Hgs;
+            pose proof (sbs_ptr _ _ HSafeB_syms _ _ gco_safe_sym Hs) as Hgs;
             exact (mwf_real_chase_step lp bm bc oc0 SafeB _ _ _ _ _ HM Hgs Hld) end.
         * match goal with Ha : access_mode _ = By_reference |- _ => discriminate Ha end.
         * match goal with Ha : access_mode _ = By_copy |- _ => discriminate Ha end.

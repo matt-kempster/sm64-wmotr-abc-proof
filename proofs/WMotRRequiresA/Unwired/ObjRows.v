@@ -246,12 +246,12 @@ Section Rows.
   Notation Vo := (BhvStep.Vo lp pool oc).
   Notation Psd := (BhvStep.Psd sb).
 
-  Variables (st0 : vst) (nb0 : block).
-  Notation INV := (ObjInv.INVk lp bm bc0 oc0 SafeB go pool oc bcc st0 nb0).
+  Variables (st0 : vst) (nb0 : block) (X : mem -> Prop).
+  Notation INV := (ObjInv.INVk lp bm bc0 oc0 SafeB go pool oc bcc st0 nb0 X).
   Notation Qk := (ObjFamily.Qfam (v_s st0)).
 
-  (* the ghost: Pobjl with slot k at st0 *)
-  Definition GP (g : mem) : Prop := Pobjl g /\ Vo g st0.
+  (* the ghost: Pobjl with slot k at st0, and the step's own fact X *)
+  Definition GP (g : mem) : Prop := Pobjl g /\ Vo g st0 /\ X g.
   (* ghost and real memory: equal off the cursor and slot k's VM cells *)
   Definition GR (g m : mem) : Prop :=
     Ple (Mem.nextblock g) nb0 /\ Mem.unchanged_on Pfr g m /\ BhvStep.nvB scr g m.
@@ -259,9 +259,9 @@ Section Rows.
   Lemma inv_fin : forall m m1 g1, Ple nb0 (Mem.nextblock m) -> Ple (Mem.nextblock m) (Mem.nextblock m1) ->
     cur m1 -> GP g1 -> GR g1 m1 -> INV m1.
   Proof.
-    intros m m1 g1 Hn L Hc (Hp & HV) (Hgn & U & NV).
+    intros m m1 g1 Hn L Hc (Hp & HV & HX) (Hgn & U & NV).
     split; [ exact (Ple_trans _ _ _ Hn L) | split; [ exact Hc | ] ].
-    exists g1. exact (conj Hp (conj HV (conj Hgn (conj U NV)))).
+    exists g1. exact (conj Hp (conj HV (conj Hgn (conj U (conj NV HX))))).
   Qed.
 
   (* a symbol's block is valid in the ghost (MWF's nextblock bound; as ObjInv.sym_valid) *)
@@ -300,9 +300,9 @@ Section Rows.
     intros i Hi. unfold BhvStep.Pfr. split; [ exact (fun E => Hbp (eq_sym E)) | intros (_ & Hi'); lia ].
   Qed.
 
-  Ltac ginv H m := destruct H as (Hn & Hc & g & Hp & HV & Hgn & U & NV);
-    assert (HG : GP g) by exact (conj Hp HV); assert (Hgr : GR g m) by exact (conj Hgn (conj U NV));
-    assert (Hv : Mem.valid_block g pool) by exact (sym_v g _ _ HG Hpool); clear Hp HV Hgn U NV.
+  Ltac ginv H m := destruct H as (Hn & Hc & g & Hp & HV & Hgn & U & NV & HX);
+    assert (HG : GP g) by exact (conj Hp (conj HV HX)); assert (Hgr : GR g m) by exact (conj Hgn (conj U NV));
+    assert (Hv : Mem.valid_block g pool) by exact (sym_v g _ _ HG Hpool); clear Hp HV Hgn U NV HX.
 
   (* ---- the one-store keeps ---- *)
   Lemma t_set : BhvStep.set_keep pool oc GP Qk -> BhvStep.set_keep pool oc INV Qk.
@@ -647,7 +647,7 @@ Section Rows.
   Definition gsfr_keep : Prop := forall g g1 st, GP g -> In st vm_tab -> Qk st ->
     existsb (Pos.eqb (v_s st)) BhvStep.sp_scripts = false ->
     Mem.unchanged_on (SFPn g) g g1 -> BhvStep.nvB (fun b => scr b \/ SafeB b) g g1 ->
-    Mem.nextblock g1 = Mem.nextblock g -> Pobjl g1.
+    Mem.nextblock g1 = Mem.nextblock g -> Pobjl g1 /\ X g1.
 
   Lemma uoc : Ptrofs.unsigned (Ptrofs.repr oc) = oc.
   Proof. apply Ptrofs.unsigned_repr. rewrite BhvStep.maxu. lia. Qed.
@@ -809,10 +809,10 @@ Section Rows.
   Proof.
     intros K m m1 st HI _ Hst HQ Hgen U1 NV1. ginv HI m.
     pose proof (sym_v g _ _ HG Hbcc) as Hvc.
+    destruct (K g (folv g m1) st HG Hst HQ Hgen (sfr_fol g m m1 Hgr U1 (proj1 NV1)) (sfr_nv g m m1 Hgr NV1)
+                (fol_nb _ _ _ _ _ _)) as (Kp & Kx).
     exact (inv_fin m m1 (folv g m1) Hn (Mem.unchanged_on_nextblock _ _ _ U1) (cur_sfr m m1 Hc U1)
-             (conj (K g (folv g m1) st HG Hst HQ Hgen (sfr_fol g m m1 Hgr U1 (proj1 NV1)) (sfr_nv g m m1 Hgr NV1)
-                      (fol_nb _ _ _ _ _ _))
-                   (vo_fol g m m1 (proj2 HG) Hgr (proj1 NV1) Hv))
+             (conj Kp (conj (vo_fol g m m1 (proj1 (proj2 HG)) Hgr (proj1 NV1) Hv) Kx))
              (fol_gr_n 40 g m m1 ltac:(cbn; lia) Hgr (Mem.unchanged_on_nextblock _ _ _ U1) (sfr_hh g m m1 Hgr Hv Hvc U1))).
   Qed.
   (* ---- the bundle: BhvStep.row_keeps at INV := INV_k, PV := SafeB, from
