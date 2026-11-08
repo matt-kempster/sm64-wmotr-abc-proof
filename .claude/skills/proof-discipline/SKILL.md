@@ -971,17 +971,16 @@ all in `Unwired/`, and the theorem moved nowhere. See
        PhiW closedness) -- now takes nvals; natives' side native_vals (Hnative_vals).
        RenderKeep KEEP: type-only collided objects Qt (LDt / QtT; QU only in
        pole / cannon actions).
-       INV_k (WMotRRequiresA/Unwired/ObjInv.v, STAGED until the step row requires
-       it): ghost form -- nb0 <= nextblock /\ cur /\ exists g, Pobjl g /\ Vo g st0 /\
+       INV_k (WMotRRequiresA/ObjInv.v, ON THE SPINE since 2026-11-07 via ObjStep): ghost form -- nb0 <= nextblock /\ cur /\ exists g, Pobjl g /\ Vo g st0 /\
        nextblock g <= nb0 /\ unchanged_on Pfr g m; Qk = Qfam (v_s st0).  PROVED:
        inv_frame, inv_cur, inv_scr (Hinv), inv_free, inv_entry.  DONE 2026-11-07:
-       the EXIT, Unwired/ObjExit.v inv_exit (INVk m' + Vo m' st' + Qfam -> Pobjl m';
+       the EXIT, ObjExit.v inv_exit (INVk m' + Vo m' st' + Qfam -> Pobjl m';
        labeled HSafeB_scr only): through cut (nextblock g) m' -- g -> cut by
        MWF_real_transfer + closed_nvB, k_all_wc (Xs = [gCurBhvCommand]),
-       obj_w_vm_swap; cut -> m' by Unwired/NewKeep.v new_pc (Pc blind to blocks born
+       obj_w_vm_swap; cut -> m' by NewKeep.v new_pc (Pc blind to blocks born
        later).  INV_k's clause narrowed to nvB scr_b (g's closing injection maps
        scripts, not every SafeB block).  DONE 2026-11-07: INV_k's row keeps moved to
-       the ghost, Unwired/ObjRows.v rows_k (ghost_keeps at GP := Pobjl /\ Vo st0 +
+       the ghost, ObjRows.v rows_k (ghost_keeps at GP := Pobjl /\ Vo st0 +
        rest_keeps at INV_k -> row_keeps INV_k, PV := SafeB): stores by gr_store, the RNG
        Psd and SFR' by fol (m1 with g's cursor + VM bytes), loads off the VM cells by
        fld_chk (vm); pbc_keep gained the parent's slot range.  nvB is READABLE-byte level
@@ -995,9 +994,10 @@ all in `Unwired/`, and the theorem moved nowhere. See
        About in a scratch file first.  Was OPEN: the
        exit swap (Pobjl m' from INVk m' + Vo m' st' + Qfam: RenderKeep ccl_at must
        skip VM cells [460,502); KEEP's PM; scripts SafeB via a GOAL-2-only premise
-       HSafeB_scr DISCHARGED at the linked capstone from StartSat's SB1 + vm check
-       (GOAL 1's safe_ptr_syms untouched, coordinator 2026-11-07); obj_w VM-swap
-       keeper by Qfam bits -- DONE: Unwired/ObjVmSwap.v obj_w_vm_swap, with
+       HSafeB_scr DISCHARGED (2026-11-07) by SafeB_syms_ok (d) (behavior_data's
+       globals SafeB; read through the accessors sbs_*, NEVER positionally) + vm
+       check ObjStep.scr_bd_b; obj_w VM-swap
+       keeper by Qfam bits -- DONE: ObjVmSwap.v obj_w_vm_swap, with
        ObjFamily's Mario bit (Qfam s0 st: s0 = bhvMario -> v_s st = bhvMario;
        own_chk vm-checked closure, mario_step / mario_frames)), the row keeps
        (ghost stores) and sfr_keep (nvals).  DONE 2026-11-07: BhvStep's frame has the
@@ -1014,6 +1014,24 @@ all in `Unwired/`, and the theorem moved nowhere. See
        TRAP: `apply in_map_iff in H as ...` on a vm_tab map hung >1200s; use
        proj1 (in_map_iff ..) in a small lemma.  `congruence` on two existsb facts
        over map v_s vm_tab took 114s; rewrite + discriminate is instant.
+       DONE 2026-11-07 (ObjStep, WIRED): step_rest_row for both real loop bodies
+       on nt_ls (rest_sa / rest_ts): gco store, gfx-flag stores (ObjGfl), cou_real
+       at INV_k with ghost X := in ring (in_ring_tr).  Both capstones' row
+       Hobj_step_rest_nonterrain -> Hobj_cou_nt : mario_hole -> cou_keeps nt_ls
+       (per slot k / st0 / nb0: ghost_keeps + rest_keeps + pre_keep / post_keep at
+       INV_k).  ObjInv..ObjStep use ClearKeep.Pobjc (= HeightFrame.Pobjl, convertible)
+       so HeightFrame can import them.
+       DONE 2026-11-08 (ObjStep, WIRED): the terrain rest row too (ter_rest_sa /
+       ter_rest_ts), via rest_saX / rest_tsX generic in the ghost fact XF (xf_cou:
+       carried at cou_real's exit; xf_st: across the loop's stores) with XF := XT =
+       in ring /\ ter_abd m0 (ter_post minus the counter, ter_abd_tr composes).
+       Capstones: Hobj_step_rest_terrain -> Hobj_cou_t : cou_keeps_t ter_ls (no hole)
+       + Hobj_ter_ctr : ter_ctr_row (counter clause (c) only; census
+       TerCtrCensus.ter_ctr_value: <= 1 load per update -- box 1, coin 0, lid 1).
+       OPEN: discharge Hobj_ter_ctr ((A) walk the loader + one-load induction, or
+       (C) a loaded flag in INV_k) and the cou_keeps rows.
+       TRAP: names bound by `match goal with H : ...` vanish after the match --
+       `rename H into X` inside it.
        Next (W2/W3, coordinator OK'd INV_k = Pobjl with ow_vm relaxed at slot k + cur):
        Hinv/Hinv_cur/Hinv_frame for INV_k; discharge row_keeps (phantom rule: a keep
        false without a script tie => strengthen INV with script-tied pins, checked on

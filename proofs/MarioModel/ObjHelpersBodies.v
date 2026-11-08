@@ -467,7 +467,7 @@ Section ObjHelperRows.
         * match goal with Ha : access_mode _ = By_value _ |- _ => cbn in Ha; injection Ha as <- end.
           match goal with Hs : Genv.find_symbol _ _ = Some ?gb,
                           Hld : Mem.loadv _ _ _ = Some (Vptr b o) |- _ =>
-            pose proof (proj2 (proj2 HSafeB_syms) _ _ gco_safe_sym Hs) as Hgs;
+            pose proof (sbs_ptr _ _ HSafeB_syms _ _ gco_safe_sym Hs) as Hgs;
             exact (mwf_real_chase_step lp bm bc oc0 SafeB _ _ _ _ _ HM Hgs Hld) end.
         * match goal with Ha : access_mode _ = By_reference |- _ => discriminate Ha end.
         * match goal with Ha : access_mode _ = By_copy |- _ => discriminate Ha end.
@@ -598,7 +598,7 @@ Section ObjHelperRows.
         cbn in Hvv. injection Hvv as ->.
         cbn [arg1_bhv_held] in H1.
         destruct (H1 b o eq_refl) as (g & Hg & Hs).
-        exact (proj2 (proj2 HSafeB_syms) g b (bhv_in_safe g Hg) Hs). }
+        exact (sbs_ptr _ _ HSafeB_syms g b (bhv_in_safe g Hg) Hs). }
     destruct (oh_body_frame object_helpers.f_obj_set_held_state eq_refl osh_chk
                 _ _ _ _ _ Hevf Hok (conj Hv (conj Hsat HM))) as (Hv' & Hs' & HM').
     exact (conj Hv' (conj Hs' (conj HM' (mwf_real_ctl lp bm bc oc0 SafeB _ HM')))).

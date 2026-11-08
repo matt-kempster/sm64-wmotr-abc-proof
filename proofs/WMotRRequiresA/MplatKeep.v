@@ -243,7 +243,7 @@ Section MK.
   (* the camera's SafeB pointer globals *)
   Lemma cam_gs : forall x b, mem_id x camera_safe_syms = true -> Genv.find_symbol G x = Some b -> SafeB b.
   Proof.
-    intros x b H Hs. destruct HSafeB_syms as (_ & _ & Hc). apply (Hc x b); [ | exact Hs ].
+    intros x b H Hs. pose proof (sbs_ptr _ _ HSafeB_syms) as Hc. apply (Hc x b); [ | exact Hs ].
     unfold camera_safe_syms in H. cbn [mem_id existsb] in H.
     repeat (apply orb_true_iff in H as [E | H];
             [ apply Pos.eqb_eq in E; subst x; vm_compute; reflexivity | ]).

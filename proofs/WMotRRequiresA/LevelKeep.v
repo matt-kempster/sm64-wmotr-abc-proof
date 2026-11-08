@@ -575,7 +575,7 @@ Section Link.
     intros m AW ga a o Hga Hl.
     destruct (AW ga Hga) as (bad & o' & Hgad & Hl').
     rewrite Hl in Hl'. injection Hl' as <- _.
-    exact (proj2 (proj2 HSafeB_syms) area._gAreaData a ltac:(vm_compute; reflexivity) Hgad).
+    exact (sbs_ptr _ _ HSafeB_syms area._gAreaData a ltac:(vm_compute; reflexivity) Hgad).
   Qed.
 
   (* the camera statement keeps mem_ok: walked to the call, the real

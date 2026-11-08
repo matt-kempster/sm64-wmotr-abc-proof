@@ -1430,24 +1430,25 @@ without pressing A".*
   except into a reachable script's block -- by the generic byte lemmas
   (`nvB_store_trans`, `encode_cvok`: a store narrower than a pointer writes no
   fragment) and the `nvc` tactic over the handler's own stores; `Hinv_frame` takes
-  `PfrN`. INV_k (Unwired/ObjInv) carries `nvB scr_b g m` against its ghost
+  `PfrN`. INV_k (ObjInv) carries `nvB scr_b g m` against its ghost
   g, the frame-start memory, so R7 at exit rests on R7 g, which the start theorem
   proves from boot (scripts are SafeB by StartSat's SB1). (Narrowed 2026-11-07 from
   `nvB (scr_b \/ SafeB)`, which the exit could not use: g's closing injection maps
   every symbol, hence every script, but not every SafeB block.)
-  **The objects step's EXIT (2026-11-07, Unwired/ObjExit `inv_exit`): PROVED.** INV_k
+  **The objects step's EXIT (2026-11-07, ObjExit `inv_exit`): PROVED.** INV_k
   at cur_obj_update's return, the slot at the reached state st' of st0's family
-  (ObjFamily.Qfam), gives Pobjl m'. Labeled premise: `HSafeB_scr` (the scripts are
-  SafeB; discharged at the linked capstone from StartSat's SB1). Through `cut
+  (ObjFamily.Qfam), gives Pobjl m'. Its premise `HSafeB_scr` (the scripts are SafeB)
+  is DISCHARGED at the capstones since 2026-11-07 (`HeightFrame.HSafeB_scr`, from
+  `SafeB_syms_ok` (d) and the vm check `ObjStep.scr_bd_b`; see the rest row below). Through `cut
   (nextblock g) m'` (m' without the blocks born after g, a memory construction):
   g -> cut changes only the VM cursor and slot k0's VM cells, so Pc carries (MWF by
   `MWF_real_transfer`, R7 by `closed_nvB`; PhiW by `k_all_wc` with Xs =
   [gCurBhvCommand], the cut closed by g's closing injection, `nvB_closed`; obj_w by
   `obj_w_vm_swap`); cut -> m' adds only blocks born after g, which Pc is blind to
-  (Unwired/NewKeep `new_pc`, BlindKeep's argument for every new block at once). No
+  (NewKeep `new_pc`, BlindKeep's argument for every new block at once). No
   new trust row. The row keeps for natives must keep the ghost / real difference
   inside the slot's VM cells and the cursor (script pointers only).
-  **INV_k's row keeps (2026-11-07, Unwired/ObjRows `rows_k`): moved to the ghost.**
+  **INV_k's row keeps (2026-11-07, ObjRows `rows_k`): moved to the ghost.**
   Each pinned keep of `row_keeps` at INV := INV_k now follows from the SAME keep at the
   ghost, INV := GP (`Pobjl g /\ Vo g st0`: the frame-start memory with slot k at its
   start state), PROVED: a row's store into m is the same store into g (`gr_store`: both
@@ -1472,6 +1473,95 @@ without pressing A".*
   slot lives in gObjectPool). No new trust row; ObjFrame's whole-walk frame (ls_frame)
   is not used. The pinned premises are bundled as `row_keeps`.
   Wiring it in needs the loop's INV to be obj_w minus the current slot's `ow_vm`.
+  **The objects step's REST ROW on the non-terrain lists (2026-11-07, `ObjStep`): PROVED
+  from a narrower row, WIRED.** `Hobj_step_rest_nonterrain` (both capstones) is now a
+  lemma, `HeightFrame.Hobj_step_rest_nonterrain`. It is proved by `ObjStep.rest_sa` /
+  `rest_ts`, the real loop bodies of update_objects_starting_at and
+  update_objects_during_time_stop, read off the AST by vm:
+  - the gCurrentObject store (`UnloadRows.gco_keep`);
+  - the gfx-flag stores (`ObjGfl.gfl_pc`: cells [0,4) of a slot, read by no invariant);
+  - cur_obj_update through `BhvStep.cou_real` at INV_k (entry `inv_entry`, row keeps
+    `rows_k`, exit `inv_exit`).
+
+  The object's ring membership is INV_k's ghost fact X (`in_ring_tr`: the ring links
+  96 / 100 and the list heads are off the VM cells, so the ghost's rings are the real
+  memory's). The capstones' row is replaced by **`Hobj_cou_nt : mario_hole ->
+  ObjStep.cou_keeps nt_ls`**. For every slot k of a non-terrain ring, its start VM state
+  st0 (from `obj_w`'s `ow_vm`) and the entry's nextblock, it asks for:
+  - the keeps INV_k's dispatch loop reads: `ObjRows.ghost_keeps` (at the ghost) and
+    `ObjRows.rest_keeps`;
+  - `BhvStep.pre_keep` / `post_keep` at INV_k (the code around the dispatch loop).
+
+  Every premise is about INV_k / Pobjl memories of a real slot. **GOAL 1's statement only
+  swapped one row for a narrower one** (NoAImpliesNoFlyFrame: `Hobj_step_rest_nonterrain`
+  -> `Hobj_cou_nt`); its claim and proofs are unchanged. **`SafeB_syms_ok` gains (d)**:
+  behavior_data's defined globals (`SpawnInit.bhv_data_syms`, the behavior scripts) are
+  SafeB. It is read through accessors (`sbs_neg` / `sbs_fam` / `sbs_ptr` / `sbs_bhv`),
+  and every witness meets it: no behavior_data global is a `non_safeb_syms` symbol
+  (`bhv_not_nonsafe`, vm), so `safeb_wit_sat(_le)`, SB1 / SBw (StartSat, the start-sat
+  audit) and `SafeB_boot` prove it. True of the game's SafeB (the chase closure; objects
+  point at their scripts). ObjInv .. ObjStep state Pobjl as `ClearKeep.Pobjc` (the same
+  conjunction, convertible), so they sit below HeightFrame.
+
+  **The terrain rest row (2026-11-08, `ObjStep`): PROVED from two narrower rows, WIRED.**
+  `Hobj_step_rest_terrain` (both capstones) is now a lemma,
+  `HeightFrame.Hobj_step_rest_terrain`, proved by `ObjStep.ter_rest_sa` / `ter_rest_ts`.
+  The proof is the same walk as the non-terrain one, generalized over the ghost fact
+  (`rest_saX` / `rest_tsX`). Here the fact is `XT`: the ring, plus `ter_abd` from the
+  step's start memory. `ter_abd` is `ter_post` without the counter: (a) lists 11 / 9 grow
+  only at the tail, by budget-0 nodes; (b) the budgets of their nodes are unchanged;
+  (d) the time-stop gate is unchanged. It is composable (`ter_abd_tr`) and is carried:
+  - across the loop's own stores (`gco_side` / `flg_side`: no O_CMD cell, no gTimeStopState);
+  - across cur_obj_update's exit (`xt_cou`). Off slot k, the memory is unchanged off the VM
+    cells. At slot k, the budget reads the running script, whose family keeps
+    box / lid / coin formation (`ObjFamily.Qfam_id`, `sdyn_Vo`).
+
+  The capstones' row is replaced by two:
+  - **`Hobj_cou_t : ObjStep.cou_keeps_t ter_ls`**: the same keeps as `Hobj_cou_nt`
+    (ghost_keeps, rest_keeps, pre_keep / post_keep at INV_k), with ghost fact `XT ter_ls m0`
+    for every step-start m0. There is no Mario hole (terrain).
+  - **`Hobj_ter_ctr : ObjStep.ter_ctr_row`** (both loop bodies): `ter_post`'s counter
+    clause (c) alone. One terrain update grows gSurfacesAllocated by at most the object's
+    budget (`OW.dyn`: 12 box, 2 lid, 0 coin formation, 0 under a time stop). **This is a
+    counter-only claim about the real update**, over the same states as `ter_rest_row`.
+
+  **Census behind `Hobj_ter_ctr` (`TerCtrCensus.ter_ctr_value`, vm, spine-root).** The
+  budget is per load, since the meshes are pinned (`mesh_tris_pinned`, `coll_pin`). So
+  the row is true iff no update reaches `load_object_collision_model`, or any other
+  counter writer, twice. The census checks this over every VM state of the three terrain
+  scripts (`vm_tab`). For one update entered at a state, it bounds the loader calls of:
+  - the command's handler, or for CALL_NATIVE the native;
+  - every nested call: direct calls, and indirect calls through any address-taken
+    function of a matching type;
+  - the successor states, until a command that always returns BHV_PROC_BREAK
+    (`always_brk_value`).
+
+  A loop around a loading call, or another counter writer, counts as unbounded. Result:
+  box 1, coin formation 0, lid 1, the same at two depths / fuels. The cannon lid's last
+  frame (the loop's CALL_NATIVE load, then the deactivate) is one of its start states,
+  so it is counted. **No FOUND.**
+
+  Discharge route for the two rows, logged:
+  - (A) prove `ter_ctr_row` from the census, by a walk of the real loader under the
+    pinned meshes plus a one-load-per-update induction over the dispatch loop;
+  - (C) fold the counter into INV_k (a "loaded" flag per command), once the dispatch
+    keeps are discharged. The flag is needed because the collision-load keep is not
+    per-command inductive without it.
+
+  GOAL 1's statement only swapped the one row for the two narrower ones
+  (NoAImpliesNoFlyFrame); its claim and proofs are unchanged.
+  **Native VM-cell scan (2026-11-08, `NativeVmCensus.native_vm_value`, vm, spine-root),
+  behind `native_vals` inside the keeps rows.** INV_k's ghost clause `nvB scr` needs the
+  cells where the real memory and the ghost differ (slot k's VM cells and gCurBhvCommand)
+  to hold only script pointers. The code of every live native (1429 functions, not the
+  interpreter) stores into a VM field in three places only: `obj_set_held_state` (a
+  script; called only from Mario's code, i.e. `native_res`), `create_object` (the spawned
+  script, on the freshly allocated slot; called only by `spawn_object_at_origin`) and
+  `allocate_object` (an int). No native stores the cursor, copies a whole Object, passes a
+  VM cell's address, or hands an Object pointer to a builtin. **No FOUND**; the INV_k
+  clause is not widened.
+  `mario_hole` covers only `execute_mario_action`, not the whole `bhv_mario_update`
+  native, which stays inside `rest_keeps` (`native_vals` / `native_res`).
   **Row 28 SPAWN_CHILD (2026-11-03): `row_spawn_child`, on the REAL handler.**
   `ObjChild.child_real` walks bhv_cmd_spawn_child -> spawn_object_at_origin ->
   create_object -> allocate_object / try_allocate_object, geo_obj_init and
@@ -2427,7 +2517,9 @@ without pressing A".*
   constant; both belong to the narrow semantic row "keeps action ∉ T". **Split 2026-10-26**
   (`ObjStepSplit`): that row is now `Hobj_step_act_terrain` / `Hobj_step_act_nonterrain`
   (`step_act_row`: one object's update ends with Mario's action outside T; on the non-terrain
-  lists under the Mario hole), and `Hobj_step_rest_*` (`step_rest_row`) keep the rest of the
+  lists under the Mario hole), and `Hobj_step_rest_*` (`step_rest_row`; the non-terrain one PROVED
+  since 2026-11-07 from `Hobj_cou_nt`, the terrain one since 2026-11-08 from `Hobj_cou_t` +
+  `Hobj_ter_ctr`, see `ObjStep`) keep the rest of the
   step rows and may assume it. `step_row_split` reassembles them, so ObjLoop's walk is
   unchanged. GOAL 1's need from the objects' per-object step is exactly the act rows. To
   prove: the census plus the step's footprint (no store into the action cell through another

@@ -78,7 +78,7 @@ From SM64.Proofs.WMotRRequiresA Require PoleXc PoleCasesT LsContract AudioInv.
 From SM64.Proofs.WMotRRequiresA Require RenderFlank RenderKeep AnimWorld PlatformKeep PollFlank.
 From SM64.Proofs.WMotRRequiresA Require LevelGvars LevelFlank LevelKeep PollKeep MidKeep CamRows MplatKeep ClearKeep ObjStores.
 From SM64.Proofs.WMotRRequiresA Require ObjPhase ObjWorld ObjLoop ObjStepSplit BhvVM UnloadKeep UnloadRows UnloadPc UnloadSi.
-From SM64.Proofs.WMotRRequiresA Require CollWalk DebugKeep BlindKeep.
+From SM64.Proofs.WMotRRequiresA Require CollWalk DebugKeep BlindKeep BhvStep ObjStep.
 From SM64.Generated Require object_list_processor area platform_displacement.
 From SM64.Proofs Require OsDmaFloor LptBody ObjExtBodies UpdateCameraBody.
 From SM64.Proofs Require Import HeightInvariant HeightBudgetArith HeightMoveCatalog WMotRLevel
@@ -1548,20 +1548,57 @@ Section HeightLinked12.
       object_list_processor.f_update_objects_during_time_stop.
   (* 2026-11-02: the terrain rest row carries the surface budget
      (ObjLoop.ter_row: the object starts under its budget, vbud, and the step
-     claims ter_post (a)-(d); the truth / phantom checks are at ter_row) *)
-  Hypothesis Hobj_step_rest_terrain :
-    ObjStepSplit.ter_rest_row (lp_ge lp) bm Pobjl object_list_processor.f_update_objects_starting_at
-    /\ ObjStepSplit.ter_rest_row (lp_ge lp) bm Pobjl object_list_processor.f_update_objects_during_time_stop.
+     claims ter_post (a)-(d); the truth / phantom checks are at ter_row).
+     2026-11-08 (ObjStep): the terrain rest row is PROVED from the real loop
+     body (ObjStep.ter_rest_sa / ter_rest_ts, Hobj_step_rest_terrain below),
+     as the non-terrain one, with the ghost fact XT: the ring and ter_post's
+     (a) / (b) / (d) from the step's start (ObjStep.ter_abd), carried across
+     the loop's stores and cur_obj_update's exit (the running slot's budget
+     from its script family, ObjFamily.Qfam_id).  What remains is two
+     narrower rows: Hobj_cou_t, the keeps INV_k's dispatch loop reads with
+     that ghost fact (no Mario hole: terrain), and Hobj_ter_ctr, ter_post's
+     counter clause (c) alone -- a counter-only claim about the real update,
+     backed by TerCtrCensus.ter_ctr_value (one load per update at most). *)
+  Hypothesis Hobj_cou_t : ObjStep.cou_keeps_t lp bm bc oc0 SafeB ObjLoop.ter_ls.
+  Hypothesis Hobj_ter_ctr :
+    ObjStep.ter_ctr_row (lp_ge lp) bm Pobjl object_list_processor.f_update_objects_starting_at
+    /\ ObjStep.ter_ctr_row (lp_ge lp) bm Pobjl object_list_processor.f_update_objects_during_time_stop.
   Hypothesis Hobj_step_act_nonterrain : mario_hole lp bm MWF Phi ->
     ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_starting_at
     /\ ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_during_time_stop.
-  Hypothesis Hobj_step_rest_nonterrain : mario_hole lp bm MWF Phi ->
+  (* 2026-11-07 (ObjStep): the non-terrain rest row is PROVED from the real
+     loop body (ObjStep.rest_sa / rest_ts): the gCurrentObject store, the
+     gfx-flag stores, and cur_obj_update through BhvStep.cou_real at INV_k
+     (ObjInv; entry, the row keeps ObjRows.rows_k, exit ObjExit.inv_exit),
+     the object's ring carried by INV_k's ghost.  What remains is the
+     narrower row Hobj_cou_nt: per slot k of a non-terrain ring, its start
+     VM state st0 and the entry's nextblock, the keeps INV_k's dispatch loop
+     reads (ObjRows.ghost_keeps at the ghost, ObjRows.rest_keeps, BhvStep.
+     pre_keep / post_keep at INV_k) -- under the Mario hole, as before.
+     The scripts are SafeB by SafeB_syms_ok (d) (HSafeB_scr below). *)
+  Hypothesis Hobj_cou_nt : mario_hole lp bm MWF Phi -> ObjStep.cou_keeps lp bm bc oc0 SafeB ObjLoop.nt_ls.
+  Lemma HSafeB_scr : forall b, BhvStep.scr_b lp b -> SafeB b.
+  Proof. exact (ObjStep.scr_safe lp SafeB (sbs_bhv lp SafeB HSafeB_syms)). Qed.
+  Lemma Hobj_step_rest_nonterrain : mario_hole lp bm MWF Phi ->
     ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_starting_at
     /\ ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_during_time_stop.
+  Proof.
+    intros Hh. pose proof (Hobj_cou_nt Hh) as K. split.
+    - exact (ObjStep.rest_sa lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 Hsqrtf HSafeB_scr ObjLoop.nt_ls K).
+    - exact (ObjStep.rest_ts lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 Hsqrtf HSafeB_scr ObjLoop.nt_ls K).
+  Qed.
+  Lemma Hobj_step_rest_terrain :
+    ObjStepSplit.ter_rest_row (lp_ge lp) bm Pobjl object_list_processor.f_update_objects_starting_at
+    /\ ObjStepSplit.ter_rest_row (lp_ge lp) bm Pobjl object_list_processor.f_update_objects_during_time_stop.
+  Proof.
+    destruct Hobj_ter_ctr as (C1 & C2). split.
+    - exact (ObjStep.ter_rest_sa lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 Hsqrtf HSafeB_scr Hobj_cou_t C1).
+    - exact (ObjStep.ter_rest_ts lp H12 bm Hbm_sym bc oc0 SafeB Hbc_sym Hoc0 Hsqrtf HSafeB_scr Hobj_cou_t C2).
+  Qed.
   (* the step rows ObjLoop's walk reads, reassembled *)
   Lemma Hobj_step_terrain :
     ObjLoop.ter_row (lp_ge lp) bm Pobjl object_list_processor.f_update_objects_starting_at
