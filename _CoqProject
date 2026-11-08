@@ -343,6 +343,7 @@ proofs/WMotRRequiresA/SpawnTypeRun.v
 proofs/WMotRRequiresA/AnimRoundTrip.v
 proofs/WMotRRequiresA/EntryWarp.v
 proofs/WMotRRequiresA/StartSat.v
+proofs/WMotRRequiresA/StartCarry.v
 proofs/WMotRRequiresA/YWriterCensus.v
 proofs/WMotRRequiresA/HeldObjCensus.v
 proofs/WMotRRequiresA/BehaviorScripts.v
