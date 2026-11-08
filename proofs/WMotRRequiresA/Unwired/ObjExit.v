@@ -159,7 +159,7 @@ Proof.
       * rewrite Eq. assert (Hp0 : Mem.perm g b1 ofs Cur Readable) by exact (proj1 (PB b1 ofs Cur Readable Vb) Hp).
         pose proof (Mem.mi_memval _ _ _ (Mem.mi_inj _ _ _ Hi) b1 ofs b1 0 E Hp0) as Mv.
         rewrite Z.add_0_r in Mv. exact Mv.
-      * pose proof (NC b1 ofs Vb Ne) as Ok.
+      * pose proof (NC b1 ofs Vb Hp Ne) as Ok.
         destruct (ZMap.get ofs ((Mem.mem_contents m) !! b1)) as [ | bt | v q n ]; [ constructor | constructor | ].
         constructor. destruct v as [ | | | | | b i ]; try constructor.
         cbn [BhvStep.pmvok] in Ok. pose proof (HP _ Ok) as Mb.
@@ -283,7 +283,7 @@ Section EX.
     destruct NV as (PB & NC). split.
     - intros b ofs k p Hb. rewrite cut_perm. split; [ intros (_ & Hp) | intros Hp; split; [ exact Hb | ] ];
         [ exact (proj1 (PB b ofs k p Hb) Hp) | exact (proj2 (PB b ofs k p Hb) Hp) ].
-    - intros b ofs Hb Hne. exact (NC b ofs Hb Hne).
+    - intros b ofs Hb Hr Hne. exact (NC b ofs Hb (proj2 (proj1 (cut_perm _ _ _ _ _ _) Hr)) Hne).
   Qed.
 
   Lemma CLm : forall gp, closed_by gp g -> (forall id b, Genv.find_symbol G id = Some b -> gp b <> None) ->
