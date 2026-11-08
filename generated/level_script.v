@@ -1,9 +1,9 @@
 (* ======================================================================
    GENERATED FILE -- DO NOT EDIT.
    Produced by: pipeline/clightgen.sh
-   From source: vendor/sm64/src/engine/level_script.c
+   From source: pipeline/tu/level_script.c
    clightgen:   The CompCert CompCert AST generator, version 3.15
-   Flags:       -normalize -nostdinc -fstruct-passing -Ivendor/sm64/include -Ivendor/sm64/build/us -Ivendor/sm64/build/us/include -Ivendor/sm64/src -Ivendor/sm64 -Ivendor/sm64/include/libc -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1 -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1 -include pipeline/proof_n64.h (+ __stringlit_ -> __stringlit_level_script_)
+   Flags:       -normalize -nostdinc -fstruct-passing -Ivendor/sm64/include -Ivendor/sm64/build/us -Ivendor/sm64/build/us/include -Ivendor/sm64/src -Ivendor/sm64 -Ivendor/sm64/include/libc -DVERSION_US=1 -DF3DEX_GBI_2=1 -DF3DEX_GBI_SHARED=1 -D_FINALROM=1 -DTARGET_N64=1 -DNON_MATCHING=1 -DAVOID_UB=1 -D_LANGUAGE_C=1 -include pipeline/proof_n64.h -DPROOF_LEVEL_SCRIPT_C=1 (+ __stringlit_ -> __stringlit_level_script_)
    Regenerate:  make regen   (output must be byte-identical)
    ====================================================================== *)
 From Coq Require Import String List ZArith.
@@ -23,7 +23,7 @@ Module Info.
   Definition abi := "eabi".
   Definition bitsize := 32.
   Definition big_endian := true.
-  Definition source_file := "vendor/sm64/src/engine/level_script.c".
+  Definition source_file := "pipeline/tu/level_script.c".
   Definition normalized := true.
 End Info.
 
@@ -53,28 +53,28 @@ Definition _UnusedArea28 : ident := $"UnusedArea28".
 Definition _WarpNode : ident := $"WarpNode".
 Definition _Waypoint : ident := $"Waypoint".
 Definition _Whirlpool : ident := $"Whirlpool".
-Definition __1289 : ident := $"_anon_a968579a3e46".
-Definition __3692 : ident := $"_anon_d320fa552f7c".
-Definition __469 : ident := $"_anon_492449ad5917".
-Definition __510 : ident := $"_anon_b68c7cd607b8".
-Definition __512 : ident := $"_anon_cc23475d879a".
-Definition __514 : ident := $"_anon_582ea1ea7a16".
-Definition __516 : ident := $"_anon_1f056269c846".
-Definition __518 : ident := $"_anon_e728cafb3139_0".
-Definition __520 : ident := $"_anon_e728cafb3139_1".
-Definition __522 : ident := $"_anon_082533b0d3da".
-Definition __524 : ident := $"_anon_326d1d817e71".
-Definition __526 : ident := $"_anon_93f6c6d42751".
-Definition __528 : ident := $"_anon_7fe8a69a4b23".
-Definition __530 : ident := $"_anon_4f0efebcc12b".
-Definition __532 : ident := $"_anon_aa3f148f9bf1".
-Definition __534 : ident := $"_anon_336f2d3e0b53".
-Definition __536 : ident := $"_anon_5b5ce0cbc558".
-Definition __538 : ident := $"_anon_f17a035c1639".
-Definition __547 : ident := $"_anon_50f496f0a47e".
-Definition __549 : ident := $"_anon_56e646c222b2".
-Definition __764 : ident := $"_anon_2a845cdd6eb9".
-Definition __769 : ident := $"_anon_7dce1c6c6ad3".
+Definition __1291 : ident := $"_anon_a968579a3e46".
+Definition __3694 : ident := $"_anon_d320fa552f7c".
+Definition __471 : ident := $"_anon_492449ad5917".
+Definition __512 : ident := $"_anon_b68c7cd607b8".
+Definition __514 : ident := $"_anon_cc23475d879a".
+Definition __516 : ident := $"_anon_582ea1ea7a16".
+Definition __518 : ident := $"_anon_1f056269c846".
+Definition __520 : ident := $"_anon_e728cafb3139_0".
+Definition __522 : ident := $"_anon_e728cafb3139_1".
+Definition __524 : ident := $"_anon_082533b0d3da".
+Definition __526 : ident := $"_anon_326d1d817e71".
+Definition __528 : ident := $"_anon_93f6c6d42751".
+Definition __530 : ident := $"_anon_7fe8a69a4b23".
+Definition __532 : ident := $"_anon_4f0efebcc12b".
+Definition __534 : ident := $"_anon_aa3f148f9bf1".
+Definition __536 : ident := $"_anon_336f2d3e0b53".
+Definition __538 : ident := $"_anon_5b5ce0cbc558".
+Definition __540 : ident := $"_anon_f17a035c1639".
+Definition __549 : ident := $"_anon_50f496f0a47e".
+Definition __551 : ident := $"_anon_56e646c222b2".
+Definition __766 : ident := $"_anon_2a845cdd6eb9".
+Definition __771 : ident := $"_anon_7dce1c6c6ad3".
 Definition ___builtin_ais_annot : ident := $"__builtin_ais_annot".
 Definition ___builtin_annot : ident := $"__builtin_annot".
 Definition ___builtin_annot_intval : ident := $"__builtin_annot_intval".
@@ -3453,7 +3453,7 @@ Definition f_level_cmd_begin_area := {|
                               (Ederef
                                 (Etempvar _node (tptr (Tstruct _GraphNodeCamera noattr)))
                                 (Tstruct _GraphNodeCamera noattr)) _config
-                              (Tunion __1289 noattr)) _camera
+                              (Tunion __1291 noattr)) _camera
                             (tptr (Tstruct _Camera noattr))))
                         (Sassign
                           (Efield
@@ -3782,7 +3782,7 @@ Definition f_level_cmd_23 := {|
   fn_return := tvoid;
   fn_callconv := cc_default;
   fn_params := nil;
-  fn_vars := ((_arg2, (Tunion __3692 noattr)) :: nil);
+  fn_vars := ((_arg2, (Tunion __3694 noattr)) :: nil);
   fn_temps := ((_model, tshort) :: (_arg0H, tshort) ::
                (_arg1, (tptr tvoid)) ::
                (_t'1, (tptr (Tstruct _GraphNodeScale noattr))) ::
@@ -3886,7 +3886,7 @@ Definition f_level_cmd_23 := {|
                     (Ecast
                       (Etempvar _t'8 (tptr (Tstruct _LevelCommand noattr)))
                       (tptr tuchar)) (tptr tuchar)) (tptr tint)) tint))
-            (Sassign (Efield (Evar _arg2 (Tunion __3692 noattr)) _i tint)
+            (Sassign (Efield (Evar _arg2 (Tunion __3694 noattr)) _i tint)
               (Etempvar _t'9 tint))))
         (Ssequence
           (Sifthenelse (Ebinop Olt (Etempvar _model tshort)
@@ -3897,7 +3897,7 @@ Definition f_level_cmd_23 := {|
                   (Evar _sLevelPool (tptr (Tstruct _AllocOnlyPool noattr))))
                 (Ssequence
                   (Sset _t'7
-                    (Efield (Evar _arg2 (Tunion __3692 noattr)) _f tfloat))
+                    (Efield (Evar _arg2 (Tunion __3694 noattr)) _f tfloat))
                   (Scall (Some _t'1)
                     (Evar _init_graph_node_scale (Tfunction
                                                    ((tptr (Tstruct _AllocOnlyPool noattr)) ::
@@ -4160,543 +4160,6 @@ Definition f_level_cmd_init_mario := {|
                                 (Econst_int (Int.repr 3) tint) tuint) tint)
                             (tptr tuchar))
                           (tptr (Tstruct _LevelCommand noattr)))))))))))))))
-|}.
-
-Definition f_level_cmd_place_object := {|
-  fn_return := tvoid;
-  fn_callconv := cc_default;
-  fn_params := nil;
-  fn_vars := nil;
-  fn_temps := ((_val7, tuchar) :: (_model, tushort) ::
-               (_spawnInfo, (tptr (Tstruct _SpawnInfo noattr))) ::
-               (_t'2, tint) :: (_t'1, (tptr tvoid)) :: (_t'39, tshort) ::
-               (_t'38, tuchar) ::
-               (_t'37, (tptr (Tstruct _LevelCommand noattr))) ::
-               (_t'36, tuchar) ::
-               (_t'35, (tptr (Tstruct _LevelCommand noattr))) ::
-               (_t'34, tshort) :: (_t'33, tuchar) ::
-               (_t'32, (tptr (Tstruct _LevelCommand noattr))) ::
-               (_t'31, (tptr (Tstruct _AllocOnlyPool noattr))) ::
-               (_t'30, tshort) ::
-               (_t'29, (tptr (Tstruct _LevelCommand noattr))) ::
-               (_t'28, tshort) ::
-               (_t'27, (tptr (Tstruct _LevelCommand noattr))) ::
-               (_t'26, tshort) ::
-               (_t'25, (tptr (Tstruct _LevelCommand noattr))) ::
-               (_t'24, tshort) ::
-               (_t'23, (tptr (Tstruct _LevelCommand noattr))) ::
-               (_t'22, tshort) ::
-               (_t'21, (tptr (Tstruct _LevelCommand noattr))) ::
-               (_t'20, tshort) ::
-               (_t'19, (tptr (Tstruct _LevelCommand noattr))) ::
-               (_t'18, tshort) :: (_t'17, tshort) :: (_t'16, tuint) ::
-               (_t'15, (tptr (Tstruct _LevelCommand noattr))) ::
-               (_t'14, (tptr tvoid)) ::
-               (_t'13, (tptr (Tstruct _LevelCommand noattr))) ::
-               (_t'12, (tptr (Tstruct _GraphNode noattr))) ::
-               (_t'11, (tptr (tptr (Tstruct _GraphNode noattr)))) ::
-               (_t'10, (tptr (Tstruct _SpawnInfo noattr))) ::
-               (_t'9, tshort) :: (_t'8, (tptr (Tstruct _Area noattr))) ::
-               (_t'7, tshort) :: (_t'6, (tptr (Tstruct _Area noattr))) ::
-               (_t'5, tuchar) ::
-               (_t'4, (tptr (Tstruct _LevelCommand noattr))) ::
-               (_t'3, (tptr (Tstruct _LevelCommand noattr))) :: nil);
-  fn_body :=
-(Ssequence
-  (Ssequence
-    (Sset _t'39 (Evar _gCurrActNum tshort))
-    (Sset _val7
-      (Ecast
-        (Ebinop Oshl (Econst_int (Int.repr 1) tint)
-          (Ebinop Osub (Etempvar _t'39 tshort) (Econst_int (Int.repr 1) tint)
-            tint) tint) tuchar)))
-  (Ssequence
-    (Ssequence
-      (Ssequence
-        (Sset _t'34 (Evar _sCurrAreaIndex tshort))
-        (Sifthenelse (Ebinop One (Etempvar _t'34 tshort)
-                       (Eunop Oneg (Econst_int (Int.repr 1) tint) tint) tint)
-          (Ssequence
-            (Sset _t'35
-              (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
-            (Ssequence
-              (Sset _t'36
-                (Ederef
-                  (Ecast
-                    (Ebinop Oadd
-                      (Ebinop Oor
-                        (Ebinop Oand (Econst_int (Int.repr 2) tint)
-                          (Econst_int (Int.repr 3) tint) tint)
-                        (Ebinop Oshl
-                          (Ebinop Oand (Econst_int (Int.repr 2) tint)
-                            (Eunop Onotint (Econst_int (Int.repr 3) tint)
-                              tint) tint)
-                          (Ebinop Oshr (Esizeof (tptr tvoid) tuint)
-                            (Econst_int (Int.repr 3) tint) tuint) tint) tint)
-                      (Ecast
-                        (Etempvar _t'35 (tptr (Tstruct _LevelCommand noattr)))
-                        (tptr tuchar)) (tptr tuchar)) (tptr tuchar)) tuchar))
-              (Sifthenelse (Ebinop Oand (Etempvar _t'36 tuchar)
-                             (Etempvar _val7 tuchar) tint)
-                (Sset _t'2 (Ecast (Econst_int (Int.repr 1) tint) tbool))
-                (Ssequence
-                  (Ssequence
-                    (Sset _t'37
-                      (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
-                    (Ssequence
-                      (Sset _t'38
-                        (Ederef
-                          (Ecast
-                            (Ebinop Oadd
-                              (Ebinop Oor
-                                (Ebinop Oand (Econst_int (Int.repr 2) tint)
-                                  (Econst_int (Int.repr 3) tint) tint)
-                                (Ebinop Oshl
-                                  (Ebinop Oand (Econst_int (Int.repr 2) tint)
-                                    (Eunop Onotint
-                                      (Econst_int (Int.repr 3) tint) tint)
-                                    tint)
-                                  (Ebinop Oshr (Esizeof (tptr tvoid) tuint)
-                                    (Econst_int (Int.repr 3) tint) tuint)
-                                  tint) tint)
-                              (Ecast
-                                (Etempvar _t'37 (tptr (Tstruct _LevelCommand noattr)))
-                                (tptr tuchar)) (tptr tuchar)) (tptr tuchar))
-                          tuchar))
-                      (Sset _t'2
-                        (Ecast
-                          (Ebinop Oeq (Etempvar _t'38 tuchar)
-                            (Econst_int (Int.repr 31) tint) tint) tbool))))
-                  (Sset _t'2 (Ecast (Etempvar _t'2 tint) tbool))))))
-          (Sset _t'2 (Econst_int (Int.repr 0) tint))))
-      (Sifthenelse (Etempvar _t'2 tint)
-        (Ssequence
-          (Ssequence
-            (Sset _t'32
-              (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
-            (Ssequence
-              (Sset _t'33
-                (Ederef
-                  (Ecast
-                    (Ebinop Oadd
-                      (Ebinop Oor
-                        (Ebinop Oand (Econst_int (Int.repr 3) tint)
-                          (Econst_int (Int.repr 3) tint) tint)
-                        (Ebinop Oshl
-                          (Ebinop Oand (Econst_int (Int.repr 3) tint)
-                            (Eunop Onotint (Econst_int (Int.repr 3) tint)
-                              tint) tint)
-                          (Ebinop Oshr (Esizeof (tptr tvoid) tuint)
-                            (Econst_int (Int.repr 3) tint) tuint) tint) tint)
-                      (Ecast
-                        (Etempvar _t'32 (tptr (Tstruct _LevelCommand noattr)))
-                        (tptr tuchar)) (tptr tuchar)) (tptr tuchar)) tuchar))
-              (Sset _model (Ecast (Etempvar _t'33 tuchar) tushort))))
-          (Ssequence
-            (Ssequence
-              (Ssequence
-                (Sset _t'31
-                  (Evar _sLevelPool (tptr (Tstruct _AllocOnlyPool noattr))))
-                (Scall (Some _t'1)
-                  (Evar _alloc_only_pool_alloc (Tfunction
-                                                 ((tptr (Tstruct _AllocOnlyPool noattr)) ::
-                                                  tint :: nil) (tptr tvoid)
-                                                 cc_default))
-                  ((Etempvar _t'31 (tptr (Tstruct _AllocOnlyPool noattr))) ::
-                   (Esizeof (Tstruct _SpawnInfo noattr) tuint) :: nil)))
-              (Sset _spawnInfo (Etempvar _t'1 (tptr tvoid))))
-            (Ssequence
-              (Ssequence
-                (Sset _t'29
-                  (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
-                (Ssequence
-                  (Sset _t'30
-                    (Ederef
-                      (Ecast
-                        (Ebinop Oadd
-                          (Ebinop Oor
-                            (Ebinop Oand (Econst_int (Int.repr 4) tint)
-                              (Econst_int (Int.repr 3) tint) tint)
-                            (Ebinop Oshl
-                              (Ebinop Oand (Econst_int (Int.repr 4) tint)
-                                (Eunop Onotint (Econst_int (Int.repr 3) tint)
-                                  tint) tint)
-                              (Ebinop Oshr (Esizeof (tptr tvoid) tuint)
-                                (Econst_int (Int.repr 3) tint) tuint) tint)
-                            tint)
-                          (Ecast
-                            (Etempvar _t'29 (tptr (Tstruct _LevelCommand noattr)))
-                            (tptr tuchar)) (tptr tuchar)) (tptr tshort))
-                      tshort))
-                  (Sassign
-                    (Ederef
-                      (Ebinop Oadd
-                        (Efield
-                          (Ederef
-                            (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
-                            (Tstruct _SpawnInfo noattr)) _startPos
-                          (tarray tshort 3)) (Econst_int (Int.repr 0) tint)
-                        (tptr tshort)) tshort) (Etempvar _t'30 tshort))))
-              (Ssequence
-                (Ssequence
-                  (Sset _t'27
-                    (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
-                  (Ssequence
-                    (Sset _t'28
-                      (Ederef
-                        (Ecast
-                          (Ebinop Oadd
-                            (Ebinop Oor
-                              (Ebinop Oand (Econst_int (Int.repr 6) tint)
-                                (Econst_int (Int.repr 3) tint) tint)
-                              (Ebinop Oshl
-                                (Ebinop Oand (Econst_int (Int.repr 6) tint)
-                                  (Eunop Onotint
-                                    (Econst_int (Int.repr 3) tint) tint)
-                                  tint)
-                                (Ebinop Oshr (Esizeof (tptr tvoid) tuint)
-                                  (Econst_int (Int.repr 3) tint) tuint) tint)
-                              tint)
-                            (Ecast
-                              (Etempvar _t'27 (tptr (Tstruct _LevelCommand noattr)))
-                              (tptr tuchar)) (tptr tuchar)) (tptr tshort))
-                        tshort))
-                    (Sassign
-                      (Ederef
-                        (Ebinop Oadd
-                          (Efield
-                            (Ederef
-                              (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
-                              (Tstruct _SpawnInfo noattr)) _startPos
-                            (tarray tshort 3)) (Econst_int (Int.repr 1) tint)
-                          (tptr tshort)) tshort) (Etempvar _t'28 tshort))))
-                (Ssequence
-                  (Ssequence
-                    (Sset _t'25
-                      (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
-                    (Ssequence
-                      (Sset _t'26
-                        (Ederef
-                          (Ecast
-                            (Ebinop Oadd
-                              (Ebinop Oor
-                                (Ebinop Oand (Econst_int (Int.repr 8) tint)
-                                  (Econst_int (Int.repr 3) tint) tint)
-                                (Ebinop Oshl
-                                  (Ebinop Oand (Econst_int (Int.repr 8) tint)
-                                    (Eunop Onotint
-                                      (Econst_int (Int.repr 3) tint) tint)
-                                    tint)
-                                  (Ebinop Oshr (Esizeof (tptr tvoid) tuint)
-                                    (Econst_int (Int.repr 3) tint) tuint)
-                                  tint) tint)
-                              (Ecast
-                                (Etempvar _t'25 (tptr (Tstruct _LevelCommand noattr)))
-                                (tptr tuchar)) (tptr tuchar)) (tptr tshort))
-                          tshort))
-                      (Sassign
-                        (Ederef
-                          (Ebinop Oadd
-                            (Efield
-                              (Ederef
-                                (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
-                                (Tstruct _SpawnInfo noattr)) _startPos
-                              (tarray tshort 3))
-                            (Econst_int (Int.repr 2) tint) (tptr tshort))
-                          tshort) (Etempvar _t'26 tshort))))
-                  (Ssequence
-                    (Ssequence
-                      (Sset _t'23
-                        (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
-                      (Ssequence
-                        (Sset _t'24
-                          (Ederef
-                            (Ecast
-                              (Ebinop Oadd
-                                (Ebinop Oor
-                                  (Ebinop Oand
-                                    (Econst_int (Int.repr 10) tint)
-                                    (Econst_int (Int.repr 3) tint) tint)
-                                  (Ebinop Oshl
-                                    (Ebinop Oand
-                                      (Econst_int (Int.repr 10) tint)
-                                      (Eunop Onotint
-                                        (Econst_int (Int.repr 3) tint) tint)
-                                      tint)
-                                    (Ebinop Oshr (Esizeof (tptr tvoid) tuint)
-                                      (Econst_int (Int.repr 3) tint) tuint)
-                                    tint) tint)
-                                (Ecast
-                                  (Etempvar _t'23 (tptr (Tstruct _LevelCommand noattr)))
-                                  (tptr tuchar)) (tptr tuchar))
-                              (tptr tshort)) tshort))
-                        (Sassign
-                          (Ederef
-                            (Ebinop Oadd
-                              (Efield
-                                (Ederef
-                                  (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
-                                  (Tstruct _SpawnInfo noattr)) _startAngle
-                                (tarray tshort 3))
-                              (Econst_int (Int.repr 0) tint) (tptr tshort))
-                            tshort)
-                          (Ebinop Odiv
-                            (Ebinop Omul (Etempvar _t'24 tshort)
-                              (Econst_int (Int.repr 32768) tint) tint)
-                            (Econst_int (Int.repr 180) tint) tint))))
-                    (Ssequence
-                      (Ssequence
-                        (Sset _t'21
-                          (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
-                        (Ssequence
-                          (Sset _t'22
-                            (Ederef
-                              (Ecast
-                                (Ebinop Oadd
-                                  (Ebinop Oor
-                                    (Ebinop Oand
-                                      (Econst_int (Int.repr 12) tint)
-                                      (Econst_int (Int.repr 3) tint) tint)
-                                    (Ebinop Oshl
-                                      (Ebinop Oand
-                                        (Econst_int (Int.repr 12) tint)
-                                        (Eunop Onotint
-                                          (Econst_int (Int.repr 3) tint)
-                                          tint) tint)
-                                      (Ebinop Oshr
-                                        (Esizeof (tptr tvoid) tuint)
-                                        (Econst_int (Int.repr 3) tint) tuint)
-                                      tint) tint)
-                                  (Ecast
-                                    (Etempvar _t'21 (tptr (Tstruct _LevelCommand noattr)))
-                                    (tptr tuchar)) (tptr tuchar))
-                                (tptr tshort)) tshort))
-                          (Sassign
-                            (Ederef
-                              (Ebinop Oadd
-                                (Efield
-                                  (Ederef
-                                    (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
-                                    (Tstruct _SpawnInfo noattr)) _startAngle
-                                  (tarray tshort 3))
-                                (Econst_int (Int.repr 1) tint) (tptr tshort))
-                              tshort)
-                            (Ebinop Odiv
-                              (Ebinop Omul (Etempvar _t'22 tshort)
-                                (Econst_int (Int.repr 32768) tint) tint)
-                              (Econst_int (Int.repr 180) tint) tint))))
-                      (Ssequence
-                        (Ssequence
-                          (Sset _t'19
-                            (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
-                          (Ssequence
-                            (Sset _t'20
-                              (Ederef
-                                (Ecast
-                                  (Ebinop Oadd
-                                    (Ebinop Oor
-                                      (Ebinop Oand
-                                        (Econst_int (Int.repr 14) tint)
-                                        (Econst_int (Int.repr 3) tint) tint)
-                                      (Ebinop Oshl
-                                        (Ebinop Oand
-                                          (Econst_int (Int.repr 14) tint)
-                                          (Eunop Onotint
-                                            (Econst_int (Int.repr 3) tint)
-                                            tint) tint)
-                                        (Ebinop Oshr
-                                          (Esizeof (tptr tvoid) tuint)
-                                          (Econst_int (Int.repr 3) tint)
-                                          tuint) tint) tint)
-                                    (Ecast
-                                      (Etempvar _t'19 (tptr (Tstruct _LevelCommand noattr)))
-                                      (tptr tuchar)) (tptr tuchar))
-                                  (tptr tshort)) tshort))
-                            (Sassign
-                              (Ederef
-                                (Ebinop Oadd
-                                  (Efield
-                                    (Ederef
-                                      (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
-                                      (Tstruct _SpawnInfo noattr))
-                                    _startAngle (tarray tshort 3))
-                                  (Econst_int (Int.repr 2) tint)
-                                  (tptr tshort)) tshort)
-                              (Ebinop Odiv
-                                (Ebinop Omul (Etempvar _t'20 tshort)
-                                  (Econst_int (Int.repr 32768) tint) tint)
-                                (Econst_int (Int.repr 180) tint) tint))))
-                        (Ssequence
-                          (Ssequence
-                            (Sset _t'18 (Evar _sCurrAreaIndex tshort))
-                            (Sassign
-                              (Efield
-                                (Ederef
-                                  (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
-                                  (Tstruct _SpawnInfo noattr)) _areaIndex
-                                tschar) (Etempvar _t'18 tshort)))
-                          (Ssequence
-                            (Ssequence
-                              (Sset _t'17 (Evar _sCurrAreaIndex tshort))
-                              (Sassign
-                                (Efield
-                                  (Ederef
-                                    (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
-                                    (Tstruct _SpawnInfo noattr))
-                                  _activeAreaIndex tschar)
-                                (Etempvar _t'17 tshort)))
-                            (Ssequence
-                              (Ssequence
-                                (Sset _t'15
-                                  (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
-                                (Ssequence
-                                  (Sset _t'16
-                                    (Ederef
-                                      (Ecast
-                                        (Ebinop Oadd
-                                          (Ebinop Oor
-                                            (Ebinop Oand
-                                              (Econst_int (Int.repr 16) tint)
-                                              (Econst_int (Int.repr 3) tint)
-                                              tint)
-                                            (Ebinop Oshl
-                                              (Ebinop Oand
-                                                (Econst_int (Int.repr 16) tint)
-                                                (Eunop Onotint
-                                                  (Econst_int (Int.repr 3) tint)
-                                                  tint) tint)
-                                              (Ebinop Oshr
-                                                (Esizeof (tptr tvoid) tuint)
-                                                (Econst_int (Int.repr 3) tint)
-                                                tuint) tint) tint)
-                                          (Ecast
-                                            (Etempvar _t'15 (tptr (Tstruct _LevelCommand noattr)))
-                                            (tptr tuchar)) (tptr tuchar))
-                                        (tptr tuint)) tuint))
-                                  (Sassign
-                                    (Efield
-                                      (Ederef
-                                        (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
-                                        (Tstruct _SpawnInfo noattr))
-                                      _behaviorArg tuint)
-                                    (Etempvar _t'16 tuint))))
-                              (Ssequence
-                                (Ssequence
-                                  (Sset _t'13
-                                    (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
-                                  (Ssequence
-                                    (Sset _t'14
-                                      (Ederef
-                                        (Ecast
-                                          (Ebinop Oadd
-                                            (Ebinop Oor
-                                              (Ebinop Oand
-                                                (Econst_int (Int.repr 20) tint)
-                                                (Econst_int (Int.repr 3) tint)
-                                                tint)
-                                              (Ebinop Oshl
-                                                (Ebinop Oand
-                                                  (Econst_int (Int.repr 20) tint)
-                                                  (Eunop Onotint
-                                                    (Econst_int (Int.repr 3) tint)
-                                                    tint) tint)
-                                                (Ebinop Oshr
-                                                  (Esizeof (tptr tvoid) tuint)
-                                                  (Econst_int (Int.repr 3) tint)
-                                                  tuint) tint) tint)
-                                            (Ecast
-                                              (Etempvar _t'13 (tptr (Tstruct _LevelCommand noattr)))
-                                              (tptr tuchar)) (tptr tuchar))
-                                          (tptr (tptr tvoid))) (tptr tvoid)))
-                                    (Sassign
-                                      (Efield
-                                        (Ederef
-                                          (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
-                                          (Tstruct _SpawnInfo noattr))
-                                        _behaviorScript (tptr tvoid))
-                                      (Etempvar _t'14 (tptr tvoid)))))
-                                (Ssequence
-                                  (Ssequence
-                                    (Sset _t'11
-                                      (Evar _gLoadedGraphNodes (tptr (tptr (Tstruct _GraphNode noattr)))))
-                                    (Ssequence
-                                      (Sset _t'12
-                                        (Ederef
-                                          (Ebinop Oadd
-                                            (Etempvar _t'11 (tptr (tptr (Tstruct _GraphNode noattr))))
-                                            (Etempvar _model tushort)
-                                            (tptr (tptr (Tstruct _GraphNode noattr))))
-                                          (tptr (Tstruct _GraphNode noattr))))
-                                      (Sassign
-                                        (Efield
-                                          (Ederef
-                                            (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
-                                            (Tstruct _SpawnInfo noattr))
-                                          _model
-                                          (tptr (Tstruct _GraphNode noattr)))
-                                        (Etempvar _t'12 (tptr (Tstruct _GraphNode noattr))))))
-                                  (Ssequence
-                                    (Ssequence
-                                      (Sset _t'8
-                                        (Evar _gAreas (tptr (Tstruct _Area noattr))))
-                                      (Ssequence
-                                        (Sset _t'9
-                                          (Evar _sCurrAreaIndex tshort))
-                                        (Ssequence
-                                          (Sset _t'10
-                                            (Efield
-                                              (Ederef
-                                                (Ebinop Oadd
-                                                  (Etempvar _t'8 (tptr (Tstruct _Area noattr)))
-                                                  (Etempvar _t'9 tshort)
-                                                  (tptr (Tstruct _Area noattr)))
-                                                (Tstruct _Area noattr))
-                                              _objectSpawnInfos
-                                              (tptr (Tstruct _SpawnInfo noattr))))
-                                          (Sassign
-                                            (Efield
-                                              (Ederef
-                                                (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
-                                                (Tstruct _SpawnInfo noattr))
-                                              _next
-                                              (tptr (Tstruct _SpawnInfo noattr)))
-                                            (Etempvar _t'10 (tptr (Tstruct _SpawnInfo noattr)))))))
-                                    (Ssequence
-                                      (Sset _t'6
-                                        (Evar _gAreas (tptr (Tstruct _Area noattr))))
-                                      (Ssequence
-                                        (Sset _t'7
-                                          (Evar _sCurrAreaIndex tshort))
-                                        (Sassign
-                                          (Efield
-                                            (Ederef
-                                              (Ebinop Oadd
-                                                (Etempvar _t'6 (tptr (Tstruct _Area noattr)))
-                                                (Etempvar _t'7 tshort)
-                                                (tptr (Tstruct _Area noattr)))
-                                              (Tstruct _Area noattr))
-                                            _objectSpawnInfos
-                                            (tptr (Tstruct _SpawnInfo noattr)))
-                                          (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr))))))))))))))))))))
-        Sskip))
-    (Ssequence
-      (Sset _t'3 (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
-      (Ssequence
-        (Sset _t'4 (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
-        (Ssequence
-          (Sset _t'5
-            (Efield
-              (Ederef (Etempvar _t'4 (tptr (Tstruct _LevelCommand noattr)))
-                (Tstruct _LevelCommand noattr)) _size tuchar))
-          (Sassign (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr)))
-            (Ecast
-              (Ebinop Oadd
-                (Ecast (Etempvar _t'3 (tptr (Tstruct _LevelCommand noattr)))
-                  (tptr tuchar))
-                (Ebinop Oshl (Etempvar _t'5 tuchar)
-                  (Ebinop Oshr (Esizeof (tptr tvoid) tuint)
-                    (Econst_int (Int.repr 3) tint) tuint) tint)
-                (tptr tuchar)) (tptr (Tstruct _LevelCommand noattr)))))))))
 |}.
 
 Definition f_level_cmd_create_warp_node := {|
@@ -7839,41 +7302,573 @@ Definition f_level_script_execute := {|
                   (Sreturn (Some (Etempvar _t'1 (tptr (Tstruct _LevelCommand noattr))))))))))))))
 |}.
 
+Definition f_level_cmd_place_object := {|
+  fn_return := tvoid;
+  fn_callconv := cc_default;
+  fn_params := nil;
+  fn_vars := nil;
+  fn_temps := ((_val7, tuchar) :: (_model, tushort) ::
+               (_spawnInfo, (tptr (Tstruct _SpawnInfo noattr))) ::
+               (_t'2, tint) :: (_t'1, (tptr tvoid)) :: (_t'39, tshort) ::
+               (_t'38, tuchar) ::
+               (_t'37, (tptr (Tstruct _LevelCommand noattr))) ::
+               (_t'36, tuchar) ::
+               (_t'35, (tptr (Tstruct _LevelCommand noattr))) ::
+               (_t'34, tshort) :: (_t'33, tuchar) ::
+               (_t'32, (tptr (Tstruct _LevelCommand noattr))) ::
+               (_t'31, (tptr (Tstruct _AllocOnlyPool noattr))) ::
+               (_t'30, tshort) ::
+               (_t'29, (tptr (Tstruct _LevelCommand noattr))) ::
+               (_t'28, tshort) ::
+               (_t'27, (tptr (Tstruct _LevelCommand noattr))) ::
+               (_t'26, tshort) ::
+               (_t'25, (tptr (Tstruct _LevelCommand noattr))) ::
+               (_t'24, tshort) ::
+               (_t'23, (tptr (Tstruct _LevelCommand noattr))) ::
+               (_t'22, tshort) ::
+               (_t'21, (tptr (Tstruct _LevelCommand noattr))) ::
+               (_t'20, tshort) ::
+               (_t'19, (tptr (Tstruct _LevelCommand noattr))) ::
+               (_t'18, tshort) :: (_t'17, tshort) :: (_t'16, tuint) ::
+               (_t'15, (tptr (Tstruct _LevelCommand noattr))) ::
+               (_t'14, (tptr tvoid)) ::
+               (_t'13, (tptr (Tstruct _LevelCommand noattr))) ::
+               (_t'12, (tptr (Tstruct _GraphNode noattr))) ::
+               (_t'11, (tptr (tptr (Tstruct _GraphNode noattr)))) ::
+               (_t'10, (tptr (Tstruct _SpawnInfo noattr))) ::
+               (_t'9, tshort) :: (_t'8, (tptr (Tstruct _Area noattr))) ::
+               (_t'7, tshort) :: (_t'6, (tptr (Tstruct _Area noattr))) ::
+               (_t'5, tuchar) ::
+               (_t'4, (tptr (Tstruct _LevelCommand noattr))) ::
+               (_t'3, (tptr (Tstruct _LevelCommand noattr))) :: nil);
+  fn_body :=
+(Ssequence
+  (Ssequence
+    (Sset _t'39 (Evar _gCurrActNum tshort))
+    (Sset _val7
+      (Ecast
+        (Ebinop Oshl (Econst_int (Int.repr 1) tint)
+          (Ebinop Oand
+            (Ebinop Osub (Etempvar _t'39 tshort)
+              (Econst_int (Int.repr 1) tint) tint)
+            (Econst_int (Int.repr 31) tint) tint) tint) tuchar)))
+  (Ssequence
+    (Ssequence
+      (Ssequence
+        (Sset _t'34 (Evar _sCurrAreaIndex tshort))
+        (Sifthenelse (Ebinop One (Etempvar _t'34 tshort)
+                       (Eunop Oneg (Econst_int (Int.repr 1) tint) tint) tint)
+          (Ssequence
+            (Sset _t'35
+              (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
+            (Ssequence
+              (Sset _t'36
+                (Ederef
+                  (Ecast
+                    (Ebinop Oadd
+                      (Ebinop Oor
+                        (Ebinop Oand (Econst_int (Int.repr 2) tint)
+                          (Econst_int (Int.repr 3) tint) tint)
+                        (Ebinop Oshl
+                          (Ebinop Oand (Econst_int (Int.repr 2) tint)
+                            (Eunop Onotint (Econst_int (Int.repr 3) tint)
+                              tint) tint)
+                          (Ebinop Oshr (Esizeof (tptr tvoid) tuint)
+                            (Econst_int (Int.repr 3) tint) tuint) tint) tint)
+                      (Ecast
+                        (Etempvar _t'35 (tptr (Tstruct _LevelCommand noattr)))
+                        (tptr tuchar)) (tptr tuchar)) (tptr tuchar)) tuchar))
+              (Sifthenelse (Ebinop Oand (Etempvar _t'36 tuchar)
+                             (Etempvar _val7 tuchar) tint)
+                (Sset _t'2 (Ecast (Econst_int (Int.repr 1) tint) tbool))
+                (Ssequence
+                  (Ssequence
+                    (Sset _t'37
+                      (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
+                    (Ssequence
+                      (Sset _t'38
+                        (Ederef
+                          (Ecast
+                            (Ebinop Oadd
+                              (Ebinop Oor
+                                (Ebinop Oand (Econst_int (Int.repr 2) tint)
+                                  (Econst_int (Int.repr 3) tint) tint)
+                                (Ebinop Oshl
+                                  (Ebinop Oand (Econst_int (Int.repr 2) tint)
+                                    (Eunop Onotint
+                                      (Econst_int (Int.repr 3) tint) tint)
+                                    tint)
+                                  (Ebinop Oshr (Esizeof (tptr tvoid) tuint)
+                                    (Econst_int (Int.repr 3) tint) tuint)
+                                  tint) tint)
+                              (Ecast
+                                (Etempvar _t'37 (tptr (Tstruct _LevelCommand noattr)))
+                                (tptr tuchar)) (tptr tuchar)) (tptr tuchar))
+                          tuchar))
+                      (Sset _t'2
+                        (Ecast
+                          (Ebinop Oeq (Etempvar _t'38 tuchar)
+                            (Econst_int (Int.repr 31) tint) tint) tbool))))
+                  (Sset _t'2 (Ecast (Etempvar _t'2 tint) tbool))))))
+          (Sset _t'2 (Econst_int (Int.repr 0) tint))))
+      (Sifthenelse (Etempvar _t'2 tint)
+        (Ssequence
+          (Ssequence
+            (Sset _t'32
+              (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
+            (Ssequence
+              (Sset _t'33
+                (Ederef
+                  (Ecast
+                    (Ebinop Oadd
+                      (Ebinop Oor
+                        (Ebinop Oand (Econst_int (Int.repr 3) tint)
+                          (Econst_int (Int.repr 3) tint) tint)
+                        (Ebinop Oshl
+                          (Ebinop Oand (Econst_int (Int.repr 3) tint)
+                            (Eunop Onotint (Econst_int (Int.repr 3) tint)
+                              tint) tint)
+                          (Ebinop Oshr (Esizeof (tptr tvoid) tuint)
+                            (Econst_int (Int.repr 3) tint) tuint) tint) tint)
+                      (Ecast
+                        (Etempvar _t'32 (tptr (Tstruct _LevelCommand noattr)))
+                        (tptr tuchar)) (tptr tuchar)) (tptr tuchar)) tuchar))
+              (Sset _model (Ecast (Etempvar _t'33 tuchar) tushort))))
+          (Ssequence
+            (Ssequence
+              (Ssequence
+                (Sset _t'31
+                  (Evar _sLevelPool (tptr (Tstruct _AllocOnlyPool noattr))))
+                (Scall (Some _t'1)
+                  (Evar _alloc_only_pool_alloc (Tfunction
+                                                 ((tptr (Tstruct _AllocOnlyPool noattr)) ::
+                                                  tint :: nil) (tptr tvoid)
+                                                 cc_default))
+                  ((Etempvar _t'31 (tptr (Tstruct _AllocOnlyPool noattr))) ::
+                   (Esizeof (Tstruct _SpawnInfo noattr) tuint) :: nil)))
+              (Sset _spawnInfo (Etempvar _t'1 (tptr tvoid))))
+            (Ssequence
+              (Ssequence
+                (Sset _t'29
+                  (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
+                (Ssequence
+                  (Sset _t'30
+                    (Ederef
+                      (Ecast
+                        (Ebinop Oadd
+                          (Ebinop Oor
+                            (Ebinop Oand (Econst_int (Int.repr 4) tint)
+                              (Econst_int (Int.repr 3) tint) tint)
+                            (Ebinop Oshl
+                              (Ebinop Oand (Econst_int (Int.repr 4) tint)
+                                (Eunop Onotint (Econst_int (Int.repr 3) tint)
+                                  tint) tint)
+                              (Ebinop Oshr (Esizeof (tptr tvoid) tuint)
+                                (Econst_int (Int.repr 3) tint) tuint) tint)
+                            tint)
+                          (Ecast
+                            (Etempvar _t'29 (tptr (Tstruct _LevelCommand noattr)))
+                            (tptr tuchar)) (tptr tuchar)) (tptr tshort))
+                      tshort))
+                  (Sassign
+                    (Ederef
+                      (Ebinop Oadd
+                        (Efield
+                          (Ederef
+                            (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
+                            (Tstruct _SpawnInfo noattr)) _startPos
+                          (tarray tshort 3)) (Econst_int (Int.repr 0) tint)
+                        (tptr tshort)) tshort) (Etempvar _t'30 tshort))))
+              (Ssequence
+                (Ssequence
+                  (Sset _t'27
+                    (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
+                  (Ssequence
+                    (Sset _t'28
+                      (Ederef
+                        (Ecast
+                          (Ebinop Oadd
+                            (Ebinop Oor
+                              (Ebinop Oand (Econst_int (Int.repr 6) tint)
+                                (Econst_int (Int.repr 3) tint) tint)
+                              (Ebinop Oshl
+                                (Ebinop Oand (Econst_int (Int.repr 6) tint)
+                                  (Eunop Onotint
+                                    (Econst_int (Int.repr 3) tint) tint)
+                                  tint)
+                                (Ebinop Oshr (Esizeof (tptr tvoid) tuint)
+                                  (Econst_int (Int.repr 3) tint) tuint) tint)
+                              tint)
+                            (Ecast
+                              (Etempvar _t'27 (tptr (Tstruct _LevelCommand noattr)))
+                              (tptr tuchar)) (tptr tuchar)) (tptr tshort))
+                        tshort))
+                    (Sassign
+                      (Ederef
+                        (Ebinop Oadd
+                          (Efield
+                            (Ederef
+                              (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
+                              (Tstruct _SpawnInfo noattr)) _startPos
+                            (tarray tshort 3)) (Econst_int (Int.repr 1) tint)
+                          (tptr tshort)) tshort) (Etempvar _t'28 tshort))))
+                (Ssequence
+                  (Ssequence
+                    (Sset _t'25
+                      (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
+                    (Ssequence
+                      (Sset _t'26
+                        (Ederef
+                          (Ecast
+                            (Ebinop Oadd
+                              (Ebinop Oor
+                                (Ebinop Oand (Econst_int (Int.repr 8) tint)
+                                  (Econst_int (Int.repr 3) tint) tint)
+                                (Ebinop Oshl
+                                  (Ebinop Oand (Econst_int (Int.repr 8) tint)
+                                    (Eunop Onotint
+                                      (Econst_int (Int.repr 3) tint) tint)
+                                    tint)
+                                  (Ebinop Oshr (Esizeof (tptr tvoid) tuint)
+                                    (Econst_int (Int.repr 3) tint) tuint)
+                                  tint) tint)
+                              (Ecast
+                                (Etempvar _t'25 (tptr (Tstruct _LevelCommand noattr)))
+                                (tptr tuchar)) (tptr tuchar)) (tptr tshort))
+                          tshort))
+                      (Sassign
+                        (Ederef
+                          (Ebinop Oadd
+                            (Efield
+                              (Ederef
+                                (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
+                                (Tstruct _SpawnInfo noattr)) _startPos
+                              (tarray tshort 3))
+                            (Econst_int (Int.repr 2) tint) (tptr tshort))
+                          tshort) (Etempvar _t'26 tshort))))
+                  (Ssequence
+                    (Ssequence
+                      (Sset _t'23
+                        (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
+                      (Ssequence
+                        (Sset _t'24
+                          (Ederef
+                            (Ecast
+                              (Ebinop Oadd
+                                (Ebinop Oor
+                                  (Ebinop Oand
+                                    (Econst_int (Int.repr 10) tint)
+                                    (Econst_int (Int.repr 3) tint) tint)
+                                  (Ebinop Oshl
+                                    (Ebinop Oand
+                                      (Econst_int (Int.repr 10) tint)
+                                      (Eunop Onotint
+                                        (Econst_int (Int.repr 3) tint) tint)
+                                      tint)
+                                    (Ebinop Oshr (Esizeof (tptr tvoid) tuint)
+                                      (Econst_int (Int.repr 3) tint) tuint)
+                                    tint) tint)
+                                (Ecast
+                                  (Etempvar _t'23 (tptr (Tstruct _LevelCommand noattr)))
+                                  (tptr tuchar)) (tptr tuchar))
+                              (tptr tshort)) tshort))
+                        (Sassign
+                          (Ederef
+                            (Ebinop Oadd
+                              (Efield
+                                (Ederef
+                                  (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
+                                  (Tstruct _SpawnInfo noattr)) _startAngle
+                                (tarray tshort 3))
+                              (Econst_int (Int.repr 0) tint) (tptr tshort))
+                            tshort)
+                          (Ebinop Odiv
+                            (Ebinop Omul (Etempvar _t'24 tshort)
+                              (Econst_int (Int.repr 32768) tint) tint)
+                            (Econst_int (Int.repr 180) tint) tint))))
+                    (Ssequence
+                      (Ssequence
+                        (Sset _t'21
+                          (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
+                        (Ssequence
+                          (Sset _t'22
+                            (Ederef
+                              (Ecast
+                                (Ebinop Oadd
+                                  (Ebinop Oor
+                                    (Ebinop Oand
+                                      (Econst_int (Int.repr 12) tint)
+                                      (Econst_int (Int.repr 3) tint) tint)
+                                    (Ebinop Oshl
+                                      (Ebinop Oand
+                                        (Econst_int (Int.repr 12) tint)
+                                        (Eunop Onotint
+                                          (Econst_int (Int.repr 3) tint)
+                                          tint) tint)
+                                      (Ebinop Oshr
+                                        (Esizeof (tptr tvoid) tuint)
+                                        (Econst_int (Int.repr 3) tint) tuint)
+                                      tint) tint)
+                                  (Ecast
+                                    (Etempvar _t'21 (tptr (Tstruct _LevelCommand noattr)))
+                                    (tptr tuchar)) (tptr tuchar))
+                                (tptr tshort)) tshort))
+                          (Sassign
+                            (Ederef
+                              (Ebinop Oadd
+                                (Efield
+                                  (Ederef
+                                    (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
+                                    (Tstruct _SpawnInfo noattr)) _startAngle
+                                  (tarray tshort 3))
+                                (Econst_int (Int.repr 1) tint) (tptr tshort))
+                              tshort)
+                            (Ebinop Odiv
+                              (Ebinop Omul (Etempvar _t'22 tshort)
+                                (Econst_int (Int.repr 32768) tint) tint)
+                              (Econst_int (Int.repr 180) tint) tint))))
+                      (Ssequence
+                        (Ssequence
+                          (Sset _t'19
+                            (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
+                          (Ssequence
+                            (Sset _t'20
+                              (Ederef
+                                (Ecast
+                                  (Ebinop Oadd
+                                    (Ebinop Oor
+                                      (Ebinop Oand
+                                        (Econst_int (Int.repr 14) tint)
+                                        (Econst_int (Int.repr 3) tint) tint)
+                                      (Ebinop Oshl
+                                        (Ebinop Oand
+                                          (Econst_int (Int.repr 14) tint)
+                                          (Eunop Onotint
+                                            (Econst_int (Int.repr 3) tint)
+                                            tint) tint)
+                                        (Ebinop Oshr
+                                          (Esizeof (tptr tvoid) tuint)
+                                          (Econst_int (Int.repr 3) tint)
+                                          tuint) tint) tint)
+                                    (Ecast
+                                      (Etempvar _t'19 (tptr (Tstruct _LevelCommand noattr)))
+                                      (tptr tuchar)) (tptr tuchar))
+                                  (tptr tshort)) tshort))
+                            (Sassign
+                              (Ederef
+                                (Ebinop Oadd
+                                  (Efield
+                                    (Ederef
+                                      (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
+                                      (Tstruct _SpawnInfo noattr))
+                                    _startAngle (tarray tshort 3))
+                                  (Econst_int (Int.repr 2) tint)
+                                  (tptr tshort)) tshort)
+                              (Ebinop Odiv
+                                (Ebinop Omul (Etempvar _t'20 tshort)
+                                  (Econst_int (Int.repr 32768) tint) tint)
+                                (Econst_int (Int.repr 180) tint) tint))))
+                        (Ssequence
+                          (Ssequence
+                            (Sset _t'18 (Evar _sCurrAreaIndex tshort))
+                            (Sassign
+                              (Efield
+                                (Ederef
+                                  (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
+                                  (Tstruct _SpawnInfo noattr)) _areaIndex
+                                tschar) (Etempvar _t'18 tshort)))
+                          (Ssequence
+                            (Ssequence
+                              (Sset _t'17 (Evar _sCurrAreaIndex tshort))
+                              (Sassign
+                                (Efield
+                                  (Ederef
+                                    (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
+                                    (Tstruct _SpawnInfo noattr))
+                                  _activeAreaIndex tschar)
+                                (Etempvar _t'17 tshort)))
+                            (Ssequence
+                              (Ssequence
+                                (Sset _t'15
+                                  (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
+                                (Ssequence
+                                  (Sset _t'16
+                                    (Ederef
+                                      (Ecast
+                                        (Ebinop Oadd
+                                          (Ebinop Oor
+                                            (Ebinop Oand
+                                              (Econst_int (Int.repr 16) tint)
+                                              (Econst_int (Int.repr 3) tint)
+                                              tint)
+                                            (Ebinop Oshl
+                                              (Ebinop Oand
+                                                (Econst_int (Int.repr 16) tint)
+                                                (Eunop Onotint
+                                                  (Econst_int (Int.repr 3) tint)
+                                                  tint) tint)
+                                              (Ebinop Oshr
+                                                (Esizeof (tptr tvoid) tuint)
+                                                (Econst_int (Int.repr 3) tint)
+                                                tuint) tint) tint)
+                                          (Ecast
+                                            (Etempvar _t'15 (tptr (Tstruct _LevelCommand noattr)))
+                                            (tptr tuchar)) (tptr tuchar))
+                                        (tptr tuint)) tuint))
+                                  (Sassign
+                                    (Efield
+                                      (Ederef
+                                        (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
+                                        (Tstruct _SpawnInfo noattr))
+                                      _behaviorArg tuint)
+                                    (Etempvar _t'16 tuint))))
+                              (Ssequence
+                                (Ssequence
+                                  (Sset _t'13
+                                    (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
+                                  (Ssequence
+                                    (Sset _t'14
+                                      (Ederef
+                                        (Ecast
+                                          (Ebinop Oadd
+                                            (Ebinop Oor
+                                              (Ebinop Oand
+                                                (Econst_int (Int.repr 20) tint)
+                                                (Econst_int (Int.repr 3) tint)
+                                                tint)
+                                              (Ebinop Oshl
+                                                (Ebinop Oand
+                                                  (Econst_int (Int.repr 20) tint)
+                                                  (Eunop Onotint
+                                                    (Econst_int (Int.repr 3) tint)
+                                                    tint) tint)
+                                                (Ebinop Oshr
+                                                  (Esizeof (tptr tvoid) tuint)
+                                                  (Econst_int (Int.repr 3) tint)
+                                                  tuint) tint) tint)
+                                            (Ecast
+                                              (Etempvar _t'13 (tptr (Tstruct _LevelCommand noattr)))
+                                              (tptr tuchar)) (tptr tuchar))
+                                          (tptr (tptr tvoid))) (tptr tvoid)))
+                                    (Sassign
+                                      (Efield
+                                        (Ederef
+                                          (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
+                                          (Tstruct _SpawnInfo noattr))
+                                        _behaviorScript (tptr tvoid))
+                                      (Etempvar _t'14 (tptr tvoid)))))
+                                (Ssequence
+                                  (Ssequence
+                                    (Sset _t'11
+                                      (Evar _gLoadedGraphNodes (tptr (tptr (Tstruct _GraphNode noattr)))))
+                                    (Ssequence
+                                      (Sset _t'12
+                                        (Ederef
+                                          (Ebinop Oadd
+                                            (Etempvar _t'11 (tptr (tptr (Tstruct _GraphNode noattr))))
+                                            (Etempvar _model tushort)
+                                            (tptr (tptr (Tstruct _GraphNode noattr))))
+                                          (tptr (Tstruct _GraphNode noattr))))
+                                      (Sassign
+                                        (Efield
+                                          (Ederef
+                                            (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
+                                            (Tstruct _SpawnInfo noattr))
+                                          _model
+                                          (tptr (Tstruct _GraphNode noattr)))
+                                        (Etempvar _t'12 (tptr (Tstruct _GraphNode noattr))))))
+                                  (Ssequence
+                                    (Ssequence
+                                      (Sset _t'8
+                                        (Evar _gAreas (tptr (Tstruct _Area noattr))))
+                                      (Ssequence
+                                        (Sset _t'9
+                                          (Evar _sCurrAreaIndex tshort))
+                                        (Ssequence
+                                          (Sset _t'10
+                                            (Efield
+                                              (Ederef
+                                                (Ebinop Oadd
+                                                  (Etempvar _t'8 (tptr (Tstruct _Area noattr)))
+                                                  (Etempvar _t'9 tshort)
+                                                  (tptr (Tstruct _Area noattr)))
+                                                (Tstruct _Area noattr))
+                                              _objectSpawnInfos
+                                              (tptr (Tstruct _SpawnInfo noattr))))
+                                          (Sassign
+                                            (Efield
+                                              (Ederef
+                                                (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr)))
+                                                (Tstruct _SpawnInfo noattr))
+                                              _next
+                                              (tptr (Tstruct _SpawnInfo noattr)))
+                                            (Etempvar _t'10 (tptr (Tstruct _SpawnInfo noattr)))))))
+                                    (Ssequence
+                                      (Sset _t'6
+                                        (Evar _gAreas (tptr (Tstruct _Area noattr))))
+                                      (Ssequence
+                                        (Sset _t'7
+                                          (Evar _sCurrAreaIndex tshort))
+                                        (Sassign
+                                          (Efield
+                                            (Ederef
+                                              (Ebinop Oadd
+                                                (Etempvar _t'6 (tptr (Tstruct _Area noattr)))
+                                                (Etempvar _t'7 tshort)
+                                                (tptr (Tstruct _Area noattr)))
+                                              (Tstruct _Area noattr))
+                                            _objectSpawnInfos
+                                            (tptr (Tstruct _SpawnInfo noattr)))
+                                          (Etempvar _spawnInfo (tptr (Tstruct _SpawnInfo noattr))))))))))))))))))))
+        Sskip))
+    (Ssequence
+      (Sset _t'3 (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
+      (Ssequence
+        (Sset _t'4 (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr))))
+        (Ssequence
+          (Sset _t'5
+            (Efield
+              (Ederef (Etempvar _t'4 (tptr (Tstruct _LevelCommand noattr)))
+                (Tstruct _LevelCommand noattr)) _size tuchar))
+          (Sassign (Evar _sCurrentCmd (tptr (Tstruct _LevelCommand noattr)))
+            (Ecast
+              (Ebinop Oadd
+                (Ecast (Etempvar _t'3 (tptr (Tstruct _LevelCommand noattr)))
+                  (tptr tuchar))
+                (Ebinop Oshl (Etempvar _t'5 tuchar)
+                  (Ebinop Oshr (Esizeof (tptr tvoid) tuint)
+                    (Econst_int (Int.repr 3) tint) tuint) tint)
+                (tptr tuchar)) (tptr (Tstruct _LevelCommand noattr)))))))))
+|}.
+
 Definition composites : list composite_definition :=
-(Composite __469 Struct
+(Composite __471 Struct
    (Member_plain _flag tuchar :: Member_plain _v (tarray tuchar 3) :: nil)
    noattr ::
- Composite __510 Struct
+ Composite __512 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _par I32 Unsigned noattr 8 false ::
     Member_bitfield _len I32 Unsigned noattr 16 false ::
     Member_plain _addr tuint :: nil)
    noattr ::
- Composite __512 Struct
+ Composite __514 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad I32 Signed noattr 24 false ::
-    Member_plain _tri (Tstruct __469 noattr) :: nil)
+    Member_plain _tri (Tstruct __471 noattr) :: nil)
    noattr ::
- Composite __514 Struct
+ Composite __516 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad1 I32 Signed noattr 24 false ::
     Member_bitfield _pad2 I32 Signed noattr 24 false ::
     Member_bitfield _param I8 Unsigned noattr 8 false :: nil)
    noattr ::
- Composite __516 Struct
+ Composite __518 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad0 I32 Signed noattr 8 false ::
     Member_bitfield _mw_index I32 Signed noattr 8 false ::
     Member_bitfield _number I32 Signed noattr 8 false ::
     Member_bitfield _pad1 I32 Signed noattr 8 false ::
     Member_bitfield _base I32 Signed noattr 24 false :: nil)
-   noattr ::
- Composite __518 Struct
-   (Member_bitfield _cmd I32 Signed noattr 8 false ::
-    Member_bitfield _pad0 I32 Signed noattr 8 false ::
-    Member_bitfield _sft I32 Signed noattr 8 false ::
-    Member_bitfield _len I32 Signed noattr 8 false ::
-    Member_bitfield _data I32 Unsigned noattr 32 false :: nil)
    noattr ::
  Composite __520 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
@@ -7883,21 +7878,28 @@ Definition composites : list composite_definition :=
     Member_bitfield _data I32 Unsigned noattr 32 false :: nil)
    noattr ::
  Composite __522 Struct
+   (Member_bitfield _cmd I32 Signed noattr 8 false ::
+    Member_bitfield _pad0 I32 Signed noattr 8 false ::
+    Member_bitfield _sft I32 Signed noattr 8 false ::
+    Member_bitfield _len I32 Signed noattr 8 false ::
+    Member_bitfield _data I32 Unsigned noattr 32 false :: nil)
+   noattr ::
+ Composite __524 Struct
    (Member_plain _cmd tuchar :: Member_plain _lodscale tuchar ::
     Member_plain _tile tuchar :: Member_plain _on tuchar ::
     Member_plain _s tushort :: Member_plain _t tushort :: nil)
    noattr ::
- Composite __524 Struct
+ Composite __526 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad I32 Signed noattr 24 false ::
-    Member_plain _line (Tstruct __469 noattr) :: nil)
+    Member_plain _line (Tstruct __471 noattr) :: nil)
    noattr ::
- Composite __526 Struct
+ Composite __528 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _pad1 I32 Signed noattr 24 false ::
     Member_plain _pad2 tshort :: Member_plain _scale tshort :: nil)
    noattr ::
- Composite __528 Struct
+ Composite __530 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _fmt I32 Unsigned noattr 3 false ::
     Member_bitfield _siz I32 Unsigned noattr 2 false ::
@@ -7905,17 +7907,17 @@ Definition composites : list composite_definition :=
     Member_bitfield _wd I32 Unsigned noattr 12 false ::
     Member_plain _dram tuint :: nil)
    noattr ::
- Composite __530 Struct
+ Composite __532 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _muxs0 I32 Unsigned noattr 24 false ::
     Member_bitfield _muxs1 I32 Unsigned noattr 32 false :: nil)
    noattr ::
- Composite __532 Struct
+ Composite __534 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_plain _pad tuchar :: Member_plain _prim_min_level tuchar ::
     Member_plain _prim_level tuchar :: Member_plain _color tuint :: nil)
    noattr ::
- Composite __534 Struct
+ Composite __536 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _x0 I32 Signed noattr 10 false ::
     Member_bitfield _x0frac I32 Signed noattr 2 false ::
@@ -7927,7 +7929,7 @@ Definition composites : list composite_definition :=
     Member_bitfield _y1 I32 Signed noattr 10 false ::
     Member_bitfield _y1frac I32 Signed noattr 2 false :: nil)
    noattr ::
- Composite __536 Struct
+ Composite __538 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _fmt I32 Unsigned noattr 3 false ::
     Member_bitfield _siz I32 Unsigned noattr 2 false ::
@@ -7946,7 +7948,7 @@ Definition composites : list composite_definition :=
     Member_bitfield _masks I32 Unsigned noattr 4 false ::
     Member_bitfield _shifts I32 Unsigned noattr 4 false :: nil)
    noattr ::
- Composite __538 Struct
+ Composite __540 Struct
    (Member_bitfield _cmd I32 Signed noattr 8 false ::
     Member_bitfield _sl I32 Unsigned noattr 12 false ::
     Member_bitfield _tl I32 Unsigned noattr 12 false ::
@@ -7955,28 +7957,28 @@ Definition composites : list composite_definition :=
     Member_bitfield _sh I32 Unsigned noattr 12 false ::
     Member_bitfield _th I32 Unsigned noattr 12 false :: nil)
    noattr ::
- Composite __547 Struct
+ Composite __549 Struct
    (Member_plain _w0 tuint :: Member_plain _w1 tuint :: nil)
    noattr ::
- Composite __549 Union
-   (Member_plain _words (Tstruct __547 noattr) ::
-    Member_plain _dma (Tstruct __510 noattr) ::
-    Member_plain _tri (Tstruct __512 noattr) ::
-    Member_plain _line (Tstruct __524 noattr) ::
-    Member_plain _popmtx (Tstruct __514 noattr) ::
-    Member_plain _segment (Tstruct __516 noattr) ::
-    Member_plain _setothermodeH (Tstruct __520 noattr) ::
-    Member_plain _setothermodeL (Tstruct __518 noattr) ::
-    Member_plain _texture (Tstruct __522 noattr) ::
-    Member_plain _perspnorm (Tstruct __526 noattr) ::
-    Member_plain _setimg (Tstruct __528 noattr) ::
-    Member_plain _setcombine (Tstruct __530 noattr) ::
-    Member_plain _setcolor (Tstruct __532 noattr) ::
-    Member_plain _fillrect (Tstruct __534 noattr) ::
-    Member_plain _settile (Tstruct __536 noattr) ::
-    Member_plain _loadtile (Tstruct __538 noattr) ::
-    Member_plain _settilesize (Tstruct __538 noattr) ::
-    Member_plain _loadtlut (Tstruct __538 noattr) ::
+ Composite __551 Union
+   (Member_plain _words (Tstruct __549 noattr) ::
+    Member_plain _dma (Tstruct __512 noattr) ::
+    Member_plain _tri (Tstruct __514 noattr) ::
+    Member_plain _line (Tstruct __526 noattr) ::
+    Member_plain _popmtx (Tstruct __516 noattr) ::
+    Member_plain _segment (Tstruct __518 noattr) ::
+    Member_plain _setothermodeH (Tstruct __522 noattr) ::
+    Member_plain _setothermodeL (Tstruct __520 noattr) ::
+    Member_plain _texture (Tstruct __524 noattr) ::
+    Member_plain _perspnorm (Tstruct __528 noattr) ::
+    Member_plain _setimg (Tstruct __530 noattr) ::
+    Member_plain _setcombine (Tstruct __532 noattr) ::
+    Member_plain _setcolor (Tstruct __534 noattr) ::
+    Member_plain _fillrect (Tstruct __536 noattr) ::
+    Member_plain _settile (Tstruct __538 noattr) ::
+    Member_plain _loadtile (Tstruct __540 noattr) ::
+    Member_plain _settilesize (Tstruct __540 noattr) ::
+    Member_plain _loadtlut (Tstruct __540 noattr) ::
     Member_plain _force_structure_alignment tlong :: nil)
    noattr ::
  Composite _Animation Struct
@@ -8017,7 +8019,7 @@ Definition composites : list composite_definition :=
     Member_plain _next (tptr (Tstruct _ObjectNode noattr)) ::
     Member_plain _prev (tptr (Tstruct _ObjectNode noattr)) :: nil)
    noattr ::
- Composite __764 Union
+ Composite __766 Union
    (Member_plain _asU32 (tarray tuint 80) ::
     Member_plain _asS32 (tarray tint 80) ::
     Member_plain _asS16 (tarray (tarray tshort 2) 80) ::
@@ -8042,7 +8044,7 @@ Definition composites : list composite_definition :=
     Member_plain _activeFlags tshort ::
     Member_plain _numCollidedObjs tshort ::
     Member_plain _collidedObjs (tarray (tptr (Tstruct _Object noattr)) 4) ::
-    Member_plain _rawData (Tunion __764 noattr) ::
+    Member_plain _rawData (Tunion __766 noattr) ::
     Member_plain _unused1 tuint ::
     Member_plain _curBhvCommand (tptr tuint) ::
     Member_plain _bhvStackIndex tuint ::
@@ -8062,7 +8064,7 @@ Definition composites : list composite_definition :=
  Composite _Waypoint Struct
    (Member_plain _flags tshort :: Member_plain _pos (tarray tshort 3) :: nil)
    noattr ::
- Composite __769 Struct
+ Composite __771 Struct
    (Member_plain _x tfloat :: Member_plain _y tfloat ::
     Member_plain _z tfloat :: nil)
    noattr ::
@@ -8073,7 +8075,7 @@ Definition composites : list composite_definition :=
     Member_plain _vertex1 (tarray tshort 3) ::
     Member_plain _vertex2 (tarray tshort 3) ::
     Member_plain _vertex3 (tarray tshort 3) ::
-    Member_plain _normal (Tstruct __769 noattr) ::
+    Member_plain _normal (Tstruct __771 noattr) ::
     Member_plain _originOffset tfloat ::
     Member_plain _object (tptr (Tstruct _Object noattr)) :: nil)
    noattr ::
@@ -8087,7 +8089,7 @@ Definition composites : list composite_definition :=
     Member_plain _func
       (tptr (Tfunction
               (tint :: (tptr (Tstruct _GraphNode noattr)) :: (tptr tvoid) ::
-               nil) (tptr (Tunion __549 noattr)) cc_default)) :: nil)
+               nil) (tptr (Tunion __551 noattr)) cc_default)) :: nil)
    noattr ::
  Composite _GraphNodeRoot Struct
    (Member_plain _node (Tstruct _GraphNode noattr) ::
@@ -8100,13 +8102,13 @@ Definition composites : list composite_definition :=
  Composite _GraphNodeStart Struct
    (Member_plain _node (Tstruct _GraphNode noattr) :: nil)
    noattr ::
- Composite __1289 Union
+ Composite __1291 Union
    (Member_plain _mode tint ::
     Member_plain _camera (tptr (Tstruct _Camera noattr)) :: nil)
    noattr ::
  Composite _GraphNodeCamera Struct
    (Member_plain _fnNode (Tstruct _FnGraphNode noattr) ::
-    Member_plain _config (Tunion __1289 noattr) ::
+    Member_plain _config (Tunion __1291 noattr) ::
     Member_plain _pos (tarray tfloat 3) ::
     Member_plain _focus (tarray tfloat 3) ::
     Member_plain _matrixPtr (tptr (tarray (tarray tfloat 4) 4)) ::
@@ -8190,7 +8192,7 @@ Definition composites : list composite_definition :=
  Composite _LevelCommand Struct
    (Member_plain _type tuchar :: Member_plain _size tuchar :: nil)
    noattr ::
- Composite __3692 Union
+ Composite __3694 Union
    (Member_plain _i tint :: Member_plain _f tfloat :: nil)
    noattr :: nil).
 
@@ -8884,7 +8886,6 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_level_cmd_load_model_from_geo, Gfun(Internal f_level_cmd_load_model_from_geo)) ::
  (_level_cmd_23, Gfun(Internal f_level_cmd_23)) ::
  (_level_cmd_init_mario, Gfun(Internal f_level_cmd_init_mario)) ::
- (_level_cmd_place_object, Gfun(Internal f_level_cmd_place_object)) ::
  (_level_cmd_create_warp_node, Gfun(Internal f_level_cmd_create_warp_node)) ::
  (_level_cmd_create_instant_warp, Gfun(Internal f_level_cmd_create_instant_warp)) ::
  (_level_cmd_set_terrain_type, Gfun(Internal f_level_cmd_set_terrain_type)) ::
@@ -8909,7 +8910,8 @@ Definition global_definitions : list (ident * globdef fundef type) :=
  (_level_cmd_38, Gfun(Internal f_level_cmd_38)) ::
  (_level_cmd_get_or_set_var, Gfun(Internal f_level_cmd_get_or_set_var)) ::
  (_LevelScriptJumpTable, Gvar v_LevelScriptJumpTable) ::
- (_level_script_execute, Gfun(Internal f_level_script_execute)) :: nil).
+ (_level_script_execute, Gfun(Internal f_level_script_execute)) ::
+ (_level_cmd_place_object, Gfun(Internal f_level_cmd_place_object)) :: nil).
 
 Definition public_idents : list ident :=
 (_level_script_execute :: _alloc_surface_pools :: _vec3s_set ::

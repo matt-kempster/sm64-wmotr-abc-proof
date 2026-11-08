@@ -72,4 +72,21 @@ uintptr_t set_segment_base_addr(s32 segment, void *addr) {
 #define set_segment_base_addr rom_set_segment_base_addr
 #endif
 
+/* level_cmd_place_object (engine/level_script.c only: the Makefile builds
+   it from pipeline/tu/level_script.c with -DPROOF_LEVEL_SCRIPT_C=1;
+   2026-11-07, approved).  Its first line, `u8 val7 = 1 << (gCurrActNum - 1)`,
+   shifts by -1 at act 0 (a real entry, docs/wmotr-entry-census.md B1):
+   undefined in C, so that OBJECT command had no execution.  The ROM's sllv
+   takes the shift mod 32 (1 << 31; the u8 store keeps 0).  The function-like
+   macro renames only the ROM DEFINITION to rom_level_cmd_place_object (the
+   jump table's entry is not followed by `(`, so it keeps naming
+   level_cmd_place_object), and the wrapper TU defines that one after the
+   vendor file: the vendor body with the shift written `& 31`.  Nothing
+   calls the rom_ one (unreferenced static: clightgen omits it).
+   TRUST.md 2.2 register. */
+#ifdef PROOF_LEVEL_SCRIPT_C
+static void level_cmd_place_object(void);
+#define level_cmd_place_object(v) rom_level_cmd_place_object(v)
+#endif
+
 #endif
