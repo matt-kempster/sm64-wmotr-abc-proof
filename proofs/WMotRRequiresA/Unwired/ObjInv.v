@@ -72,11 +72,14 @@ Section Inv.
   (* the update's start state and the entry's nextblock *)
   Variable st0 : vst.
   Variable nb0 : block.
+  (* a fact of the ghost the step must keep (the wiring: the running object
+     stays in its ring, ObjStep) -- any X; the keeps keep it *)
+  Variable X : mem -> Prop.
 
   Definition INVk (m : mem) : Prop :=
     Ple nb0 (Mem.nextblock m) /\ cur m
     /\ exists g, Pobjl g /\ Vo g st0 /\ Ple (Mem.nextblock g) nb0 /\ Mem.unchanged_on Pfr g m
-                 /\ BhvStep.nvB scr g m.
+                 /\ BhvStep.nvB scr g m /\ X g.
 
   Definition Qk : vst -> Prop := ObjFamily.Qfam (v_s st0).
 
@@ -108,12 +111,12 @@ Section Inv.
   (* ---- Hinv_frame ---- *)
   Theorem inv_frame : forall m m', INVk m -> PfrN m m' -> INVk m'.
   Proof.
-    intros m m' (Hn & Hc & g & Hg & HV & Hgn & U & NV) (U' & NV').
+    intros m m' (Hn & Hc & g & Hg & HV & Hgn & U & NV & HX) (U' & NV').
     pose proof (Mem.unchanged_on_nextblock _ _ _ U') as N.
     split; [ exact (Ple_trans _ _ _ Hn N) | split; [ exact (cur_unch m m' U' (cur_valid m Hc) Hc) | ] ].
     exists g. split; [ exact Hg | split; [ exact HV | split; [ exact Hgn | split ] ] ].
     - exact (Mem.unchanged_on_trans _ _ _ _ U U').
-    - exact (BhvStep.nvB_trans _ _ _ _ NV NV' (Mem.unchanged_on_nextblock _ _ _ U)).
+    - exact (conj (BhvStep.nvB_trans _ _ _ _ NV NV' (Mem.unchanged_on_nextblock _ _ _ U)) HX).
   Qed.
 
   (* ---- Hinv_cur ---- *)
@@ -172,7 +175,7 @@ Section Inv.
 
   Theorem inv_free : BhvStep.inv_free INVk.
   Proof.
-    intros m0 m b m' (Hn0 & _) Hnv (Hn & Hc & g & Hg & HV & Hgn & U & NV) F.
+    intros m0 m b m' (Hn0 & _) Hnv (Hn & Hc & g & Hg & HV & Hgn & U & NV & HX) F.
     pose proof (Mem.nextblock_free _ _ _ _ _ F) as N.
     split; [ rewrite N; exact Hn | split ].
     - unfold BhvStep.cur in *. rewrite (Mem.load_free _ _ _ _ _ F); [ exact Hc | ].
@@ -181,7 +184,7 @@ Section Inv.
       pose proof (sym_valid g _ _ Hg Hgo) as Vg. unfold Mem.valid_block in *.
       exact (Plt_Ple_trans _ _ _ (Plt_Ple_trans _ _ _ Vg Hgn) Hn0).
     - exists g. split; [ exact Hg | split; [ exact HV | split; [ exact Hgn | split ] ] ].
-      2: { refine (BhvStep.nvB_free_new _ _ _ _ _ _ _ NV _ (Mem.unchanged_on_nextblock _ _ _ U) F).
+      2: { refine (conj (BhvStep.nvB_free_new _ _ _ _ _ _ _ NV _ (Mem.unchanged_on_nextblock _ _ _ U) F) HX).
            intros Vb. apply Hnv. unfold Mem.valid_block in *.
            exact (Plt_Ple_trans _ _ _ (Plt_Ple_trans _ _ _ Vb Hgn) Hn0). }
       apply unch_valid. apply (Mem.unchanged_on_trans _ _ m).
@@ -191,9 +194,9 @@ Section Inv.
   Qed.
 
   (* ---- the entry ---- *)
-  Theorem inv_entry : forall m, Mem.nextblock m = nb0 -> Pobjl m -> Vo m st0 -> cur m -> INVk m.
+  Theorem inv_entry : forall m, Mem.nextblock m = nb0 -> Pobjl m -> Vo m st0 -> cur m -> X m -> INVk m.
   Proof.
-    intros m En Hp HV Hc. split; [ rewrite En; apply Ple_refl | split; [ exact Hc | ] ].
-    exists m. split; [ exact Hp | split; [ exact HV | split; [ rewrite En; apply Ple_refl | split; [ apply Mem.unchanged_on_refl | apply BhvStep.nvB_refl ] ] ] ].
+    intros m En Hp HV Hc HX. split; [ rewrite En; apply Ple_refl | split; [ exact Hc | ] ].
+    exists m. split; [ exact Hp | split; [ exact HV | split; [ rewrite En; apply Ple_refl | split; [ apply Mem.unchanged_on_refl | split; [ apply BhvStep.nvB_refl | exact HX ] ] ] ] ].
   Qed.
 End Inv.
