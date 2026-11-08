@@ -1503,7 +1503,63 @@ without pressing A".*
   point at their scripts). ObjInv .. ObjStep state Pobjl as `ClearKeep.Pobjc` (the same
   conjunction, convertible), so they sit below HeightFrame.
 
-  Not done: the terrain rest row (`Hobj_step_rest_terrain`, with `ter_post`).
+  **The terrain rest row (2026-11-08, `ObjStep`): PROVED from two narrower rows, WIRED.**
+  `Hobj_step_rest_terrain` (both capstones) is now a lemma,
+  `HeightFrame.Hobj_step_rest_terrain`, proved by `ObjStep.ter_rest_sa` / `ter_rest_ts`.
+  The proof is the same walk as the non-terrain one, generalized over the ghost fact
+  (`rest_saX` / `rest_tsX`). Here the fact is `XT`: the ring, plus `ter_abd` from the
+  step's start memory. `ter_abd` is `ter_post` without the counter: (a) lists 11 / 9 grow
+  only at the tail, by budget-0 nodes; (b) the budgets of their nodes are unchanged;
+  (d) the time-stop gate is unchanged. It is composable (`ter_abd_tr`) and is carried:
+  - across the loop's own stores (`gco_side` / `flg_side`: no O_CMD cell, no gTimeStopState);
+  - across cur_obj_update's exit (`xt_cou`). Off slot k, the memory is unchanged off the VM
+    cells. At slot k, the budget reads the running script, whose family keeps
+    box / lid / coin formation (`ObjFamily.Qfam_id`, `sdyn_Vo`).
+
+  The capstones' row is replaced by two:
+  - **`Hobj_cou_t : ObjStep.cou_keeps_t ter_ls`**: the same keeps as `Hobj_cou_nt`
+    (ghost_keeps, rest_keeps, pre_keep / post_keep at INV_k), with ghost fact `XT ter_ls m0`
+    for every step-start m0. There is no Mario hole (terrain).
+  - **`Hobj_ter_ctr : ObjStep.ter_ctr_row`** (both loop bodies): `ter_post`'s counter
+    clause (c) alone. One terrain update grows gSurfacesAllocated by at most the object's
+    budget (`OW.dyn`: 12 box, 2 lid, 0 coin formation, 0 under a time stop). **This is a
+    counter-only claim about the real update**, over the same states as `ter_rest_row`.
+
+  **Census behind `Hobj_ter_ctr` (`TerCtrCensus.ter_ctr_value`, vm, spine-root).** The
+  budget is per load, since the meshes are pinned (`mesh_tris_pinned`, `coll_pin`). So
+  the row is true iff no update reaches `load_object_collision_model`, or any other
+  counter writer, twice. The census checks this over every VM state of the three terrain
+  scripts (`vm_tab`). For one update entered at a state, it bounds the loader calls of:
+  - the command's handler, or for CALL_NATIVE the native;
+  - every nested call: direct calls, and indirect calls through any address-taken
+    function of a matching type;
+  - the successor states, until a command that always returns BHV_PROC_BREAK
+    (`always_brk_value`).
+
+  A loop around a loading call, or another counter writer, counts as unbounded. Result:
+  box 1, coin formation 0, lid 1, the same at two depths / fuels. The cannon lid's last
+  frame (the loop's CALL_NATIVE load, then the deactivate) is one of its start states,
+  so it is counted. **No FOUND.**
+
+  Discharge route for the two rows, logged:
+  - (A) prove `ter_ctr_row` from the census, by a walk of the real loader under the
+    pinned meshes plus a one-load-per-update induction over the dispatch loop;
+  - (C) fold the counter into INV_k (a "loaded" flag per command), once the dispatch
+    keeps are discharged. The flag is needed because the collision-load keep is not
+    per-command inductive without it.
+
+  GOAL 1's statement only swapped the one row for the two narrower ones
+  (NoAImpliesNoFlyFrame); its claim and proofs are unchanged.
+  **Native VM-cell scan (2026-11-08, `NativeVmCensus.native_vm_value`, vm, spine-root),
+  behind `native_vals` inside the keeps rows.** INV_k's ghost clause `nvB scr` needs the
+  cells where the real memory and the ghost differ (slot k's VM cells and gCurBhvCommand)
+  to hold only script pointers. The code of every live native (1429 functions, not the
+  interpreter) stores into a VM field in three places only: `obj_set_held_state` (a
+  script; called only from Mario's code, i.e. `native_res`), `create_object` (the spawned
+  script, on the freshly allocated slot; called only by `spawn_object_at_origin`) and
+  `allocate_object` (an int). No native stores the cursor, copies a whole Object, passes a
+  VM cell's address, or hands an Object pointer to a builtin. **No FOUND**; the INV_k
+  clause is not widened.
   `mario_hole` covers only `execute_mario_action`, not the whole `bhv_mario_update`
   native, which stays inside `rest_keeps` (`native_vals` / `native_res`).
   **Row 28 SPAWN_CHILD (2026-11-03): `row_spawn_child`, on the REAL handler.**
@@ -2462,7 +2518,8 @@ without pressing A".*
   (`ObjStepSplit`): that row is now `Hobj_step_act_terrain` / `Hobj_step_act_nonterrain`
   (`step_act_row`: one object's update ends with Mario's action outside T; on the non-terrain
   lists under the Mario hole), and `Hobj_step_rest_*` (`step_rest_row`; the non-terrain one PROVED
-  since 2026-11-07 from `Hobj_cou_nt`, see `ObjStep`) keep the rest of the
+  since 2026-11-07 from `Hobj_cou_nt`, the terrain one since 2026-11-08 from `Hobj_cou_t` +
+  `Hobj_ter_ctr`, see `ObjStep`) keep the rest of the
   step rows and may assume it. `step_row_split` reassembles them, so ObjLoop's walk is
   unchanged. GOAL 1's need from the objects' per-object step is exactly the act rows. To
   prove: the census plus the step's footprint (no store into the action cell through another
