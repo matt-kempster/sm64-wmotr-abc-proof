@@ -1067,7 +1067,7 @@ Section FrameSplit.
                 forall v1, Mem.load Mint32 m bm off = Some v1 ->
                 forall sb so, v1 = Vptr sb so -> sb <> mb).
       { intros off Hoff v1 Hl sb so ->. exact (Hsurf off sb so Hoff Hl). }
-      repeat split; rewrite ?LDbm.
+      unfold wmotr_world, wall_ok, ceil_ok. repeat split; rewrite ?LDbm.
       - intros v1 Hl. apply surface_keep; [exact (Hw v1 Hl) |].
         exact (Hne WALL_OFF (or_introl eq_refl) v1 Hl).
       - intros v1 Hl. apply surface_keep; [exact (Hc v1 Hl) |].
