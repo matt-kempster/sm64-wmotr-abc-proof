@@ -31,10 +31,11 @@ From compcert Require Import Coqlib Integers Floats Values AST Ctypes Cop Clight
 From SM64.Generated Require object_list_processor level_update mario behavior_script.
 From SM64.Proofs Require Import SymbolicLinking RealFrameLinked LinkedTwelve MWFReal NoAImpliesNoFlyLinked AGates.
 From SM64.Proofs Require Interp.CMem.
+From SM64.Proofs Require CensusV2 SpawnInit.
 From SM64.Proofs.WMotRRequiresA Require Import BhvVM.
 From SM64.Proofs.WMotRRequiresA Require ObjWorld ObjRing PollKeep ClearKeep BhvStep ObjFamily ObjLoop
-  ObjStepSplit UnloadRows RenderAnim RenderKeep FpuFloor HeightFrame ObjSelf.
-From SM64.Proofs.WMotRRequiresA.Unwired Require ObjInv ObjExit ObjRows ObjGfl.
+  ObjStepSplit UnloadRows RenderAnim RenderKeep FpuFloor ObjSelf.
+From SM64.Proofs.WMotRRequiresA Require ObjInv ObjExit ObjRows ObjGfl.
 Import ListNotations.
 Local Open Scope Z_scope.
 Local Transparent Archi.ptr64.
@@ -204,7 +205,7 @@ Section STEP.
   (* LABELED (ObjExit): the scripts are SafeB *)
   Hypothesis HSafeB_scr : forall b, BhvStep.scr_b lp b -> SafeB b.
   Notation MWF := (MWF_real lp bm bc oc0 SafeB).
-  Notation Pobjl := (HeightFrame.Pobj lp bm MWF (HeightFrame.PhiW lp bm) (OW.obj_w G bm)).
+  Notation Pobjl := (ClearKeep.Pobjc lp bm bc oc0 SafeB).
   Notation Pc := (ClearKeep.Pc lp bm bc oc0 SafeB).
   Notation INV go pool oc bcc st0 nb0 X := (ObjInv.INVk lp bm bc oc0 SafeB go pool oc bcc st0 nb0 X).
 
@@ -534,3 +535,23 @@ Section STEP.
       exact (conj HP2 (xr_tr ls hd pool k m1 _ HX1 HP2 R2 Hp)).
   Qed.
 End STEP.
+
+(* ---------------------------------------------------------------------- *)
+(* 5. The scripts are SafeB: SafeB_syms_ok (d) names behavior_data's       *)
+(*    globals, and every script of the VM table is one (vm).               *)
+(* ---------------------------------------------------------------------- *)
+Lemma fb_mem : forall (P : ident -> bool) (l : list ident), forallb P l = true ->
+  forall s, In s l -> P s = true.
+Proof. intros P l H s Hs. exact (proj1 (forallb_forall P l) H s Hs). Qed.
+
+Lemma scr_bd_b : forallb (fun s => CensusV2.mem_id s SpawnInit.bhv_data_syms) (map v_s vm_tab) = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Theorem scr_safe : forall lp (SafeB : block -> Prop),
+  (forall id b, CensusV2.mem_id id SpawnInit.bhv_data_syms = true ->
+     Genv.find_symbol (lp_ge lp) id = Some b -> SafeB b) ->
+  forall b, BhvStep.scr_b lp b -> SafeB b.
+Proof.
+  intros lp SafeB H b (s & Hs & Hf).
+  exact (H s b (fb_mem (fun s => CensusV2.mem_id s SpawnInit.bhv_data_syms) (map v_s vm_tab) scr_bd_b s Hs) Hf).
+Qed.

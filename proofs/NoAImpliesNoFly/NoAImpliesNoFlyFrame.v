@@ -119,7 +119,7 @@ From SM64.Proofs Require Import ReachableRun RealFrameLinked LinkedTwelve SpawnI
 From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 From SM64.Proofs Require FpuFloor OsDmaFloor.
 From SM64.Proofs.WMotRRequiresA Require NaSplit ExtInert LsContract AudioInv LevelKeep LevelFlank
-  ObjPhase ObjLoop ObjStepSplit ObjWorld FrameCalls PlatformKeep PollFlank PollKeep HeightFrame UnloadRows UnloadPc.
+  ObjPhase ObjLoop ObjStepSplit ObjWorld FrameCalls PlatformKeep PollFlank PollKeep HeightFrame UnloadRows UnloadPc ObjStep.
 
 Section NoAImpliesNoFlyFrame.
   Variable lp : Clight.program.
@@ -163,11 +163,12 @@ Section NoAImpliesNoFlyFrame.
       object_list_processor.f_update_objects_starting_at
     /\ ObjStepSplit.step_act_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
       object_list_processor.f_update_objects_during_time_stop.
-  Hypothesis Hobj_step_rest_nonterrain : HeightFrame.mario_hole lp bm MWF Phi ->
-    ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
-      object_list_processor.f_update_objects_starting_at
-    /\ ObjStepSplit.step_rest_row (lp_ge lp) bm Pobjl (ObjLoop.in_ring_l (lp_ge lp) bm ObjLoop.nt_ls)
-      object_list_processor.f_update_objects_during_time_stop.
+  (* 2026-11-07: the non-terrain rest row is PROVED (ObjStep, HeightFrame.
+     Hobj_step_rest_nonterrain) from this narrower row: per slot, the keeps
+     cur_obj_update's dispatch loop reads at INV_k.  GOAL 1's statement only
+     swapped the one row for the narrower one. *)
+  Hypothesis Hobj_cou_nt : HeightFrame.mario_hole lp bm MWF Phi ->
+    ObjStep.cou_keeps lp bm bc oc0 SafeB ObjLoop.nt_ls.
 
   (* the camera statement's object-world footprint, its residual part
      (HeightFrame.Hcam_ow_res: Mario's object-pointer cells and, since
@@ -194,7 +195,7 @@ Section NoAImpliesNoFlyFrame.
                     Hbm_sym Hbc_sym Hoc0 Hls Hdma_floor Hseg_na_open Hdma_anim Hsqrtf Hsqrtf_float
                     Hcam_phi
                     Hobj_step_act_terrain Hobj_step_rest_terrain
-                    Hobj_step_act_nonterrain Hobj_step_rest_nonterrain
+                    Hobj_step_act_nonterrain Hobj_cou_nt
                     Hcam_ow_res
                     init is m Hok Hphi Hst How HA Hr)).
   Qed.

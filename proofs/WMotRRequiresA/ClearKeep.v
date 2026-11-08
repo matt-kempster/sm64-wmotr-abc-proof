@@ -751,6 +751,14 @@ Section CK.
     mem_ok_lp bm MWF m /\ phiw lp bm m /\ a_down_real bm m = false /\ PlatformKeep.plat_still lp m
     /\ OW.obj_w G bm m.
 
+  (* the objects phase's carried fact at the link, HeightFrame.Pobj lp bm MWF
+     (PhiW lp bm) obj_w, stated without HeightFrame (2026-11-07) so the
+     objects step (ObjInv .. ObjStep) can sit below it: the same conjunction,
+     convertible to it (PhiW's body is phiw's) *)
+  Definition Pobjc (m : mem) : Prop :=
+    mem_ok_lp bm MWF m /\ phiw lp bm m /\ a_down_real bm m = false /\ PlatformKeep.plat_still lp m
+    /\ RenderKeep.surf_apart lp bm PlatformKeep.plat_gvars m /\ OW.obj_w G bm m.
+
   Lemma hsp : exists init, spawn_ok lp init bm bc oc0.
   Proof. exact (Hsp lp H12 bm Hbm_sym bc oc0 Hbc_sym Hoc0). Qed.
 

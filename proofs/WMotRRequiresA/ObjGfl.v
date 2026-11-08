@@ -29,7 +29,7 @@ From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
 From SM64.Proofs Require Import HeightInvariant WMotRWorld FrameSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld AnimData AnimWorld RenderKeep BhvVM.
 From SM64.Proofs.WMotRRequiresA Require ObjWorld ObjRing PollKeep PlatformKeep ClearKeep BhvStep.
-From SM64.Proofs.WMotRRequiresA.Unwired Require ObjExit.
+From SM64.Proofs.WMotRRequiresA Require ObjExit.
 Import ListNotations.
 Local Open Scope Z_scope.
 Local Transparent Archi.ptr64.
