@@ -1430,9 +1430,23 @@ without pressing A".*
   except into a reachable script's block -- by the generic byte lemmas
   (`nvB_store_trans`, `encode_cvok`: a store narrower than a pointer writes no
   fragment) and the `nvc` tactic over the handler's own stores; `Hinv_frame` takes
-  `PfrN`. INV_k (Unwired/ObjInv) carries `nvB (scr_b \/ SafeB) g m` against its ghost
+  `PfrN`. INV_k (Unwired/ObjInv) carries `nvB scr_b g m` against its ghost
   g, the frame-start memory, so R7 at exit rests on R7 g, which the start theorem
-  proves from boot (scripts are SafeB by StartSat's SB1). BhvStep now also takes
+  proves from boot (scripts are SafeB by StartSat's SB1). (Narrowed 2026-11-07 from
+  `nvB (scr_b \/ SafeB)`, which the exit could not use: g's closing injection maps
+  every symbol, hence every script, but not every SafeB block.)
+  **The objects step's EXIT (2026-11-07, Unwired/ObjExit `inv_exit`): PROVED.** INV_k
+  at cur_obj_update's return, the slot at the reached state st' of st0's family
+  (ObjFamily.Qfam), gives Pobjl m'. Labeled premise: `HSafeB_scr` (the scripts are
+  SafeB; discharged at the linked capstone from StartSat's SB1). Through `cut
+  (nextblock g) m'` (m' without the blocks born after g, a memory construction):
+  g -> cut changes only the VM cursor and slot k0's VM cells, so Pc carries (MWF by
+  `MWF_real_transfer`, R7 by `closed_nvB`; PhiW by `k_all_wc` with Xs =
+  [gCurBhvCommand], the cut closed by g's closing injection, `nvB_closed`; obj_w by
+  `obj_w_vm_swap`); cut -> m' adds only blocks born after g, which Pc is blind to
+  (Unwired/NewKeep `new_pc`, BlindKeep's argument for every new block at once). No
+  new trust row. The row keeps for natives must keep the ghost / real difference
+  inside the slot's VM cells and the cursor (script pointers only). BhvStep now also takes
   `Hsq` (sqrtf_spec, the FPU floor row already in the ledger) and `Hpool` (the current
   slot lives in gObjectPool). No new trust row; ObjFrame's whole-walk frame (ls_frame)
   is not used. The pinned premises are bundled as `row_keeps`.

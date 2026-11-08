@@ -12,24 +12,28 @@
 (*   Ple nb0 (nextblock m) /\ cur m /\                                     *)
 (*   exists g, Pobjl g /\ Vo g st0 /\ Ple (nextblock g) nb0                *)
 (*             /\ Mem.unchanged_on Pfr g m                                 *)
-(*             /\ nvB (scr_b \/ SafeB) g m                                 *)
+(*             /\ nvB scr_b g m                                            *)
 (* -- m agrees with a Pobjl memory g whose slot cells hold the update's    *)
 (* start state st0, except at the VM cells; and every byte m changes      *)
-(* holds no pointer except into a script or a SafeB block (the VALUE side: *)
-(* with g's MWF R7 it gives R7 at exit).  g is the frame-start memory     *)
-(* itself (inv_entry), so its R7 is the one the start theorem proves from *)
-(* boot -- never a fresh hypothesis.  nb0 is the entry's                   *)
-(* nextblock (blocks born later -- the local filler[4] -- are not g's).    *)
+(* holds no pointer except into a script's block (the VALUE side the      *)
+(* handlers' PfrN gives; with g's MWF R7 it gives R7 at exit).  Narrowed   *)
+(* 2026-11-07 from nvB (scr_b \/ SafeB): the exit (ObjExit) closes the     *)
+(* exit memory by g's closing injection, which maps every symbol (so      *)
+(* every script) but not necessarily every SafeB block.  g is the         *)
+(* frame-start memory itself (inv_entry), so its R7 is the one the start  *)
+(* theorem proves from boot -- never a fresh hypothesis.  nb0 is the      *)
+(* entry's nextblock (blocks born later -- the local filler[4] -- are     *)
+(* not g's).                                                               *)
 (* The script tie Qs is ObjFamily.Qfam (v_s st0): every state the loop    *)
 (* reaches runs a script of st0's class.                                   *)
 (*                                                                         *)
 (* PROVED here: BhvStep's frame hypotheses for INV_k -- Hinv (scr_ok /    *)
 (* cmdtab_ok), Hinv_cur, Hinv_frame, inv_free -- and the entry (a Pobjl    *)
-(* memory whose slot holds st0 is INV_k).                                  *)
+(* memory whose slot holds st0 is INV_k).  The exit: ObjExit.exit_pc.      *)
 (*                                                                         *)
 (* STAGED in Unwired/: promoted when the objects step row (cou_real at    *)
-(* INV := INVk, Qs := Qk) requires it, after the exit swap and the row /  *)
-(* sfr keeps for INV_k are proved.                                         *)
+(* INV := INVk, Qs := Qk) requires it, after the row / sfr keeps for      *)
+(* INV_k are proved.                                                       *)
 (* ======================================================================= *)
 
 From Coq Require Import ZArith List Lia Bool.
@@ -61,7 +65,7 @@ Section Inv.
 
   Notation Pfr := (BhvStep.Pfr pool oc bcc).
   Notation PfrN := (BhvStep.PfrN lp pool oc bcc).
-  Definition PV (b : block) : Prop := BhvStep.scr_b lp b \/ SafeB b.
+  Notation scr := (BhvStep.scr_b lp).
   Notation cur := (BhvStep.cur go pool oc).
   Notation Vo := (BhvStep.Vo lp pool oc).
 
@@ -72,7 +76,7 @@ Section Inv.
   Definition INVk (m : mem) : Prop :=
     Ple nb0 (Mem.nextblock m) /\ cur m
     /\ exists g, Pobjl g /\ Vo g st0 /\ Ple (Mem.nextblock g) nb0 /\ Mem.unchanged_on Pfr g m
-                 /\ BhvStep.nvB PV g m.
+                 /\ BhvStep.nvB scr g m.
 
   Definition Qk : vst -> Prop := ObjFamily.Qfam (v_s st0).
 
@@ -109,8 +113,7 @@ Section Inv.
     split; [ exact (Ple_trans _ _ _ Hn N) | split; [ exact (cur_unch m m' U' (cur_valid m Hc) Hc) | ] ].
     exists g. split; [ exact Hg | split; [ exact HV | split; [ exact Hgn | split ] ] ].
     - exact (Mem.unchanged_on_trans _ _ _ _ U U').
-    - apply (BhvStep.nvB_trans _ _ _ _ NV); [ | exact (Mem.unchanged_on_nextblock _ _ _ U) ].
-      apply (BhvStep.nvB_mono (BhvStep.scr_b lp) PV); [ intros b Hb; left; exact Hb | exact NV' ].
+    - exact (BhvStep.nvB_trans _ _ _ _ NV NV' (Mem.unchanged_on_nextblock _ _ _ U)).
   Qed.
 
   (* ---- Hinv_cur ---- *)
