@@ -102,10 +102,11 @@ Tool §2c lists the globals the entry reads by name and never assigns, among the
 | **Residue:** free `gObjectPool` slots, surface-pool slots past the allocated count, the reused main pool | MWF R7 (SafeB load-closed: every pointer in a SafeB block aims at SafeB); `obj_w`'s free list | The castle's bytes. The witness has boot zeros. Whether R7 holds of the castle's residue is a fact about castle frames, which nothing proves. **OPEN.** |
 | **Layout:** the anim DMA buffer is a `main_pool_alloc` (game_init.c), so under TRUST 3.6 it sits in the same block as the surfaces and the Camera | ffw `ff_D2` / `ff_Dbt`, `anim_apart`, `cam_w` ("not the animation buffer's block") | The witness's S7 gives the buffer its own block. In 3.6's one-block model the block-granular "apart" clauses fail. **OPEN**, tied to stand-in S7. |
 
-## 4b. Act 0: the two options (decision pending with the user)
+## 4b. Act 0: the two options (decided 2026-11-07: (a))
 
-Until the user decides, S2 (`gCurrActNum := 1`) stays as the stand-in and is
-flagged here.
+The user approved option (a), implemented as `1 << ((gCurrActNum - 1) & 31)`, which
+spells out sllv's mod 32 directly (it equals the ternary below at acts 0..32).
+S2 (`gCurrActNum := 1`) stays as the witness's act.
 
 - **(a) An `AVOID_UB`-style rewrite** of `level_script.c:436`, for the proof build
   only:
@@ -144,6 +145,6 @@ plus the residue and the layout of §4 (not parametrised: a whole-castle fact).
 | Part | Plan |
 |---|---|
 | act 1..6, cap, Mario's scalars, carried int globals | **Done** (`StartCarry.goal2_start_carried`). The real-entry witness, after any sequence of int stores into Mario's flags / coins / stars / keys / lives / health / unkB0 / prevNumStarsForDialog and into `gCurrActNum` / `gCurrSaveFileNum` / `gCurrCourseStarFlags`, still meets the capstone's start premise. `object_masks` checks that every OBJECT in WMotR's script has mask 0x1F, so every act places the same objects. |
-| act 0 | FOUND (B1). Needs approval. |
+| act 0 | FOUND (B1). **Repaired 2026-11-07** by option (a), the approved rewrite `1 << ((gCurrActNum - 1) & 31)` (TRUST 2.2; `StartCarry.act0_val7`: val7 = 0, so the same objects as acts 1..6 are placed). |
 | wall / ceil | OPEN. Needs a restated start premise; for main. |
 | residue / layout | OPEN. Needs a pre-entry invariant or a block-model change; for main. |

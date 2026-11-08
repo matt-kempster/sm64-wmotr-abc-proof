@@ -19,13 +19,15 @@
 (*                                                                        *)
 (* Not covered here (census §3 / §4, open): m->wall / m->ceil (stale     *)
 (* castle pointers; approved restatement, next), the castle's residue in *)
-(* free object / pool slots, the anim buffer's block (S7), act 0 (B1     *)
-(* FOUND, decision pending), and m->input (A bits: the ABC premise).      *)
+(* free object / pool slots, the anim buffer's block (S7), and m->input  *)
+(* (A bits: the ABC premise).  Act 0 runs since the 2026-11-07 rewrite   *)
+(* (TRUST 2.2; act0_val7 below); the witness itself still enters at act  *)
+(* 1 (StartTerrain S2).                                                   *)
 (* ====================================================================== *)
 From Coq Require Import ZArith Lia List Bool.
-From compcert Require Import Coqlib Integers Floats Values AST Ctypes Clight Memory Maps Globalenvs.
+From compcert Require Import Coqlib Integers Floats Values AST Ctypes Cop Clight Clightdefs Memory Maps Globalenvs.
 From SM64.Generated Require level_update mario object_list_processor area platform_displacement
-  sound_init game_init wmotr_script.
+  sound_init game_init wmotr_script level_script.
 From SM64.Proofs Require Import SymbolicLinking RealFrameLinked LinkedTwelve CensusV2 MWFReal
   SpawnInit ActionValueFrame NoAImpliesNoFlyLinked AGates.
 From SM64.Proofs Require NoAImpliesNoFlyTwelve ObjExtBodies.
@@ -94,8 +96,11 @@ Qed.
 (*     (big-endian: bits 15..8 of the first word), read off generated/.   *)
 (*     So for every act 1..6 the same objects are placed; the act cell    *)
 (*     itself is a carried global the start premise does not read         *)
-(*     (gstore_carried below).  Act 0 has no Clight execution (census B1, *)
-(*     FOUND, decision pending).                                          *)
+(*     (gstore_carried below).  Act 0 (census B1): the ROM line           *)
+(*     `1 << (gCurrActNum - 1)` had no Clight execution; it is now       *)
+(*     written `1 << ((gCurrActNum - 1) & 31)`, the ROM's sllv bits       *)
+(*     (TRUST 2.2), and act0_val7 below shows it gives val7 = 0, so act 0 *)
+(*     too places exactly the mask-0x1F commands, i.e. all of them.       *)
 (* ---------------------------------------------------------------------- *)
 Definition cmd_mask (c : ident * nat) : Z :=
   let l := if Pos.eqb (fst c) StartTerrain.L_ENT then gvar_init wmotr_script.v_level_wmotr_entry
@@ -111,6 +116,35 @@ Definition object_cmds : list (ident * nat) :=
 
 Lemma object_masks : map cmd_mask object_cmds = [31; 31; 31; 31; 31; 31; 31; 31].
 Proof. vm_compute. reflexivity. Qed.
+
+(* val7's expression in the generated level_cmd_place_object *)
+Definition val7_e : expr :=
+  Ecast (Ebinop Oshl (Econst_int (Int.repr 1) tint)
+           (Ebinop Oand (Ebinop Osub (Etempvar level_script._t'39 tshort) (Econst_int (Int.repr 1) tint) tint)
+              (Econst_int (Int.repr 31) tint) tint) tint) tuchar.
+
+Lemma place_object_val7 : exists rest,
+  fn_body level_script.f_level_cmd_place_object =
+    Ssequence (Ssequence (Sset level_script._t'39 (Evar level_script._gCurrActNum tshort))
+                         (Sset level_script._val7 val7_e)) rest.
+Proof. eexists. reflexivity. Qed.
+
+(* at act 0 the rewritten line has an execution, and it is 0 (the ROM's
+   sllv: 1 << 31, low byte 0) *)
+Lemma act0_val7 : forall ge e le m, le ! level_script._t'39 = Some (Vint Int.zero) ->
+  eval_expr ge e le m val7_e (Vint Int.zero).
+Proof.
+  intros ge e le m H. unfold val7_e.
+  eapply eval_Ecast.
+  - eapply eval_Ebinop.
+    + constructor.
+    + eapply eval_Ebinop.
+      * eapply eval_Ebinop; [ constructor; exact H | constructor | reflexivity ].
+      * constructor.
+      * reflexivity.
+    + reflexivity.
+  - reflexivity.
+Qed.
 
 Section CARRY.
   Variable lp : Clight.program.

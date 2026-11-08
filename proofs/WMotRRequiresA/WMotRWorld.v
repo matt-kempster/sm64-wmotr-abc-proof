@@ -245,9 +245,16 @@ Definition wmotr_objects (bm : block) (m : mem) : Prop :=
          Mem.load Mint32 m mb (Ptrofs.unsigned mo + COLL_OFF + 4 * i) = Some v ->
          coll_obj_ok m v.
 
+(* m->wall / m->ceil (named, so a later restatement of the start premise
+   can change them in one place; 2026-11-08, coverage track) *)
+Definition wall_ok (bm : block) (m : mem) : Prop :=
+  forall v, Mem.load Mint32 m bm WALL_OFF = Some v -> surface_ok m v.
+Definition ceil_ok (bm : block) (m : mem) : Prop :=
+  forall v, Mem.load Mint32 m bm CEIL_OFF = Some v -> surface_ok m v.
+
 Definition wmotr_world (bm : block) (m : mem) : Prop :=
-  (forall v, Mem.load Mint32 m bm WALL_OFF = Some v -> surface_ok m v)
-  /\ (forall v, Mem.load Mint32 m bm CEIL_OFF = Some v -> surface_ok m v)
+  wall_ok bm m
+  /\ ceil_ok bm m
   /\ (forall v, Mem.load Mint32 m bm FLOOR_OFF = Some v -> surface_nonnull_ok m v)
   /\ Mem.load Mint32 m bm HELD_OFF = Some Vnullptr
   /\ Mem.load Mint32 m bm RIDDEN_OFF = Some Vnullptr
