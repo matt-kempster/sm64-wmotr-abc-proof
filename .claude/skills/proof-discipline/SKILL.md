@@ -1038,6 +1038,20 @@ all in `Unwired/`, and the theorem moved nowhere. See
        (d) a GflX lemma (non-pointer store into a window keeps Pc), then pinned ones.
        sit / atex need obj_w's script domain narrowed to wmotr_closure_b, proved at
        the witness (else FOUND).
+       2026-11-08 (b)-(d) DONE for the window fields: FieldWin.ucl (15 windows =
+       fields 1,3,10,12,16,18-23,26,28-29,38,40-41,47,52,55-59,61,67) added to OW.ccl
+       and RenderKeep.ccl_at; exactness pinned by FieldWinCensus (vm census
+       win_fields_value, FieldWin.uwin_census).  ObjFld.fld_pc: a non-pointer store
+       into [d,n) off every frame read keeps Pc.  PROVED at the ghost: setf / addi /
+       ori / atex / home / phys / pbc (parent = a slot by par_ok) and set_int
+       except field 42 (ObjStep.*_g; census lemmas win_op / set_op); set_keep is
+       asked only as ObjRows.set42_keep.  ghost_keeps_r now asks 16.  NEXT: sir
+       (needs GP across the RNG's Psd change -- the keep gives only unchanged_on Psd,
+       no nvB for the seed block), srf / sri / sumf / addf (pinned reads 27 / 6-8),
+       par51_ok (par_ok clause 2 needs runs = the VM script), deact, hb / hbo,
+       la / lcd (pointer stores), scale, sit, set42, begin_ok, gsfr_keep.
+       TRAP: never `unfold FieldWin.ucl` in a hypothesis with variable offsets (2^15
+       lia case split); keep ucl atomic and use ucl_eq / ucl_lo / ucl_disj / ucl_field.
        OPEN: discharge Hobj_ter_ctr ((A) walk the loader + one-load induction, or
        (C) a loaded flag in INV_k) and the cou_keeps rows.
        TRAP: names bound by `match goal with H : ...` vanish after the match --

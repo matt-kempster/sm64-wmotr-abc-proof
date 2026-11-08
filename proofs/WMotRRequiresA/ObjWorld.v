@@ -51,6 +51,7 @@ From SM64.Proofs Require Interp.CMem.
 From SM64.Proofs Require Import CensusV2.
 From SM64.Proofs.WMotRRequiresA Require Import WMotRLevel WMotRWorld.
 From SM64.Proofs.WMotRRequiresA Require BehaviorScripts ObjAct ObjCensus BhvVM FloorList BoxCensus.
+From SM64.Proofs.WMotRRequiresA Require FieldWin.
 
 Import ListNotations.
 Local Open Scope string_scope.
@@ -316,10 +317,11 @@ End CLAUSES.
    [off, e) miss them *)
 Definition ccl (off e : Z) : Prop :=
   (e <= 112 \/ 116 <= off) /\ (e <= 118 \/ 136 <= off) /\ (e <= 156 \/ 160 <= off)
-  /\ (e <= 400 \/ 404 <= off).
+  /\ (e <= 400 \/ 404 <= off) /\ FieldWin.ucl off e.
+(* 2026-11-08: and the script-written fields no clause reads (FieldWin.ucl) *)
 
 Local Ltac ko := unfold OSZ, O_INTERACT_TYPE, O_POSX, O_POSY, O_POSZ, HITBOX_DOWN_OFF, HITBOX_H_OFF,
-                   RAW_OFF, ccl; cbn [size_chunk]; lia.
+                   RAW_OFF, ccl, FieldWin.ucl; cbn [size_chunk]; lia.
 (* the slot fields obj_w reads: from offset 96 on, except the platform
    field (Object.platform, offset 532, which update_mario_platform writes
    and no obj_w clause reads) and the collision cells (ccl) *)

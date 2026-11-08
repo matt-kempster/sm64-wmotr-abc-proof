@@ -34,7 +34,7 @@ From SM64.Proofs Require Import SymbolicLinking RealFrameLinked LinkedTwelve
 From SM64.Proofs Require Import HeightInvariant WMotRWorld NoAActions FrameSplit.
 From SM64.Proofs.WMotRRequiresA Require Import RenderAnim RenderSet RenderFlank
   FloorList FloorExec FfWorld AnimData AnimWorld PlatformEff.
-From SM64.Proofs.WMotRRequiresA Require AnimKeep LevelGvars.
+From SM64.Proofs.WMotRRequiresA Require AnimKeep LevelGvars FieldWin.
 From SM64.Proofs Require Import Generic.ClosedMem.
 Import ListNotations.
 
@@ -213,7 +213,9 @@ Qed.
    and the objects step moves the running slot's (BhvStep.Pfr), which may
    be Mario's or a far object's. *)
 Definition ccl_at (o z e : Z) : Prop :=
-  (e <= o + 156 \/ o + 160 <= z) /\ (e <= o + 400 \/ o + 404 <= z) /\ (e <= o + 460 \/ o + 502 <= z).
+  (e <= o + 156 \/ o + 160 <= z) /\ (e <= o + 400 \/ o + 404 <= z) /\ (e <= o + 460 \/ o + 502 <= z)
+  /\ FieldWin.ucl (z - o) (e - o).
+(* 2026-11-08: and the script-written fields no clause reads (FieldWin.ucl) *)
 
 Definition owinc (Q : ptrofs -> Prop) (mo : ptrofs) (ch : memory_chunk) (z : Z) : Prop :=
   (Ptrofs.unsigned mo + 16 <= z /\ z + size_chunk ch <= Ptrofs.unsigned mo + 64)
@@ -488,7 +490,8 @@ Section RK.
       \/ (u mo + 136 <= z /\ z + size_chunk ch <= u mo + 532
           /\ (z + size_chunk ch <= u mo + 156 \/ u mo + 160 <= z)
           /\ (z + size_chunk ch <= u mo + 400 \/ u mo + 404 <= z)
-          /\ (z + size_chunk ch <= u mo + 460 \/ u mo + 502 <= z)) ->
+          /\ (z + size_chunk ch <= u mo + 460 \/ u mo + 502 <= z)
+          /\ FieldWin.ucl (z - u mo) (z + size_chunk ch - u mo)) ->
       Mem.load ch m' mb z = Mem.load ch m mb z.
     Proof.
       intros ch z H. apply (LD ch mb z Nmb (fun E => Bmb (eq_sym E))). right. unfold owinc, ccl_at.
@@ -507,12 +510,18 @@ Section RK.
     Lemma far_keep : forall co ch o', (co = mo \/ (Q co /\ (u co + 608 <= u mo \/ u mo + 608 <= u co))) ->
       136 <= o' -> o' + size_chunk ch <= 532 ->
       (o' + size_chunk ch <= 156 \/ 160 <= o') /\ (o' + size_chunk ch <= 400 \/ 404 <= o')
-      /\ (o' + size_chunk ch <= 460 \/ 502 <= o') ->
+      /\ (o' + size_chunk ch <= 460 \/ 502 <= o') /\ FieldWin.ucl o' (o' + size_chunk ch) ->
       Mem.load ch m' mb (u co + o') = Mem.load ch m mb (u co + o').
     Proof.
-      intros co ch o' H H1 H2 H3. destruct H as [-> | (Hq & H)]; [ apply LHo; lia | ].
+      intros co ch o' H H1 H2 (H3a & H3b & H3c & H3u).
+      assert (Ue : forall c, FieldWin.ucl (c + o' - c) (c + o' + size_chunk ch - c))
+        by (intros c; apply (FieldWin.ucl_eq o' (o' + size_chunk ch)); [ lia | lia | exact H3u ]).
+      destruct H as [-> | (Hq & H)].
+      { apply LHo. right; right; right.
+        refine (conj _ (conj _ (conj _ (conj _ (conj _ (Ue (u mo))))))); lia. }
       apply (LD ch mb _ Nmb (fun E => Bmb (eq_sym E))). right. right. right. right. right.
-      exists co. split; [ exact Hq | split; [ exact H | unfold ccl_at; lia ] ].
+      exists co. split; [ exact Hq | split; [ exact H | ] ].
+      refine (conj _ (conj _ (conj _ (conj _ (conj _ (Ue (u co))))))); lia.
     Qed.
 
     Lemma obj_eq : forall bo oo, Mem.load Mint32 m bm 136 = Some (Vptr bo oo) -> bo = mb /\ oo = mo.
@@ -527,7 +536,7 @@ Section RK.
       split; [rewrite LHm by bmk_t; exact H3 |]. split; [rewrite LHm by bmk_t; exact H4 |].
       split; [rewrite LHm by bmk_t; exact H5 |]. split; [rewrite LHm by bmk_t; exact H6 |].
       exists mb, mo. split; [rewrite LHm by bmk_t; exact H7 |].
-      rewrite LHo by (unfold OFS_GFXY; cbn [size_chunk]; lia). exact H8.
+      rewrite LHo by (unfold FieldWin.ucl; unfold OFS_GFXY; cbn [size_chunk]; lia). exact H8.
     Qed.
 
     Lemma k_hic : height_invariant bm R_noA m -> height_invariant bm R_noA m'.
@@ -546,16 +555,16 @@ Section RK.
       assert (F : co = mo \/ (Q co /\ (u co + 608 <= u mo \/ u mo + 608 <= u co)))
         by (unfold OBJ_SIZE in Hap; destruct Hap as [N | [H | H]]; [exfalso; exact (N eq_refl) | left; exact H | right; exact (conj Hq H)]).
       exists mb, co, t. split; [reflexivity |].
-      split; [rewrite (far_keep co) by (first [exact F | unfold O_INTERACT_TYPE, RAW_OFF; cbn [size_chunk]; lia]);
+      split; [rewrite (far_keep co) by (first [exact F | unfold O_INTERACT_TYPE, RAW_OFF, FieldWin.ucl; cbn [size_chunk]; lia]);
               exact Lt |].
       split; [exact Hin |]. split.
       - intros Ht. destruct (Hp Ht) as (base & top & Hi & P1 & P2 & P3).
         exists base, top. split; [exact Hi |].
-        rewrite !(far_keep co) by (first [exact F | unfold O_POSY, HITBOX_DOWN_OFF, HITBOX_H_OFF, RAW_OFF;
+        rewrite !(far_keep co) by (first [exact F | unfold O_POSY, HITBOX_DOWN_OFF, HITBOX_H_OFF, RAW_OFF, FieldWin.ucl;
                                                    cbn [size_chunk]; lia]).
         auto.
       - intros Ht. destruct (Hc Ht) as (y & Hi & P1). exists y. split; [exact Hi |].
-        rewrite (far_keep co) by (first [exact F | unfold O_POSY, RAW_OFF; cbn [size_chunk]; lia]).
+        rewrite (far_keep co) by (first [exact F | unfold O_POSY, RAW_OFF, FieldWin.ucl; cbn [size_chunk]; lia]).
         exact P1.
     Qed.
 
@@ -570,7 +579,7 @@ Section RK.
       exists mb, co, t. split; [reflexivity |].
       split; [ | split; [ exact Hin | split; intros Ht; contradiction ] ].
       unfold OBJ_SIZE in Hap. destruct Hap as [N | [-> | H]]; [ exfalso; exact (N eq_refl) | | ].
-      - rewrite LHo by (unfold O_INTERACT_TYPE, RAW_OFF; cbn [size_chunk]; lia). exact Lt.
+      - rewrite LHo by (unfold FieldWin.ucl; unfold O_INTERACT_TYPE, RAW_OFF; cbn [size_chunk]; lia). exact Lt.
       - rewrite (LDt co Hq H). exact Lt.
     Qed.
 
@@ -608,7 +617,7 @@ Section RK.
         destruct (obj_eq mb' mo' Hl) as (-> & ->).
         destruct (CKn n Ln) as (n' & Ln' & Rn' & En').
         exists mb, mo, s, n'. split; [rewrite LHm by bmk_t; exact Hl |].
-        split; [rewrite LHo by (unfold O_INTERACT_STATUS, RAW_OFF; cbn [size_chunk]; lia); exact Ls |].
+        split; [rewrite LHo by (unfold FieldWin.ucl; unfold O_INTERACT_STATUS, RAW_OFF; cbn [size_chunk]; lia); exact Ls |].
         split; [exact Hs |].
         split; [exact Ln' |].
         assert (Rn'' : 0 <= Int.signed n' <= 4) by (destruct Rn' as [-> | R]; [exact Hn | exact R]).
@@ -697,19 +706,19 @@ Section RK.
         exists mb, uo. split; [rewrite LHm by bmk_t; exact Lu |].
         split; [| split; [exact (Ap _ _ A) | split]].
         + exists base, top. split; [exact Hin |]. split; [exact Ht |].
-          rewrite !(far_keep uo) by (first [exact F | unfold O_POSY, HITBOX_DOWN_OFF, HITBOX_H_OFF, RAW_OFF;
+          rewrite !(far_keep uo) by (first [exact F | unfold O_POSY, HITBOX_DOWN_OFF, HITBOX_H_OFF, RAW_OFF, FieldWin.ucl;
                                                      cbn [size_chunk]; lia]).
           auto.
         + split; [exact S |]. intros mb' mo' Hl. rewrite K136 in Hl. destruct (obj_eq mb' mo' Hl) as (-> & ->).
           split; [reflexivity |]. exists p.
-          rewrite LHo by (unfold POLEPOS_OFF, RAW_OFF; cbn [size_chunk]; lia). exact (conj Lp (conj Fp Rp)).
+          rewrite LHo by (unfold FieldWin.ucl; unfold POLEPOS_OFF, RAW_OFF; cbn [size_chunk]; lia). exact (conj Lp (conj Fp Rp)).
         + intros w Lv. rewrite LHm in Lv by bmk_t. exact (V w Lv).
       - intros Hcn. destruct (U2 Hcn) as (ub & uo & Lu & (y & Hin & P1) & A & (S & CP)).
         destruct (CP mb mo Lmo) as (Eu & CC). subst ub.
         pose proof (Far (or_introl (eq_sym Hcn)) uo Lu A) as F.
         exists mb, uo. split; [rewrite LHm by bmk_t; exact Lu |]. split; [| split; [exact (Ap _ _ A) |]].
         + exists y. split; [exact Hin |].
-          rewrite (far_keep uo) by (first [exact F | unfold O_POSY, RAW_OFF; cbn [size_chunk]; lia]). exact P1.
+          rewrite (far_keep uo) by (first [exact F | unfold O_POSY, RAW_OFF, FieldWin.ucl; cbn [size_chunk]; lia]). exact P1.
         + split; [exact S |]. intros mb' mo' Hl. rewrite K136 in Hl. destruct (obj_eq mb' mo' Hl) as (-> & ->).
           split; [reflexivity |]. intros i cb co Hi Hl2.
           destruct (CKo i cb co Hi Hl2) as [Ho | (_ & _ & _ & Au & _)]; [ exact (CC i cb co Hi Ho) | ].
@@ -747,14 +756,14 @@ Section RK.
       - intros z ch Hin. unfold ffw_bm_cells in Hin. ffw_in_split Hin; apply LHm; bmk_t.
       - exact (LHb Mint32 ab 8 Nab (ab_bm ab S5) Rab).
         (* throwMatrix (+80) lies outside the render footprint (+64..72) *)
-      - apply LHo; unfold FFW_THROW; cbn [size_chunk]; lia.
-      - apply LHo; unfold FFW_HD; cbn [size_chunk]; lia.
+      - apply LHo; unfold FieldWin.ucl, FFW_THROW; cbn [size_chunk]; lia.
+      - apply LHo; unfold FieldWin.ucl, FFW_HD; cbn [size_chunk]; lia.
       - (* a collided object after: an old one (Co, Cd) or a new far one *)
         intros i cb co Hi Hl. destruct (CKo i cb co Hi Hl) as [Ho | (-> & _ & Ap & _)].
         + exact (conj (Co i cb co Hi Ho) (Cd i cb co Hi Ho)).
         + split; [ reflexivity | unfold SZ_OBJECT; exact Ap ].
       - unfold ffw_hh. destruct HHt as (h & Lh & Eh). exists h. split; [ | exact Eh ].
-        rewrite LHo by (unfold FFW_HH; cbn [size_chunk]; lia). exact Lh.
+        rewrite LHo by (unfold FieldWin.ucl; unfold FFW_HH; cbn [size_chunk]; lia). exact Lh.
       - split.
         + exists fl. split; [rewrite LHm by bmk_t; exact Lf | exact Wf].
         + split.
@@ -814,13 +823,13 @@ Section RK.
       assert (Rbt : ~ rgb bt) by (intros (id & _ & Hs); exact (proj2 (Sy id bt Hs) eq_refl)).
       destruct Sa as [((i & Li0 & Ni) & C) | (k & Hk & (A1 & A2 & A3 & A4 & Fr & A6))].
       - left. split.
-        + exists i. rewrite LHo by (cbn [size_chunk]; lia). split; assumption.
+        + exists i. rewrite LHo by (unfold FieldWin.ucl; cbn [size_chunk]; lia). split; assumption.
         + rewrite (LHb Mint32 ab 4 Nab (ab_bm ab S5) Rab). exact C.
       - right. exists k. split; [exact Hk |].
         split; [rewrite (LHb Mint32 ab 4 Nab (ab_bm ab S5) Rab); exact A1 |].
-        split; [rewrite LHo by (cbn [size_chunk]; lia); exact A2 |].
-        split; [rewrite LHo by (cbn [size_chunk]; lia); exact A3 |].
-        split; [rewrite LHo by (cbn [size_chunk]; lia); exact A4 |].
+        split; [rewrite LHo by (unfold FieldWin.ucl; cbn [size_chunk]; lia); exact A2 |].
+        split; [rewrite LHo by (unfold FieldWin.ucl; cbn [size_chunk]; lia); exact A3 |].
+        split; [rewrite LHo by (unfold FieldWin.ucl; cbn [size_chunk]; lia); exact A4 |].
         split; [exact (FR bt ot k Hk A3 A4 Fr A6 Z2) |].
         intros rel ch v Hin. rewrite (LHb ch bt _ E3 D2 Rbt). exact (A6 rel ch v Hin).
     Qed.

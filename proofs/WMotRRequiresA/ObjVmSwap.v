@@ -114,7 +114,7 @@ Section VS.
   Ltac sv := unfold vmc, OW.O_BHV, OW.O_CMD, OW.O_SIDX, OW.O_STK, OW.O_ACTION, OW.O_HSCOUNT,
     OW.O_FLAGS, OW.O_NEXT, OW.O_PREV, OW.OSZ, O_INTERACT_TYPE, O_POSX, O_POSY, O_POSZ, HITBOX_DOWN_OFF,
     HITBOX_H_OFF, RAW_OFF, OW.O_RTYPE, OW.O_RINFO, OW.G_PREV, OW.G_NEXT, OW.G_PAR, OW.O_PARENT,
-    OW.O_COLL, OW.ccl in *; cbn [size_chunk];
+    OW.O_COLL, OW.ccl, FieldWin.ucl in *; cbn [size_chunk];
     first [ lia | right; lia | left; assumption ].
 
   Lemma ld32_v : forall k off, 96 <= off -> off + 4 <= OW.OSZ -> (off + 4 <= 532 \/ 536 <= off) ->

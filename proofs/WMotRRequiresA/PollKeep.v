@@ -353,7 +353,7 @@ Section OWK.
 
   Ltac sk_side := unfold OW.O_BHV, OW.O_CMD, OW.O_SIDX, OW.O_STK, OW.O_ACTION, OW.O_HSCOUNT,
     OW.O_FLAGS, OW.O_NEXT, OW.O_PREV, OW.OSZ, O_INTERACT_TYPE, O_POSX, O_POSY, O_POSZ, HITBOX_DOWN_OFF,
-    HITBOX_H_OFF, RAW_OFF, OW.O_RTYPE, OW.O_RINFO, OW.G_PREV, OW.G_NEXT, OW.G_PAR, OW.ccl in *; cbn [size_chunk]; lia.
+    HITBOX_H_OFF, RAW_OFF, OW.O_RTYPE, OW.O_RINFO, OW.G_PREV, OW.G_NEXT, OW.G_PAR, OW.ccl, FieldWin.ucl in *; cbn [size_chunk]; lia.
 
   Lemma ld32_sk : forall pool, SKc pool -> forall k off, 96 <= off -> off + 4 <= OW.OSZ ->
     (off + 4 <= 532 \/ 536 <= off) -> OW.ccl off (off + 4) ->
@@ -474,7 +474,7 @@ Section OWK.
     (* the surface budget (ObjWorld 3c): the script a slot runs and its
        collisionData (offsets 460, 536) *)
     Lemma runs_eq : forall k id, OW.runs ge pool m' k id = OW.runs ge pool m k id.
-    Proof. intros k id. unfold OW.runs. rewrite (ld32_sk pool Kp) by (unfold OW.O_CMD, OW.OSZ, OW.ccl; lia). reflexivity. Qed.
+    Proof. intros k id. unfold OW.runs. rewrite (ld32_sk pool Kp) by (unfold OW.O_CMD, OW.OSZ, OW.ccl, FieldWin.ucl; lia). reflexivity. Qed.
 
     Lemma sdyn_eq : forall k, OW.sdyn ge pool m' k = OW.sdyn ge pool m k.
     Proof. intros k. unfold OW.sdyn. rewrite !runs_eq. reflexivity. Qed.
@@ -482,7 +482,7 @@ Section OWK.
     Lemma coll_pin_eq : forall k, OW.coll_pin ge pool m k -> OW.coll_pin ge pool m' k.
     Proof.
       intros k (C1 & C2). unfold OW.coll_pin. rewrite !runs_eq.
-      rewrite (Kp Mint32 k OW.O_COLL) by (unfold OW.O_COLL, OW.OSZ, OW.ccl; cbn [size_chunk]; lia).
+      rewrite (Kp Mint32 k OW.O_COLL) by (unfold OW.O_COLL, OW.OSZ, OW.ccl, FieldWin.ucl; cbn [size_chunk]; lia).
       exact (conj C1 C2).
     Qed.
   End POOL.
@@ -501,7 +501,7 @@ Section OWK.
     Mem.load Mint32 m' pool (k * OW.OSZ + RAW_OFF + 4 * j) = Mem.load Mint32 m pool (k * OW.OSZ + RAW_OFF + 4 * j).
   Proof.
     intros pool Kp k j _ Hj. rewrite <- Z.add_assoc.
-    apply Kp; unfold OW.OSZ, RAW_OFF, OW.ccl; cbn [size_chunk];
+    apply Kp; unfold OW.OSZ, RAW_OFF, OW.ccl, FieldWin.ucl; cbn [size_chunk];
       unfold OW.ANGV in Hj; cbn [In] in Hj; destruct Hj as [<- | [<- | [<- | []]]]; lia.
   Qed.
 

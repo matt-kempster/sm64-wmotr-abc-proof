@@ -1560,6 +1560,24 @@ without pressing A".*
   other 23. Next: field-exact obj_w / phiw frames (the `ccl` windows extended to the
   fields the keeps write, which the vm census of reachable (opcode, field) pairs lists),
   then the keeps whose fields neither frame reads.
+  **Field-exact frames and six more ghost keeps (2026-11-08).** obj_w's pool frame
+  (`ObjWorld.ccl`) and PhiW's (`RenderKeep.ccl_at`) now also exclude fifteen rawData
+  windows (`FieldWin.ucl`): the fields the reachable script commands write that no
+  clause of either invariant reads. The windows are not a hand list: `FieldWinCensus`
+  computes, over the vm table of every reachable script word, the fields the
+  byte2-addressed commands write (`vm_written_value`) and the reachable opcodes
+  (`vm_ops_value`, including SET_HOME / SET_OBJ_PHYSICS, whose fixed fields come from
+  their generated handler bodies); `win_fields_value` is that set minus the six fields
+  obj_w reads, and `FieldWin.uwin_census` shows the windows are exactly those fields'
+  bytes. Soundness needs no trust: a window over a read field would break the frames'
+  own proofs. `ObjFld.fld_pc` proves that a non-pointer store into such a window keeps
+  the objects phase's invariant, and `ObjStep` proves SET_FLOAT / ADD_INT / OR_INT /
+  ANIMATE_TEXTURE / SET_HOME / SET_OBJ_PHYSICS / PARENT_BIT_CLEAR's keeps at the ghost
+  (`win_op`: every reachable word of these writes a window field; PARENT_BIT_CLEAR's
+  parent is a whole slot by obj_w's `par_ok`), and SET_INT's except at field 42
+  (`set_op`: its fields are 5 -- bytes both frames already exclude -- 42, or a window);
+  SET_INT is asked only as `ObjRows.set42_keep` (oInteractType: the pole / cannon pins).
+  `ObjRows.ghost_keeps_r` now asks 16 keeps.
   **Native VM-cell scan (2026-11-08, `NativeVmCensus.native_vm_value`, vm, spine-root),
   behind `native_vals` inside the keeps rows.** INV_k's ghost clause `nvB scr` needs the
   cells where the real memory and the ghost differ (slot k's VM cells and gCurBhvCommand)

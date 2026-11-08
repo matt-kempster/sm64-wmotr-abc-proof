@@ -40,7 +40,7 @@ From SM64.Proofs Require CensusV2 SpawnInit ActionValueFrame Taint.
 From SM64.Proofs.WMotRRequiresA Require Import BhvVM.
 From SM64.Proofs.WMotRRequiresA Require ObjWorld ObjRing PollKeep ClearKeep BhvStep ObjFamily ObjLoop
   ObjStepSplit UnloadRows RenderAnim RenderKeep FpuFloor ObjSelf.
-From SM64.Proofs.WMotRRequiresA Require ObjInv ObjExit ObjRows ObjGfl.
+From SM64.Proofs.WMotRRequiresA Require ObjInv ObjExit ObjRows ObjGfl ObjFld FieldWin FieldWinCensus.
 Import ListNotations.
 Local Open Scope Z_scope.
 Local Transparent Archi.ptr64.
@@ -624,6 +624,202 @@ Section STEP.
     exact (gfl_g XF Hxs pool hd k st0 m m1 _ Hp Hk (PK.vm_depth st0 H0) HG S).
   Qed.
 
+  (* ---- the field form (ObjFld, 2026-11-08): a non-pointer store into
+     slot k's bytes [d, n), off every frame read (the census windows of
+     FieldWinCensus), keeps the ghost ---- *)
+  Lemma fld_g : forall XF, xf_st XF -> forall pool hd k js st0 m m1 ch z0 v d n,
+    Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> 0 <= js < OW.NSLOT ->
+    (List.length (v_k st0) <= 8)%nat ->
+    (136 <= d /\ d <= n <= 460
+     /\ forall off e, (e <= 156 \/ 160 <= off) -> (e <= 400 \/ 404 <= off) -> FieldWin.ucl off e ->
+          e <= d \/ n <= off) ->
+    js * OW.OSZ + d <= z0 /\ z0 + size_chunk ch <= js * OW.OSZ + n ->
+    BhvStep.cvok (fun _ => False) ch v ->
+    ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k) m ->
+    Mem.store ch m pool z0 v = Some m1 ->
+    ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k) m1.
+  Proof.
+    intros XF Hxs pool hd k js st0 m m1 ch z0 v d n Hp Hk Hj Hd Hdn Hz Hv (HP & HV & HX) S.
+    pose proof (pc_of_P _ HP) as Hpc.
+    assert (HP1 : Pobjl m1) by (apply P_of_pc; eapply ObjFld.fld_pc; eassumption).
+    split; [ exact HP1 | split ].
+    - apply (vo_unch lp pool (k * OW.OSZ) m m1 st0 Hd); [ | exact HV ].
+      apply (Mem.store_unchanged_on _ _ _ _ _ _ _ S). intros z Hz' (_ & Hz2).
+      destruct Hdn as (D1 & D2 & _). cbn [size_chunk] in Hz'. pose proof (size_chunk_pos ch).
+      unfold OW.O_CMD, OW.OSZ, OW.NSLOT in *. lia.
+    - apply (Hxs pool hd k m m1 Hp HP HP1); [ | | | exact HX ].
+      + intros la Sl. eapply ObjFld.fld_rings; try eassumption. apply (SNE _ _ _ _ Sl Hp); idne.
+      + intros j. rewrite !ld32_load. eapply ObjFld.fld_vm; try eassumption; unfold OW.O_CMD, OW.OSZ; cbn [size_chunk]; lia.
+      + apply tsa_ld. intros b Sb. apply (Mem.load_store_other _ _ _ _ _ _ S). left. apply (SNE _ _ _ _ Sb Hp); idne.
+  Qed.
+
+  (* a census window field's 4 bytes *)
+  Lemma fld_win_g : forall XF, xf_st XF -> forall pool hd k st0 m m1 ch f v,
+    Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
+    In f FieldWinCensus.win_fields -> size_chunk ch <= 4 -> BhvStep.cvok (fun _ => False) ch v ->
+    ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k) m ->
+    Mem.store ch m pool (k * OW.OSZ + 136 + 4 * f) v = Some m1 ->
+    ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k) m1.
+  Proof.
+    intros XF Hxs pool hd k st0 m m1 ch f v Hp Hk H0 Hf Hs Hv HG S.
+    apply (fld_g XF Hxs pool hd k k st0 m m1 ch (k * OW.OSZ + 136 + 4 * f) v (136 + 4 * f) (140 + 4 * f) Hp Hk Hk (PK.vm_depth st0 H0)
+             (ObjFld.field_dn f Hf)); [ lia | exact Hv | exact HG | exact S ].
+  Qed.
+
+  (* the census (FieldWinCensus): every reachable SET_FLOAT / ADD_INT /
+     OR_INT / SET_INT_RAND_RSHIFT / ANIMATE_TEXTURE word writes a window
+     field.  PERF TRAP: stated inline (see BhvStep.chk42_ok) *)
+  Lemma win_ops_ok :
+    forallb (fun st => if existsb (Z.eqb (opc st)) [14; 15; 17; 19; 51; 52]
+                       then existsb (Z.eqb (byte2 (w0 st)))
+                              [1; 3; 10; 12; 16; 18; 19; 20; 21; 22; 23; 26; 28; 29; 38; 40; 41; 47; 52;
+                               55; 56; 57; 58; 59; 61; 67]
+                       else true) vm_tab = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma win_op : forall st w, In st vm_tab -> word_at (v_s st) (v_i st) = Some w ->
+    In (Z.shiftr w 24) [14; 15; 17; 19; 51; 52] -> In (byte2 w) FieldWinCensus.win_fields.
+  Proof.
+    intros st w Hst Hw Ho. pose proof win_ops_ok as A. rewrite forallb_forall in A. specialize (A st Hst).
+    unfold opc, w0 in A. rewrite Hw in A.
+    assert (E : existsb (Z.eqb (Z.shiftr w 24)) [14; 15; 17; 19; 51; 52] = true)
+      by (apply existsb_exists; exists (Z.shiftr w 24); split; [ exact Ho | apply Z.eqb_refl ]).
+    rewrite E in A. apply existsb_exists in A as (f & Hf & Ef). apply Z.eqb_eq in Ef.
+    rewrite FieldWinCensus.win_fields_value, Ef. exact Hf.
+  Qed.
+
+  (* SET_INT's reachable fields: 5, 42, or a window *)
+  Lemma set_ops_ok :
+    forallb (fun st => if opc st =? 16
+                       then existsb (Z.eqb (byte2 (w0 st)))
+                              [5; 42; 1; 3; 10; 12; 16; 18; 19; 20; 21; 22; 23; 26; 28; 29; 38; 40; 41; 47; 52;
+                               55; 56; 57; 58; 59; 61; 67]
+                       else true) vm_tab = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma set_op : forall st w, In st vm_tab -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 16 ->
+    byte2 w = 5 \/ byte2 w = 42 \/ In (byte2 w) FieldWinCensus.win_fields.
+  Proof.
+    intros st w Hst Hw Ho. pose proof set_ops_ok as A. rewrite forallb_forall in A. specialize (A st Hst).
+    unfold opc, w0 in A. rewrite Hw, Ho in A. cbn [Z.eqb] in A.
+    apply existsb_exists in A as (f & Hf & Ef). apply Z.eqb_eq in Ef.
+    rewrite FieldWinCensus.win_fields_value, Ef.
+    cbn [In] in Hf. destruct Hf as [<- | [<- | Hf]]; [ left; reflexivity | right; left; reflexivity | right; right; exact Hf ].
+  Qed.
+
+  Ltac wf_side := first [ rewrite FieldWinCensus.win_fields_value; cbn [In]; tauto
+                        | cbn [size_chunk]; lia | exact I | cbn; exact I ].
+
+  (* ---- the window-field ghost keeps PROVED (ObjFld + the census) ---- *)
+  Lemma setf_g : forall XF, xf_st XF -> forall pool hd k st0,
+    Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
+    BhvStep.setf_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+      (ObjFamily.Qfam (v_s st0)).
+  Proof.
+    intros XF Hxs pool hd k st0 Hp Hk H0 m st w m1 HG Hst _ Hw Ho S.
+    refine (fld_win_g XF Hxs pool hd k st0 m m1 _ (byte2 w) _ Hp Hk H0 _ _ _ HG S); [ | wf_side | wf_side ].
+    apply (win_op st w Hst Hw). rewrite Ho. cbn. tauto.
+  Qed.
+
+  Lemma addi_g : forall XF, xf_st XF -> forall pool hd k st0,
+    Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
+    BhvStep.addi_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+      (ObjFamily.Qfam (v_s st0)).
+  Proof.
+    intros XF Hxs pool hd k st0 Hp Hk H0 m st w old m1 HG Hst _ Hw Ho _ S.
+    refine (fld_win_g XF Hxs pool hd k st0 m m1 _ (byte2 w) _ Hp Hk H0 _ _ _ HG S); [ | wf_side | wf_side ].
+    apply (win_op st w Hst Hw). rewrite Ho. cbn. tauto.
+  Qed.
+
+  Lemma ori_g : forall XF, xf_st XF -> forall pool hd k st0,
+    Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
+    BhvStep.ori_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+      (ObjFamily.Qfam (v_s st0)).
+  Proof.
+    intros XF Hxs pool hd k st0 Hp Hk H0 m st w old m1 HG Hst _ Hw Ho _ S.
+    refine (fld_win_g XF Hxs pool hd k st0 m m1 _ (byte2 w) _ Hp Hk H0 _ _ _ HG S); [ | wf_side | wf_side ].
+    apply (win_op st w Hst Hw). rewrite Ho. cbn. tauto.
+  Qed.
+
+  Lemma atex_g : forall XF, xf_st XF -> forall pool hd k st0,
+    Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
+    BhvStep.atex_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+      (ObjFamily.Qfam (v_s st0)).
+  Proof.
+    intros XF Hxs pool hd k st0 Hp Hk H0 m st w old m1 HG Hst _ Hw Ho _ S.
+    refine (fld_win_g XF Hxs pool hd k st0 m m1 _ (byte2 w) _ Hp Hk H0 _ _ _ HG S); [ | wf_side | wf_side ].
+    apply (win_op st w Hst Hw). rewrite Ho. cbn. tauto.
+  Qed.
+
+  (* SET_INT: field 5 (bytes 156..160, which both frames exclude) and the
+     windows PROVED; field 42 is the residual set42_keep *)
+  Lemma set_g : forall XF, xf_st XF -> forall pool hd k st0,
+    Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
+    ObjRows.set42_keep lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k) ->
+    BhvStep.set_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+      (ObjFamily.Qfam (v_s st0)).
+  Proof.
+    intros XF Hxs pool hd k st0 Hp Hk H0 K42 m st w m1 HG Hst HQ Hw Ho S.
+    destruct (set_op st w Hst Hw Ho) as [E5 | [E42 | Hf]].
+    - rewrite E5 in S.
+      refine (fld_g XF Hxs pool hd k k st0 m m1 _ _ _ 156 160 Hp Hk Hk (PK.vm_depth st0 H0) _ _ _ HG S);
+        [ | cbn [size_chunk]; lia | exact I ].
+      split; [ lia | split; [ lia | ] ]. intros off e A _ _. exact A.
+    - rewrite E42 in S. exact (K42 m st w m1 HG Hst HQ Hw Ho E42 S).
+    - refine (fld_win_g XF Hxs pool hd k st0 m m1 _ (byte2 w) _ Hp Hk H0 Hf _ _ HG S); wf_side.
+  Qed.
+
+  (* PARENT_BIT_CLEAR: the store into the PARENT's field 22 (a window).
+     The parent is a whole slot: obj_w's par_ok (clause 1) makes slot k's
+     non-NULL parentObj a slot_v *)
+  Lemma pbc_g : forall XF, xf_st XF -> forall pool hd k st0,
+    Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
+    BhvStep.pbc_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+      (ObjFamily.Qfam (v_s st0)).
+  Proof.
+    intros XF Hxs pool hd k st0 Hp Hk H0 m st w po a old m1 HG Hst _ Hw Ho Lp Hpo _ _ _ S.
+    pose proof HG as ((_ & _ & _ & _ & _ & How) & _).
+    pose proof How as (pool' & la & fl & gol & gmo' & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
+    rewrite Hp in S1. injection S1 as <-.
+    destruct (OW.ow_par _ _ _ _ _ _ _ _ _ _ _ _ C) as (P1 & _).
+    unfold OW.O_PARENT in P1.
+    destruct (P1 k Hk) as [Lz | (j & Hj & Lj)]; rewrite Lp in *; [ discriminate Lz | ].
+    unfold OW.slot_v in Lj. injection Lj as Ej.
+    assert (Epo : po = j * OW.OSZ).
+    { apply (f_equal Ptrofs.unsigned) in Ej.
+      rewrite !Ptrofs.unsigned_repr in Ej by (change Ptrofs.max_unsigned with 4294967295; unfold OW.OSZ, OW.NSLOT in *; lia).
+      exact Ej. }
+    subst po.
+    refine (fld_g XF Hxs pool hd k j st0 m m1 _ _ _ (136 + 4 * byte2 w) (140 + 4 * byte2 w) Hp Hk Hj
+              (PK.vm_depth st0 H0) _ _ _ HG S); [ | cbn [size_chunk]; lia | exact I ].
+    apply ObjFld.field_dn. apply (win_op st w Hst Hw). rewrite Ho. cbn. tauto.
+  Qed.
+
+  Lemma home_g : forall XF, xf_st XF -> forall pool hd k st0,
+    Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
+    BhvStep.home_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+      (ObjFamily.Qfam (v_s st0)).
+  Proof.
+    intros XF Hxs pool hd k st0 Hp Hk H0 m st w f1 f2 f3 m1 m2 m3 HG _ _ _ _ _ S1 _ S2 _ S3.
+    refine (fld_win_g XF Hxs pool hd k st0 m2 m3 _ 57 _ Hp Hk H0 _ _ _ _ S3); [ wf_side | wf_side | wf_side | ].
+    refine (fld_win_g XF Hxs pool hd k st0 m1 m2 _ 56 _ Hp Hk H0 _ _ _ _ S2); [ wf_side | wf_side | wf_side | ].
+    refine (fld_win_g XF Hxs pool hd k st0 m m1 _ 55 _ Hp Hk H0 _ _ _ HG S1); [ wf_side | wf_side | wf_side ].
+  Qed.
+
+  Lemma phys_g : forall XF, xf_st XF -> forall pool hd k st0,
+    Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
+    BhvStep.phys_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+      (ObjFamily.Qfam (v_s st0)).
+  Proof.
+    intros XF Hxs pool hd k st0 Hp Hk H0 m st w z1 z2 z3 m1 m2 m3 m4 m5 m6 HG _ _ _ _ _ _ _ S1 S2 S3 S4 S5 S6.
+    refine (fld_win_g XF Hxs pool hd k st0 m5 m6 _ 59 _ Hp Hk H0 _ _ _ _ S6); [ wf_side | wf_side | wf_side | ].
+    refine (fld_win_g XF Hxs pool hd k st0 m4 m5 _ 58 _ Hp Hk H0 _ _ _ _ S5); [ wf_side | wf_side | wf_side | ].
+    refine (fld_win_g XF Hxs pool hd k st0 m3 m4 _ 41 _ Hp Hk H0 _ _ _ _ S4); [ wf_side | wf_side | wf_side | ].
+    refine (fld_win_g XF Hxs pool hd k st0 m2 m3 _ 52 _ Hp Hk H0 _ _ _ _ S3); [ wf_side | wf_side | wf_side | ].
+    refine (fld_win_g XF Hxs pool hd k st0 m1 m2 _ 23 _ Hp Hk H0 _ _ _ _ S2); [ wf_side | wf_side | wf_side | ].
+    refine (fld_win_g XF Hxs pool hd k st0 m m1 _ 40 _ Hp Hk H0 _ _ _ HG S1); [ wf_side | wf_side | wf_side ].
+  Qed.
+
   (* ---- cur_obj_update on slot k: entry, cou_real, exit ---- *)
   Theorem cou_step_g : forall XF, xf_cou XF -> xf_st XF -> cou_keeps_g XF ->
     forall ls go pool hd k m t m' vr,
@@ -674,7 +870,12 @@ Section STEP.
       assert (Ei : v_s st0 = id) by (eapply Genv.genv_vars_inj; [ exact Hb0 | exact Hb ]). rewrite Ei. exact Hid. }
     destruct (K go pool bcc sb hd k st0 (Mem.nextblock m) Hgo Hp Hbcc Hsb Hk Hst0) as (GKr & RK & KPRE & KPOST).
     pose proof (ObjRows.ghost_keeps_of lp bm bc oc0 SafeB go pool (k * OW.OSZ) sb st0 (XF hd pool k)
-                  (bb_g XF Hxs pool hd k st0 Hp Hk Hst0) (dr_g XF Hxs pool hd k st0 Hp Hk Hst0) GKr) as GK.
+                  (set_g XF Hxs pool hd k st0 Hp Hk Hst0 (proj1 GKr))
+                  (bb_g XF Hxs pool hd k st0 Hp Hk Hst0) (dr_g XF Hxs pool hd k st0 Hp Hk Hst0)
+                  (setf_g XF Hxs pool hd k st0 Hp Hk Hst0) (addi_g XF Hxs pool hd k st0 Hp Hk Hst0)
+                  (ori_g XF Hxs pool hd k st0 Hp Hk Hst0) (atex_g XF Hxs pool hd k st0 Hp Hk Hst0)
+                  (pbc_g XF Hxs pool hd k st0 Hp Hk Hst0)
+                  (home_g XF Hxs pool hd k st0 Hp Hk Hst0) (phys_g XF Hxs pool hd k st0 Hp Hk Hst0) GKr) as GK.
     pose proof (ObjInv.inv_entry lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc st0 (Mem.nextblock m) (XF hd pool k) m
                   eq_refl HP HV0 Hc HF) as HI.
     pose proof (ObjRows.rows_k lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc sb Hbcc Hp Hpg Hbp st0 (Mem.nextblock m)

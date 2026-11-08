@@ -359,6 +359,8 @@ proofs/WMotRRequiresA/ObjSelf.v
 proofs/WMotRRequiresA/ObjFrame.v
 proofs/WMotRRequiresA/ObjAct.v
 proofs/WMotRRequiresA/ObjSpawn.v
+proofs/WMotRRequiresA/FieldWinCensus.v
+proofs/WMotRRequiresA/FieldWin.v
 proofs/WMotRRequiresA/ObjWorld.v
 proofs/WMotRRequiresA/ObjRing.v
 proofs/WMotRRequiresA/ObjAlloc.v
@@ -427,6 +429,7 @@ proofs/WMotRRequiresA/NewKeep.v
 proofs/WMotRRequiresA/ObjExit.v
 proofs/WMotRRequiresA/ObjRows.v
 proofs/WMotRRequiresA/ObjGfl.v
+proofs/WMotRRequiresA/ObjFld.v
 proofs/WMotRRequiresA/ObjStep.v
 proofs/WMotRRequiresA/TerCtrCensus.v
 proofs/WMotRRequiresA/NativeVmCensus.v
