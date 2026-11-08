@@ -252,6 +252,20 @@ Definition wall_ok (bm : block) (m : mem) : Prop :=
 Definition ceil_ok (bm : block) (m : mem) : Prop :=
   forall v, Mem.load Mint32 m bm CEIL_OFF = Some v -> surface_ok m v.
 
+(* the keeps go through these two lemmas only: a step that keeps the
+   clause in its spelled-out form keeps the named one *)
+Lemma wall_ok_keep : forall bm m m',
+  ((forall v, Mem.load Mint32 m bm WALL_OFF = Some v -> surface_ok m v) ->
+   (forall v, Mem.load Mint32 m' bm WALL_OFF = Some v -> surface_ok m' v)) ->
+  wall_ok bm m -> wall_ok bm m'.
+Proof. intros bm m m' K H. exact (K H). Qed.
+
+Lemma ceil_ok_keep : forall bm m m',
+  ((forall v, Mem.load Mint32 m bm CEIL_OFF = Some v -> surface_ok m v) ->
+   (forall v, Mem.load Mint32 m' bm CEIL_OFF = Some v -> surface_ok m' v)) ->
+  ceil_ok bm m -> ceil_ok bm m'.
+Proof. intros bm m m' K H. exact (K H). Qed.
+
 Definition wmotr_world (bm : block) (m : mem) : Prop :=
   wall_ok bm m
   /\ ceil_ok bm m

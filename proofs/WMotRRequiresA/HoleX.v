@@ -374,11 +374,11 @@ Section HX.
       assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
       rewrite OBJ in Lo'. injection Lo' as E1 E2. subst bo oo.
       split; [| split; [| split; [| split; [| split; [| split]]]]].
-      - intros v Hl. hxm_in Hl. destruct (Hw v Hl) as [-> | (b & o & t & -> & Lt & Hin)]; [left; reflexivity |].
+      - revert Hw; apply wall_ok_keep; intros Hw. intros v Hl. hxm_in Hl. destruct (Hw v Hl) as [-> | (b & o & t & -> & Lt & Hin)]; [left; reflexivity |].
         right. exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
         destruct (As WALL_OFF b o (or_introl eq_refl) Hl) as (N1 & N2 & N3).
         rewrite LXz by (first [assumption | apply ozx_ne; exact N3]). exact Lt.
-      - intros v Hl. hxm_in Hl. destruct (Hc v Hl) as [-> | (b & o & t & -> & Lt & Hin)]; [left; reflexivity |].
+      - revert Hc; apply ceil_ok_keep; intros Hc. intros v Hl. hxm_in Hl. destruct (Hc v Hl) as [-> | (b & o & t & -> & Lt & Hin)]; [left; reflexivity |].
         right. exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
         destruct (As CEIL_OFF b o (or_intror (or_introl eq_refl)) Hl) as (N1 & N2 & N3).
         rewrite LXz by (first [assumption | apply ozx_ne; exact N3]). exact Lt.
