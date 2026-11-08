@@ -1020,9 +1020,16 @@ all in `Unwired/`, and the theorem moved nowhere. See
        Hobj_step_rest_nonterrain -> Hobj_cou_nt : mario_hole -> cou_keeps nt_ls
        (per slot k / st0 / nb0: ghost_keeps + rest_keeps + pre_keep / post_keep at
        INV_k).  ObjInv..ObjStep use ClearKeep.Pobjc (= HeightFrame.Pobjl, convertible)
-       so HeightFrame can import them.  OPEN: the terrain rest row (ter_post is a
-       relation m -> m': put it in X against the loop-body entry; beware the
-       collision-load keep is not per-command inductive without a loaded flag).
+       so HeightFrame can import them.
+       DONE 2026-11-08 (ObjStep, WIRED): the terrain rest row too (ter_rest_sa /
+       ter_rest_ts), via rest_saX / rest_tsX generic in the ghost fact XF (xf_cou:
+       carried at cou_real's exit; xf_st: across the loop's stores) with XF := XT =
+       in ring /\ ter_abd m0 (ter_post minus the counter, ter_abd_tr composes).
+       Capstones: Hobj_step_rest_terrain -> Hobj_cou_t : cou_keeps_t ter_ls (no hole)
+       + Hobj_ter_ctr : ter_ctr_row (counter clause (c) only; census
+       TerCtrCensus.ter_ctr_value: <= 1 load per update -- box 1, coin 0, lid 1).
+       OPEN: discharge Hobj_ter_ctr ((A) walk the loader + one-load induction, or
+       (C) a loaded flag in INV_k) and the cou_keeps rows.
        TRAP: names bound by `match goal with H : ...` vanish after the match --
        `rename H into X` inside it.
        Next (W2/W3, coordinator OK'd INV_k = Pobjl with ow_vm relaxed at slot k + cur):
