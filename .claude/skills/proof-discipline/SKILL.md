@@ -974,7 +974,16 @@ all in `Unwired/`, and the theorem moved nowhere. See
        INV_k (WMotRRequiresA/Unwired/ObjInv.v, STAGED until the step row requires
        it): ghost form -- nb0 <= nextblock /\ cur /\ exists g, Pobjl g /\ Vo g st0 /\
        nextblock g <= nb0 /\ unchanged_on Pfr g m; Qk = Qfam (v_s st0).  PROVED:
-       inv_frame, inv_cur, inv_scr (Hinv), inv_free, inv_entry.  OPEN for it: the
+       inv_frame, inv_cur, inv_scr (Hinv), inv_free, inv_entry.  DONE 2026-11-07:
+       the EXIT, Unwired/ObjExit.v inv_exit (INVk m' + Vo m' st' + Qfam -> Pobjl m';
+       labeled HSafeB_scr only): through cut (nextblock g) m' -- g -> cut by
+       MWF_real_transfer + closed_nvB, k_all_wc (Xs = [gCurBhvCommand]),
+       obj_w_vm_swap; cut -> m' by Unwired/NewKeep.v new_pc (Pc blind to blocks born
+       later).  INV_k's clause narrowed to nvB scr_b (g's closing injection maps
+       scripts, not every SafeB block).  TRAP: a lemma's unused section hypotheses
+       are DROPPED at End (obj_w_vm_swap has no H0) -- passing args positionally
+       then made exact unify In over vm_tab (>1200s hang); print the signature with
+       About in a scratch file first.  Was OPEN: the
        exit swap (Pobjl m' from INVk m' + Vo m' st' + Qfam: RenderKeep ccl_at must
        skip VM cells [460,502); KEEP's PM; scripts SafeB via a GOAL-2-only premise
        HSafeB_scr DISCHARGED at the linked capstone from StartSat's SB1 + vm check

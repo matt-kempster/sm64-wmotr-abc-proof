@@ -422,6 +422,8 @@ proofs/Interp/SymExec2.v
 proofs/WMotRRequiresA/Unwired/GravitySlice.v
 proofs/WMotRRequiresA/Unwired/ObjInv.v
 proofs/WMotRRequiresA/Unwired/ObjVmSwap.v
+proofs/WMotRRequiresA/Unwired/NewKeep.v
+proofs/WMotRRequiresA/Unwired/ObjExit.v
 proofs/WMotRRequiresA/FloorList.v
 proofs/WMotRRequiresA/FloorHeight.v
 proofs/WMotRRequiresA/FloorComplete.v
