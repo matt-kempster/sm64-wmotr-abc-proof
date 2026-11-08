@@ -436,8 +436,8 @@ Section SI.
     { intros z Hz v Hl [E | (b & o & t & -> & Lt & Hin)]; [ left; exact E | right ].
       exists b, o, t. rewrite (surf_tr z _ MS Hz Hl b o eq_refl). exact (conj eq_refl (conj Lt Hin)). }
     split; [ | split; [ | split; [ | split; [ | split; [ | split ] ] ] ] ].
-    - intros v Hl. rewrite LB in Hl. exact (SO WALL_OFF ltac:(cbn; auto) v Hl (Hw v Hl)).
-    - intros v Hl. rewrite LB in Hl. exact (SO CEIL_OFF ltac:(cbn; auto) v Hl (Hc v Hl)).
+    - revert Hw; apply wall_ok_keep; intros Hw. intros v Hl. rewrite LB in Hl. exact (SO WALL_OFF ltac:(cbn; auto) v Hl (Hw v Hl)).
+    - revert Hc; apply ceil_ok_keep; intros Hc. intros v Hl. rewrite LB in Hl. exact (SO CEIL_OFF ltac:(cbn; auto) v Hl (Hc v Hl)).
     - intros v Hl. rewrite LB in Hl. destruct (Hfl v Hl) as (b & o & t & -> & Lt & Hin).
       exists b, o, t. rewrite (surf_tr FLOOR_OFF _ MS ltac:(cbn; auto) Hl b o eq_refl).
       exact (conj eq_refl (conj Lt Hin)).

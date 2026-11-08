@@ -370,10 +370,10 @@ Section AutSplitS.
       ffw_unpack EX.
       destruct (ffw_apart m Hf) as (Ao & As & _).
       split; [| split; [| split; [| split; [| split; [| split]]]]].
-      - intros v Hl. lqm_in Hl. destruct (Hw v Hl) as [-> | (b & o & t & -> & Lt & Hin)]; [left; reflexivity |].
+      - revert Hw; apply wall_ok_keep; intros Hw. intros v Hl. lqm_in Hl. destruct (Hw v Hl) as [-> | (b & o & t & -> & Lt & Hin)]; [left; reflexivity |].
         right. exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
         rewrite LQb; [exact Lt | exact (As WALL_OFF b o (or_introl eq_refl) Hl)].
-      - intros v Hl. lqm_in Hl. destruct (Hc v Hl) as [-> | (b & o & t & -> & Lt & Hin)]; [left; reflexivity |].
+      - revert Hc; apply ceil_ok_keep; intros Hc. intros v Hl. lqm_in Hl. destruct (Hc v Hl) as [-> | (b & o & t & -> & Lt & Hin)]; [left; reflexivity |].
         right. exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
         rewrite LQb; [exact Lt | exact (As CEIL_OFF b o (or_intror (or_introl eq_refl)) Hl)].
       - intros v Hl. lqm_in Hl. destruct (Hfl v Hl) as (b & o & t & -> & Lt & Hin).
