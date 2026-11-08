@@ -729,7 +729,7 @@ Section PB.
   Lemma pgs : forall x b, mem_id x print_gs = true ->
       Genv.find_symbol ge x = Some b -> SafeB b.
   Proof.
-    intros x b Hx Hs. destruct HSafeB_syms as (_ & _ & Hc).
+    intros x b Hx Hs. pose proof (sbs_ptr _ _ HSafeB_syms) as Hc.
     exact (Hc x b (print_gs_sub x Hx) Hs).
   Qed.
 

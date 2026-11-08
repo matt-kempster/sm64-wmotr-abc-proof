@@ -678,7 +678,7 @@ Section SB.
   Lemma Hgs : forall x b, mem_id x sb_gs = true ->
       Genv.find_symbol (lp_ge lp) x = Some b -> SafeB b.
   Proof.
-    intros x b Hx Hs. destruct HSafeB_syms as (_ & _ & Hc).
+    intros x b Hx Hs. pose proof (sbs_ptr _ _ HSafeB_syms) as Hc.
     exact (Hc x b (sb_gs_sub x Hx) Hs).
   Qed.
 
@@ -1190,7 +1190,7 @@ Section SB.
     { eapply Forall_impl; [ | exact Hargs ].
       intros v Hv bb oo Ev. destruct (Hv bb oo Ev) as [ Hsb | (g & Hg & Hgs') ];
         [ exact Hsb | ].
-      destruct HSafeB_syms as (_ & _ & Hc).
+      pose proof (sbs_ptr _ _ HSafeB_syms) as Hc.
       exact (Hc g bb (spawn_bhv_in_safe g Hg) Hgs'). }
     destruct (Hs b fd Hsy Hff m0 vargs0 t0 m1 vres0 Hev Hargs' (conj HV (conj HA HM)))
       as ((HV' & HA' & HM') & Hr).

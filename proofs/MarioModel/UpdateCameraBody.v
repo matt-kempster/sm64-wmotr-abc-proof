@@ -246,7 +246,7 @@ Section UC.
   Lemma uc_gs_safe : forall x b, mem_id x uc_gs = true ->
       Genv.find_symbol ge x = Some b -> SafeB b.
   Proof.
-    intros x b Hx Hs. destruct HSafeB_syms as (_ & _ & Hc). apply (Hc x b); [ | exact Hs ].
+    intros x b Hx Hs. pose proof (sbs_ptr _ _ HSafeB_syms) as Hc. apply (Hc x b); [ | exact Hs ].
     unfold safe_ptr_syms. apply mem_id_cons_r. repeat apply mem_id_app_r. exact Hx.
   Qed.
 

@@ -341,6 +341,25 @@ Definition SafeB_syms_ok (lp : Clight.program) (SafeB : block -> Prop) : Prop :=
   /\ (forall id b, mem_id id safe_ptr_syms = true ->
      Genv.find_symbol (lp_ge lp) id = Some b -> SafeB b).
 
+(* accessors (2026-11-07): consumers read SafeB_syms_ok's clauses through
+   these, never positionally, so a clause can be added behind them *)
+Section SBS.
+  Variables (lp : Clight.program) (SafeB : block -> Prop).
+  Hypothesis H : SafeB_syms_ok lp SafeB.
+  (* (a) a non_safeb_syms symbol is not SafeB *)
+  Lemma sbs_neg : forall id b, Genv.find_symbol (lp_ge lp) id = Some b ->
+    SafeB b -> mem_id id non_safeb_syms = false.
+  Proof. exact (proj1 H). Qed.
+  (* (b) sFloorAlignMatrix is SafeB *)
+  Lemma sbs_fam : forall b,
+    Genv.find_symbol (lp_ge lp) mario_actions_moving._sFloorAlignMatrix = Some b -> SafeB b.
+  Proof. exact (proj1 (proj2 H)). Qed.
+  (* (c) the safe_ptr_syms are SafeB *)
+  Lemma sbs_ptr : forall id b, mem_id id safe_ptr_syms = true ->
+    Genv.find_symbol (lp_ge lp) id = Some b -> SafeB b.
+  Proof. exact (proj2 (proj2 H)). Qed.
+End SBS.
+
 (* the ~SafeB micro-brick: a non_safeb_syms symbol is not SafeB *)
 Lemma safeb_of_nonfam_sym :
   forall (lp : Clight.program) (SafeB : block -> Prop),
@@ -350,8 +369,8 @@ Lemma safeb_of_nonfam_sym :
       mem_id id non_safeb_syms = true ->
       ~ SafeB b.
 Proof.
-  intros lp SafeB [Hneg _] id b Hs Hin HS.
-  rewrite (Hneg _ _ Hs HS) in Hin. discriminate.
+  intros lp SafeB Hsy id b Hs Hin HS.
+  rewrite (sbs_neg lp SafeB Hsy _ _ Hs HS) in Hin. discriminate.
 Qed.
 
 (* the stored globals and the knockback tables are non_safeb_syms *)
@@ -423,7 +442,7 @@ Lemma sfam_safe :
         = Some gb -> SafeB gb.
 Proof.
   intros lp init bm bc oc0 SafeB Hspawn Hsyms gb Hs.
-  exact (proj1 (proj2 Hsyms) gb Hs).
+  exact (sbs_fam lp SafeB Hsyms gb Hs).
 Qed.
 
 Lemma gms_blk :

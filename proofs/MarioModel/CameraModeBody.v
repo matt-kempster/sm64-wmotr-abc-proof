@@ -1204,7 +1204,7 @@ Section KB.
   Lemma cam_gs_safe : forall x b, mem_id x cam_gs = true ->
       Genv.find_symbol ge x = Some b -> SafeB b.
   Proof.
-    intros x b Hx Hs. destruct HSafeB_syms as (_ & _ & Hc). apply (Hc x b); [ | exact Hs ].
+    intros x b Hx Hs. pose proof (sbs_ptr _ _ HSafeB_syms) as Hc. apply (Hc x b); [ | exact Hs ].
     unfold cam_gs, camera_safe_syms, mem_id in Hx. cbn [existsb] in Hx.
     repeat (apply orb_true_iff in Hx as [E | Hx];
             [ apply Pos.eqb_eq in E; subst x; vm_compute; reflexivity | ]).

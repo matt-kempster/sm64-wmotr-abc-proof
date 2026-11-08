@@ -306,7 +306,7 @@ Section Npc.
         apply Pos.eqb_eq in Hok. subst x.
         destruct (gload _ _ _ _ _ _ Hev) as (gb & Hs & Hld).
         assert (Hsg : SafeB gb).
-        { pose proof HSafeB_syms as (_ & _ & Hc). exact (Hc _ gb gco_safe_sym Hs). }
+        { pose proof (sbs_ptr _ _ HSafeB_syms) as Hc. exact (Hc _ gb gco_safe_sym Hs). }
         split.
         * intros t' b o Hm' Hg. rewrite PTree.gsspec in Hg.
           destruct (peq t' C._t'7) as [-> | Hne];

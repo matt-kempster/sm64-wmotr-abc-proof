@@ -1474,7 +1474,7 @@ Section NoARealInputMWF.
         [ rewrite Hg; reflexivity | ].
       apply orb_true_intro; right; rewrite existsb_app;
         apply orb_true_intro; left; exact Hg. }
-    exact (proj2 (proj2 HSafeB_syms) g gb Hg' Hfs).
+    exact (sbs_ptr _ _ HSafeB_syms g gb Hg' Hfs).
   Qed.
   (* the marioObj cell's pointer is SafeB (MWF's chase-root row): the spawn
      helpers' parent m->marioObj *)
@@ -2425,7 +2425,7 @@ Section NoARealInputMWF.
       Hcp_spawn_real
       (* the parent gCurrentObject: a SafeB symbol (HSafeB_syms (c)), and
          MWF's load closure R7 *)
-      (fun b Hb => proj2 (proj2 HSafeB_syms) behavior_actions._gCurrentObject
+      (fun b Hb => sbs_ptr _ _ HSafeB_syms behavior_actions._gCurrentObject
                      b eq_refl Hb)
       (mwf_real_chase_step lp bm bc oc0 SafeB).
   (* the warp trigger is WALKED (WarpSurface.warp_pres: its 33 stores are
