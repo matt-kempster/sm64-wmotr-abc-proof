@@ -142,8 +142,8 @@ Section BK.
     intros (W1 & W2 & W3 & W4 & W5 & W6 & (mb & mo & s & n & L1 & L2 & L3 & L4 & L5 & L6)).
     assert (Mm : g mb <> None) by exact (rch _ _ _ _ _ Mbm L1).
     split; [ | split; [ | split; [ | split; [ | split; [ | split ] ] ] ] ].
-    - intros v L. rewrite (ld _ _ _ Mbm) in L. exact (surf_k v (ptr_mp _ _ _ _ Mbm L) (W1 v L)).
-    - intros v L. rewrite (ld _ _ _ Mbm) in L. exact (surf_k v (ptr_mp _ _ _ _ Mbm L) (W2 v L)).
+    - revert W1; apply wall_ok_keep; intros W1. intros v L. rewrite (ld _ _ _ Mbm) in L. exact (surf_k v (ptr_mp _ _ _ _ Mbm L) (W1 v L)).
+    - revert W2; apply ceil_ok_keep; intros W2. intros v L. rewrite (ld _ _ _ Mbm) in L. exact (surf_k v (ptr_mp _ _ _ _ Mbm L) (W2 v L)).
     - intros v L. rewrite (ld _ _ _ Mbm) in L. exact (surf_nn_k v (ptr_mp _ _ _ _ Mbm L) (W3 v L)).
     - rewrite (ld _ _ _ Mbm). exact W4.
     - rewrite (ld _ _ _ Mbm). exact W5.

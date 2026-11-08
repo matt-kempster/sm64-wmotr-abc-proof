@@ -602,11 +602,11 @@ Proof.
   - (* W *)
     destruct HW as (Hw & Hc & Hf & Hh & Hr & Hq & Ho).
     split; [| split; [| split; [| split; [| split; [| split]]]]].
-    + intros v Hl. destruct (SV FFW_WALL v (or_introl eq_refl) Hl) as [Hl0 | [-> | (b & o & -> & Pb & _ & St & Nr & _)]].
+    + revert Hw; apply wall_ok_keep; intros Hw. intros v Hl. destruct (SV FFW_WALL v (or_introl eq_refl) Hl) as [Hl0 | [-> | (b & o & -> & Pb & _ & St & Nr & _)]].
       * apply SOK; [| exact (Hw v Hl0)]. intros sb so ->. exact (Wc0 FFW_WALL sb so (or_introl eq_refl) Hl0).
       * left. reflexivity.
       * right. destruct (STY b o Pb Nr St) as (b' & o' & ty & E1 & L1 & I1). exists b', o', ty. exact (conj E1 (conj L1 I1)).
-    + intros v Hl. rewrite CM in Hl by mem_tac. apply SOK; [| exact (Hc v Hl)].
+    + revert Hc; apply ceil_ok_keep; intros Hc. intros v Hl. rewrite CM in Hl by mem_tac. apply SOK; [| exact (Hc v Hl)].
       intros sb so ->. exact (Wc0 FFW_CEIL sb so (or_intror eq_refl) Hl).
     + intros v Hl. change FLOOR_OFF with FFW_FLOOR in Hl. rewrite Lf' in Hl. injection Hl as <-. exact Sf'.
     + rewrite CM by mem_tac. exact Hh.

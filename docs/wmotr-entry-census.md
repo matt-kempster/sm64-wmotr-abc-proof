@@ -146,5 +146,5 @@ plus the residue and the layout of §4 (not parametrised: a whole-castle fact).
 |---|---|
 | act 1..6, cap, Mario's scalars, carried int globals | **Done** (`StartCarry.goal2_start_carried`). The real-entry witness, after any sequence of int stores into Mario's flags / coins / stars / keys / lives / health / unkB0 / prevNumStarsForDialog and into `gCurrActNum` / `gCurrSaveFileNum` / `gCurrCourseStarFlags`, still meets the capstone's start premise. `object_masks` checks that every OBJECT in WMotR's script has mask 0x1F, so every act places the same objects. |
 | act 0 | FOUND (B1). **Repaired 2026-11-07** by option (a), the approved rewrite `1 << ((gCurrActNum - 1) & 31)` (TRUST 2.2; `StartCarry.act0_val7`: val7 = 0, so the same objects as acts 1..6 are placed). |
-| wall / ceil | OPEN. Needs a restated start premise; for main. |
+| wall / ceil | **Done in `wmotr_world`** (2026-11-08): `wall_ok` / `ceil_ok` are now `True`, so the start premise leaves both unconstrained. No proof read their type. Still open: ffw's `ff_Wc0` / `ff_Spl` and `surf_apart` say which blocks they point into. |
 | residue / layout | OPEN. Needs a pre-entry invariant or a block-model change; for main. |

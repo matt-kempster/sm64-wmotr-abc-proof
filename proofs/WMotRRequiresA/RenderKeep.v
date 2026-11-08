@@ -590,11 +590,11 @@ Section RK.
         apply LHb; [exact (P2 off sb so Hoff Hl) | exact (SNB off sb so Hoff Hl) |].
         intros (id & Hin & Hs). exact (RSA id sb off sb so Hin Hs Hoff Hl eq_refl). }
       split; [| split; [| split; [| split; [| split; [| split]]]]].
-      - intros v Hl. rewrite LHm in Hl by bmk_t. destruct (Hw v Hl) as [-> | (b & o & t & -> & Lt & Hin)];
+      - revert Hw; apply wall_ok_keep; intros Hw. intros v Hl. rewrite LHm in Hl by bmk_t. destruct (Hw v Hl) as [-> | (b & o & t & -> & Lt & Hin)];
           [left; reflexivity |].
         right. exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
         rewrite (Sk WALL_OFF b o (or_introl eq_refl) Hl). exact Lt.
-      - intros v Hl. rewrite LHm in Hl by bmk_t. destruct (Hc v Hl) as [-> | (b & o & t & -> & Lt & Hin)];
+      - revert Hc; apply ceil_ok_keep; intros Hc. intros v Hl. rewrite LHm in Hl by bmk_t. destruct (Hc v Hl) as [-> | (b & o & t & -> & Lt & Hin)];
           [left; reflexivity |].
         right. exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
         rewrite (Sk CEIL_OFF b o (or_intror (or_introl eq_refl)) Hl). exact Lt.
