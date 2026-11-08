@@ -315,6 +315,29 @@ Proof.
   rewrite (E OW.BOXS (or_introl eq_refl)), (E OW.LIDS (or_intror (or_introl eq_refl))). reflexivity.
 Qed.
 
+(* slot k's VM state survives any change off its VM cells [460, 500) *)
+Lemma vo_unch : forall lp pool oc m m1 st0, (List.length (v_k st0) <= 8)%nat ->
+  Mem.unchanged_on (fun b o => b = pool /\ oc + OW.O_CMD <= o < oc + OW.O_CMD + 40) m m1 ->
+  BhvStep.Vo lp pool oc m st0 -> BhvStep.Vo lp pool oc m1 st0.
+Proof.
+  intros lp pool oc m m1 st0 Hk0 U' HV.
+  destruct HV as ((b & Hb & Hl) & Hsi & Hk).
+  split; [ exists b; split; [ exact Hb | ] | split ].
+  - refine (Mem.load_unchanged_on _ _ _ _ _ _ _ U' _ Hl).
+    intros i Hi. split; [ reflexivity | ]. cbn [size_chunk] in Hi. lia.
+  - refine (Mem.load_unchanged_on _ _ _ _ _ _ _ U' _ Hsi).
+    intros i Hi. split; [ reflexivity | ]. cbn [size_chunk] in Hi. unfold OW.O_SIDX, OW.O_CMD in *. lia.
+  - intros j f Hj. pose proof (Hk j f Hj) as Hf.
+    assert (Hlt : (j < List.length (v_k st0))%nat) by (apply nth_error_Some; rewrite Hj; discriminate).
+    assert (R : forall i, oc + OW.O_STK + 4 * (Z.of_nat (List.length (v_k st0)) - 1 - Z.of_nat j) <= i
+                < oc + OW.O_STK + 4 * (Z.of_nat (List.length (v_k st0)) - 1 - Z.of_nat j) + size_chunk Mint32 ->
+                pool = pool /\ oc + OW.O_CMD <= i < oc + OW.O_CMD + 40).
+    { intros i Hi. split; [ reflexivity | ]. cbn [size_chunk] in Hi. unfold OW.O_STK, OW.O_CMD in *. lia. }
+    destruct f as [s0 i0 |];
+      [ destruct Hf as (b0 & Hb0 & Hl0); exists b0; split; [ exact Hb0 | ] | destruct Hf as (c & Hl0); exists c ];
+      exact (Mem.load_unchanged_on _ _ _ _ _ _ _ U' R Hl0).
+Qed.
+
 (* THE COUNTER ROW (2026-11-08): the terrain step's surface counter grows by
    at most the object's budget -- clause (c) of ObjLoop.ter_post, alone.  A
    counter-only claim about the real update; the census behind it is
@@ -443,7 +466,7 @@ Section STEP.
       Genv.find_symbol G BS._gCurrentObject = Some go -> Genv.find_symbol G OLP._gObjectPool = Some pool ->
       Genv.find_symbol G BS._gCurBhvCommand = Some bcc -> Genv.find_symbol G BS._gRandomSeed16 = Some sb ->
       0 <= k < OW.NSLOT -> In st0 vm_tab ->
-      ObjRows.ghost_keeps lp bm bc oc0 SafeB go pool (k * OW.OSZ) sb st0 (XF hd pool k)
+      ObjRows.ghost_keeps_r lp bm bc oc0 SafeB go pool (k * OW.OSZ) sb st0 (XF hd pool k)
       /\ ObjRows.rest_keeps lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc sb st0 nb0 (XF hd pool k)
       /\ BhvStep.pre_keep lp pool (k * OW.OSZ) (INV go pool (k * OW.OSZ) bcc st0 nb0 (XF hd pool k))
       /\ BhvStep.post_keep lp pool (k * OW.OSZ) (INV go pool (k * OW.OSZ) bcc st0 nb0 (XF hd pool k)).
@@ -558,15 +581,58 @@ Section STEP.
         unfold OW.O_CMD, OW.O_STK, OW.OSZ in *. cbn [size_chunk] in Hz. lia.
   Qed.
 
+  (* ---- the ghost keeps PROVED here: an s16 store into slot k's
+     graph-node flags (@2: BILLBOARD, DISABLE_RENDERING) keeps the ghost
+     (ObjGfl.gfl_pc; the VM cells, the rings, the budgets, the gate) ---- *)
+  Lemma gfl_g : forall XF, xf_st XF -> forall pool hd k st0 m m1 i,
+    Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> (List.length (v_k st0) <= 8)%nat ->
+    ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k) m ->
+    Mem.store Mint16signed m pool (k * OW.OSZ + 2) (Vint i) = Some m1 ->
+    ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k) m1.
+  Proof.
+    intros XF Hxs pool hd k st0 m m1 i Hp Hk Hd (HP & HV & HX) S.
+    assert (Hz : k * OW.OSZ <= k * OW.OSZ + 2 /\ k * OW.OSZ + 2 + size_chunk Mint16signed <= k * OW.OSZ + 4)
+      by (cbn [size_chunk]; lia).
+    pose proof (P_of_pc _ (ObjGfl.gfl_pc lp bm Hbm_sym bc oc0 SafeB Hbc_sym pool k Hp m m1 Mint16signed _ i
+                             (pc_of_P _ HP) Hz S)) as HP1.
+    split; [ exact HP1 | split ].
+    - apply (vo_unch lp pool (k * OW.OSZ) m m1 st0 Hd); [ | exact HV ].
+      apply (Mem.store_unchanged_on _ _ _ _ _ _ _ S). intros z Hz' (_ & Hz2).
+      unfold OW.O_CMD in Hz2. cbn [size_chunk] in Hz'. lia.
+    - apply (Hxs pool hd k m m1 Hp HP HP1); [ | | | exact HX ].
+      + intros la Sl. apply (ObjGfl.gfl_rings pool k m m1 Mint16signed _ i Hz S la). apply (SNE _ _ _ _ Sl Hp); idne.
+      + intros j. rewrite !ld32_load. apply (Mem.load_store_other _ _ _ _ _ _ S). right.
+        unfold OW.OSZ, OW.O_CMD. cbn [size_chunk]. lia.
+      + apply tsa_ld. intros b Sb. apply (Mem.load_store_other _ _ _ _ _ _ S). left. apply (SNE _ _ _ _ Sb Hp); idne.
+  Qed.
+
+  Lemma bb_g : forall XF, xf_st XF -> forall pool hd k st0,
+    Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
+    BhvStep.bb_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+      (ObjFamily.Qfam (v_s st0)).
+  Proof.
+    intros XF Hxs pool hd k st0 Hp Hk H0 m st w old m1 HG _ _ _ _ _ S.
+    exact (gfl_g XF Hxs pool hd k st0 m m1 _ Hp Hk (PK.vm_depth st0 H0) HG S).
+  Qed.
+
+  Lemma dr_g : forall XF, xf_st XF -> forall pool hd k st0,
+    Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
+    BhvStep.dr_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+      (ObjFamily.Qfam (v_s st0)).
+  Proof.
+    intros XF Hxs pool hd k st0 Hp Hk H0 m st w old m1 HG _ _ _ _ _ S.
+    exact (gfl_g XF Hxs pool hd k st0 m m1 _ Hp Hk (PK.vm_depth st0 H0) HG S).
+  Qed.
+
   (* ---- cur_obj_update on slot k: entry, cou_real, exit ---- *)
-  Theorem cou_step_g : forall XF, xf_cou XF -> cou_keeps_g XF ->
+  Theorem cou_step_g : forall XF, xf_cou XF -> xf_st XF -> cou_keeps_g XF ->
     forall ls go pool hd k m t m' vr,
       Genv.find_symbol G BS._gCurrentObject = Some go -> Genv.find_symbol G OLP._gObjectPool = Some pool ->
       0 <= k < OW.NSLOT -> Pobjl m -> XR ls hd pool k m -> XF hd pool k m -> BhvStep.cur go pool (k * OW.OSZ) m ->
       eval_funcall function_entry2 G m (Internal BS.f_cur_obj_update) [] t m' vr ->
       Pobjl m' /\ XF hd pool k m'.
   Proof.
-    intros XF Hxc K ls go pool hd k m t m' vr Hgo Hp Hk HP HX HF Hc Hev.
+    intros XF Hxc Hxs K ls go pool hd k m t m' vr Hgo Hp Hk HP HX HF Hc Hev.
     destruct dm_bcc as (gd1 & D1). destruct dm_sb as (gd2 & D2).
     destruct (linkorder_resolves_symbol lp BS.prog _ _ (linked12_LO_behavior_script lp H12) D1) as (bcc & Hbcc).
     destruct (linkorder_resolves_symbol lp BS.prog _ _ (linked12_LO_behavior_script lp H12) D2) as (sb & Hsb).
@@ -606,7 +672,9 @@ Section STEP.
       pose proof HV0 as ((b0 & Hb0 & L0) & _).
       rewrite Lb in L0. injection L0 as Eb _. subst b0.
       assert (Ei : v_s st0 = id) by (eapply Genv.genv_vars_inj; [ exact Hb0 | exact Hb ]). rewrite Ei. exact Hid. }
-    destruct (K go pool bcc sb hd k st0 (Mem.nextblock m) Hgo Hp Hbcc Hsb Hk Hst0) as (GK & RK & KPRE & KPOST).
+    destruct (K go pool bcc sb hd k st0 (Mem.nextblock m) Hgo Hp Hbcc Hsb Hk Hst0) as (GKr & RK & KPRE & KPOST).
+    pose proof (ObjRows.ghost_keeps_of lp bm bc oc0 SafeB go pool (k * OW.OSZ) sb st0 (XF hd pool k)
+                  (bb_g XF Hxs pool hd k st0 Hp Hk Hst0) (dr_g XF Hxs pool hd k st0 Hp Hk Hst0) GKr) as GK.
     pose proof (ObjInv.inv_entry lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc st0 (Mem.nextblock m) (XF hd pool k) m
                   eq_refl HP HV0 Hc HF) as HI.
     pose proof (ObjRows.rows_k lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc sb Hbcc Hp Hpg Hbp st0 (Mem.nextblock m)
@@ -636,7 +704,7 @@ Section STEP.
       Pobjl m' /\ XR ls hd pool k m'.
   Proof.
     intros ls K go pool hd k m t m' vr Hgo Hp Hk HP HX Hc Hev.
-    exact (cou_step_g (XR ls) (xr_cou ls) K ls go pool hd k m t m' vr Hgo Hp Hk HP HX HX Hc Hev).
+    exact (cou_step_g (XR ls) (xr_cou ls) (xr_st ls) K ls go pool hd k m t m' vr Hgo Hp Hk HP HX HX Hc Hev).
   Qed.
 
   (* ---- the loop's own stores ---- *)
@@ -723,7 +791,7 @@ Section STEP.
     destruct (flg_step go pool k m m1 i Hp Hpg S HP Hc) as (HP1 & Hc1 & R1).
     destruct (flg_side pool k m m1 i Hp S) as (C1 & T1).
     destruct (x_call _ _ _ _ _ _ X2) as ((vr & Hev) & ->).
-    destruct (cou_step_g XF Hxc K ls go pool hd k m1 t2 m2 vr Hgo Hp Hk HP1 (xr_tr ls hd pool k m m1 HX HP1 R1 Hp)
+    destruct (cou_step_g XF Hxc Hxs K ls go pool hd k m1 t2 m2 vr Hgo Hp Hk HP1 (xr_tr ls hd pool k m m1 HX HP1 R1 Hp)
                 (Hxs pool hd k m m1 Hp HP HP1 R1 C1 T1 HF) Hc1 Hev) as (HP' & HF').
     exact (conj HP' (conj HF' eq_refl)).
   Qed.

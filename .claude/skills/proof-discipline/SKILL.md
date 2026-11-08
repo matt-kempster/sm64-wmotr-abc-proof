@@ -1028,6 +1028,16 @@ all in `Unwired/`, and the theorem moved nowhere. See
        Capstones: Hobj_step_rest_terrain -> Hobj_cou_t : cou_keeps_t ter_ls (no hole)
        + Hobj_ter_ctr : ter_ctr_row (counter clause (c) only; census
        TerCtrCensus.ter_ctr_value: <= 1 load per update -- box 1, coin 0, lid 1).
+       2026-11-08: ghost keeps bb / dr PROVED (ObjStep.bb_g / dr_g via ObjGfl);
+       cou_keeps now asks ObjRows.ghost_keeps_r (23 left).  PLAN (coordinator OK):
+       (b)/(c) extend OW.ccl + RenderKeep.ccl_at with the unread field windows the
+       keeps write (vm census of reachable (opcode, byte2): setf 21,10,12,20,19,18,67;
+       addi 19,16,26; set_int 29,47,42,61,26,20,19,18,5; ori 3,1; sir 16; srf
+       29,28,27,10; sri 27; sumf 6-8; addf 7; la 38; pbc 22; atex 26; phys
+       40,23,52,41,58,59; home 55-57; hb @504/508/520 (obj_w READS 508/520));
+       (d) a GflX lemma (non-pointer store into a window keeps Pc), then pinned ones.
+       sit / atex need obj_w's script domain narrowed to wmotr_closure_b, proved at
+       the witness (else FOUND).
        OPEN: discharge Hobj_ter_ctr ((A) walk the loader + one-load induction, or
        (C) a loaded flag in INV_k) and the cou_keeps rows.
        TRAP: names bound by `match goal with H : ...` vanish after the match --

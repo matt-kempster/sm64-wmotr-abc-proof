@@ -1550,6 +1550,16 @@ without pressing A".*
 
   GOAL 1's statement only swapped the one row for the two narrower ones
   (NoAImpliesNoFlyFrame); its claim and proofs are unchanged.
+  **The ghost keeps, first slice (2026-11-08).** The 25 ghost keeps inside
+  `cou_keeps` / `cou_keeps_t` are store-keeps: Pobjl, slot k's VM state and the ghost fact
+  must survive one script-pinned store. Before this slice none of them was proved; the
+  per-opcode rows (`BhvStep.row_*`) only reduce each row to its keep. Two are now PROVED
+  for both ghost facts: BILLBOARD's and DISABLE_RENDERING's s16 store into the slot's
+  graph-node flags @2 (`ObjStep.bb_g` / `dr_g`, from `ObjGfl.gfl_pc` and `vo_unch`, the
+  ghost fact carried by `xf_st`). The rows now ask only `ObjRows.ghost_keeps_r`, the
+  other 23. Next: field-exact obj_w / phiw frames (the `ccl` windows extended to the
+  fields the keeps write, which the vm census of reachable (opcode, field) pairs lists),
+  then the keeps whose fields neither frame reads.
   **Native VM-cell scan (2026-11-08, `NativeVmCensus.native_vm_value`, vm, spine-root),
   behind `native_vals` inside the keeps rows.** INV_k's ghost clause `nvB scr` needs the
   cells where the real memory and the ghost differ (slot k's VM cells and gCurBhvCommand)

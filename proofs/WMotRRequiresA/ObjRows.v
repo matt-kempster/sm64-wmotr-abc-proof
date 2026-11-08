@@ -839,6 +839,29 @@ Section Rows.
     /\ BhvStep.wd_keep lp pool oc bcc sb INV Qk /\ BhvStep.an_keep pool oc INV Qk
     /\ BhvStep.dtf_ff lp INV /\ BhvStep.dtf_keep lp pool oc INV Qk.
 
+  (* the residual ghost keeps (2026-11-08): BILLBOARD's and
+     DISABLE_RENDERING's (the s16 store into the slot's graph-node flags,
+     @2) are PROVED for the objects step's ghost facts (ObjStep.bb_g /
+     dr_g, from ObjGfl); the other 23 remain *)
+  Definition ghost_keeps_r : Prop :=
+    BhvStep.set_keep pool oc GP Qk /\ BhvStep.setf_keep pool oc GP Qk /\ BhvStep.addi_keep pool oc GP Qk
+    /\ BhvStep.ori_keep pool oc GP Qk /\ BhvStep.addf_keep pool oc GP Qk /\ BhvStep.sumf_keep pool oc GP Qk
+    /\ BhvStep.deact_keep pool oc GP Qk /\ BhvStep.sit_keep pool oc GP Qk /\ BhvStep.srf_keep pool oc sb GP Qk
+    /\ BhvStep.sri_keep pool oc sb GP Qk /\ BhvStep.sir_keep pool oc sb GP Qk /\ BhvStep.par51_ok pool oc GP Qk
+    /\ BhvStep.pbc_keep pool oc GP Qk /\ BhvStep.atex_keep pool oc GP Qk
+    /\ BhvStep.hb_keep pool oc GP Qk /\ BhvStep.hbo_keep pool oc GP Qk
+    /\ BhvStep.home_keep pool oc GP Qk /\ BhvStep.phys_keep pool oc GP Qk /\ BhvStep.la_keep lp pool oc GP Qk
+    /\ BhvStep.lcd_keep lp pool oc GP Qk /\ BhvStep.scale_keep pool oc GP Qk /\ BhvStep.begin_ok lp pool oc GP Qk
+    /\ gsfr_keep.
+
+  Lemma ghost_keeps_of : BhvStep.bb_keep pool oc GP Qk -> BhvStep.dr_keep pool oc GP Qk ->
+    ghost_keeps_r -> ghost_keeps.
+  Proof.
+    intros K33 K53 (K16 & K14 & K15 & K17 & K13 & K31 & K29 & K47 & K20 & K21 & K19 & K51p & K51 & K52
+                    & K35 & K43 & K45 & K48 & K39 & K42 & K50 & K0 & Ksfr).
+    repeat (apply conj; [ eassumption | ]). exact Ksfr.
+  Qed.
+
   Theorem rows_k : ghost_keeps -> rest_keeps -> BhvStep.row_keeps lp go pool oc bcc sb INV Qk (fun _ => SafeB).
   Proof.
     intros (K16 & K14 & K15 & K17 & K13 & K31 & K29 & K47 & K20 & K21 & K19 & K51p & K51 & K52 & K33 & K53
