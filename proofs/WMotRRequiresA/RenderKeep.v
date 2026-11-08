@@ -110,20 +110,31 @@ Qed.
 
 (* the kept part of gMarioStates for a flank keep: bmw minus the two
    counters update_hud_values may clamp (numCoins at 168, numLives at 173;
-   the level phase, LevelKeep).  PhiW reads neither. *)
+   the level phase, LevelKeep), minus the cells the entry carries in from
+   the castle (Mario's flags, the HUD counters, the dialog counter;
+   StartCarry).  PhiW reads none of them. *)
+Definition carried_apart (ch : memory_chunk) (z : Z) : Prop :=
+  (z + size_chunk ch <= 4 \/ 8 <= z) /\ (z + size_chunk ch <= 168 \/ 178 <= z)
+  /\ (z + size_chunk ch <= 184 \/ 186 <= z).
+
 Definition bmk (ch : memory_chunk) (z : Z) : Prop :=
-  bmw ch z /\ (z + size_chunk ch <= 168 \/ 170 <= z) /\ (z + size_chunk ch <= 173 \/ 174 <= z).
+  bmw ch z /\ (z + size_chunk ch <= 168 \/ 170 <= z) /\ (z + size_chunk ch <= 173 \/ 174 <= z)
+  /\ carried_apart ch z.
 
 Definition bmkb (ch : memory_chunk) (z : Z) : bool :=
   bmwb ch z && ((z + size_chunk ch <=? 168) || (170 <=? z))
-  && ((z + size_chunk ch <=? 173) || (174 <=? z)).
+  && ((z + size_chunk ch <=? 173) || (174 <=? z))
+  && ((z + size_chunk ch <=? 4) || (8 <=? z))
+  && ((z + size_chunk ch <=? 168) || (178 <=? z))
+  && ((z + size_chunk ch <=? 184) || (186 <=? z)).
 
 Lemma bmkb_ok : forall ch z, bmkb ch z = true -> bmk ch z.
 Proof.
-  intros ch z H. unfold bmkb in H. apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
-  split; [ exact (bmwb_ok ch z H1) | split ].
-  - apply orb_true_iff in H2 as [H2 | H2]; [ left | right ]; apply Z.leb_le; exact H2.
-  - apply orb_true_iff in H3 as [H3 | H3]; [ left | right ]; apply Z.leb_le; exact H3.
+  intros ch z H. unfold bmkb in H.
+  apply andb_prop in H as [H H6]. apply andb_prop in H as [H H5]. apply andb_prop in H as [H H4].
+  apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
+  rewrite orb_true_iff, !Z.leb_le in H2, H3, H4, H5, H6.
+  unfold bmk, carried_apart. split; [ exact (bmwb_ok ch z H1) | tauto ].
 Qed.
 
 Lemma bmk_bmw : forall ch z, bmk ch z -> bmw ch z.
