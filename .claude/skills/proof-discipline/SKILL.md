@@ -1052,6 +1052,8 @@ all in `Unwired/`, and the theorem moved nowhere. See
        la / lcd (pointer stores), scale, sit, set42, begin_ok, gsfr_keep.
        TRAP: never `unfold FieldWin.ucl` in a hypothesis with variable offsets (2^15
        lia case split); keep ucl atomic and use ucl_eq / ucl_lo / ucl_disj / ucl_field.
+       TRAP: `cbn; tauto` (and congruence on Ptrofs.repr) for `In 57 [1; 3; ...]` over Z
+       literals can take 20+ min; use `cbn [In]; repeat (first [left; reflexivity | right])`.
        OPEN: discharge Hobj_ter_ctr ((A) walk the loader + one-load induction, or
        (C) a loaded flag in INV_k) and the cou_keeps rows.
        TRAP: names bound by `match goal with H : ...` vanish after the match --

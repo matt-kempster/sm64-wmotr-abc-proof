@@ -707,7 +707,7 @@ Section STEP.
     cbn [In] in Hf. destruct Hf as [<- | [<- | Hf]]; [ left; reflexivity | right; left; reflexivity | right; right; exact Hf ].
   Qed.
 
-  Ltac wf_side := first [ rewrite FieldWinCensus.win_fields_value; cbn [In]; tauto
+  Ltac wf_side := first [ rewrite FieldWinCensus.win_fields_value; cbn [In]; repeat (first [ left; reflexivity | right ])
                         | cbn [size_chunk]; lia | exact I | cbn; exact I ].
 
   (* ---- the window-field ghost keeps PROVED (ObjFld + the census) ---- *)
