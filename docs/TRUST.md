@@ -115,8 +115,8 @@ without pressing A".*
   arithmetic of every move a frame can make (binary32 air step, cut step, slide-kick signed-energy
   step, ground-pound windup, E3 switches, attach, floor refresh, OOB) is proved
   (`HeightMoveCatalog.chain_keeps_budget`).
-- **The run carries `PhiW` = Φ ∧ `wmotr_world`** (`WMotRWorld.v`, 2026-09-29): Mario's wall/ceil are
-  NULL or surfaces of WMotR's own types, and his floor is never NULL and of those types (computed
+- **The run carries `PhiW` = Φ ∧ `wmotr_world`** (`WMotRWorld.v`, 2026-09-29): (until 2026-11-08 Mario's wall/ceil were
+  NULL or surfaces of WMotR's own types; now unconstrained, see 0.4's entry census) and his floor is never NULL and of those types (computed
   from the generated collision data: DEFAULT, HANGABLE, DEATH_PLANE, NOT_SLIPPERY,
   HARD_NOT_SLIPPERY), nothing held or ridden, quicksandDepth 0. Without it both frame rows were
   false over phantom worlds (a BURNING floor → ACT_LAVA_BOOST; a quicksand depth lowers gfx).
@@ -2201,7 +2201,7 @@ without pressing A".*
 - **Entry census, 2026-11-07** ([wmotr-entry-census.md](wmotr-entry-census.md), `tools/entry_census.py`).
   - **Ways in.** There is one real way into WMotR: castle area 2's warp node 0x0A, i.e. `initiate_warp(31, 1, 0x0A, 0)`. So Mario's spawn cells are the same on every entry.
   - **FOUND: act 0 has no execution.** Entries with `gCurrActNum` = 0 (power-on, no act select yet) are real. On them `level_cmd_place_object`'s `1 << (gCurrActNum - 1)` is UB and has no Clight execution. **Repaired 2026-11-07** by the approved 2.2 rewrite (`level_cmd_place_object` row): act 0 now runs and places the same objects. The witness still enters at act 1 (stand-in S2).
-  - **OPEN: stale wall / ceil.** On a real entry `m->wall` / `m->ceil` are the castle's stale pointers, while the witness has NULL. `wmotr_world` constrains both. Approved repair: leave them unconstrained at the start, and prove that frame 1 re-establishes them.
+  - **Repaired 2026-11-08: stale wall / ceil.** On a real entry `m->wall` / `m->ceil` are the castle's stale pointers. The start premise (`wmotr_world`'s `wall_ok` / `ceil_ok`) now leaves both cells unconstrained, which covers them: no frame proof read their type, every use was a keep. (ffw's `ff_Wc0` / `ff_Spl` and `surf_apart` still name where they point: next.)
   - **Carried scalars covered** (`StartCarry.goal2_start_carried`): the start premise holds with any values in Mario's carried fields and in the act / save-slot / course-star globals.
   - **OPEN: residue and layout.** Free-slot and pool residue (MWF R7) and the anim buffer's block (S7) are not shown to meet the premise on a real entry.
 - **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by

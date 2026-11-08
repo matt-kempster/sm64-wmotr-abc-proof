@@ -245,26 +245,28 @@ Definition wmotr_objects (bm : block) (m : mem) : Prop :=
          Mem.load Mint32 m mb (Ptrofs.unsigned mo + COLL_OFF + 4 * i) = Some v ->
          coll_obj_ok m v.
 
-(* m->wall / m->ceil (named, so a later restatement of the start premise
-   can change them in one place; 2026-11-08, coverage track) *)
-Definition wall_ok (bm : block) (m : mem) : Prop :=
-  forall v, Mem.load Mint32 m bm WALL_OFF = Some v -> surface_ok m v.
-Definition ceil_ok (bm : block) (m : mem) : Prop :=
-  forall v, Mem.load Mint32 m bm CEIL_OFF = Some v -> surface_ok m v.
+(* m->wall / m->ceil: NO constraint (2026-11-08, coverage track).
+   On a real entry both hold the castle's last values: stale pointers into
+   the castle's surface pool (docs/wmotr-entry-census.md §3), which the
+   start premise cannot describe.  Nothing in the frame proofs reads their
+   type: until 2026-11-08 each was `forall v, load = Some v -> surface_ok m v`,
+   and every use was a keep (wall_ok_keep / ceil_ok_keep below), so the
+   clauses are dropped, and the capstone's start premise leaves both cells
+   unconstrained.  The names stay so wmotr_world keeps its shape. *)
+Definition wall_ok (bm : block) (m : mem) : Prop := True.
+Definition ceil_ok (bm : block) (m : mem) : Prop := True.
 
-(* the keeps go through these two lemmas only: a step that keeps the
-   clause in its spelled-out form keeps the named one *)
 Lemma wall_ok_keep : forall bm m m',
   ((forall v, Mem.load Mint32 m bm WALL_OFF = Some v -> surface_ok m v) ->
    (forall v, Mem.load Mint32 m' bm WALL_OFF = Some v -> surface_ok m' v)) ->
   wall_ok bm m -> wall_ok bm m'.
-Proof. intros bm m m' K H. exact (K H). Qed.
+Proof. intros. exact I. Qed.
 
 Lemma ceil_ok_keep : forall bm m m',
   ((forall v, Mem.load Mint32 m bm CEIL_OFF = Some v -> surface_ok m v) ->
    (forall v, Mem.load Mint32 m' bm CEIL_OFF = Some v -> surface_ok m' v)) ->
   ceil_ok bm m -> ceil_ok bm m'.
-Proof. intros bm m m' K H. exact (K H). Qed.
+Proof. intros. exact I. Qed.
 
 Definition wmotr_world (bm : block) (m : mem) : Prop :=
   wall_ok bm m

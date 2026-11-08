@@ -1387,8 +1387,8 @@ Section Witness.
     Lemma world11 : wmotr_world bm m11.
     Proof.
       unfold wmotr_world, wall_ok, ceil_ok, WALL_OFF, CEIL_OFF, FLOOR_OFF, HELD_OFF, RIDDEN_OFF, QSD_OFF.
-      split; [ intros v Hl; rewrite L_wall in Hl; injection Hl as <-; left; reflexivity | ].
-      split; [ intros v Hl; rewrite L_ceil in Hl; injection Hl as <-; left; reflexivity | ].
+      split; [ exact I | ].
+      split; [ exact I | ].
       split; [ intros v Hl; rewrite L_floor in Hl; injection Hl as <-;
                exists bpl, (Ptrofs.repr FLOOR_AT), (Int.repr FLOOR_TYPE); split; [ reflexivity | ];
                split; [ rewrite floor_u; exact L_styp
