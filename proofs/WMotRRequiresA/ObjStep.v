@@ -718,7 +718,7 @@ Section STEP.
   Proof.
     intros XF Hxs pool hd k st0 Hp Hk H0 m st w m1 HG Hst _ Hw Ho S.
     refine (fld_win_g XF Hxs pool hd k st0 m m1 _ (byte2 w) _ Hp Hk H0 _ _ _ HG S); [ | wf_side | wf_side ].
-    apply (win_op st w Hst Hw). rewrite Ho. cbn. tauto.
+    apply (win_op st w Hst Hw). rewrite Ho. cbn [In]. repeat (first [ left; reflexivity | right ]).
   Qed.
 
   Lemma addi_g : forall XF, xf_st XF -> forall pool hd k st0,
@@ -728,7 +728,7 @@ Section STEP.
   Proof.
     intros XF Hxs pool hd k st0 Hp Hk H0 m st w old m1 HG Hst _ Hw Ho _ S.
     refine (fld_win_g XF Hxs pool hd k st0 m m1 _ (byte2 w) _ Hp Hk H0 _ _ _ HG S); [ | wf_side | wf_side ].
-    apply (win_op st w Hst Hw). rewrite Ho. cbn. tauto.
+    apply (win_op st w Hst Hw). rewrite Ho. cbn [In]. repeat (first [ left; reflexivity | right ]).
   Qed.
 
   Lemma ori_g : forall XF, xf_st XF -> forall pool hd k st0,
@@ -738,7 +738,7 @@ Section STEP.
   Proof.
     intros XF Hxs pool hd k st0 Hp Hk H0 m st w old m1 HG Hst _ Hw Ho _ S.
     refine (fld_win_g XF Hxs pool hd k st0 m m1 _ (byte2 w) _ Hp Hk H0 _ _ _ HG S); [ | wf_side | wf_side ].
-    apply (win_op st w Hst Hw). rewrite Ho. cbn. tauto.
+    apply (win_op st w Hst Hw). rewrite Ho. cbn [In]. repeat (first [ left; reflexivity | right ]).
   Qed.
 
   Lemma atex_g : forall XF, xf_st XF -> forall pool hd k st0,
@@ -748,7 +748,7 @@ Section STEP.
   Proof.
     intros XF Hxs pool hd k st0 Hp Hk H0 m st w old m1 HG Hst _ Hw Ho _ S.
     refine (fld_win_g XF Hxs pool hd k st0 m m1 _ (byte2 w) _ Hp Hk H0 _ _ _ HG S); [ | wf_side | wf_side ].
-    apply (win_op st w Hst Hw). rewrite Ho. cbn. tauto.
+    apply (win_op st w Hst Hw). rewrite Ho. cbn [In]. repeat (first [ left; reflexivity | right ]).
   Qed.
 
   (* SET_INT: field 5 (bytes 156..160, which both frames exclude) and the
@@ -784,7 +784,8 @@ Section STEP.
     destruct (OW.ow_par _ _ _ _ _ _ _ _ _ _ _ _ C) as (P1 & _).
     unfold OW.O_PARENT in P1.
     destruct (P1 k Hk) as [Lz | (j & Hj & Lj)]; rewrite Lp in *; [ discriminate Lz | ].
-    unfold OW.slot_v in Lj. injection Lj as Ej.
+    unfold OW.slot_v in Lj. assert (Ej : Ptrofs.repr po = Ptrofs.repr (j * OW.OSZ))
+      by exact (f_equal (fun ov => match ov with Some (Vptr _ o) => o | _ => Ptrofs.zero end) Lj).
     assert (Epo : po = j * OW.OSZ).
     { apply (f_equal Ptrofs.unsigned) in Ej.
       rewrite !Ptrofs.unsigned_repr in Ej by (change Ptrofs.max_unsigned with 4294967295; unfold OW.OSZ, OW.NSLOT in *; lia).
@@ -792,7 +793,7 @@ Section STEP.
     subst po.
     refine (fld_g XF Hxs pool hd k j st0 m m1 _ _ _ (136 + 4 * byte2 w) (140 + 4 * byte2 w) Hp Hk Hj
               (PK.vm_depth st0 H0) _ _ _ HG S); [ | cbn [size_chunk]; lia | exact I ].
-    apply ObjFld.field_dn. apply (win_op st w Hst Hw). rewrite Ho. cbn. tauto.
+    apply ObjFld.field_dn. apply (win_op st w Hst Hw). rewrite Ho. cbn [In]. repeat (first [ left; reflexivity | right ]).
   Qed.
 
   Lemma home_g : forall XF, xf_st XF -> forall pool hd k st0,
