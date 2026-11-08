@@ -1403,9 +1403,9 @@ without pressing A".*
   VALUE SIDE (`native_vals`, to be named `Hnative_vals` where the rows are wired):
   a bulk native at a generic state stores into old blocks only pointers to blocks
   `PV` names at entry (`nvals`; the instance is a SafeB block). Since 2026-11-07
-  `nvals` is BYTE level (`nvB (PV m) m m1`: every changed byte of an old block is no
-  pointer fragment, or a fragment of a PV pointer; and every old block keeps its
-  permissions), a strengthening of this undischarged premise that is still true in
+  `nvals` is BYTE level (`nvB (PV m) m m1`: every changed readable byte of an old block
+  is no pointer fragment, or a fragment of a PV pointer; and every old block keeps its
+  permissions; readable bytes only since 2026-11-07, see INV_k's row keeps below), a strengthening of this undischarged premise that is still true in
   the game (the natives' pointer stores write whole PV pointers; a call frees only
   the locals it allocated); it matches the handlers' own frame `PfrN` below. When
   `Hnative_vals` is wired, a static scan of the census natives' pointer stores is to be
@@ -1446,7 +1446,28 @@ without pressing A".*
   `obj_w_vm_swap`); cut -> m' adds only blocks born after g, which Pc is blind to
   (Unwired/NewKeep `new_pc`, BlindKeep's argument for every new block at once). No
   new trust row. The row keeps for natives must keep the ghost / real difference
-  inside the slot's VM cells and the cursor (script pointers only). BhvStep now also takes
+  inside the slot's VM cells and the cursor (script pointers only).
+  **INV_k's row keeps (2026-11-07, Unwired/ObjRows `rows_k`): moved to the ghost.**
+  Each pinned keep of `row_keeps` at INV := INV_k now follows from the SAME keep at the
+  ghost, INV := GP (`Pobjl g /\ Vo g st0`: the frame-start memory with slot k at its
+  start state), PROVED: a row's store into m is the same store into g (`gr_store`: both
+  memories take the same bytes, so `unchanged_on Pfr` and `nvB scr_b` survive); a
+  footprint-only change (the RNG call's Psd; SFR') is followed by `fol g m1` (m1 with
+  g's bytes at the cursor and slot k's VM cells, g's nextblock); a keep's loads read
+  the ghost's value because its cells are off the VM cells (`fld_chk`, vm-checked over
+  every reachable word; PARENT_BIT_CLEAR's cell by the parent's slot range, which
+  `hd_parent_bit_clear` now exports to `pbc_keep`). 25 keeps move: SET_INT ... BEGIN,
+  the three RNG keeps, and `sfr_keep` as `gsfr_keep` (the ghost changes only what SFR'
+  allows at g; every changed readable byte holds no pointer but into a script or a
+  SafeB block; PV := SafeB). Still at INV_k (`rest_keeps`): `native_vals`,
+  `native_res`, the spawn keeps (sc_*, wd_*), `an_keep`, `dtf_ff`, `dtf_keep` (they
+  read cells through loaded pointers or run code the ghost does not follow by one
+  store / one footprint). No new trust row: premises are restated about Pobjl
+  memories, none added. **CHANGE (2026-11-07): `nvB` is READABLE-byte level.** A
+  footprint premise (`Mem.unchanged_on`) says nothing of bytes without a permission,
+  so under the all-bytes form the ghost could not follow the RNG keeps or SFR'; both
+  consumers (`closed_nvB`, ObjExit's `nvB_closed`) read only through a permission,
+  so nothing they prove weakens. BhvStep now also takes
   `Hsq` (sqrtf_spec, the FPU floor row already in the ledger) and `Hpool` (the current
   slot lives in gObjectPool). No new trust row; ObjFrame's whole-walk frame (ls_frame)
   is not used. The pinned premises are bundled as `row_keeps`.

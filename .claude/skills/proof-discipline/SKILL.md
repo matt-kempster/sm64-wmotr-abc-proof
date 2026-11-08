@@ -980,7 +980,16 @@ all in `Unwired/`, and the theorem moved nowhere. See
        MWF_real_transfer + closed_nvB, k_all_wc (Xs = [gCurBhvCommand]),
        obj_w_vm_swap; cut -> m' by Unwired/NewKeep.v new_pc (Pc blind to blocks born
        later).  INV_k's clause narrowed to nvB scr_b (g's closing injection maps
-       scripts, not every SafeB block).  TRAP: a lemma's unused section hypotheses
+       scripts, not every SafeB block).  DONE 2026-11-07: INV_k's row keeps moved to
+       the ghost, Unwired/ObjRows.v rows_k (ghost_keeps at GP := Pobjl /\ Vo st0 +
+       rest_keeps at INV_k -> row_keeps INV_k, PV := SafeB): stores by gr_store, the RNG
+       Psd and SFR' by fol (m1 with g's cursor + VM bytes), loads off the VM cells by
+       fld_chk (vm); pbc_keep gained the parent's slot range.  nvB is READABLE-byte level
+       now (footprint premises say nothing of unreadable bytes).  Still at INV_k:
+       native_vals, native_res, sc_*, wd_*, an_keep, dtf_*.  TRAP: rewrite ! ... in H |- *
+       rewrites one instantiation only (two different memories' contents) -- rewrite each
+       occurrence separately.  TRAP: an Ltac body cannot name hypotheses it did not
+       introduce (pass them as arguments).  TRAP: a lemma's unused section hypotheses
        are DROPPED at End (obj_w_vm_swap has no H0) -- passing args positionally
        then made exact unify In over vm_tab (>1200s hang); print the signature with
        About in a scratch file first.  Was OPEN: the

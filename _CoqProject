@@ -424,6 +424,7 @@ proofs/WMotRRequiresA/Unwired/ObjInv.v
 proofs/WMotRRequiresA/Unwired/ObjVmSwap.v
 proofs/WMotRRequiresA/Unwired/NewKeep.v
 proofs/WMotRRequiresA/Unwired/ObjExit.v
+proofs/WMotRRequiresA/Unwired/ObjRows.v
 proofs/WMotRRequiresA/FloorList.v
 proofs/WMotRRequiresA/FloorHeight.v
 proofs/WMotRRequiresA/FloorComplete.v
