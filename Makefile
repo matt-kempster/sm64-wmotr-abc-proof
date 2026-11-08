@@ -161,8 +161,11 @@ generated/wmotr_script.v: $(SM64)/levels/wmotr/script.c pipeline/clightgen.sh
 # engine/level_script.c (2026-11-01, GOAL 2 real-order witness): the real
 # level_cmd_place_object, run per OBJECT command of WMotR's level script
 # (wmotr_script.v) to build the area's SpawnInfo list as the game does.
-generated/level_script.v: $(SM64)/src/engine/level_script.c pipeline/clightgen.sh pipeline/proof_n64.h
-	$(CLIGHTGEN) $< $@ $(SM64_CGP)
+# Built through pipeline/tu/level_script.c (the vendor file #included
+# verbatim, plus the act-0 shift rewrite of level_cmd_place_object;
+# proof_n64.h PROOF_LEVEL_SCRIPT_C, TRUST.md 2.2; 2026-11-07).
+generated/level_script.v: pipeline/tu/level_script.c $(SM64)/src/engine/level_script.c pipeline/clightgen.sh pipeline/proof_n64.h
+	$(CLIGHTGEN) $< $@ $(SM64_CGP) -DPROOF_LEVEL_SCRIPT_C=1
 
 generated/macro_special_objects.v: $(SM64)/src/game/macro_special_objects.c pipeline/clightgen.sh pipeline/proof_n64.h
 	$(CLIGHTGEN) $< $@ $(SM64_CGP)
