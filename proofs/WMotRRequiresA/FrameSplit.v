@@ -1068,12 +1068,8 @@ Section FrameSplit.
                 forall sb so, v1 = Vptr sb so -> sb <> mb).
       { intros off Hoff v1 Hl sb so ->. exact (Hsurf off sb so Hoff Hl). }
       split; [| split].
-      { revert Hw; apply wall_ok_keep; intros Hw. rewrite ?LDbm.
-        intros v1 Hl. apply surface_keep; [exact (Hw v1 Hl) |].
-        exact (Hne WALL_OFF (or_introl eq_refl) v1 Hl). }
-      { revert Hc; apply ceil_ok_keep; intros Hc. rewrite ?LDbm.
-        intros v1 Hl. apply surface_keep; [exact (Hc v1 Hl) |].
-        exact (Hne CEIL_OFF (or_intror (or_introl eq_refl)) v1 Hl). }
+      { exact I. }
+      { exact I. }
       repeat split; rewrite ?LDbm.
       - intros v1 Hl. apply surface_nn_keep; [exact (Hf v1 Hl) |].
         exact (Hne FLOOR_OFF (or_intror (or_intror eq_refl)) v1 Hl).

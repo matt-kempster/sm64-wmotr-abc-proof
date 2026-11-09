@@ -503,7 +503,7 @@ Section Link.
   (* surf_apart: smaller lists, and along unchanged surface cells *)
   Lemma surf_apart_incl : forall Xs Ys m, incl Ys Xs ->
     surf_apart lp bm Xs m -> surf_apart lp bm Ys m.
-  Proof. intros Xs Ys m I RSA id b off sb so Hin. exact (RSA id b off sb so (I _ Hin)). Qed.
+  Proof. intros Xs Ys m I RSA id b sb so Hin. exact (RSA id b sb so (I _ Hin)). Qed.
 
   Lemma safe_incl : incl lvl_safe_gvars level_gvars.
   Proof. intros id Hin. unfold level_gvars. apply in_or_app. left. exact Hin. Qed.
@@ -513,8 +513,8 @@ Section Link.
        Mem.load Mint32 m' bm off = Mem.load Mint32 m bm off) ->
     surf_apart lp bm Xs m -> surf_apart lp bm Xs m'.
   Proof.
-    intros Xs m m' E RSA id b off sb so Hin Hs Hoff Hl.
-    rewrite (E off Hoff) in Hl. exact (RSA id b off sb so Hin Hs Hoff Hl).
+    intros Xs m m' E RSA id b sb so Hin Hs Hl.
+    rewrite (E FLOOR_OFF (or_intror (or_intror eq_refl))) in Hl. exact (RSA id b sb so Hin Hs Hl).
   Qed.
 
   Lemma fx_surf : forall Xs m m' off, existsb (Pos.eqb level_update._gMarioStates) Xs = false ->

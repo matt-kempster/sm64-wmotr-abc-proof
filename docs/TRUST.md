@@ -538,7 +538,7 @@ without pressing A".*
     `ls_ids`), the last through the labeled footprint `LsContract.ls_frame` (row 4.1). The world is
     kept by `HoleX` (ProRows' hole over a list of globals none of which a world fact reads, plus
     the two windows). For that, `ffw` gained six fields, each what the game does and proved at
-    boot (`StartSat.ffw11`): the wall / ceil / floor pointers are surface-pool blocks
+    boot (`StartSat.ffw11`): the floor pointer (wall / ceil until 2026-11-08) is a surface-pool block
     (`ff_Spl`; `FloorExec.surf_on` and `FfKeep.fk_surf` now carry it from `Wff`'s `dyn_list`),
     Mario's object is a gObjectPool slot (`ff_Spool`), `m->area` is a dynamic block or
     `gAreaData` (`ff_Sar`), the DMA buffer is dynamic (`ff_Dbt`), `m->controller` is
@@ -2089,7 +2089,7 @@ without pressing A".*
   stored pointer read from Mario's object or its Animation header, both chase-reachable). **Its Φ
   carry is proved too (2026-10-23):** `RenderKeep.render_keeps_phiw` keeps every PhiW conjunct
   from the same footprint; the animFrame it advances stays in [−1, loopEnd] by `gsag_frame`. Its narrow
-  premise `RenderKeep.render_surf_apart` (Mario's wall / ceiling / floor surfaces are not in a
+  premise `RenderKeep.render_surf_apart` (Mario's floor surface (wall / ceiling dropped 2026-11-08) is not in a
   `gCurrAnim*` global's block) is PROVED since 2026-10-26 from Φ (`ff_Spl`: they are dynamic
   surface-pool blocks, past every global; `RenderKeep.surf_apart_ffw`). The
   `gCurrAnim*` blocks are apart from Mario's object and the animation lists by
@@ -2291,7 +2291,8 @@ without pressing A".*
 - **Entry census, 2026-11-07** ([wmotr-entry-census.md](wmotr-entry-census.md), `tools/entry_census.py`).
   - **Ways in.** There is one real way into WMotR: castle area 2's warp node 0x0A, i.e. `initiate_warp(31, 1, 0x0A, 0)`. So Mario's spawn cells are the same on every entry.
   - **FOUND: act 0 has no execution.** Entries with `gCurrActNum` = 0 (power-on, no act select yet) are real. On them `level_cmd_place_object`'s `1 << (gCurrActNum - 1)` is UB and has no Clight execution. **Repaired 2026-11-07** by the approved 2.2 rewrite (`level_cmd_place_object` row): act 0 now runs and places the same objects. The witness still enters at act 1 (stand-in S2).
-  - **Repaired 2026-11-08: stale wall / ceil.** On a real entry `m->wall` / `m->ceil` are the castle's stale pointers. The start premise (`wmotr_world`'s `wall_ok` / `ceil_ok`) now leaves both cells unconstrained, which covers them: no frame proof read their type, every use was a keep. (ffw's `ff_Wc0` / `ff_Spl` and `surf_apart` still name where they point: next.)
+  - **Repaired 2026-11-08: stale wall / ceil.** On a real entry `m->wall` / `m->ceil` are the castle's stale pointers. The start premise (`wmotr_world`'s `wall_ok` / `ceil_ok`) now leaves both cells unconstrained, which covers them: no frame proof read their type, every use was a keep.
+  - **FOUND + REPAIRED 2026-11-08: ffw's `ff_Wc0` was false of a real entry.** It put `m->wall` / `m->ceil` off the region blocks, but on entry they are stale castle pointers into the main pool, which TRUST 3.6 models as one block that also holds the anim DMA buffer (a region, `fw_bt`). Repaired by dropping `ff_Wc0` and the wall / ceil parts of `ff_Spl`, `ffw_surf_ok` and `RenderKeep.surf_apart` (now floor only). The full build shows no proof needed them except to keep them. The capstone's start premise is weaker, so it claims more.
   - **Carried scalars covered** (`StartCarry.goal2_start_carried`): the start premise holds with any values in Mario's carried fields and in the act / save-slot / course-star globals.
   - **OPEN: residue and layout.** Free-slot and pool residue (MWF R7) and the anim buffer's block (S7) are not shown to meet the premise on a real entry.
 - **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by

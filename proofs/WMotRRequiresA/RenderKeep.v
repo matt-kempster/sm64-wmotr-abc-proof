@@ -40,13 +40,13 @@ Import ListNotations.
 
 Local Open Scope Z_scope.
 
-(* a flank step's surface premise: Mario's wall / ceiling / floor surfaces
-   are not stored in the block of one of the globals Xs the step writes (in
-   the game they are sSurfacePool / static-pool surfaces) *)
+(* a flank step's surface premise: Mario's floor surface is not stored in
+   the block of one of the globals Xs the step writes (in the game it is a
+   sSurfacePool / static-pool surface).  Wall / ceiling: nothing since
+   2026-11-08 (no keep reads them) *)
 Definition surf_apart (lp : Clight.program) (bm : block) (Xs : list ident) (m : mem) : Prop :=
-  forall id b off sb so, In id Xs -> Genv.find_symbol (lp_ge lp) id = Some b ->
-    (off = WALL_OFF \/ off = CEIL_OFF \/ off = FLOOR_OFF) ->
-    Mem.load Mint32 m bm off = Some (Vptr sb so) -> sb <> b.
+  forall id b sb so, In id Xs -> Genv.find_symbol (lp_ge lp) id = Some b ->
+    Mem.load Mint32 m bm FLOOR_OFF = Some (Vptr sb so) -> sb <> b.
 
 (* the render step's: the six render globals *)
 Definition render_surf_apart (lp : Clight.program) (bm : block) (m : mem) : Prop :=
@@ -58,13 +58,14 @@ Definition phiw (lp : Clight.program) (bm : block) (m : mem) : Prop :=
   /\ ffw (lp_ge lp) bm m /\ used_ok bm m /\ AnimWorld.anim_w (lp_ge lp) bm m /\ lvl_w (lp_ge lp) m.
 
 (* surf_apart is a THEOREM of the frame world (2026-10-26): since design B
-   (FfWorld.ff_Spl) Mario's wall / ceiling / floor, when pointers, are
+   (FfWorld.ff_Spl) Mario's floor, when a pointer, is
    surface-pool blocks past every global, so no global's block, whatever
    the list Xs *)
 Lemma surf_apart_ffw : forall lp bm Xs m, ffw (lp_ge lp) bm m -> surf_apart lp bm Xs m.
 Proof.
-  intros lp bm Xs m (_ & (d & FWF) & _) id b off sb so _ Hs Hoff Hl E. subst sb.
-  pose proof (ff_Spl _ _ _ _ FWF off b so Hoff Hl) as Hp.
+  intros lp bm Xs m (_ & (d & FWF) & _) id b sb so _ Hs Hl E. subst sb.
+  change FLOOR_OFF with FFW_FLOOR in Hl.
+  pose proof (ff_Spl _ _ _ _ FWF b so Hl) as Hp.
   pose proof (Genv.genv_symb_range _ _ Hs) as Hr. unfold Plt, Ple in *. lia.
 Qed.
 
@@ -575,32 +576,24 @@ Section RK.
     Qed.
 
     Lemma k_worldc : wmotr_world bm m -> mobj_apart bm m -> surf_apart lp bm Xs m ->
-      (forall off sb so, (off = WALL_OFF \/ off = CEIL_OFF \/ off = FLOOR_OFF) ->
-         Mem.load Mint32 m bm off = Some (Vptr sb so) -> sb <> bm) ->
+      (forall sb so, Mem.load Mint32 m bm FLOOR_OFF = Some (Vptr sb so) -> sb <> bm) ->
       (forall i cb co, 0 <= i < 4 ->
          Mem.load Mint32 m mb (u mo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = mb) ->
       wmotr_world bm m'.
     Proof.
       intros (Hw & Hc & Hfl & Hh & Hr & Hq & Ho) Hmo RSA SNB Co.
       destruct (Hmo mb mo Lmo) as (_ & P2 & P3).
-      assert (Sk : forall off sb so, off = WALL_OFF \/ off = CEIL_OFF \/ off = FLOOR_OFF ->
-                Mem.load Mint32 m bm off = Some (Vptr sb so) ->
+      assert (Sk : forall sb so, Mem.load Mint32 m bm FLOOR_OFF = Some (Vptr sb so) ->
                 forall ch z, Mem.load ch m' sb z = Mem.load ch m sb z).
-      { intros off sb so Hoff Hl ch z.
-        apply LHb; [exact (P2 off sb so Hoff Hl) | exact (SNB off sb so Hoff Hl) |].
-        intros (id & Hin & Hs). exact (RSA id sb off sb so Hin Hs Hoff Hl eq_refl). }
+      { intros sb so Hl ch z.
+        apply LHb; [exact (P2 FLOOR_OFF sb so (or_intror (or_intror eq_refl)) Hl) | exact (SNB sb so Hl) |].
+        intros (id & Hin & Hs). exact (RSA id sb sb so Hin Hs Hl eq_refl). }
       split; [| split; [| split; [| split; [| split; [| split]]]]].
-      - revert Hw; apply wall_ok_keep; intros Hw. intros v Hl. rewrite LHm in Hl by bmk_t. destruct (Hw v Hl) as [-> | (b & o & t & -> & Lt & Hin)];
-          [left; reflexivity |].
-        right. exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
-        rewrite (Sk WALL_OFF b o (or_introl eq_refl) Hl). exact Lt.
-      - revert Hc; apply ceil_ok_keep; intros Hc. intros v Hl. rewrite LHm in Hl by bmk_t. destruct (Hc v Hl) as [-> | (b & o & t & -> & Lt & Hin)];
-          [left; reflexivity |].
-        right. exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
-        rewrite (Sk CEIL_OFF b o (or_intror (or_introl eq_refl)) Hl). exact Lt.
+      - exact I.
+      - exact I.
       - intros v Hl. rewrite LHm in Hl by bmk_t. destruct (Hfl v Hl) as (b & o & t & -> & Lt & Hin).
         exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
-        rewrite (Sk FLOOR_OFF b o (or_intror (or_intror eq_refl)) Hl). exact Lt.
+        rewrite (Sk b o Hl). exact Lt.
       - rewrite LHm by bmk_t. exact Hh.
       - rewrite LHm by bmk_t. exact Hr.
       - rewrite LHm by bmk_t. exact Hq.
@@ -757,9 +750,7 @@ Section RK.
         rewrite LHo by (unfold FFW_HH; cbn [size_chunk]; lia). exact Lh.
       - split.
         + exists fl. split; [rewrite LHm by bmk_t; exact Lf | exact Wf].
-        + split.
-          * intros off sb so Hoff Hl. rewrite LHm in Hl by bmk_t. exact (Wc0 off sb so Hoff Hl).
-          * intros off sb so Hoff Hl. rewrite LHm in Hl by bmk_t. exact (Spl off sb so Hoff Hl).
+        + intros sb so Hl. rewrite LHm in Hl by bmk_t. exact (Spl sb so Hl).
     Qed.
 
     (* ---- the animation world ---- *)
@@ -845,19 +836,13 @@ Section RK.
         ffw_unpack EX.
         destruct (obj_eq bo oo Lo) as (-> & ->). exact Co. }
       (* Mario's surfaces are not in his own block (the ffw partition) *)
-      assert (SNB : forall off sb so, (off = WALL_OFF \/ off = CEIL_OFF \/ off = FLOOR_OFF) ->
-                Mem.load Mint32 m bm off = Some (Vptr sb so) -> sb <> bm).
+      assert (SNB : forall sb so, Mem.load Mint32 m bm FLOOR_OFF = Some (Vptr sb so) -> sb <> bm).
       { destruct Hf as (_ & EX & _).
         ffw_unpack EX.
-        intros off sb so Hoff Hl0 Esb. subst sb.
-        destruct Hoff as [-> | [-> | ->]].
-        - apply (Wc0 WALL_OFF bm so (or_introl eq_refl) Hl0).
-          exists Ptrofs.zero. unfold ff_rl. cbn. auto.
-        - apply (Wc0 CEIL_OFF bm so (or_intror eq_refl) Hl0).
-          exists Ptrofs.zero. unfold ff_rl. cbn. auto.
-        - change FFW_FLOOR with FLOOR_OFF in Lf. rewrite Hl0 in Lf. injection Lf as <-.
-          destruct Wf as [(b & o & E & _ & _ & _ & Nr) | E]; [| exfalso; congruence]. injection E as <- _.
-          apply Nr. exists Ptrofs.zero. unfold ff_rl. cbn. auto. }
+        intros sb so Hl0 Esb. subst sb.
+        change FFW_FLOOR with FLOOR_OFF in Lf. rewrite Hl0 in Lf. injection Lf as <-.
+        destruct Wf as [(b & o & E & _ & _ & _ & Nr) | E]; [| exfalso; congruence]. injection E as <- _.
+        apply Nr. exists Ptrofs.zero. unfold ff_rl. cbn. auto. }
       split; [exact (k_hic Hh) |]. split; [exact (k_worldc Hw Hmo RSA SNB Co) |].
       split; [exact (k_anim_apart Hf Han) |]. split; [exact (k_mobjc Hmo) |].
       split; [exact (k_ffw Hf) |]. split; [exact (k_usedc Hu) |].
@@ -875,19 +860,13 @@ Section RK.
         ffw_unpack EX.
         destruct (obj_eq bo oo Lo) as (-> & ->). exact Co. }
       (* Mario's surfaces are not in his own block (the ffw partition) *)
-      assert (SNB : forall off sb so, (off = WALL_OFF \/ off = CEIL_OFF \/ off = FLOOR_OFF) ->
-                Mem.load Mint32 m bm off = Some (Vptr sb so) -> sb <> bm).
+      assert (SNB : forall sb so, Mem.load Mint32 m bm FLOOR_OFF = Some (Vptr sb so) -> sb <> bm).
       { destruct Hf as (_ & EX & _).
         ffw_unpack EX.
-        intros off sb so Hoff Hl0 Esb. subst sb.
-        destruct Hoff as [-> | [-> | ->]].
-        - apply (Wc0 WALL_OFF bm so (or_introl eq_refl) Hl0).
-          exists Ptrofs.zero. unfold ff_rl. cbn. auto.
-        - apply (Wc0 CEIL_OFF bm so (or_intror eq_refl) Hl0).
-          exists Ptrofs.zero. unfold ff_rl. cbn. auto.
-        - change FFW_FLOOR with FLOOR_OFF in Lf. rewrite Hl0 in Lf. injection Lf as <-.
-          destruct Wf as [(b & o & E & _ & _ & _ & Nr) | E]; [| exfalso; congruence]. injection E as <- _.
-          apply Nr. exists Ptrofs.zero. unfold ff_rl. cbn. auto. }
+        intros sb so Hl0 Esb. subst sb.
+        change FFW_FLOOR with FLOOR_OFF in Lf. rewrite Hl0 in Lf. injection Lf as <-.
+        destruct Wf as [(b & o & E & _ & _ & _ & Nr) | E]; [| exfalso; congruence]. injection E as <- _.
+        apply Nr. exists Ptrofs.zero. unfold ff_rl. cbn. auto. }
       split; [exact (k_hic Hh) |]. split; [exact (k_worldc Hw Hmo RSA SNB Co) |].
       split; [exact (k_anim_apart Hf Han) |]. split; [exact (k_mobjc Hmo) |].
       split; [exact (k_ffw Hf) |]. split; [exact (k_usedc Hu) |].
@@ -978,8 +957,7 @@ Section RK.
     Proof. eapply k_mobjc; first [ exact Lmo | exact LDc | exact LM | exact Bmb | exact RGa | exact CKoq ]. Qed.
 
     Lemma k_worldq : wmotr_world bm m -> mobj_apart bm m -> surf_apart lp bm Xs m ->
-      (forall off sb so, (off = WALL_OFF \/ off = CEIL_OFF \/ off = FLOOR_OFF) ->
-         Mem.load Mint32 m bm off = Some (Vptr sb so) -> sb <> bm) ->
+      (forall sb so, Mem.load Mint32 m bm FLOOR_OFF = Some (Vptr sb so) -> sb <> bm) ->
       (forall i cb co, 0 <= i < 4 ->
          Mem.load Mint32 m mb (u mo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = mb) ->
       wmotr_world bm m'.
@@ -1040,8 +1018,7 @@ Section RK.
     Qed.
 
     Lemma k_world : wmotr_world bm m -> mobj_apart bm m -> surf_apart lp bm Xs m ->
-      (forall off sb so, (off = WALL_OFF \/ off = CEIL_OFF \/ off = FLOOR_OFF) ->
-         Mem.load Mint32 m bm off = Some (Vptr sb so) -> sb <> bm) ->
+      (forall sb so, Mem.load Mint32 m bm FLOOR_OFF = Some (Vptr sb so) -> sb <> bm) ->
       (forall i cb co, 0 <= i < 4 ->
          Mem.load Mint32 m mb (u mo + FFW_COLL + 4 * i) = Some (Vptr cb co) -> cb = mb) ->
       wmotr_world bm m'.

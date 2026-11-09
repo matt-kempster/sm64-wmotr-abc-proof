@@ -100,7 +100,7 @@ Tool §2c lists the globals the entry reads by name and never assigns, among the
 | camera.c state (`sSelectionFlags`: Mario- vs Lakitu-cam, chosen with R and carried) | `cam_w` pins pointer cells only | Any. Not read by the premise; it changes the first frames' camera path (labeled camera row). |
 | `gRandomSeed16`, `gGlobalTimer`, `gAreaUpdateCounter` | not read (MWF R8: `gGlobalTimer` is not a pointer) | Any. They change object behaviour on later frames (general rows). |
 | **Residue:** free `gObjectPool` slots, surface-pool slots past the allocated count, the reused main pool | MWF R7 (SafeB load-closed: every pointer in a SafeB block aims at SafeB); `obj_w`'s free list | The castle's bytes. The witness has boot zeros. Whether R7 holds of the castle's residue is a fact about castle frames, which nothing proves. **OPEN.** |
-| **Layout:** the anim DMA buffer is a `main_pool_alloc` (game_init.c), so under TRUST 3.6 it sits in the same block as the surfaces and the Camera | ffw `ff_D2` / `ff_Dbt`, `anim_apart`, `cam_w` ("not the animation buffer's block") | The witness's S7 gives the buffer its own block. In 3.6's one-block model the block-granular "apart" clauses fail. **OPEN**, tied to stand-in S7. |
+| **Layout:** the anim DMA buffer is a `main_pool_alloc` (game_init.c), so under TRUST 3.6 it sits in the same block as the surfaces and the Camera | ffw `ff_D2` / `ff_Dbt`, `anim_apart`, `cam_w` ("not the animation buffer's block") | The witness's S7 gives the buffer its own block. In 3.6's one-block model the block-granular "apart" clauses fail. **OPEN**, tied to stand-in S7. **Floor check (2026-11-08):** the same failure hits `m->floor`. `ff_Wf` (`wfl`: the floor is a `wblk`, off the regions) and `Wff`'s surfaces sit in WMotR's surface pool, i.e. in the main-pool block, which is also `fw_bt`'s block. They are off the regions only because S7 splits the buffer out. Unlike wall / ceil, the floor IS read (FrameSplit's NULL check, the floor type and height), so it cannot simply be dropped. The repair is byte-range regions (the buffer's 0x4000 bytes, not its block) in `ff_rl` / `rblk`, or a separate-block refinement of 3.6. |
 
 ## 4b. Act 0: the two options (decided 2026-11-07: (a))
 
@@ -132,6 +132,32 @@ S2 (`gCurrActNum := 1`) stays as the witness's act.
 - **Residue vs R7, and the anim buffer's block (S7): known gaps, next in line**
   after chunk 3.
 
+## 4d. Remaining queue (coverage track, handed back 2026-11-08)
+
+1. **Castle residue vs MWF R7.** Free `gObjectPool` slots, surface-pool slots past
+   the count, and the reused main pool hold the castle's bytes. R7 (SafeB is
+   load-closed) is not known to hold of them. That needs an invariant that is true
+   of every castle frame, or R7 restated to cover only the cells the frame reads.
+2. **S7 and the floor.** See the §4 Layout row. The anim buffer, the surface pool
+   and the Camera share the main-pool block in 3.6's model. Every block-granular
+   apartness then fails on a real entry: `ff_D2` / `ff_Dbt`, `anim_apart`,
+   `cam_w`, and now `ff_Wf` / `Wff` for the floor. The fix is byte-range regions
+   in `ff_rl` / `rblk`, and the witness then drops S7.
+3. **Stand-ins S1–S8** (`StartTerrain`'s header, TRUST 0.4). Each is a witness
+   shortcut, not a trust row, but the capstone's premise is shown satisfiable
+   only at the witness they build:
+   - S1: `ACT_IDLE` before the warp.
+   - S2: `gCurrActNum = 1`. `StartCarry` now covers 0..6 at the premise.
+   - S3: segment loads, model JUMP_LINKs and AREA's geo layout not run.
+   - S4: `level_script_execute` not run.
+   - S5: `FREE_LEVEL_POOL` as three stores.
+   - S6: `set_background_music` and `init_level`'s tail.
+   - S7: the anim DMA shortcut (item 2).
+   - S8: `main_pool_init`'s post-state, `gCurrCourseNum` and `gControllers[0]`.
+
+   Shrinking each means running the real code from the boot memory.
+4. `m->input`: the A bits are the ABC premise. The other bits are free (§3).
+
 ## 5. Parametrisation (chunk 2) and status
 
 Every real entry is W1 with parameters
@@ -146,5 +172,5 @@ plus the residue and the layout of §4 (not parametrised: a whole-castle fact).
 |---|---|
 | act 1..6, cap, Mario's scalars, carried int globals | **Done** (`StartCarry.goal2_start_carried`). The real-entry witness, after any sequence of int stores into Mario's flags / coins / stars / keys / lives / health / unkB0 / prevNumStarsForDialog and into `gCurrActNum` / `gCurrSaveFileNum` / `gCurrCourseStarFlags`, still meets the capstone's start premise. `object_masks` checks that every OBJECT in WMotR's script has mask 0x1F, so every act places the same objects. |
 | act 0 | FOUND (B1). **Repaired 2026-11-07** by option (a), the approved rewrite `1 << ((gCurrActNum - 1) & 31)` (TRUST 2.2; `StartCarry.act0_val7`: val7 = 0, so the same objects as acts 1..6 are placed). |
-| wall / ceil | **Done in `wmotr_world`** (2026-11-08): `wall_ok` / `ceil_ok` are now `True`, so the start premise leaves both unconstrained. No proof read their type. Still open: ffw's `ff_Wc0` / `ff_Spl` and `surf_apart` say which blocks they point into. |
+| wall / ceil | **Done** (2026-11-08). `wmotr_world`'s `wall_ok` / `ceil_ok` are `True`. ffw's `ff_Wc0` is dropped: FOUND false of a real entry, since the stale pointers point into the main pool, which holds the anim buffer region (TRUST 0.4). The wall / ceil parts of `ff_Spl`, `ffw_surf_ok` and `surf_apart` are dropped too. The start premise says nothing about either cell. `mobj_apart` still keeps them off Mario's object block, which holds on entry (the object is a `gObjectPool` slot, a global). |
 | residue / layout | OPEN. Needs a pre-entry invariant or a block-model change; for main. |

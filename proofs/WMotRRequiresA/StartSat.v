@@ -1814,7 +1814,6 @@ Section Witness.
         split; [ unfold SZ_SURFACE; lia | ].
         split; [ unfold SZ_SURFACE; vm_compute; discriminate | ].
         exact bpl_not_rl.
-      - intros off sb so Hoff Hl; exfalso; exact (wc_noptr off sb so Hoff Hl).
       - exact L_area.
       - (* m->area: &gAreaData[1], as load_area sets it *)
         exists bgad, (Ptrofs.repr 60). split; [ reflexivity | ].
@@ -1836,13 +1835,9 @@ Section Witness.
       - (* Mario's gfx.throwMatrix: the zero-filled pool's NULL *)
         left. rewrite mario_off_u. change FFW_THROW with 80.
         rewrite (bo_z Mint32 80) by (repeat (first [ left; reflexivity | right ])); reflexivity.
-      - (* the surface pointers: the wall / ceil cells hold none, the floor is
-           in the pool block *)
-        intros off sb so [Hoff | [Hoff | Hoff]] Hl.
-        + exfalso; exact (wc_noptr off sb so (or_introl Hoff) Hl).
-        + exfalso; exact (wc_noptr off sb so (or_intror Hoff) Hl).
-        + subst off. change FFW_FLOOR with 104 in Hl. rewrite L_floor in Hl. injection Hl as <- _.
-          rewrite genv_next_eq. exact bpl_ge.
+      - (* the floor pointer is in the pool block *)
+        intros sb so Hl. change FFW_FLOOR with 104 in Hl. rewrite L_floor in Hl. injection Hl as <- _.
+        rewrite genv_next_eq. exact bpl_ge.
       - exact Hbo.
       - intros b o E. injection E as <- _. right. exact Hgad.
       - rewrite genv_next_eq. exact (fresh_ge _ (or_introl eq_refl)).
