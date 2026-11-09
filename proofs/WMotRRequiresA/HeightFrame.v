@@ -427,8 +427,8 @@ Section HeightFrame.
 
   (* the surface premise of the flank keeps, from the invariant (discharged
      in the twelve-TU section below by RenderKeep.phiw_surf_apart: design
-     B's FfWorld.ff_Spl puts Mario's surfaces past every global -- NOT
-     open) *)
+     B's FfWorld.ff_Spl puts Mario's FLOOR past every global (floor-only
+     since 2026-11-08; surf_apart is floor-only too) -- NOT open) *)
   Hypothesis Hphi_sa : forall Xs m, Phi m -> RenderKeep.surf_apart lp bm Xs m.
 
   (* the controller poll's two real calls carry GOAL 1's mem_ok, and the
@@ -1155,7 +1155,8 @@ Section HeightLinked12.
   Proof. intros m Hphi v Hl. exact (height_invariant_y bm R_noA m (proj1 Hphi) v Hl). Qed.
 
   (* the flanks' surface premise is a THEOREM (2026-10-26): ff_Spl puts
-     Mario's surfaces past every global (RenderKeep.surf_apart_ffw) *)
+     Mario's floor past every global (floor-only since 2026-11-08, like
+     surf_apart; RenderKeep.surf_apart_ffw) *)
   Lemma Hphi_sa_linked12 : forall Xs m, Phi m -> RenderKeep.surf_apart lp bm Xs m.
   Proof. intros Xs m Hphi. exact (RenderKeep.phiw_surf_apart lp bm Xs m Hphi). Qed.
 
