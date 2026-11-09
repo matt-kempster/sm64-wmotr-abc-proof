@@ -468,7 +468,8 @@ Proof.
       * exact (sp_vm_all ge pool k m m' Ku j Sj).
   - (* PINS (2026-11-09): the surviving slots' fields from 104 on *)
     intros j Hj. pose proof (Nn j Hj) as Nj.
-    apply (OW.pin_at_eq ge pool m m' j (fun id _ => runs_u ge pool k m m' Ku j Nj id)); [ | exact (Cpin j (Inw j Hj)) ].
+    apply (OW.pin_at_eq' ge pool m m' j (fun id _ => runs_u ge pool k m m' Ku j Nj id)); [ | | exact (Cpin j (Inw j Hj)) ];
+      [ | apply (ld32_SK pool k m m' Ku j Nj); ks ].
     intros ch off Hoff Hch.
     assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).
     unfold OW.pin_offs, OW.O_BPARAMS in Hoff. cbn [In] in Hoff.

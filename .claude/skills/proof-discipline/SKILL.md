@@ -1063,11 +1063,21 @@ all in `Unwired/`, and the theorem moved nowhere. See
        relaxes slot k's type / hitbox cells (PPk); set / hb window cases PROVED
        (ObjRows.t_set / t_hb), set42_keep and hb_keep asked outside it (GPn);
        native_res at @5 re-makes the full ghost (obj_w pins OW.pin_ok T/C/P);
-       exit never in the window (ext_nW).  STILL OPEN (FOUND): addf_keep at
-       bhvCannon@6 (ADD_FLOAT posY -340) is false at a phantom ghost already at
-       lid - 340 -> capstones STILL VACUOUS (since ef77325a).  Needs a cannon
-       window to the exit (ObjExit re-proves Pobjl under slot k's posY change)
-       or a new premise -- coordinator call.
+       exit never in the window (ext_nW).  CANNON REPAIRED 2026-11-09 (no new
+       premise): addf_keep at bhvCannon@6 (ADD_FLOAT posY -340) was false at a
+       phantom ghost already at lid - 340.  INV_k: prologue clause inP s -> inP st0
+       (ObjInv.P_back) + third ghost kind GPL (slot k RE-ANCHORED at sL = CANS@7);
+       ObjRows.t_addf re-anchors at word 6 via anc_keep, PROVED in ObjAnchor.anchor
+       (poke cmd cell -> ObjExit.exit_pc; posY store -> CannonKeep.can_drop_pc,
+       RenderKeep k_all_wc's new re-pinned class Qy; ObjVmSwap Hy0).  addf_keep now
+       asked outside the prologue only (GPc); keeps at GPL = same rows at st0 := sL
+       (ObjRows.gk_L).  STILL VACUOUS: FOUND cannon x/z jitter -- kind_ok's
+       cannon_xz_ok pins a CANNON_BASE's x/z, opened_cannon act 4/6 jitter them, so
+       native_res at CANS@12 is false; restating cannon_xz_ok is the next step.
+       TRAP: `tauto` in a section with a Qfam hypothesis hangs (ObjInv / ObjVmSwap);
+       prove `In CANS [POLES; CANS]` by `right; left; reflexivity`.
+       TRAP: a generic eapply/eassumption combinator over the keep rows hung
+       ObjRows; spell the keeps' binders out (ObjRows.rows_k).
        Deact next needs an SKc variant with a hole at slot k's [116,118) (only
        free_off -- value 0 -- and mact -- not Mario -- read it).
        TRAP: never `unfold FieldWin.ucl` in a hypothesis with variable offsets (2^15

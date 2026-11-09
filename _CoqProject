@@ -427,6 +427,8 @@ proofs/WMotRRequiresA/ObjInv.v
 proofs/WMotRRequiresA/ObjVmSwap.v
 proofs/WMotRRequiresA/NewKeep.v
 proofs/WMotRRequiresA/ObjExit.v
+proofs/WMotRRequiresA/CannonKeep.v
+proofs/WMotRRequiresA/ObjAnchor.v
 proofs/WMotRRequiresA/ObjRows.v
 proofs/WMotRRequiresA/ObjGfl.v
 proofs/WMotRRequiresA/ObjFld.v

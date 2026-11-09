@@ -248,12 +248,12 @@ Section FLDL.
       intros i v1 Hi Hi4 Hl. left. exists n0. split; [ exact Ln | split; [ lia | ] ].
       rewrite <- Z.add_assoc in Hl |- *.
       rewrite LPhi in Hl; [ exact Hl | lia | unfold OW.OSZ; cbn [size_chunk]; lia ]. }
-    eapply k_all_wc with (lp := lp) (bm := bm) (Xs := @nil ident) (Qt := fun _ : ptrofs => False);
+    eapply k_all_wc with (lp := lp) (bm := bm) (Xs := @nil ident) (Qt := fun _ : ptrofs => False) (Qy := fun _ : ptrofs => False);
       first [ exact HXs | exact HXl | exact Lb | exact NB' | exact PM | exact LD
             | exact (fun ch' z' (_ : bmk ch' z') => LObm ch' z') | exact Hbm_sym
             | exact Nbm | exact Bpl | exact RGa | exact CL | exact FR
             | exact (fun i1 co Hi1 Lc => or_introl (QC i1 co Hi1 Lc))
-            | exact (fun a uo (_ : Mem.load Mint32 g bm 12 = Some (Vint a)) (_ : In (Int.unsigned a) used_acts) Lu => QU uo Lu)
+            | exact (fun a uo (_ : Mem.load Mint32 g bm 12 = Some (Vint a)) (_ : In (Int.unsigned a) used_acts) Lu => or_introl (QU uo Lu))
             | solve [ intros ? [] ] | solve [ intros ? ? [] ]
             | exact CKo | exact CKn | exact Hphi | exact (phiw_surf_apart lp bm _ g Hphi) ].
   Qed.

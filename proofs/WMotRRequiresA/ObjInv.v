@@ -74,9 +74,9 @@ Definition ncnb (st : vst) : bool :=
 
 Lemma ncn_b : forall st, BhvStep.ncn st -> ncnb st = true.
 Proof.
-  intros st [H | H]; unfold ncnb.
+  intros st [H | (H & _)]; unfold ncnb.
   - destruct (word_at (v_s st) (v_i st)) as [w|] eqn:E; [ | reflexivity ].
-    pose proof (H w eq_refl) as Hn. apply Z.eqb_neq in Hn. rewrite Hn. reflexivity.
+    pose proof (proj1 (H w eq_refl)) as Hn. apply Z.eqb_neq in Hn. rewrite Hn. reflexivity.
   - rewrite H. apply orb_true_r.
 Qed.
 
@@ -152,6 +152,124 @@ Lemma W_sp : forall st, Wp st -> existsb (Pos.eqb (v_s st)) BhvStep.sp_scripts =
 Proof. intros st (E & _). rewrite E. vm_compute. reflexivity. Qed.
 
 (* ---------------------------------------------------------------------- *)
+(* 1b. The cannon's prologue (2026-11-09).  bhvCannon's words 0..6 (BEGIN, *)
+(*     OR_INT, SPAWN_CHILD, SET_INT(oInteractType, CANNON_BASE),           *)
+(*     ADD_FLOAT(oPosY, -340)) run once; obj_w's cannon pin D holds the    *)
+(*     slot at its lid's y at index 0 and pins nothing from index 7 on.    *)
+(*     inP: the prologue's states; sL: the state after it (CANS@7, empty  *)
+(*     stack), the anchor of the RE-ANCHORED ghost (ObjRows.t_addf).       *)
+(* ---------------------------------------------------------------------- *)
+Definition inP (s : vst) : Prop := v_s s = OW.CANS /\ (v_i s <= 6)%nat.
+Definition inPb (s : vst) : bool := Pos.eqb (v_s s) OW.CANS && Nat.leb (v_i s) 6.
+
+Lemma inP_b : forall s, inP s <-> inPb s = true.
+Proof.
+  intros s. unfold inP, inPb. rewrite andb_true_iff, Pos.eqb_eq, Nat.leb_le. tauto.
+Qed.
+
+Lemma inP_dec : forall s, {inP s} + {~ inP s}.
+Proof.
+  intros s. destruct (inPb s) eqn:E; [ left; apply inP_b; exact E | right; intros H; apply inP_b in H; congruence ].
+Qed.
+
+Definition sL : vst := {| v_s := OW.CANS; v_i := 7%nat; v_k := [] |}.
+
+Lemma sL_tab : In sL vm_tab.
+Proof.
+  assert (A : existsb (vst_eqb sL) vm_tab = true) by (vm_compute; reflexivity).
+  apply existsb_exists in A as (x & Hx & E). unfold vst_eqb in E.
+  apply andb_prop in E as [E E3]. apply andb_prop in E as [E1 E2].
+  apply Pos.eqb_eq in E1. apply Nat.eqb_eq in E2.
+  destruct x as [s i k]. cbn in E1, E2, E3. subst.
+  destruct k; [ exact Hx | discriminate E3 ].
+Qed.
+
+Lemma inP_W : forall s, inP s -> ~ Wp s.
+Proof. intros s (E & _) (E' & _). rewrite E in E'. vm_compute in E'. discriminate E'. Qed.
+
+(* PERF TRAP: stated inline (see BhvStep.chk42_ok) *)
+Lemma pback_chk :
+  forallb (fun st => inPb st || match succs st with Some l => forallb (fun x => negb (inPb x)) l | None => true end)
+    vm_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* the prologue is entered only at its start: a VM edge into it comes from it *)
+Lemma P_back : forall st l st', In st vm_tab -> succs st = Some l -> In st' l -> inP st' -> inP st.
+Proof.
+  intros st l st' Hst Hl Hin Hp. pose proof pback_chk as A. rewrite forallb_forall in A.
+  specialize (A st Hst). cbv beta in A. rewrite Hl in A.
+  destruct (inPb st) eqn:E; [ apply inP_b; exact E | ]. cbn [orb] in A.
+  rewrite forallb_forall in A. pose proof (A st' Hin) as B. rewrite (proj1 (inP_b st') Hp) in B. discriminate B.
+Qed.
+
+(* the prologue's ADD_FLOAT: word 6, oPosY (field 7), its one successor sL *)
+Lemma paddf_chk :
+  forallb (fun st => negb (inPb st)
+                     || match word_at (v_s st) (v_i st) with
+                        | Some w => negb (Z.shiftr w 24 =? 13)
+                                    || ((v_i st =? 6)%nat && (byte2 w =? 7) && stk_eqb (v_k st) []
+                                        && match succs st with Some [x] => vst_eqb x sL | _ => false end)
+                        | None => true end) vm_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma P_addf : forall st w, In st vm_tab -> inP st -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 13 ->
+  v_i st = 6%nat /\ byte2 w = 7 /\ v_k st = [] /\ succs st = Some [sL].
+Proof.
+  intros st w Hst Hp Hw Ho. pose proof paddf_chk as A. rewrite forallb_forall in A.
+  specialize (A st Hst). cbv beta in A. rewrite (proj1 (inP_b st) Hp), Hw, Ho in A. cbn [negb orb Z.eqb] in A.
+  apply andb_prop in A as [A A4]. apply andb_prop in A as [A A3]. apply andb_prop in A as [A1 A2].
+  apply Nat.eqb_eq in A1. apply Z.eqb_eq in A2.
+  split; [ exact A1 | split; [ exact A2 | split ] ].
+  - destruct (v_k st); [ reflexivity | discriminate A3 ].
+  - destruct (succs st) as [[| x [| y l]] |]; try discriminate A4.
+    unfold vst_eqb in A4. apply andb_prop in A4 as [A4 E3]. apply andb_prop in A4 as [E1 E2].
+    apply Pos.eqb_eq in E1. apply Nat.eqb_eq in E2. destruct x as [s i k]. cbn in E1, E2, E3. subst.
+    destruct k; [ reflexivity | discriminate E3 ].
+Qed.
+
+(* the prologue's states have an empty stack *)
+Lemma pstk_chk : forallb (fun st => negb (inPb st) || stk_eqb (v_k st) []) vm_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma P_stk : forall st, In st vm_tab -> inP st -> v_k st = [].
+Proof.
+  intros st Hst Hp. pose proof pstk_chk as A. rewrite forallb_forall in A.
+  specialize (A st Hst). cbv beta in A. rewrite (proj1 (inP_b st) Hp) in A. cbn [negb orb] in A.
+  destruct (v_k st); [ reflexivity | discriminate A ].
+Qed.
+
+(* the cannon is a special script (its natives are the residual's) *)
+Lemma P_sp : existsb (Pos.eqb OW.CANS) BhvStep.sp_scripts = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* the loop exits with a cannon past its prologue (and at an index < 1000) *)
+Lemma ext_can_chk :
+  forallb (fun sp => match word_at (v_s sp) (v_i sp) with
+                     | Some w => negb (existsb (Z.eqb (Z.shiftr w 24)) BhvStep.brk_ops)
+                     | None => true end
+                     || match succs sp with
+                        | Some l => forallb (fun x => negb (Pos.eqb (v_s x) OW.CANS)
+                                                      || (Nat.leb 7 (v_i x) && Nat.ltb (v_i x) 1000)) l
+                        | None => true end)
+    vm_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma ext_can : forall st', BhvStep.ext st' -> v_s st' = OW.CANS -> (7 <= v_i st' /\ v_i st' < 1000)%nat.
+Proof.
+  intros st' (sp & w & l & Hsp & Hw & Hb & Hl & Hin) Ec. pose proof ext_can_chk as A.
+  rewrite forallb_forall in A. specialize (A sp Hsp). cbv beta in A. rewrite Hw, Hl in A.
+  assert (E : existsb (Z.eqb (Z.shiftr w 24)) BhvStep.brk_ops = true)
+    by (apply existsb_exists; exists (Z.shiftr w 24); split; [ exact Hb | apply Z.eqb_refl ]).
+  rewrite E in A. cbn [negb orb] in A. rewrite forallb_forall in A.
+  pose proof (A st' Hin) as B. rewrite Ec, Pos.eqb_refl in B. cbn [negb orb] in B.
+  apply andb_prop in B as [B1 B2]. apply Nat.leb_le in B1. apply Nat.ltb_lt in B2. lia.
+Qed.
+
+(* the exit is outside the prologue *)
+Lemma ext_nP : forall st', BhvStep.ext st' -> ~ inP st'.
+Proof. intros st' Hx (E & Hi). pose proof (ext_can st' Hx E). lia. Qed.
+
+(* ---------------------------------------------------------------------- *)
 (* 2. INV_k.                                                               *)
 (* ---------------------------------------------------------------------- *)
 Section Inv.
@@ -195,10 +313,17 @@ Section Inv.
       /\ (Mem.load Mint32 g pool (oc + 304) = Mem.load Mint32 g0 pool (oc + 304)
           \/ Mem.load Mint32 g pool (oc + 304) = Some (Vint (Int.repr WMotRWorld.INTERACT_POLE))).
 
-  Definition GPs (s : vst) (g : mem) : Prop := GPo g \/ (Wp s /\ PPk g).
+  (* the RE-ANCHORED ghost (2026-11-09): past a cannon's prologue, slot k
+     at sL (ObjRows.t_addf re-anchors the ghost at word 6) *)
+  Definition GPL (g : mem) : Prop := Pobjl g /\ Vo g sL /\ X g.
 
+  Definition GPs (s : vst) (g : mem) : Prop :=
+    GPo g \/ (Wp s /\ PPk g) \/ (v_s st0 = OW.CANS /\ v_s s = OW.CANS /\ ~ inP s /\ GPL g).
+
+  (* the prologue clause: inside the cannon prologue, the update started in
+     it (P_back; at the entry trivially) *)
   Definition INVk (s : vst) (m : mem) : Prop :=
-    Ple nb0 (Mem.nextblock m) /\ cur m
+    Ple nb0 (Mem.nextblock m) /\ cur m /\ (inP s -> inP st0)
     /\ exists g, GPs s g /\ Ple (Mem.nextblock g) nb0 /\ Mem.unchanged_on Pfr g m /\ BhvStep.nvB scr g m.
 
   Definition Qk : vst -> Prop := ObjFamily.Qfam (v_s st0).
@@ -218,9 +343,10 @@ Section Inv.
   Lemma gps_g0 : forall s g, GPs s g ->
     exists g0, Pobjl g0 /\ Mem.unchanged_on (fun b o => ~ Rc b o) g0 g /\ Mem.nextblock g = Mem.nextblock g0.
   Proof using Type. clear Hgo Hbcc Hpool Hpg Hbg Hps.
-    intros s g [(Hp & _) | (_ & g0 & (Hp & _) & U & N & _)].
+    intros s g [(Hp & _) | [(_ & g0 & (Hp & _) & U & N & _) | (_ & _ & _ & Hp & _)]].
     - exists g. split; [ exact Hp | split; [ apply Mem.unchanged_on_refl | reflexivity ] ].
     - exists g0. exact (conj Hp (conj U N)).
+    - exists g. split; [ exact Hp | split; [ apply Mem.unchanged_on_refl | reflexivity ] ].
   Qed.
 
   Lemma gps_valid : forall s g id b, GPs s g -> Genv.find_symbol G id = Some b -> Mem.valid_block g b.
@@ -246,9 +372,9 @@ Section Inv.
   (* ---- Hinv_frame ---- *)
   Theorem inv_frame : forall s m m', INVk s m -> PfrN m m' -> INVk s m'.
   Proof.
-    intros s m m' (Hn & Hc & g & Hg & Hgn & U & NV) (U' & NV').
+    intros s m m' (Hn & Hc & Hcp & g & Hg & Hgn & U & NV) (U' & NV').
     pose proof (Mem.unchanged_on_nextblock _ _ _ U') as N.
-    split; [ exact (Ple_trans _ _ _ Hn N) | split; [ exact (cur_unch m m' U' (cur_valid m Hc) Hc) | ] ].
+    split; [ exact (Ple_trans _ _ _ Hn N) | split; [ exact (cur_unch m m' U' (cur_valid m Hc) Hc) | split; [ exact Hcp | ] ] ].
     exists g. split; [ exact Hg | split; [ exact Hgn | split ] ].
     - exact (Mem.unchanged_on_trans _ _ _ _ U U').
     - exact (BhvStep.nvB_trans _ _ _ _ NV NV' (Mem.unchanged_on_nextblock _ _ _ U)).
@@ -259,14 +385,20 @@ Section Inv.
   Proof. intros s m (_ & Hc & _). exact Hc. Qed.
 
   (* ---- Hinv_succ: along a VM edge, the window is left only by the pole's
-     CALL_NATIVE (the residual moves the index there itself) ---- *)
+     CALL_NATIVE (the residual moves the index there itself); the cannon
+     prologue is entered only from itself (P_back) ---- *)
   Theorem inv_succ : forall st l st' m, In st vm_tab -> Qk st -> succs st = Some l -> In st' l ->
     BhvStep.ncn st -> INVk st m -> INVk st' m.
   Proof using Type. clear Hgo Hbcc Hpool Hpg Hbg Hps.
-    intros st l st' m Hst _ Hl Hin Hn (Hnb & Hc & g & Hg & R).
-    split; [ exact Hnb | split; [ exact Hc | exists g; split; [ | exact R ] ] ].
-    destruct Hg as [Hg | (Hw & Hp)]; [ left; exact Hg | right ].
-    exact (conj (W_succ st l st' Hst Hl Hin Hn Hw) Hp).
+    intros st l st' m Hst HQ Hl Hin Hn (Hnb & Hc & Hcp & g & Hg & R).
+    split; [ exact Hnb | split; [ exact Hc | split; [ intros Hp'; exact (Hcp (P_back st l st' Hst Hl Hin Hp')) | ] ] ].
+    exists g; split; [ | exact R ].
+    destruct Hg as [Hg | [(Hw & Hp) | (Ec & _ & Hnp & Hp)]]; [ left; exact Hg | right; left | right; right ].
+    - exact (conj (W_succ st l st' Hst Hl Hin Hn Hw) Hp).
+    - pose proof (Qk_closed st l st' Hst HQ Hl Hin) as HQ'.
+      refine (conj Ec (conj _ (conj _ Hp))).
+      + apply (proj2 (ObjFamily.Qfam_id2 (v_s st0) st' OW.CANS ltac:(right; left; reflexivity) HQ')). exact Ec.
+      + intros Hp'. exact (Hnp (P_back st l st' Hst Hl Hin Hp')).
   Qed.
 
   (* ---- Hinv: the script blocks and BehaviorCmdTable are Pfr blocks off
@@ -303,7 +435,7 @@ Section Inv.
 
   Theorem inv_scr : forall s m, INVk s m -> OW.scr_ok G m /\ OW.cmdtab_ok G m.
   Proof.
-    intros s m (_ & _ & g & Hg & _ & U & _).
+    intros s m (_ & _ & _ & g & Hg & _ & U & _).
     destruct (gps_g0 s g Hg) as (g0 & Hp & U0 & N).
     pose proof Hp as (_ & _ & _ & _ & _ & How).
     destruct How as (pool' & la & fl & gol & gmo & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
@@ -334,9 +466,9 @@ Section Inv.
 
   Theorem inv_free : BhvStep.inv_free INVk.
   Proof.
-    intros s0 s m0 m b m' (Hn0 & _) Hnv (Hn & Hc & g & Hg & Hgn & U & NV) F.
+    intros s0 s m0 m b m' (Hn0 & _) Hnv (Hn & Hc & Hcp & g & Hg & Hgn & U & NV) F.
     pose proof (Mem.nextblock_free _ _ _ _ _ F) as N.
-    split; [ rewrite N; exact Hn | split ].
+    split; [ rewrite N; exact Hn | split; [ | split; [ exact Hcp | ] ] ].
     - unfold BhvStep.cur in *. rewrite (Mem.load_free _ _ _ _ _ F); [ exact Hc | ].
       left. intros E. subst b. apply Hnv.
       (* go is a symbol block: valid in the ghost, so below nb0 <= nextblock m0 *)
@@ -355,7 +487,7 @@ Section Inv.
   (* ---- the entry ---- *)
   Theorem inv_entry : forall m, Mem.nextblock m = nb0 -> Pobjl m -> Vo m st0 -> cur m -> X m -> INVk st0 m.
   Proof.
-    intros m En Hp HV Hc HX. split; [ rewrite En; apply Ple_refl | split; [ exact Hc | ] ].
+    intros m En Hp HV Hc HX. split; [ rewrite En; apply Ple_refl | split; [ exact Hc | split; [ exact (fun H => H) | ] ] ].
     exists m. split; [ left; exact (conj Hp (conj HV HX)) | ].
     split; [ rewrite En; apply Ple_refl | split; [ apply Mem.unchanged_on_refl | apply BhvStep.nvB_refl ] ].
   Qed.
@@ -369,11 +501,12 @@ Section Inv.
      \/ Mem.load Mint32 g1 pool (oc + 304) = Some (Vint (Int.repr WMotRWorld.INTERACT_POLE))) ->
     PPk g1.
   Proof using Type. clear Hgo Hbcc Hpool Hpg Hbg Hps.
-    intros s g g1 _ Hg U1 N1 D1.
+    intros s g g1 Hw Hg U1 N1 D1.
     assert (B : exists g0, GPo g0 /\ Mem.unchanged_on (fun b o => ~ Rc b o) g0 g /\ Mem.nextblock g = Mem.nextblock g0
                 /\ (Mem.load Mint32 g pool (oc + 304) = Mem.load Mint32 g0 pool (oc + 304)
                     \/ Mem.load Mint32 g pool (oc + 304) = Some (Vint (Int.repr WMotRWorld.INTERACT_POLE)))).
-    { destruct Hg as [Hg | (_ & Hp)]; [ | exact Hp ].
+    { destruct Hg as [Hg | [(_ & Hp) | (_ & Es & _)]]; [ | exact Hp | ].
+      2: { exfalso. destruct Hw as (Ew & _). rewrite Es in Ew. vm_compute in Ew. discriminate Ew. }
       exists g. split; [ exact Hg | split; [ apply Mem.unchanged_on_refl | split; [ reflexivity | left; reflexivity ] ] ]. }
     destruct B as (g0 & Hg0 & U0 & N0 & D0).
     exists g0. split; [ exact Hg0 | split; [ exact (Mem.unchanged_on_trans _ _ _ _ U0 U1) | split ] ].
@@ -390,10 +523,15 @@ Section Inv.
     apply (Mem.store_unchanged_on _ _ _ _ _ _ _ S). intros i Hi Hn. apply Hn. split; [ reflexivity | lia ].
   Qed.
 
-  (* ---- the exit: outside the window the ghost is GPo ---- *)
+  (* ---- the exit: outside the window the ghost is GPo, or re-anchored
+     (a cannon past its prologue: slot k at sL) ---- *)
   Lemma inv_out : forall s m, ~ Wp s -> INVk s m ->
-    exists g, GPo g /\ Ple (Mem.nextblock g) nb0 /\ Mem.unchanged_on Pfr g m /\ BhvStep.nvB scr g m.
+    exists g sg, Pobjl g /\ Vo g sg /\ X g /\ (sg = st0 \/ (v_s st0 = OW.CANS /\ sg = sL))
+      /\ Ple (Mem.nextblock g) nb0 /\ Mem.unchanged_on Pfr g m /\ BhvStep.nvB scr g m.
   Proof using Type. clear Hgo Hbcc Hpool Hpg Hbg Hps.
-    intros s m Hn (_ & _ & g & [Hg | (Hw & _)] & R); [ exists g; exact (conj Hg R) | contradiction ].
+    intros s m Hn (_ & _ & _ & g & [(Hp & HV & HX) | [(Hw & _) | (Ec & _ & _ & Hp & HV & HX)]] & R);
+      [ | contradiction | ].
+    - exists g, st0. exact (conj Hp (conj HV (conj HX (conj (or_introl eq_refl) R)))).
+    - exists g, sL. exact (conj Hp (conj HV (conj HX (conj (or_intror (conj Ec eq_refl)) R)))).
   Qed.
 End Inv.

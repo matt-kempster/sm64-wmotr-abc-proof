@@ -320,12 +320,12 @@ Section CS.
           destruct (CE i v0 ltac:(lia) Hl) as [Lv | (j & -> & Hj & Nj & Kj)].
           + left. exists n. exact (conj Ln (conj (proj2 Hi) Lv)).
           + right. exists (Ptrofs.repr (j * OW.OSZ)). split; [ reflexivity | exact (NEW j Hj Nj Kj) ]. }
-      eapply k_all_wc with (lp := lp) (bm := bm) (Xs := []) (Qt := fun _ : ptrofs => False);
+      eapply k_all_wc with (lp := lp) (bm := bm) (Xs := []) (Qt := fun _ : ptrofs => False) (Qy := fun _ : ptrofs => False);
         first [ exact HXs | exact HXl | exact Lmo | exact NB | exact PM | exact LD
               | exact (fun ch' z' (_ : bmk ch' z') => LBM ch' z') | exact Hbm_sym
               | exact Nbm | exact Bpl | exact RGa | exact CL | exact FR
               | exact (fun i0 co Hi0 Lc => or_introl (QC i0 co Hi0 Lc))
-              | exact (fun a uo (_ : Mem.load Mint32 m bm 12 = Some (Vint a)) (_ : In (Int.unsigned a) used_acts) Lu => QU uo Lu)
+              | exact (fun a uo (_ : Mem.load Mint32 m bm 12 = Some (Vint a)) (_ : In (Int.unsigned a) used_acts) Lu => or_introl (QU uo Lu))
               | solve [ intros ? [] ] | solve [ intros ? ? [] ]
               | exact CKo | exact CKn | exact Hphi | exact (phiw_surf_apart lp bm _ m Hphi) ]. }
     (* ---- the A-held bit ---- *)

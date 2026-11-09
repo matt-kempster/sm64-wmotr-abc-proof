@@ -707,7 +707,8 @@ Section OWK.
         * erewrite Kbm; [ exact Lu | right; cbn [In]; repeat (first [ left; reflexivity | right ]) ].
         * exact (sp_vm_eq ge pool Kp k Sk).
     - (* PINS (2026-11-09): the command pointer and slot fields past 96 *)
-      intros k Hk. apply (OW.pin_at_eq ge pool m m' k (fun id _ => runs_eq ge pool Kp k id)); [ | exact (Cpin k Hk) ].
+      intros k Hk. apply (OW.pin_at_eq' ge pool m m' k (fun id _ => runs_eq ge pool Kp k id)); [ | | exact (Cpin k Hk) ];
+        [ | rewrite (ld32_sk pool Kp) by (unfold OW.O_CMD, OW.OSZ, OW.ccl, FieldWin.ucl; lia); reflexivity ].
       intros ch off Hoff Hch.
       assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).
       unfold OW.pin_offs, OW.O_BPARAMS in Hoff. cbn [In] in Hoff.

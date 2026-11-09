@@ -1011,15 +1011,19 @@ without pressing A".*
 ### Row 0.7 in detail
 
 - **FOUND (2026-11-09): `Hobj_cou_nt` / `Hobj_cou_t` were FALSE; pole half
-  REPAIRED, cannon half OPEN.** Both capstones that take them have been
-  VACUOUS since ef77325a (2026-11-08, which wired `Hobj_cou_nt` into the
-  capstones), and they STAY vacuous after the pole repair because of
-  the open cannon FOUND. (1) Pole, REPAIRED: a pole's first update breaks
+  and cannon half both REPAIRED (no new premise).** Both capstones that take
+  them have been VACUOUS since ef77325a (2026-11-08, which wired `Hobj_cou_nt`
+  into the capstones). (1) Pole, REPAIRED: a pole's first update breaks
   `kind_ok` between SET_INT(oInteractType, POLE) and bhv_pole_init; INV_k is
   now state-indexed with a pole window (see "FOUND FALSE ... set42_keep"
-  below). (2) Cannon, OPEN: `addf_keep` (asked at every ghost) is false at
-  bhvCannon's word 6, ADD_FLOAT(oPosY, -340), over a ghost already at the
-  lid's y - 340 (see "STILL OPEN" below).
+  below). (2) Cannon, REPAIRED 2026-11-09 by RE-ANCHORING the ghost (see
+  "cannon REPAIRED" below). **The vacuity window is NOT closed**: a second
+  cannon FOUND (below, "cannon x-jitter") says `obj_w`'s `kind_ok` pins a
+  CANNON_BASE slot's x / z exactly (`cannon_xz_ok`), while
+  `bhv_opened_cannon_loop`'s actions 4 / 6 jitter oPosX / oPosZ (cannon.inc.c) with Mario
+  in the cannon; so the residual `native_res` at bhvCannon's CALL_NATIVE is
+  false as stated wherever a cannon is entered, and the capstones stay
+  vacuous until `cannon_xz_ok` is restated (OPEN).
 - **Objects (2026-10-26): one real call.** `HeightFrame.play_frame_step` is now poll ; PRE ;
   `seg_objects_spec` ; POST ; render walk, and `seg_objects_spec` is `ObjPhase.objects_call`:
   the generated `area_update_objects` as one `eval_funcall`. The old `seg_platform` / action /
@@ -1636,20 +1640,52 @@ without pressing A".*
       real first objects phase (StartTerrain's m11 / m3 / m4). The
       intermediate window states of that first update are NOT separately
       vm-checked.
-  **STILL OPEN (FOUND 2026-11-09): bhvCannon's `addf_keep`.** Word 6 is
-  ADD_FLOAT(oPosY, -340). `addf_keep` is asked at every ghost. Take a ghost
-  that is a legal Pobjl memory, with slot k already CANNON_BASE at the
-  lid's y - 340 and its VM at the update's start. Re-running word 6 there
-  leaves `cannon_obj_ok`. So `Hobj_cou_*` is still false, and both
-  capstones are still vacuous. The real run is fine: posY is the lid's y
-  before word 6. But the ghost has lost that history.
-  - Pins alone cannot fix it: the ghost's VM cells are frozen at st0, so a
-    pin keyed on the VM index conflicts with word 5's own store.
-  - Options:
-    - (a) A cannon window from word 5 to the exit that relaxes slot k's
-      posY and type, with ObjExit re-proving Pobjl under slot k's posY
-      change. This is large, but needs no new assumption.
-    - (b) A new premise. This waits for the coordinator.
+  **FOUND 2026-11-09, cannon REPAIRED 2026-11-09 (no new premise): bhvCannon's
+  `addf_keep`.** Word 6 is ADD_FLOAT(oPosY, -340). `addf_keep` was asked at
+  every ghost; at a legal Pobjl ghost with slot k already CANNON_BASE at the
+  lid's y - 340 and its VM at the update's start, re-running word 6 leaves
+  `cannon_obj_ok`. The real run is fine (posY is the lid's y before word 6),
+  but the frozen ghost lost that history. Repair (the pole repair's
+  pattern, with the window's end moved to word 6 instead of the exit):
+  - `ObjInv.inP`: the cannon prologue (bhvCannon words 0..6). INV_k carries
+    `inP s -> inP st0` (the prologue is entered only from itself:
+    `P_back`, vm over `vm_tab`), and a third ghost kind: past the prologue
+    the ghost may be RE-ANCHORED, slot k at `sL` = bhvCannon@7 with an empty
+    stack (`GPL`).
+  - `ObjRows.t_addf`: an ADD_FLOAT in the prologue is word 6, field 7, its
+    one successor `sL` (`P_addf`, vm). There the ghost is GP with slot k at
+    its lid's y (obj_w's pin D at index 0). `anc_keep`, PROVED in
+    `ObjAnchor.anchor`: poke slot k's command cell to bhvCannon + 28
+    (a Pfr-excluded VM cell; Pobjl by `ObjExit.exit_pc`, the exit's own
+    keeper), then the same store of lid - 340 (vm: the float add is exact)
+    into the poked ghost's oPosY, Pobjl by `CannonKeep.can_drop_pc`
+    (RenderKeep's keep generalised with a re-pinned class `Qy` for a
+    collided / used cannon; `ObjVmSwap.obj_w_vm_swap` with a moved oPosY,
+    `Hy0`; lid - 340 + 350 and the x / z pairs are in the level lists, no
+    lid is a pole base or a box's y: `CannonKeep.lid_chk`, vm).
+  - `addf_keep` is now asked outside the prologue only (`GPc`: a premise
+    SHRINK). The other ghost keeps are asked at the re-anchored ghost too:
+    they are the same premise rows at start state `sL` (`ObjRows.gk_L`;
+    the capstone's rows already quantify over every start state).
+  - The exit (`ObjInv.inv_out`, `ObjExit.inv_exit`) takes either ghost;
+    a cannon exits past its prologue (`ObjInv.ext_can`, vm), so pin D
+    reads its offset.
+  - `obj_w` / `cannon_obj_ok` / `cannon_xz_ok` needed no restatement for
+    this half: the real code's heights are listed (vm, `CannonKeep.lid_chk`).
+  **FOUND 2026-11-09 (OPEN): cannon x-jitter.** `kind_ok` pins a CANNON_BASE
+  slot's oPosX / oPosZ to a level-data entry (`cannon_xz_ok`).
+  `bhv_opened_cannon_loop` jitters oPosX / oPosZ (cannon.inc.c, actions 4 and 6)
+  while Mario is in the cannon, so `obj_w` is false in the real game there
+  and `native_res` at bhvCannon's CALL_NATIVE (word 12) is false as stated.
+  Not repaired here; it keeps the capstones vacuous (see the top of this
+  section). Sweep (2026-11-09, vm over `vm_tab`): among the still-asked
+  per-command keeps (SET_INT, ADD_FLOAT, SUM_FLOAT, SET_RANDOM_*, SET_INT_UNUSED,
+  DEACTIVATE, PARENT_BIT_CLEAR, SET_HITBOX[_WITH_OFFSET], LOAD_ANIMATIONS,
+  LOAD_COLLISION_DATA, BEGIN), the only writes of a field `obj_w` reads
+  (pos x/y/z, angle velocities, interact type, oAction, the hidden-star
+  counter) in a special script are bhvPoleGrabbing word 2 and bhvCannon
+  words 5 / 6 (both repaired); the other pos writes are in non-special
+  scripts, whose slots `obj_w` does not pin by position.
   **Native VM-cell scan (2026-11-08, `NativeVmCensus.native_vm_value`, vm, spine-root),
   behind `native_vals` inside the keeps rows.** INV_k's ghost clause `nvB scr` needs the
   cells where the real memory and the ghost differ (slot k's VM cells and gCurBhvCommand)

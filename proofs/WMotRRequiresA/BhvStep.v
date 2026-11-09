@@ -6503,16 +6503,27 @@ Section Link.
   Hypothesis Hinv_frame : forall s m m', INV s m -> PfrN m m' -> INV s m'.
   (* the index moves along a VM edge whose command is not a CALL_NATIVE of
      a special script (a CALL_NATIVE's callee may store, and a special
-     script's natives are the residual's, which moves the index itself) *)
+     script's natives are the residual's, which moves the index itself),
+     and not ADD_FLOAT (2026-11-09: its keep moves the index itself,
+     addf_keep -- ADD_FLOAT is not idempotent, so a same-index keep would
+     ask INV at its state to survive running it twice) *)
   Definition ncn (st : vst) : Prop :=
-    (forall w, word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 <> 12)
-    \/ existsb (Pos.eqb (v_s st)) sp_scripts = false.
+    (forall w, word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 <> 12 /\ Z.shiftr w 24 <> 13)
+    \/ (existsb (Pos.eqb (v_s st)) sp_scripts = false
+        /\ forall w, word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 <> 13).
   Hypothesis Hinv_succ : forall st l st' m, In st vm_tab -> Qs st -> succs st = Some l -> In st' l ->
     ncn st -> INV st m -> INV st' m.
 
-  Lemma ncn_op : forall st w op, word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = op -> op <> 12 -> ncn st.
+  Lemma ncn_op : forall st w op, word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = op -> op <> 12 -> op <> 13 -> ncn st.
   Proof.
-    intros st w op Hw Ho Hn. left. intros w' Hw'. rewrite Hw in Hw'. injection Hw' as <-. rewrite Ho. exact Hn.
+    intros st w op Hw Ho Hn Hn'. left. intros w' Hw'. rewrite Hw in Hw'. injection Hw' as <-. rewrite Ho. exact (conj Hn Hn').
+  Qed.
+
+  Lemma ncn_gen : forall st w, word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 12 ->
+    existsb (Pos.eqb (v_s st)) sp_scripts = false -> ncn st.
+  Proof.
+    intros st w Hw Ho E. right. split; [ exact E | ]. intros w' Hw'. rewrite Hw in Hw'. injection Hw' as <-.
+    rewrite Ho. discriminate.
   Qed.
 
   Lemma ctl_id : forall op f rc, ctl_handler op f rc ->
@@ -6537,6 +6548,12 @@ Section Link.
     destruct H as [H|[H|[H|[H|[H|[H|[H|[H|[H|[H|H]]]]]]]]]]; destruct H as (-> & _ & _); discriminate.
   Qed.
 
+  Lemma ctl_ne13 : forall op f rc, ctl_handler op f rc -> op <> 13.
+  Proof.
+    intros op f rc H. unfold ctl_handler in H.
+    destruct H as [H|[H|[H|[H|[H|[H|[H|[H|[H|[H|H]]]]]]]]]]; destruct H as (-> & _ & _); discriminate.
+  Qed.
+
   Lemma ctl_row1 : forall op f rc, ctl_handler op f rc -> cmd_row_op op.
   Proof.
     intros op f rc Hh m st w id hb fd t m' vr Hst HQs HV HI Hw Ho Hid Hhb Hfd Hev.
@@ -6545,7 +6562,7 @@ Section Link.
     destruct (ctl_step _ _ _ _ _ _ _ _ _ Hh Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & Hc' & -> & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho (ctl_ne12 _ _ _ Hh)) (Hinv_frame _ _ _ HI U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho (ctl_ne12 _ _ _ Hh) (ctl_ne13 _ _ _ Hh)) (Hinv_frame _ _ _ HI U)).
     - destruct (ctl_rc _ _ _ Hh) as [-> | (-> & Hb)]; [ left; reflexivity | right; split; [ reflexivity | exact Hb ] ].
   Qed.
 
@@ -6606,7 +6623,7 @@ Section Link.
     destruct (hd_delay_var _ _ _ _ _ _ Hst HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ HI U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ HI U)).
     - right. split; [ reflexivity | apply brk_in; vm_compute; reflexivity ].
   Qed.
 
@@ -6631,7 +6648,7 @@ Section Link.
     destruct (hd_set_int _ _ _ _ _ _ Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & m1 & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ HI Hst HQs Hw Ho Hs1) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ HI Hst HQs Hw Ho Hs1) U)).
     - left. reflexivity.
   Qed.
 
@@ -6652,7 +6669,7 @@ Section Link.
     destruct (hd_set_float _ _ _ _ _ _ Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & m1 & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ HI Hst HQs Hw Ho Hs1) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ HI Hst HQs Hw Ho Hs1) U)).
     - left. reflexivity.
   Qed.
 
@@ -6706,7 +6723,7 @@ Section Link.
     destruct (hd_add_int _ _ _ _ _ _ Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & old & m1 & Hld & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ HI Hst HQs Hw Ho Hld Hs1) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ HI Hst HQs Hw Ho Hld Hs1) U)).
     - left. reflexivity.
   Qed.
 
@@ -6729,7 +6746,7 @@ Section Link.
     destruct (hd_or_int _ _ _ _ _ _ Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & old & m1 & Hld & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ HI Hst HQs Hw Ho Hld Hs1) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ HI Hst HQs Hw Ho Hld Hs1) U)).
     - left. reflexivity.
   Qed.
 
@@ -6740,7 +6757,7 @@ Section Link.
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 13 ->
     Mem.load Mfloat32 m pool (oc + 136 + 4 * byte2 w) = Some (Vsingle old) ->
     Mem.store Mfloat32 m pool (oc + 136 + 4 * byte2 w) (Vsingle (Float32.add old (f32_of w))) = Some m1 ->
-    INV st m1.
+    forall l st', succs st = Some l -> In st' l -> INV st' m1.
 
   Lemma row_add_float : addf_keep -> cmd_row_op 13.
   Proof.
@@ -6754,7 +6771,7 @@ Section Link.
     destruct (hd_add_float _ _ _ _ _ _ Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & old & m1 & Hld & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ HI Hst HQs Hw Ho Hld Hs1) U)).
+    - exact (Hinv_frame _ _ _ (Hk _ _ _ _ _ HI Hst HQs Hw Ho Hld Hs1 _ _ Hl Hin) U).
     - left. reflexivity.
   Qed.
 
@@ -6780,7 +6797,7 @@ Section Link.
     destruct (hd_sum_float _ _ _ _ _ _ Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & a1 & a2 & m1 & Hl1 & Hl2 & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ HI Hst HQs Hw Ho Hl1 Hl2 Hs1) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ HI Hst HQs Hw Ho Hl1 Hl2 Hs1) U)).
     - left. reflexivity.
   Qed.
 
@@ -6805,7 +6822,7 @@ Section Link.
     destruct (hd_deactivate _ _ _ _ _ _ Hst HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & Hs1).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hk _ _ _ _ HI Hst HQs Hw Ho Hs1)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hk _ _ _ _ HI Hst HQs Hw Ho Hs1)).
     - right. split; [ reflexivity | apply brk_in; vm_compute; reflexivity ].
   Qed.
 
@@ -6834,7 +6851,7 @@ Section Link.
     destruct (hd_set_interact_type _ _ _ _ _ _ Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & a & m1 & Ha & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ HI Hst HQs Hw Ho Ha Hs1) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ HI Hst HQs Hw Ho Ha Hs1) U)).
     - left. reflexivity.
   Qed.
 
@@ -6862,7 +6879,7 @@ Section Link.
     destruct (hd_set_random_float _ _ _ _ _ _ Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & z & u & m1 & m2 & Hz & Hu & Ur & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ _ HI Hst HQs Hw Ho Hz Hu Ur Hs1) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ _ HI Hst HQs Hw Ho Hz Hu Ur Hs1) U)).
     - left. reflexivity.
   Qed.
 
@@ -6888,7 +6905,7 @@ Section Link.
     destruct (hd_set_random_int _ _ _ _ _ _ Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & z & u & ri & m1 & m2 & Hz & Hu & Hv & Ur & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ _ _ HI Hst HQs Hw Ho Hz Hu Hv Ur Hs1) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ _ _ HI Hst HQs Hw Ho Hz Hu Hv Ur Hs1) U)).
     - left. reflexivity.
   Qed.
 
@@ -6913,7 +6930,7 @@ Section Link.
     destruct (hd_set_int_rand_rshift _ _ _ _ _ _ Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & z & u & ri & m1 & m2 & Hz & Hu & Hv1 & Hv2 & Ur & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ _ _ HI Hst HQs Hw Ho Hz Hu (conj Hv1 Hv2) Ur Hs1) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ _ _ HI Hst HQs Hw Ho Hz Hu (conj Hv1 Hv2) Ur Hs1) U)).
     - left. reflexivity.
   Qed.
 
@@ -6966,7 +6983,7 @@ Section Link.
     destruct (hd_parent_bit_clear _ _ _ _ _ _ Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hpar Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & po & a & old & m1 & Hpl & Hpo & Hdj & Ha & Hld & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ _ HI Hst HQs Hw Ho Hpl Hpo Hdj Ha Hld Hs1) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ _ HI Hst HQs Hw Ho Hpl Hpo Hdj Ha Hld Hs1) U)).
     - left. reflexivity.
   Qed.
 
@@ -6994,7 +7011,7 @@ Section Link.
     destruct (hd_animate_texture _ _ _ _ _ _ Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & m1 & Hq & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - refine (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ _ U)).
+    - refine (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ _ U)).
       destruct Hq as [-> | (old & Hld & Hs1)]; [ exact HI | exact (Hk _ _ _ _ _ HI Hst HQs Hw Ho Hld Hs1) ].
     - left. reflexivity.
   Qed.
@@ -7020,7 +7037,7 @@ Section Link.
     destruct (hd_billboard _ _ _ _ _ _ Hst HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & old & m1 & Hld & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ HI Hst HQs Hw Ho Hld Hs1) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ HI Hst HQs Hw Ho Hld Hs1) U)).
     - left. reflexivity.
   Qed.
 
@@ -7045,7 +7062,7 @@ Section Link.
     destruct (hd_disable_rendering _ _ _ _ _ _ Hst HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & old & m1 & Hld & Hs1 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ HI Hst HQs Hw Ho Hld Hs1) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ HI Hst HQs Hw Ho Hld Hs1) U)).
     - left. reflexivity.
   Qed.
 
@@ -7072,7 +7089,7 @@ Section Link.
     destruct (hd_set_hitbox _ _ _ _ _ _ Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & z & m1 & m2 & Hz & Hs1 & Hs2 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ HI Hst HQs Hw Ho Hz Hs1 Hs2) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ HI Hst HQs Hw Ho Hz Hs1 Hs2) U)).
     - left. reflexivity.
   Qed.
 
@@ -7095,7 +7112,7 @@ Section Link.
     destruct (hd_set_hitbox_with_offset _ _ _ _ _ _ Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & z & z2 & m1 & m2 & m3 & Hz & Hz2 & Hs1 & Hs2 & Hs3 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ _ _ HI Hst HQs Hw Ho Hz Hz2 Hs1 Hs2 Hs3) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ _ _ HI Hst HQs Hw Ho Hz Hz2 Hs1 Hs2 Hs3) U)).
     - left. reflexivity.
   Qed.
 
@@ -7123,7 +7140,7 @@ Section Link.
     destruct (hd_set_home _ _ _ _ _ _ Hst HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & f1 & f2 & f3 & m1 & m2 & m3 & L1 & S1 & L2 & S2 & L3 & S3 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ _ _ _ HI Hst HQs Hw Ho L1 S1 L2 S2 L3 S3) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ _ _ _ HI Hst HQs Hw Ho L1 S1 L2 S2 L3 S3) U)).
     - left. reflexivity.
   Qed.
 
@@ -7156,7 +7173,7 @@ Section Link.
       as (l & st' & Hl & Hin & HV' & _ & -> & z1 & z2 & z3 & m1 & m2 & m3 & m4 & m5 & m6
           & Hz1 & Hz2 & Hz3 & S1 & S2 & S3 & S4 & S5 & S6 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ _ _ _ _ _ _ HI Hst HQs Hw Ho Hz1 Hz2 Hz3 S1 S2 S3 S4 S5 S6) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ _ _ _ _ _ _ HI Hst HQs Hw Ho Hz1 Hz2 Hz3 S1 S2 S3 S4 S5 S6) U)).
     - left. reflexivity.
   Qed.
 
@@ -7181,7 +7198,7 @@ Section Link.
     destruct (hd_load_animations _ _ _ _ _ _ Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & ta & oa & bt & m1 & Ha & Hbt & Hs & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ _ HI Hst HQs Hw Ho Ha Hbt Hs) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ _ HI Hst HQs Hw Ho Ha Hbt Hs) U)).
     - left. reflexivity.
   Qed.
 
@@ -7206,7 +7223,7 @@ Section Link.
     destruct (hd_load_collision_data _ _ _ _ _ _ Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & ta & oa & bt & m1 & Ha & Hbt & Hs & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ _ HI Hst HQs Hw Ho Ha Hbt Hs) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ _ HI Hst HQs Hw Ho Ha Hbt Hs) U)).
     - left. reflexivity.
   Qed.
 
@@ -7234,7 +7251,7 @@ Section Link.
     destruct (hd_scale _ _ _ _ _ _ Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & m1 & m2 & m3 & S1 & S2 & S3 & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ HI Hst HQs Hw Ho S1 S2 S3) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ _ _ HI Hst HQs Hw Ho S1 S2 S3) U)).
     - left. reflexivity.
   Qed.
 
@@ -7264,7 +7281,7 @@ Section Link.
     destruct (hd_begin _ _ _ _ _ _ _ _ Hst HV (Hinv_cur _ m HI) Hw Ho Hbh Hvb Hsy Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ HI U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ HI U)).
     - left. reflexivity.
   Qed.
 
@@ -7412,7 +7429,7 @@ Section Link.
     pose proof (native_bulk m st fid bfn fd t m1 vres HI HV E2 Hs Hff Hev) as U.
     split; [ | exact (V_sfr m m1 st Hst HV U) ].
     intros l st' Hl Hin.
-    exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (or_intror E1)
+    exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_gen _ _ Hw Ho E1)
              (Hk m m1 st HI HV Hst HQs E1 U (Hnv m st fid bfn fd t m1 vres HI HV Hst HQs E1 E2 Hs Hff Hev))).
   Qed.
 
@@ -7627,7 +7644,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - exact (V_mk m' st (v_s st) (v_i st + 3) (v_k st) Vc HS').
     - split; [ | left; reflexivity ].
-      refine (Hinv_succ _ _ _ _ Hst HQs Hl (or_introl eq_refl) (ncn_op _ _ _ Hw Ho ltac:(discriminate)) _).
+      refine (Hinv_succ _ _ _ _ Hst HQs Hl (or_introl eq_refl) (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) _).
       exact (Hk m st w la fl bpg c bsc n rs k fs' m' HI Hst HQs Hw Ho Hla Hfl Hbpg Hc2 Hbsc Hn0 Hr Hf Hk' R' F' G' U HF Vc).
   Qed.
 
@@ -7754,7 +7771,7 @@ Section Link.
     eexists _, _. split; [ exact Hl | split; [ left; reflexivity | split ] ].
     - exact (V_mk m' st (v_s st) (v_i st + 2) (v_k st) Vc HS').
     - split; [ | left; reflexivity ].
-      refine (Hinv_succ _ _ _ _ Hst HQs Hl (or_introl eq_refl) (ncn_op _ _ _ Hw Ho ltac:(discriminate)) _).
+      refine (Hinv_succ _ _ _ _ Hst HQs Hl (or_introl eq_refl) (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) _).
       exact (Hk m st w la fl bpg bwd n rs k fs' m' HI Hst HQs Hw Ho Hla Hfl Hbpg Hbwd Hn0 Hr Hf Hk' R' F' G' U HF Vc).
   Qed.
 
@@ -7995,7 +8012,7 @@ Section Link.
     destruct (hd_animate _ _ _ _ _ _ Hst (proj1 (Hinv _ m HI)) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & m1 & Hp & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ HI Hst HQs Hw Ho Hp) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ HI Hst HQs Hw Ho Hp) U)).
     - left. reflexivity.
   Qed.
 
@@ -8270,7 +8287,7 @@ Section Link.
     destruct (hd_drop_to_floor _ _ _ _ _ _ Hst (Hf _ m HI) HV (Hinv_cur _ m HI) Hw Ho Hev)
       as (l & st' & Hl & Hin & HV' & _ & -> & m1 & Hp & U).
     exists l, st'. split; [ exact Hl | split; [ exact Hin | split; [ exact HV' | split ] ] ].
-    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ HI Hst HQs Hw Ho Hp) U)).
+    - exact (Hinv_succ _ _ _ _ Hst HQs Hl Hin (ncn_op _ _ _ Hw Ho ltac:(discriminate) ltac:(discriminate)) (Hinv_frame _ _ _ (Hk _ _ _ _ HI Hst HQs Hw Ho Hp) U)).
     - left. reflexivity.
   Qed.
 

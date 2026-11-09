@@ -39,8 +39,10 @@ Module PK := PollKeep.
 Module CM := SM64.Proofs.Interp.CMem.
 Module OF := ObjFamily.
 
-(* the bytes [off, e) miss the VM cells [460, 502) *)
-Definition vmc (off e : Z) : Prop := e <= OW.O_CMD \/ OW.O_STK + 34 <= off.
+(* the bytes [off, e) miss the VM cells [460, 502), and (2026-11-09, for
+   CannonKeep: a cannon base's ADD_FLOAT(oPosY, -340)) oPosY [164, 168) *)
+Definition vmc (off e : Z) : Prop :=
+  (e <= OW.O_CMD \/ OW.O_STK + 34 <= off) /\ (e <= O_POSY \/ O_POSY + 4 <= off).
 
 (* a VM state's script is the symbol whose block the command pointer is in *)
 Lemma vm_at_cmd : forall (ge : genv) pool m k st b o id,
@@ -110,6 +112,15 @@ Section VS.
   Hypothesis V0 : OW.vm_at ge pool m k0 st0.
   Hypothesis V1 : OW.vm_at ge pool m' k0 st'.
   Hypothesis HQ : OF.Qfam (v_s st0) st'.
+
+  (* slot k0's oPosY: kept (the exit), or (CannonKeep) moved with k0's
+     kind re-made: not a pole, not a box, its cannon pins at m' *)
+  Hypothesis Hy0 : (forall ch, Mem.load ch m' pool (k0 * OW.OSZ + O_POSY) = Mem.load ch m pool (k0 * OW.OSZ + O_POSY))
+    \/ (OW.kind_ok pool m' k0 /\ OW.runs ge pool m k0 OW.POLES = false
+        /\ OW.is_bhv_b ge pool m macro_special_objects._bhvExclamationBox k0 = false
+        /\ (forall t, Mem.load Mint32 m pool (k0 * OW.OSZ + O_INTERACT_TYPE) = Some (Vint t) ->
+              OW.runs ge pool m k0 OW.CANS = true -> Int.unsigned t <> INTERACT_CANNON_BASE ->
+              cannon_xz_ok m' pool (k0 * OW.OSZ))).
 
   Ltac sv := unfold vmc, OW.O_BHV, OW.O_CMD, OW.O_SIDX, OW.O_STK, OW.O_ACTION, OW.O_HSCOUNT,
     OW.O_FLAGS, OW.O_NEXT, OW.O_PREV, OW.OSZ, O_INTERACT_TYPE, O_POSX, O_POSY, O_POSZ, HITBOX_DOWN_OFF,
@@ -189,9 +200,25 @@ Section VS.
     - intros Hb. destruct (R (is_bhv_v' k _ Hb)) as (c & Lc & Rc). exists c. rewrite Kv by sv. exact (conj Lc Rc).
   Qed.
 
+  Lemma kind_k0 : OW.kind_ok pool m k0 -> OW.kind_ok pool m' k0.
+  Proof.
+    intros Kk. destruct Hy0 as [E | (K & _)]; [ | exact K ].
+    destruct Kk as (t & Lt & Hin & Hp & Hc & Hpx & Hcx).
+    exists t.
+    split; [ rewrite Kv by sv; exact Lt | split; [ exact Hin | split; [ | split; [ | split ] ] ] ].
+    - intros Et. destruct (Hp Et) as (base & top & Hb & L1 & L2 & L3).
+      exists base, top. rewrite (E Mfloat32). rewrite !Kv by sv. exact (conj Hb (conj L1 (conj L2 L3))).
+    - intros Et. destruct (Hc Et) as (y & Hy & L). exists y. rewrite (E Mfloat32). exact (conj Hy L).
+    - intros Et. destruct (Hpx Et) as (x & z & base & top & Hb & L1 & L2 & L3).
+      exists x, z, base, top. rewrite (E Mfloat32). rewrite !Kv by sv. exact (conj Hb (conj L1 (conj L2 L3))).
+    - intros Et. destruct (Hcx Et) as (x & z & y & Hy & L1 & L2 & L3).
+      exists x, z, y. rewrite (E Mfloat32). rewrite !Kv by sv. exact (conj Hy (conj L1 (conj L2 L3))).
+  Qed.
+
   Lemma kind_v : forall k, OW.kind_ok pool m k -> OW.kind_ok pool m' k.
   Proof.
-    intros k (t & Lt & Hin & Hp & Hc & Hpx & Hcx).
+    intros k Kk. destruct (Z.eq_dec k k0) as [-> | Ne]; [ exact (kind_k0 Kk) | ].
+    destruct Kk as (t & Lt & Hin & Hp & Hc & Hpx & Hcx).
     exists t.
     split; [ rewrite Kv by sv; exact Lt | split; [ exact Hin | split; [ | split; [ | split ] ] ] ].
     - intros E. destruct (Hp E) as (base & top & Hb & L1 & L2 & L3).
@@ -260,6 +287,19 @@ Section VS.
       try reflexivity.
     - exfalso. apply N2. symmetry. apply E. symmetry. exact E1.
     - exfalso. apply N1. symmetry. apply E. symmetry. exact E2.
+  Qed.
+
+  (* 2026-11-09: the cannon pin D at k0 -- a cannon that is reached past
+     its home-to-lid prologue (index >= 7) is pinned by its offset *)
+  Lemma can_k0 : (v_s st' = OW.CANS -> (7 <= v_i st' /\ v_i st' < 1000)%nat) ->
+    OW.can_pin ge pool m' k0.
+  Proof.
+    intros HC b o Hb L. unfold OW.ld32 in L. rewrite CM.load_eq in L.
+    pose proof (vm_at_cmd ge pool m' k0 st' b o OW.CANS V1 L Hb) as E.
+    destruct (HC (eq_sym E)) as (Lo & Hi). right.
+    pose proof V1 as ((b1 & _ & L1) & _). rewrite L1 in L. injection L as _ <-.
+    rewrite Ptrofs.unsigned_repr; [ assert (A28 : 28 <= 4 * Z.of_nat (v_i st')) by lia; exact A28 | change Ptrofs.max_unsigned with 4294967295;
+      assert (A32 : 0 <= 4 * Z.of_nat (v_i st') <= 4294967295) by lia; exact A32 ].
   Qed.
 
   Lemma sp_k0 : OW.sp_vm ge pool m k0 -> OW.sp_vm ge pool m' k0.
@@ -369,6 +409,7 @@ Section VS.
   Hypothesis Hpool : Genv.find_symbol ge object_list_processor._gObjectPool = Some pool.
 
   Theorem obj_w_vm_swap : forall bm,
+    (v_s st' = OW.CANS -> (7 <= v_i st' /\ v_i st' < 1000)%nat) ->
     (forall id b, In id PK.ow_ids -> existsb (Pos.eqb id) PK.ow_xc = false -> Genv.find_symbol ge id = Some b ->
        forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
     PK.surf_keep m m' ge ->
@@ -382,7 +423,7 @@ Section VS.
        OW.mcoll_ok pool gmo m -> OW.mcoll_ok pool gmo m') ->
     OW.obj_w ge bm m -> OW.obj_w ge bm m'.
   Proof.
-    intros bm K KS KC Kbm KSc KNC KMC
+    intros bm HCn K KS KC Kbm KSc KNC KMC
       (pool' & la & fl & gol & gmo & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
     rewrite Hpool in S1. injection S1 as <-.
     assert (Kl := K object_list_processor._gObjectListArray la ltac:(iow) ltac:(vm_compute; reflexivity) S2).
@@ -437,7 +478,11 @@ Section VS.
       split; [ rewrite Ef; exact C1 | split; [ rewrite Ef; exact C2 | ] ].
       intros k Hk Hb. rewrite (is_bhv_b_v _ k) in Hb.
       destruct (C3 k Hk Hb) as (x & y & z & Hin & L1 & L2 & L3).
-      unfold OW.box_pos_ok. exists x, y, z. rewrite !Kv by sv. exact (conj Hin (conj L1 (conj L2 L3))).
+      unfold OW.box_pos_ok. exists x, y, z.
+      destruct (Z.eq_dec k k0) as [-> | Ne].
+      + destruct Hy0 as [E | (_ & _ & Nb & _)]; [ | rewrite Nb in Hb; discriminate Hb ].
+        rewrite (E Mfloat32). rewrite !Kv by sv. exact (conj Hin (conj L1 (conj L2 L3))).
+      + rewrite !Kv by sv. exact (conj Hin (conj L1 (conj L2 L3))).
     - exact (KC Cctr).
     - destruct Cter as (T1 & T2 & T3 & T4 & T5 & T6).
       assert (Kme : forall id l, In id PK.ow_ids -> existsb (Pos.eqb id) PK.ow_xc = false ->
@@ -532,10 +577,30 @@ Section VS.
       intros k Hk.
       assert (R : forall id, In id [OW.POLES; OW.CANS] -> OW.runs ge pool m' k id = OW.runs ge pool m k id).
       { intros id Hid. destruct (Z.eq_dec k k0) as [-> | Ne]; [ exact (runs_k0' id Hid) | exact (runs_ne k Ne id) ]. }
-      apply (OW.pin_at_eq ge pool m m' k R); [ | exact (Cpin k Hk) ].
-      intros ch off Hoff Hch.
-      assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).
-      unfold OW.pin_offs, OW.O_BPARAMS in Hoff. cbn [In] in Hoff.
-      apply Kv; rewrite Hs; destruct Hoff as [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]; sv.
+      destruct (Z.eq_dec k k0) as [-> | Ne].
+      + (* k0 *)
+        destruct Hy0 as [E | (_ & Np & _ & Hx)].
+        * apply (OW.pin_at_eq ge pool m m' k0 R); [ | | exact (Cpin k0 Hk) ].
+          -- intros ch off Hoff Hch.
+             assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).
+             unfold OW.pin_offs, OW.O_BPARAMS in Hoff. cbn [In] in Hoff.
+             destruct Hoff as [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]];
+               [ apply Kv; rewrite Hs; sv | apply Kv; rewrite Hs; sv | | apply Kv; rewrite Hs; sv
+               | apply Kv; rewrite Hs; sv | apply Kv; rewrite Hs; sv ].
+             exact (E ch).
+          -- intros _. exact (can_k0 HCn).
+        * destruct (Cpin k0 Hk) as (T0 & _ & _).
+          split; [ | split; [ | exact (can_k0 HCn) ] ].
+          -- intros t Lt. rewrite Kv in Lt by sv. destruct (T0 t Lt) as (T1 & T2 & _).
+             rewrite (R OW.POLES ltac:(left; reflexivity)), (R OW.CANS ltac:(right; left; reflexivity)). split; [ exact T1 | split; [ exact T2 | ] ].
+             intros Hc Ht. exact (Hx t Lt Hc Ht).
+          -- rewrite (R OW.POLES ltac:(left; reflexivity)), Np. intros F; discriminate F.
+      + apply (OW.pin_at_eq ge pool m m' k R); [ | | exact (Cpin k Hk) ].
+        * intros ch off Hoff Hch.
+          assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).
+          unfold OW.pin_offs, OW.O_BPARAMS in Hoff. cbn [In] in Hoff.
+          apply Kv; rewrite Hs; destruct Hoff as [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]; sv.
+        * apply OW.can_pin_eq; [ | apply Kv; sv ].
+          unfold OW.ld32. rewrite !CM.load_eq. apply Kv; sv.
   Qed.
 End VS.

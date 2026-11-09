@@ -733,12 +733,36 @@ Definition pole_pin (m : mem) (pool : block) (o : Z) : Prop :=
     /\ Mem.load Mint32 m pool (o + O_BPARAMS) = Some (Vint p)
     /\ Z.land (Z.shiftr (Int.unsigned p) 16) 255 * 10 = top - base.
 
+(* D (2026-11-09, the cannon repair of INV_k): a bhvCannon slot is, at a
+   frame boundary, either not yet updated -- its command pointer at word 0
+   and oPosY its lid's y (cannon_door.inc.c: bhv_cannon_closed_init copies
+   the lid's home, the macro object's y) -- or past word 6 (in the game, at
+   its loop, word 12: the first update runs words 0..14 without a BREAK
+   before END_LOOP). *)
+Definition cannon_lids : list Z :=
+  map m_y (filter (fun o => Pos.eqb (bhv_of o) macro_special_objects._bhvCannonClosed) wmotr_macro_objs).
+
+Definition can_pin (ge : genv) (pool : block) (m : mem) (k : Z) : Prop :=
+  forall b o, Genv.find_symbol ge CANS = Some b -> ld32 m pool (k * OSZ + O_CMD) = Some (Vptr b o) ->
+    (Ptrofs.unsigned o = 0
+     /\ exists y, In y cannon_lids /\ Mem.load Mfloat32 m pool (k * OSZ + O_POSY) = Some (f32z y))
+    \/ 28 <= Ptrofs.unsigned o.
+
+Lemma can_pin_eq : forall ge pool m m' k,
+  ld32 m' pool (k * OSZ + O_CMD) = ld32 m pool (k * OSZ + O_CMD) ->
+  Mem.load Mfloat32 m' pool (k * OSZ + O_POSY) = Mem.load Mfloat32 m pool (k * OSZ + O_POSY) ->
+  can_pin ge pool m k -> can_pin ge pool m' k.
+Proof.
+  intros ge pool m m' k E1 E2 D b o Hb L. rewrite E1 in L. rewrite E2. exact (D b o Hb L).
+Qed.
+
 Definition pin_at (ge : genv) (pool : block) (m : mem) (k : Z) : Prop :=
   (forall t, Mem.load Mint32 m pool (k * OSZ + O_INTERACT_TYPE) = Some (Vint t) ->
      (Int.unsigned t = INTERACT_POLE -> runs ge pool m k POLES = true)
      /\ (Int.unsigned t = INTERACT_CANNON_BASE -> runs ge pool m k CANS = true)
      /\ (runs ge pool m k CANS = true -> Int.unsigned t <> INTERACT_CANNON_BASE -> cannon_xz_ok m pool (k * OSZ)))
-  /\ (runs ge pool m k POLES = true -> pole_pin m pool (k * OSZ)).
+  /\ (runs ge pool m k POLES = true -> pole_pin m pool (k * OSZ))
+  /\ can_pin ge pool m k.
 
 Definition pin_ok (ge : genv) (pool : block) (m : mem) (rs : list (list Z)) : Prop :=
   forall k, In k (concat rs) -> pin_at ge pool m k.
@@ -751,16 +775,17 @@ Lemma pin_at_eq : forall ge pool m m' k,
   (forall id, In id [POLES; CANS] -> runs ge pool m' k id = runs ge pool m k id) ->
   (forall ch off, In off pin_offs -> ch = Mint32 \/ ch = Mfloat32 ->
      Mem.load ch m' pool (k * OSZ + off) = Mem.load ch m pool (k * OSZ + off)) ->
+  (can_pin ge pool m k -> can_pin ge pool m' k) ->
   pin_at ge pool m k -> pin_at ge pool m' k.
 Proof.
-  intros ge pool m m' k R L (T & P).
+  intros ge pool m m' k R L Dk (T & P & D).
   assert (Lt0 := L Mint32 O_INTERACT_TYPE ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
   assert (Lx0 := L Mfloat32 O_POSX ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
   assert (Ly0 := L Mfloat32 O_POSY ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
   assert (Lz0 := L Mfloat32 O_POSZ ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
   assert (Ld0 := L Mfloat32 HITBOX_DOWN_OFF ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
   assert (Lp0 := L Mint32 O_BPARAMS ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
-  split.
+  split; [ | split; [ | exact (Dk D) ] ].
   - intros t Lt. rewrite Lt0 in Lt. destruct (T t Lt) as (T1 & T2 & T3).
     rewrite (R POLES (or_introl eq_refl)), (R CANS (or_intror (or_introl eq_refl))). split; [ exact T1 | split; [ exact T2 | ] ].
     intros Hc Ht. destruct (T3 Hc Ht) as (x & z & y & Hin & Lx & Ly & Lz).
@@ -768,6 +793,19 @@ Proof.
   - intros Hp. rewrite (R POLES (or_introl eq_refl)) in Hp. destruct (P Hp) as (x & z & base & top & p & Hin & Lx & Ly & Lz & Ld & Lp & Ep).
     exists x, z, base, top, p. rewrite Lx0, Ly0, Lz0, Ld0, Lp0.
     exact (conj Hin (conj Lx (conj Ly (conj Lz (conj Ld (conj Lp Ep)))))).
+Qed.
+
+(* the same when the command pointer is kept too *)
+Lemma pin_at_eq' : forall ge pool m m' k,
+  (forall id, In id [POLES; CANS] -> runs ge pool m' k id = runs ge pool m k id) ->
+  (forall ch off, In off pin_offs -> ch = Mint32 \/ ch = Mfloat32 ->
+     Mem.load ch m' pool (k * OSZ + off) = Mem.load ch m pool (k * OSZ + off)) ->
+  ld32 m' pool (k * OSZ + O_CMD) = ld32 m pool (k * OSZ + O_CMD) ->
+  pin_at ge pool m k -> pin_at ge pool m' k.
+Proof.
+  intros ge pool m m' k R L C. apply (pin_at_eq ge pool m m' k R L).
+  apply (can_pin_eq ge pool m m' k C).
+  exact (L Mfloat32 O_POSY ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
 Qed.
 
 Definition sdyn (ge : genv) (pool : block) (m : mem) (k : Z) : Z :=
@@ -2666,9 +2704,31 @@ Section ChkPin.
     end
     && (negb (runs ge pool m k POLES) || pole_pin_b (k * OSZ)).
 
-  Lemma pin_b_sound : forall k, pin_b k = true -> pin_at ge pool m k.
+  Definition can_pin_b (k : Z) : bool :=
+    match Genv.find_symbol ge CANS with
+    | Some b => match ld32 m pool (k * OSZ + O_CMD) with
+                | Some (Vptr b' o) =>
+                    negb (Pos.eqb b b')
+                    || (Z.eqb (Ptrofs.unsigned o) 0
+                        && existsb (fun y => f32_at_b pool m (k * OSZ + O_POSY) (f32z y)) cannon_lids)
+                    || Z.leb 28 (Ptrofs.unsigned o)
+                | _ => true end
+    | None => true
+    end.
+
+  Lemma can_pin_b_sound : forall k, can_pin_b k = true -> can_pin ge pool m k.
   Proof.
-    intros k H. unfold pin_b in H. apply andb_prop in H as [H Hp]. split.
+    intros k H b o Hb L. unfold can_pin_b in H. rewrite Hb, L, Pos.eqb_refl in H. cbn [negb orb] in H.
+    apply orb_true_iff in H as [H | H]; [ left | right; apply Z.leb_le; exact H ].
+    apply andb_prop in H as [H1 H2]. split; [ apply Z.eqb_eq; exact H1 | ].
+    apply existsb_exists in H2 as (y & Hy & Ly). exists y. exact (conj Hy (f32_at_b_sound _ _ _ _ Ly)).
+  Qed.
+
+  Lemma pin_b_sound : forall k, pin_b k = true -> can_pin_b k = true -> pin_at ge pool m k.
+  Proof.
+    intros k H Hcb. split; [ | split; [ | exact (can_pin_b_sound k Hcb) ] ].
+    all: unfold pin_b in H; apply andb_prop in H as [H Hp].
+    2: { intros Hr. rewrite Hr in Hp. cbn [negb orb] in Hp. exact (pole_pin_b_sound _ Hp). }
     - intros t Lt. unfold ld32 in H. rewrite CM.load_eq, Lt in H.
       apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
       split; [ | split ].
@@ -2676,7 +2736,6 @@ Section ChkPin.
       + intros E. rewrite E, Z.eqb_refl in H2. cbn [negb orb] in H2. exact H2.
       + intros Hc Ht. rewrite Hc in H3. cbn [negb orb] in H3.
         apply Z.eqb_neq in Ht. rewrite Ht in H3. cbn [orb] in H3. exact (cannon_xz_b_sound _ _ _ H3).
-    - intros Hr. rewrite Hr in Hp. cbn [negb orb] in Hp. exact (pole_pin_b_sound _ Hp).
   Qed.
 End ChkPin.
 
@@ -2724,7 +2783,7 @@ Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : 
       && mvm_b ge pool m BhvVM.vm_tab k && anim_b ge m && cls_b ge pool m BhvVM.vm_tab sp_scripts rs
       && dp_b ge m && ncoll_b pool m rs && mcoll_b pool m k
       && tie_b ge pool bm m BhvVM.vm_tab sp_scripts rs
-      && forallb (pin_b ge pool m) (concat rs)
+      && forallb (pin_b ge pool m) (concat rs) && forallb (can_pin_b ge pool m) (concat rs)
       | None => false
       end
   | _, _, _ => false
@@ -2755,7 +2814,7 @@ Proof.
   destruct (ld32 m gmo 0) as [[| | | | | pb po]|] eqn:Hg;
     [ discriminate H .. | | discriminate H ].
   destruct (slot_of (Ptrofs.unsigned po)) as [k|] eqn:Hk; [ | discriminate H ].
-  apply andb_prop in H as [H Hpin].
+  apply andb_prop in H as [H Hcpin]. apply andb_prop in H as [H Hpin].
   apply andb_prop in H as [H Htie].
   apply andb_prop in H as [H Hmco]. apply andb_prop in H as [H Hnco].
   apply andb_prop in H as [H Hdp].
@@ -2829,7 +2888,7 @@ Proof.
   - apply (mcoll_b_sound _ _ _ k (proj1 (slot_of_spec _ _ Hk))); [ | exact Hmco ].
     apply veqb_eq in Hpo. rewrite <- Hpo. unfold ld32 in Hg. rewrite CM.load_eq in Hg. exact Hg.
   - exact (tie_b_sound _ _ _ _ _ Htie).
-  - intros j Hj. exact (pin_b_sound _ _ _ j (proj1 (forallb_forall _ _) Hpin j Hj)).
+  - intros j Hj. exact (pin_b_sound _ _ _ j (proj1 (forallb_forall _ _) Hpin j Hj) (proj1 (forallb_forall _ _) Hcpin j Hj)).
 Qed.
 
 Definition ow_chk (ge : genv) (bm : block) (m : mem) : bool :=
