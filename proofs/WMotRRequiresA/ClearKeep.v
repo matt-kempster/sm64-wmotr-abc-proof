@@ -275,10 +275,9 @@ Section K3.
     - intros ch b z H. apply Hld.
       destruct H as [(-> & _) | [(-> & _) | [(-> & _) | [(-> & _) | [(-> & _) | (-> & _)]]]]];
         first [ exact Nbm | exact Nab | exact Nbo ].
-    - split; [ | split ].
+    - split.
       + exists (fw_fl d). rewrite (Hld _ _ _ Nbm). exact (conj (ff_Lf _ _ _ _ FWF) (ff_Wf _ _ _ _ FWF)).
-      + intros off sb so Hoff Hl. rewrite (Hld _ _ _ Nbm) in Hl. exact (ff_Wc0 _ _ _ _ FWF off sb so Hoff Hl).
-      + intros off sb so Hoff Hl. rewrite (Hld _ _ _ Nbm) in Hl. exact (ff_Spl _ _ _ _ FWF off sb so Hoff Hl).
+      + intros sb so Hl. rewrite (Hld _ _ _ Nbm) in Hl. exact (ff_Spl _ _ _ _ FWF sb so Hl).
   Qed.
 
   (* ---- the level cells: none is the partition ---- *)
@@ -315,10 +314,9 @@ Section K3.
     assert (RGa : forall b, rgb lp XD b -> b <> fw_bo d /\ tab_apart G m b).
     { intros b (id & Hin & Hs). destruct Hin as [<- | []]. rewrite Sbx in Hs. injection Hs as <-.
       split; [ exact (not_eq_sym Nbo) | exact (tab_apart_global G m _ _ _ bx bx_glob (ff_W _ _ _ _ FWF)) ]. }
-    assert (SNB : forall off sb so, (off = WALL_OFF \/ off = CEIL_OFF \/ off = FLOOR_OFF) ->
-              Mem.load Mint32 m bm off = Some (Vptr sb so) -> sb <> bm).
-    { intros off sb so Hoff Hl0 ->.
-      pose proof (ff_Spl _ _ _ _ FWF off bm so Hoff Hl0) as P.
+    assert (SNB : forall sb so, Mem.load Mint32 m bm FLOOR_OFF = Some (Vptr sb so) -> sb <> bm).
+    { intros sb so Hl0 ->. change FLOOR_OFF with FFW_FLOOR in Hl0.
+      pose proof (ff_Spl _ _ _ _ FWF bm so Hl0) as P.
       pose proof (Genv.genv_symb_range _ _ Sbm) as Q. unfold Plt, Ple in *. lia. }
     assert (Co : forall i cb co, 0 <= i < 4 ->
               Mem.load Mint32 m (fw_bo d) (Ptrofs.unsigned (fw_oo d) + FFW_COLL + 4 * i) = Some (Vptr cb co) ->

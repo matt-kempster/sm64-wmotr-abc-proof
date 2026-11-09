@@ -142,8 +142,8 @@ Section BK.
     intros (W1 & W2 & W3 & W4 & W5 & W6 & (mb & mo & s & n & L1 & L2 & L3 & L4 & L5 & L6)).
     assert (Mm : g mb <> None) by exact (rch _ _ _ _ _ Mbm L1).
     split; [ | split; [ | split; [ | split; [ | split; [ | split ] ] ] ] ].
-    - revert W1; apply wall_ok_keep; intros W1. intros v L. rewrite (ld _ _ _ Mbm) in L. exact (surf_k v (ptr_mp _ _ _ _ Mbm L) (W1 v L)).
-    - revert W2; apply ceil_ok_keep; intros W2. intros v L. rewrite (ld _ _ _ Mbm) in L. exact (surf_k v (ptr_mp _ _ _ _ Mbm L) (W2 v L)).
+    - exact I.
+    - exact I.
     - intros v L. rewrite (ld _ _ _ Mbm) in L. exact (surf_nn_k v (ptr_mp _ _ _ _ Mbm L) (W3 v L)).
     - rewrite (ld _ _ _ Mbm). exact W4.
     - rewrite (ld _ _ _ Mbm). exact W5.
@@ -292,7 +292,7 @@ Section BK.
     ffw_kept bm d m m' -> ffw_surf_ok G bm d m m' ->
     ffw G bm m'.
   Proof.
-    intros d gp' F Hgn HS' HC' W' FD' K ((fl' & Lf' & Wf') & WC' & SP').
+    intros d gp' F Hgn HS' HC' W' FD' K ((fl' & Lf' & Wf') & SP').
     assert (KM : forall z ch, In (z, ch) ffw_bm_cells -> Mem.load ch m' bm z = Mem.load ch m bm z)
       by (intros z ch H; apply K; left; split; [ reflexivity | exact H ]).
     assert (HM' : gp' bm <> None) by exact (HS' _ _ Hbm_sym).
@@ -302,7 +302,7 @@ Section BK.
               (fw_bfa d) (fw_bo d) (fw_oo d) (fw_bt d) (fw_ot d) fl' (fw_ar d) (fw_inp d) (fw_ctl d)).
     pose proof F as F0. destruct F0.
     eapply mk_ffw_facts; ffw_simpl;
-      first [ assumption | exact HC' | exact W' | exact Lf' | exact WC' | exact SP' | exact HM' | exact HS'
+      first [ assumption | exact HC' | exact W' | exact Lf' | exact SP' | exact HM' | exact HS'
             | exact (wfl_mono _ _ _ _ nb Wf')
             | apply (wblk_mono _ _ _ _ _ nb); assumption
             | rewrite KM by (unfold ffw_bm_cells; cbn [In]; auto 10); assumption

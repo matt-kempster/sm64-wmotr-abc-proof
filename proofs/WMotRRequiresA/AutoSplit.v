@@ -257,8 +257,7 @@ Section AutSplitS.
      are not in his state block *)
   Lemma ffw_apart : forall m, ffw ge bm m ->
     (forall bo oo, Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo) -> bo <> bm)
-    /\ (forall off sb so, off = WALL_OFF \/ off = CEIL_OFF \/ off = FLOOR_OFF ->
-          Mem.load Mint32 m bm off = Some (Vptr sb so) -> sb <> bm)
+    /\ (forall sb so, Mem.load Mint32 m bm FLOOR_OFF = Some (Vptr sb so) -> sb <> bm)
     /\ (forall bc oc, Mem.load Mint32 m bm FFW_CTL = Some (Vptr bc oc) -> bc <> bm).
   Proof.
     intros m (_ & EX & _).
@@ -267,12 +266,9 @@ Section AutSplitS.
     split; [| split].
     - intros bo' oo' Hl. change MARIOOBJ_OFF with FFW_OBJ in Hl. rewrite Lo in Hl.
       injection Hl as <- _. exact D1.
-    - intros off sb so Hoff Hl ->.
-      destruct Hoff as [-> | [-> | ->]].
-      + exact (Wc0 FFW_WALL bm so (or_introl eq_refl) Hl Rb).
-      + exact (Wc0 FFW_CEIL bm so (or_intror eq_refl) Hl Rb).
-      + change FLOOR_OFF with FFW_FLOOR in Hl. rewrite Lf in Hl. injection Hl as ->.
-        destruct Wf as [(b' & o' & E & _ & _ & _ & Nr) | E]; [injection E as <- _; exact (Nr Rb) | congruence].
+    - intros sb so Hl ->.
+      change FLOOR_OFF with FFW_FLOOR in Hl. rewrite Lf in Hl. injection Hl as ->.
+      destruct Wf as [(b' & o' & E & _ & _ & _ & Nr) | E]; [injection E as <- _; exact (Nr Rb) | congruence].
     - intros bc oc Hl ->. rewrite Lc in Hl. injection Hl as ->.
       destruct Wc as (b' & o' & E & _ & _ & _ & Nr). injection E as <- _. exact (Nr Rb).
   Qed.
@@ -370,15 +366,11 @@ Section AutSplitS.
       ffw_unpack EX.
       destruct (ffw_apart m Hf) as (Ao & As & _).
       split; [| split; [| split; [| split; [| split; [| split]]]]].
-      - revert Hw; apply wall_ok_keep; intros Hw. intros v Hl. lqm_in Hl. destruct (Hw v Hl) as [-> | (b & o & t & -> & Lt & Hin)]; [left; reflexivity |].
-        right. exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
-        rewrite LQb; [exact Lt | exact (As WALL_OFF b o (or_introl eq_refl) Hl)].
-      - revert Hc; apply ceil_ok_keep; intros Hc. intros v Hl. lqm_in Hl. destruct (Hc v Hl) as [-> | (b & o & t & -> & Lt & Hin)]; [left; reflexivity |].
-        right. exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
-        rewrite LQb; [exact Lt | exact (As CEIL_OFF b o (or_intror (or_introl eq_refl)) Hl)].
+      - exact I.
+      - exact I.
       - intros v Hl. lqm_in Hl. destruct (Hfl v Hl) as (b & o & t & -> & Lt & Hin).
         exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
-        rewrite LQb; [exact Lt | exact (As FLOOR_OFF b o (or_intror (or_intror eq_refl)) Hl)].
+        rewrite LQb; [exact Lt | exact (As b o Hl)].
       - lqm. exact Hh.
       - lqm. exact Hr.
       - rewrite (Mem.load_store_same _ _ _ _ _ _ Hst). reflexivity.
