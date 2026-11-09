@@ -1,0 +1,15 @@
+GOAL 2 objects: SCALE ghost keep PROVED; FOUND set42_keep false (pole first frame)
+
+- ObjFldLo.v (new, spine via ObjStep): a non-pointer store into a non-Mario
+  slot's header bytes [d, n), 16 <= d <= n <= 96, keeps ClearKeep.Pc.
+- ObjStep.scale_g: SCALE's three f32 stores keep the ghost; not_mario_slot
+  (ow_mvm + Qfam_mario + vm scl_ops_ok). ghost_keeps_r asks 15 (was 16).
+- FOUND FALSE (open): set42_keep, so Hobj_cou_nt / Hobj_cou_t and the two
+  capstones that take them are vacuous. bhvPoleGrabbing sets oInteractType =
+  POLE (word 2) before bhv_pole_init sets hitboxHeight (word 5); in between
+  it is 100 then 1500, no WMotR pole height, so obj_w's kind_ok fails
+  mid-update (ObjRows.set42_pole_found, vm). Repair needs an INV_k / obj_w
+  change: left for the coordinator. TRUST 0.7 + skill updated.
+
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01U9NrwrhFfFDaZYN5CTHuL6

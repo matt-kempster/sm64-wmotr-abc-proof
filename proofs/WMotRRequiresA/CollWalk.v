@@ -662,7 +662,7 @@ Section CW.
     intros m m2 k off ch v (HP & Hr) Hk Hc Hv St. split.
     - eapply CollKeep.coll_store_pc; eassumption.
     - rewrite <- Hr. apply (PollKeep.rings_eq m m2 pool la).
-      + intros ch' k' off' H1 H2 H3 H4. eapply Mem.load_store_other; [ exact St | right ].
+      + intros ch' k' off' H1 H2 H3 H4 _. eapply Mem.load_store_other; [ exact St | right ].
         unfold OW.OSZ in *.
         destruct (CollKeep.dj_ccl off ch k k' off' (size_chunk ch') Hc ltac:(lia) ltac:(lia)
                     ltac:(destruct ch'; cbn; lia) (or_intror H4)) as [D | D]; [ left; exact D | right; exact D ].

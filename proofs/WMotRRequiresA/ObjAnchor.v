@@ -328,7 +328,7 @@ Section AN.
     assert (HrL : forall la2 rs2, Genv.find_symbol G OLP._gObjectListArray = Some la2 ->
               OW.rings g pool la2 = Some rs2 -> In k (concat rs2)).
     { intros la2 rs2 Sl2 Hr2. exact (HXr _ HX la2 rs2 Sl2 Hr2). }
-    Timeout 60 pose proof (CannonKeep.can_drop_pc lp bm Hbm_sym bc oc0 SafeB Hbc_sym pool k Hpool Hk
+    pose proof (CannonKeep.can_drop_pc lp bm Hbm_sym bc oc0 SafeB Hbc_sym pool k Hpool Hk
                   st0 ObjInv.sL y g (pk g bC 28) g1 ObjInv.sL_tab Vm0 Ec VmL EsL HviL Hlid Py (pc_of_P g HP) HrL
                   (fun ch' b z0 H => pk_load g bC 28 ch' b z0 H) (pk_perm g bC 28) (pk_nb g bC 28) (pk_nv g bC 28 ScrC)
                   HSafeB_scr HCt Sg) as Pc1.
@@ -386,7 +386,7 @@ Section AN.
         unfold O_POSX, O_POSY, O_POSZ, OW.O_ACTION, OW.O_PREVACT, OW.O_TIMER, RAW_OFF, OW.OSZ; cbn [size_chunk]; lia.
     - apply (OW.can_traj_eq G pool g ga k'); [ | exact Lc | exact T ].
       intros ch' off Hoff Hch. assert (Hs : size_chunk ch' = 4) by (destruct Hch as [-> | ->]; reflexivity).
-      apply Lo; [ | | left; exact Nk ]; unfold OW.traj_offs in Hoff; cbn [In] in Hoff; rewrite Hs;
+      apply Lo; [ | | left; exact Nk ]; unfold OW.traj_offs in Hoff; cbn [In] in Hoff; try rewrite Hs;
         destruct Hoff as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]];
         unfold O_POSX, O_POSY, O_POSZ, OW.O_ACTION, OW.O_PREVACT, OW.O_TIMER, OW.O_HOMEX, OW.O_HOMEY, OW.O_HOMEZ,
           RAW_OFF, OW.OSZ; lia.
@@ -496,7 +496,7 @@ Section AN.
       apply (proj1 (ObjFamily.memi_in _ _)). vm_compute. reflexivity. }
     (* the word-8 pin at the trajectory's start *)
     assert (HCt : OW.can_traj G pool gc k -> OW.can_traj G pool g8 k).
-    { intros _ b o' Hb L'. unfold OW.ld32 in L'. rewrite CM.load_eq, Lc8 in L'. injection L' as <- <-.
+    { intros _ b o' Hb8 L'. unfold OW.ld32 in L'. rewrite CM.load_eq in L'. unfold g8 in L'. rewrite Lc8 in L'. injection L' as <- <-.
       rewrite Ptrofs.unsigned_repr by (change Ptrofs.max_unsigned with 4294967295; lia).
       change (OW.can_cl (OW.ccls 32) g8 pool (k * OW.OSZ)) with (OW.can8 g8 pool (k * OW.OSZ)).
       exists x, y, z, 0, 0, Int.zero, Int.zero, Int.zero.
@@ -533,12 +533,11 @@ Section AN.
       - intros la2 Sl2. assert (Npl : la2 <> pool) by exact (SNE _ _ _ _ Sl2 Hpool ltac:(vm_compute; discriminate)).
         apply (CannonKeep.rings_eq' g g8 pool la2).
         + intros j off Hoff. unfold OW.ld32. rewrite !CM.load_eq.
-          apply L8; destruct Hoff as [-> | ->]; unfold OW.O_PREV, OW.O_NEXT, OW.O_CMD, OW.OSZ; cbn [size_chunk];
-            solve [ left; nia | right; nia ].
+          apply L8; destruct Hoff as [-> | ->]; unfold OW.O_PREV, OW.O_NEXT, OW.O_CMD, OW.OSZ; cbn [size_chunk]; lia.
         + intros z0. unfold OW.ld32. rewrite !CM.load_eq. exact (L8o Mint32 la2 z0 Npl).
       - intros j Nj. unfold OW.ld32. rewrite !CM.load_eq. unfold OW.O_CMD, OW.OSZ.
         assert (Nj' : j < k \/ k < j) by lia.
-        apply L8; cbn [size_chunk]; unfold OW.O_CMD; destruct Nj' as [Lj | Lj]; solve [ left; nia | right; nia ].
+        apply L8; cbn [size_chunk]; unfold OW.O_CMD, OW.OSZ; lia.
       - unfold OW.tsa. destruct (Genv.find_symbol G surface_load._gTimeStopState) as [bt |] eqn:Et; [ | reflexivity ].
         rewrite (L8o _ _ _ (SNE _ _ _ _ Et Hpool ltac:(vm_compute; discriminate))). reflexivity. }
     exists g8. split; [ exact (conj Pg8 (conj Vo8 X8)) | ].

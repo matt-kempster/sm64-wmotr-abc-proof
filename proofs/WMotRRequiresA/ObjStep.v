@@ -905,7 +905,7 @@ Section STEP.
       apply Nc. rewrite Eb in Hb0. eapply Genv.genv_vars_inj; [ exact Hb0 | exact Hb ].
     - apply (OW.can_traj_eq G pool g ga k'); [ | exact Lc | exact T ].
       intros ch' off Hoff Hch. assert (Hs : size_chunk ch' = 4) by (destruct Hch as [-> | ->]; reflexivity).
-      apply Lo; [ | | left; exact Nk ]; unfold OW.traj_offs in Hoff; cbn [In] in Hoff; rewrite Hs;
+      apply Lo; [ | | left; exact Nk ]; unfold OW.traj_offs in Hoff; cbn [In] in Hoff; try rewrite Hs;
         destruct Hoff as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]];
         unfold O_POSX, O_POSY, O_POSZ, OW.O_ACTION, OW.O_PREVACT, OW.O_TIMER, OW.O_HOMEX, OW.O_HOMEY, OW.O_HOMEZ,
           RAW_OFF, OW.OSZ; lia.

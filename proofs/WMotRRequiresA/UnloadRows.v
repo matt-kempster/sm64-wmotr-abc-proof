@@ -152,7 +152,7 @@ Section UR.
       bt <> pool -> bt <> la -> OW.rings m2 pool la = OW.rings m pool la.
     Proof.
       intros m m2 bt LO Np Nl. apply (PollKeep.rings_eq m m2 pool la).
-      - apply PollKeep.SKp_c, PollKeep.SKp_full. intros ch z. apply LO. exact (not_eq_sym Np).
+      - apply PollKeep.SKc_h, PollKeep.SKp_c, PollKeep.SKp_full. intros ch z. apply LO. exact (not_eq_sym Np).
       - intros z. unfold OW.ld32. rewrite !OW.CM.load_eq. apply LO. exact (not_eq_sym Nl).
     Qed.
     Lemma inactive_off : forall m m2 bt k, (forall ch b z, b <> bt -> Mem.load ch m2 b z = Mem.load ch m b z) ->
