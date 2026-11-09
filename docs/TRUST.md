@@ -1010,9 +1010,16 @@ without pressing A".*
 
 ### Row 0.7 in detail
 
-- **OPEN FOUND (2026-11-09): `Hobj_cou_nt` / `Hobj_cou_t` are FALSE** (a pole's
-  first update breaks INV_k's pole pin; see "SCALE proved" below). Both
-  capstones that take them are vacuous until INV_k is repaired.
+- **FOUND (2026-11-09): `Hobj_cou_nt` / `Hobj_cou_t` were FALSE; pole half
+  REPAIRED, cannon half OPEN.** Both capstones that take them have been
+  VACUOUS since ef77325a (2026-11-08, which wired `Hobj_cou_nt` into the
+  capstones), and they STAY vacuous after the pole repair because of
+  the open cannon FOUND. (1) Pole, REPAIRED: a pole's first update breaks
+  `kind_ok` between SET_INT(oInteractType, POLE) and bhv_pole_init; INV_k is
+  now state-indexed with a pole window (see "FOUND FALSE ... set42_keep"
+  below). (2) Cannon, OPEN: `addf_keep` (asked at every ghost) is false at
+  bhvCannon's word 6, ADD_FLOAT(oPosY, -340), over a ghost already at the
+  lid's y - 340 (see "STILL OPEN" below).
 - **Objects (2026-10-26): one real call.** `HeightFrame.play_frame_step` is now poll ; PRE ;
   `seg_objects_spec` ; POST ; render walk, and `seg_objects_spec` is `ObjPhase.objects_call`:
   the generated `area_update_objects` as one `eval_funcall`. The old `seg_platform` / action /
@@ -1595,10 +1602,54 @@ without pressing A".*
   a pole's first update its hitboxHeight is 100 (allocate_object), then 1500;
   no WMotR pole is either. So after word 2 obj_w's `kind_ok` (POLE: height =
   top - base) fails at the slot being updated. INV_k's ghost (Pobjl after
-  every command) is not an invariant of the real dispatch loop. NOT REPAIRED
-  yet: the repair changes INV_k / obj_w (e.g. script-tied pole pins, or
-  kind_ok of slot k relaxed inside its own update and re-made at exit), so
-  it waits for the coordinator.
+  every command) was not an invariant of the real dispatch loop.
+  **REPAIRED (2026-11-09), a restatement with no new assumption:**
+  - `ObjInv.INVk` is now STATE-INDEXED (`INV st m`: "the VM is about to run
+    st"; `BhvStep` takes `INV : vst -> mem -> Prop`, keeps are same-index,
+    `Hinv_succ` moves the index along a VM edge, `cou_real` returns the
+    exit state with `ext st'`: it follows a BREAK-type command).
+  - The POLE WINDOW `ObjInv.Wp` = bhvPoleGrabbing's states 2, 3, 5. Only
+    there, and only at slot k, the ghost may differ from a full Pobjl ghost
+    at slot k's oInteractType and hitbox radius / height cells (`PPk`; the
+    type stays or becomes INTERACT_POLE). Every other slot and every other
+    cell keeps the frame-start memory's obj_w.
+  - Inside the window, SET_INT and SET_HITBOX are PROVED (`ObjRows.t_set`,
+    `t_hb`, through `ObjInv.win_keep`). No other command runs there
+    (`ObjInv.W_ops`, vm). `set42_keep` and SET_HITBOX's keep are asked only
+    outside the window (`ObjRows.GPn`).
+  - The window is left only by word 5's CALL_NATIVE bhv_pole_init. That is
+    the existing `native_res` row (special scripts), which now asks the full
+    ghost back: hitboxHeight = 10 * bparam2 = top - base by obj_w's new pole
+    pins.
+  - The loop's exit is never in the window (`ObjInv.ext_nW`, vm), so
+    `ObjExit.inv_exit` gets a full ghost (`ObjInv.inv_out`).
+  - Words 2-5 run once, before BEGIN_LOOP at word 8. Every later update runs
+    words 9-11 (bhv_pole_base_loop) outside the window.
+  - **obj_w PINS (`ObjWorld.pin_ok`, field `ow_pin`):**
+    - T: an INTERACT_POLE slot runs bhvPoleGrabbing, and an
+      INTERACT_CANNON_BASE slot runs bhvCannon.
+    - C: a bhvCannon slot not yet CANNON_BASE sits at a level-data cannon
+      entry.
+    - P: a bhvPoleGrabbing slot sits at a level-data pole entry with
+      hitboxDownOffset 0 and oBehParams byte 2 * 10 = top - base.
+    - The pins are vm-checked (`ow_chk`) on the boot witness and after the
+      real first objects phase (StartTerrain's m11 / m3 / m4). The
+      intermediate window states of that first update are NOT separately
+      vm-checked.
+  **STILL OPEN (FOUND 2026-11-09): bhvCannon's `addf_keep`.** Word 6 is
+  ADD_FLOAT(oPosY, -340). `addf_keep` is asked at every ghost. Take a ghost
+  that is a legal Pobjl memory, with slot k already CANNON_BASE at the
+  lid's y - 340 and its VM at the update's start. Re-running word 6 there
+  leaves `cannon_obj_ok`. So `Hobj_cou_*` is still false, and both
+  capstones are still vacuous. The real run is fine: posY is the lid's y
+  before word 6. But the ghost has lost that history.
+  - Pins alone cannot fix it: the ghost's VM cells are frozen at st0, so a
+    pin keyed on the VM index conflicts with word 5's own store.
+  - Options:
+    - (a) A cannon window from word 5 to the exit that relaxes slot k's
+      posY and type, with ObjExit re-proving Pobjl under slot k's posY
+      change. This is large, but needs no new assumption.
+    - (b) A new premise. This waits for the coordinator.
   **Native VM-cell scan (2026-11-08, `NativeVmCensus.native_vm_value`, vm, spine-root),
   behind `native_vals` inside the keeps rows.** INV_k's ghost clause `nvB scr` needs the
   cells where the real memory and the ghost differ (slot k's VM cells and gCurBhvCommand)

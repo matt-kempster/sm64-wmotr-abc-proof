@@ -1057,9 +1057,17 @@ all in `Unwired/`, and the theorem moved nowhere. See
        first update runs SET_INT(oInteractType, POLE) two commands before
        bhv_pole_init sets hitboxHeight (100, then SET_HITBOX's 1500; no WMotR pole
        is either; ObjRows.set42_pole_found), so kind_ok fails mid-update and the
-       ghost Pobjl is not a loop invariant.  Repair = INV_k / obj_w change
-       (script-tied pole pins from level data, or kind_ok at slot k relaxed during
-       its update and re-made at exit).  hb_keep has the same pole problem.
+       ghost Pobjl is not a loop invariant.  REPAIRED (pole) 2026-11-09:
+       INV_k is state-indexed (BhvStep INV : vst -> mem -> Prop, Hinv_succ along
+       VM edges, cou_real returns ext st'); pole window ObjInv.Wp = POLES@2,3,5
+       relaxes slot k's type / hitbox cells (PPk); set / hb window cases PROVED
+       (ObjRows.t_set / t_hb), set42_keep and hb_keep asked outside it (GPn);
+       native_res at @5 re-makes the full ghost (obj_w pins OW.pin_ok T/C/P);
+       exit never in the window (ext_nW).  STILL OPEN (FOUND): addf_keep at
+       bhvCannon@6 (ADD_FLOAT posY -340) is false at a phantom ghost already at
+       lid - 340 -> capstones STILL VACUOUS (since ef77325a).  Needs a cannon
+       window to the exit (ObjExit re-proves Pobjl under slot k's posY change)
+       or a new premise -- coordinator call.
        Deact next needs an SKc variant with a hole at slot k's [116,118) (only
        free_off -- value 0 -- and mact -- not Mario -- read it).
        TRAP: never `unfold FieldWin.ucl` in a hypothesis with variable offsets (2^15

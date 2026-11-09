@@ -687,6 +687,9 @@ Proof. vm_compute. reflexivity. Qed.
 Definition BOXS : ident := behavior_data._bhvExclamationBox.
 Definition LIDS : ident := behavior_data._bhvCannonClosed.
 Definition COINF : ident := behavior_data._bhvCoinFormation.
+(* the pole and the cannon base (2026-11-09, pin_ok) *)
+Definition POLES : ident := behavior_data._bhvPoleGrabbing.
+Definition CANS : ident := behavior_data._bhvCannon.
 Definition BOXM : ident := wmotr_level_data._exclamation_box_outline_seg8_collision_08025F78.
 Definition LIDM : ident := wmotr_level_data._cannon_lid_seg8_collision_08004950.
 Definition D_BOX : Z := 12.
@@ -704,6 +707,68 @@ Definition sym_is (ge : genv) (id : ident) (b : block) : bool :=
 (* slot k runs the script id *)
 Definition runs (ge : genv) (pool : block) (m : mem) (k : Z) (id : ident) : bool :=
   match ld32 m pool (k * OSZ + O_CMD) with Some (Vptr b _) => sym_is ge id b | _ => false end.
+
+(* PINS (2026-11-09, the INV_k repair of GOAL 2's objects step).  A slot's
+   interact type ties it to its script, and the slots whose first update
+   sets a pinned type carry, from their spawn, the facts that update needs:
+   T  an INTERACT_POLE slot runs bhvPoleGrabbing, an INTERACT_CANNON_BASE
+      slot runs bhvCannon (in the game the only writers of those two values
+      are those scripts' SET_INT(oInteractType) words);
+   C  a bhvCannon slot whose type is not yet CANNON_BASE sits at a level-data
+      cannon entry (spawned at its lid: WMotRWorld.cannon_xz_ok), so word 5's
+      SET_INT(oInteractType, CANNON_BASE) lands in kind_ok;
+   P  a bhvPoleGrabbing slot sits at a level-data pole entry with
+      hitboxDownOffset 0 and oBehParams whose second byte is a tenth of the
+      pole's height (the level script's OBJECT words), so bhv_pole_init's
+      hitboxHeight = 10 * bparam2 lands in kind_ok.
+   Checked on the boot witness and after its first objects phase (ow_chk). *)
+Definition O_BPARAMS : Z := RAW_OFF + 4 * 64.   (* oBehParams, 0x188 *)
+
+Definition pole_pin (m : mem) (pool : block) (o : Z) : Prop :=
+  exists x z base top p, In (x, z, base, top) wmotr_pole_xz_list
+    /\ Mem.load Mfloat32 m pool (o + O_POSX) = Some (f32z x)
+    /\ Mem.load Mfloat32 m pool (o + O_POSY) = Some (f32z base)
+    /\ Mem.load Mfloat32 m pool (o + O_POSZ) = Some (f32z z)
+    /\ Mem.load Mfloat32 m pool (o + HITBOX_DOWN_OFF) = Some (Vsingle Float32.zero)
+    /\ Mem.load Mint32 m pool (o + O_BPARAMS) = Some (Vint p)
+    /\ Z.land (Z.shiftr (Int.unsigned p) 16) 255 * 10 = top - base.
+
+Definition pin_at (ge : genv) (pool : block) (m : mem) (k : Z) : Prop :=
+  (forall t, Mem.load Mint32 m pool (k * OSZ + O_INTERACT_TYPE) = Some (Vint t) ->
+     (Int.unsigned t = INTERACT_POLE -> runs ge pool m k POLES = true)
+     /\ (Int.unsigned t = INTERACT_CANNON_BASE -> runs ge pool m k CANS = true)
+     /\ (runs ge pool m k CANS = true -> Int.unsigned t <> INTERACT_CANNON_BASE -> cannon_xz_ok m pool (k * OSZ)))
+  /\ (runs ge pool m k POLES = true -> pole_pin m pool (k * OSZ)).
+
+Definition pin_ok (ge : genv) (pool : block) (m : mem) (rs : list (list Z)) : Prop :=
+  forall k, In k (concat rs) -> pin_at ge pool m k.
+
+(* the cells pin_at reads besides the command pointer *)
+Definition pin_offs : list Z :=
+  [O_INTERACT_TYPE; O_POSX; O_POSY; O_POSZ; HITBOX_DOWN_OFF; O_BPARAMS].
+
+Lemma pin_at_eq : forall ge pool m m' k,
+  (forall id, In id [POLES; CANS] -> runs ge pool m' k id = runs ge pool m k id) ->
+  (forall ch off, In off pin_offs -> ch = Mint32 \/ ch = Mfloat32 ->
+     Mem.load ch m' pool (k * OSZ + off) = Mem.load ch m pool (k * OSZ + off)) ->
+  pin_at ge pool m k -> pin_at ge pool m' k.
+Proof.
+  intros ge pool m m' k R L (T & P).
+  assert (Lt0 := L Mint32 O_INTERACT_TYPE ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
+  assert (Lx0 := L Mfloat32 O_POSX ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
+  assert (Ly0 := L Mfloat32 O_POSY ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
+  assert (Lz0 := L Mfloat32 O_POSZ ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
+  assert (Ld0 := L Mfloat32 HITBOX_DOWN_OFF ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
+  assert (Lp0 := L Mint32 O_BPARAMS ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
+  split.
+  - intros t Lt. rewrite Lt0 in Lt. destruct (T t Lt) as (T1 & T2 & T3).
+    rewrite (R POLES (or_introl eq_refl)), (R CANS (or_intror (or_introl eq_refl))). split; [ exact T1 | split; [ exact T2 | ] ].
+    intros Hc Ht. destruct (T3 Hc Ht) as (x & z & y & Hin & Lx & Ly & Lz).
+    exists x, z, y. rewrite Lx0, Ly0, Lz0. exact (conj Hin (conj Lx (conj Ly Lz))).
+  - intros Hp. rewrite (R POLES (or_introl eq_refl)) in Hp. destruct (P Hp) as (x & z & base & top & p & Hin & Lx & Ly & Lz & Ld & Lp & Ep).
+    exists x, z, base, top, p. rewrite Lx0, Ly0, Lz0, Ld0, Lp0.
+    exact (conj Hin (conj Lx (conj Ly (conj Lz (conj Ld (conj Lp Ep)))))).
+Qed.
 
 Definition sdyn (ge : genv) (pool : block) (m : mem) (k : Z) : Z :=
   if runs ge pool m k BOXS then D_BOX else if runs ge pool m k LIDS then D_LID else 0.
@@ -1319,7 +1384,9 @@ Record ow_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : mem)
   ow_ncoll : ncoll_ok pool m rs;
   ow_mcoll : mcoll_ok pool gmo m;
   (* 2026-11-07 *)
-  ow_tie : tie_ok ge pool bm m rs
+  ow_tie : tie_ok ge pool bm m rs;
+  (* 2026-11-09 *)
+  ow_pin : pin_ok ge pool m rs
 }.
 
 Definition obj_w (ge : genv) (bm : block) (m : mem) : Prop :=
@@ -2558,6 +2625,61 @@ Section ChkTie.
   Qed.
 End ChkTie.
 
+(* PINS' checker (2026-11-09) *)
+Section ChkPin.
+  Variable ge : genv.
+  Variable pool : block.
+  Variable m : mem.
+
+  Definition pole_pin_b (o : Z) : bool :=
+    existsb (fun '(x, z, base, top) =>
+               f32_at_b pool m (o + O_POSX) (f32z x) && f32_at_b pool m (o + O_POSY) (f32z base)
+               && f32_at_b pool m (o + O_POSZ) (f32z z)
+               && f32_at_b pool m (o + HITBOX_DOWN_OFF) (Vsingle Float32.zero)
+               && match ld32 m pool (o + O_BPARAMS) with
+                  | Some (Vint p) => Z.eqb (Z.land (Z.shiftr (Int.unsigned p) 16) 255 * 10) (top - base)
+                  | _ => false
+                  end) wmotr_pole_xz_list.
+
+  Lemma pole_pin_b_sound : forall o, pole_pin_b o = true -> pole_pin m pool o.
+  Proof.
+    intros o H. apply existsb_exists in H as ([[[x z] base] top] & Hin & H).
+    apply andb_prop in H as [H H5]. apply andb_prop in H as [H H4].
+    apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
+    unfold ld32 in H5. rewrite CM.load_eq in H5.
+    destruct (Mem.load Mint32 m pool (o + O_BPARAMS)) as [[| p | | | |]|] eqn:Lp; try discriminate H5.
+    exists x, z, base, top, p. split; [ exact Hin | ].
+    split; [ exact (f32_at_b_sound _ _ _ _ H1) | split; [ exact (f32_at_b_sound _ _ _ _ H2) | ] ].
+    split; [ exact (f32_at_b_sound _ _ _ _ H3) | split; [ exact (f32_at_b_sound _ _ _ _ H4) | ] ].
+    split; [ exact Lp | apply Z.eqb_eq; exact H5 ].
+  Qed.
+
+  Definition pin_b (k : Z) : bool :=
+    match ld32 m pool (k * OSZ + O_INTERACT_TYPE) with
+    | Some (Vint t) =>
+        (negb (Z.eqb (Int.unsigned t) INTERACT_POLE) || runs ge pool m k POLES)
+        && (negb (Z.eqb (Int.unsigned t) INTERACT_CANNON_BASE) || runs ge pool m k CANS)
+        && (negb (runs ge pool m k CANS) || Z.eqb (Int.unsigned t) INTERACT_CANNON_BASE
+            || cannon_xz_b pool m (k * OSZ))
+    | Some _ => false
+    | None => true
+    end
+    && (negb (runs ge pool m k POLES) || pole_pin_b (k * OSZ)).
+
+  Lemma pin_b_sound : forall k, pin_b k = true -> pin_at ge pool m k.
+  Proof.
+    intros k H. unfold pin_b in H. apply andb_prop in H as [H Hp]. split.
+    - intros t Lt. unfold ld32 in H. rewrite CM.load_eq, Lt in H.
+      apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
+      split; [ | split ].
+      + intros E. rewrite E, Z.eqb_refl in H1. cbn [negb orb] in H1. exact H1.
+      + intros E. rewrite E, Z.eqb_refl in H2. cbn [negb orb] in H2. exact H2.
+      + intros Hc Ht. rewrite Hc in H3. cbn [negb orb] in H3.
+        apply Z.eqb_neq in Ht. rewrite Ht in H3. cbn [orb] in H3. exact (cannon_xz_b_sound _ _ _ H3).
+    - intros Hr. rewrite Hr in Hp. cbn [negb orb] in Hp. exact (pole_pin_b_sound _ Hp).
+  Qed.
+End ChkPin.
+
 Definition dflags_b (ge : genv) (m : mem) : bool :=
   match Genv.find_symbol ge debug._gDebugInfoFlags with
   | Some b => match CM.load Mint32 m b 0 with
@@ -2602,6 +2724,7 @@ Definition ow_chk_core (ge : genv) (pool la fl gol gmo sdp gdi bm : block) (m : 
       && mvm_b ge pool m BhvVM.vm_tab k && anim_b ge m && cls_b ge pool m BhvVM.vm_tab sp_scripts rs
       && dp_b ge m && ncoll_b pool m rs && mcoll_b pool m k
       && tie_b ge pool bm m BhvVM.vm_tab sp_scripts rs
+      && forallb (pin_b ge pool m) (concat rs)
       | None => false
       end
   | _, _, _ => false
@@ -2632,6 +2755,7 @@ Proof.
   destruct (ld32 m gmo 0) as [[| | | | | pb po]|] eqn:Hg;
     [ discriminate H .. | | discriminate H ].
   destruct (slot_of (Ptrofs.unsigned po)) as [k|] eqn:Hk; [ | discriminate H ].
+  apply andb_prop in H as [H Hpin].
   apply andb_prop in H as [H Htie].
   apply andb_prop in H as [H Hmco]. apply andb_prop in H as [H Hnco].
   apply andb_prop in H as [H Hdp].
@@ -2705,6 +2829,7 @@ Proof.
   - apply (mcoll_b_sound _ _ _ k (proj1 (slot_of_spec _ _ Hk))); [ | exact Hmco ].
     apply veqb_eq in Hpo. rewrite <- Hpo. unfold ld32 in Hg. rewrite CM.load_eq in Hg. exact Hg.
   - exact (tie_b_sound _ _ _ _ _ Htie).
+  - intros j Hj. exact (pin_b_sound _ _ _ j (proj1 (forallb_forall _ _) Hpin j Hj)).
 Qed.
 
 Definition ow_chk (ge : genv) (bm : block) (m : mem) : bool :=

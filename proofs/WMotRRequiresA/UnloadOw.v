@@ -251,7 +251,7 @@ Proof.
   intros ge bm pool la fl gol gmo sdp gdi m m' rs fs i l1 k l2 S1 S2 S3 S4 S5 S6 S7 C Hi El Ina R' F' G' A'
     K KN Kbm KSc Ku.
   destruct C as [Cg Cr Cf Cp Cfo Cm Cs Ca Crd Cdb Cst Co Cd12 Cct Cvm Csp Cso Cco Cctr Cter Cscr Cmact Cresp Cgfx Cmsurf Cpar
-                 Cmvm Canim Ccls Cdp Cnco Cmco Ctie].
+                 Cmvm Canim Ccls Cdp Cnco Cmco Ctie Cpin].
   assert (Hpl : pool <> la).
   { intros E. subst la. refine (Genv.global_addresses_distinct ge _ S1 S2 eq_refl). vm_compute. discriminate. }
   pose proof (proj1 (ObjRing.rings_iff pool m la rs Hpl) Cr) as (Hlen & Henc).
@@ -466,4 +466,11 @@ Proof.
       destruct (T3 a La Ha) as (j & Rj & Lu & Sj). exists j. split; [ exact Rj | split ].
       * erewrite Kbm; [ exact Lu | right; cbn [In]; repeat (first [ left; reflexivity | right ]) ].
       * exact (sp_vm_all ge pool k m m' Ku j Sj).
+  - (* PINS (2026-11-09): the surviving slots' fields from 104 on *)
+    intros j Hj. pose proof (Nn j Hj) as Nj.
+    apply (OW.pin_at_eq ge pool m m' j (fun id _ => runs_u ge pool k m m' Ku j Nj id)); [ | exact (Cpin j (Inw j Hj)) ].
+    intros ch off Hoff Hch.
+    assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).
+    unfold OW.pin_offs, OW.O_BPARAMS in Hoff. cbn [In] in Hoff.
+    apply (SK pool k m m' Ku j Nj); try rewrite Hs; destruct Hoff as [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]; ks.
 Qed.

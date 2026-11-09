@@ -577,7 +577,7 @@ Section OWK.
     exists pool, la, fl, gol, gmo, sdp, gdi, rs, fs.
     refine (conj S1 (conj S2 (conj S3 (conj S4 (conj S5 (conj S6 (conj S7 _))))))).
     destruct C as [Cg Cr Cf Cp Cfo Cm Cs Ca Crd Cdb Cst Co Cd12 Cct Cvm Csp Cso Cco Cctr Cter Cscr Cmact Cresp Cgfx Cmsurf Cpar
-                   Cmvm Canim Ccls Cdp Cnco Cmco Ctie].
+                   Cmvm Canim Ccls Cdp Cnco Cmco Ctie Cpin].
     assert (KG : forall id, In id ow_ids -> existsb (Pos.eqb id) ow_xc = false ->
                forall b, Genv.find_symbol ge id = Some b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
       by (intros id Hin Hn b Hs; exact (K id b Hin Hn Hs)).
@@ -706,6 +706,12 @@ Section OWK.
         destruct (T3 a La Ha) as (k & Rk & Lu & Sk). exists k. split; [ exact Rk | split ].
         * erewrite Kbm; [ exact Lu | right; cbn [In]; repeat (first [ left; reflexivity | right ]) ].
         * exact (sp_vm_eq ge pool Kp k Sk).
+    - (* PINS (2026-11-09): the command pointer and slot fields past 96 *)
+      intros k Hk. apply (OW.pin_at_eq ge pool m m' k (fun id _ => runs_eq ge pool Kp k id)); [ | exact (Cpin k Hk) ].
+      intros ch off Hoff Hch.
+      assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).
+      unfold OW.pin_offs, OW.O_BPARAMS in Hoff. cbn [In] in Hoff.
+      apply Kp; rewrite Hs; destruct Hoff as [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]; sk_side.
   Qed.
 
   (* the same with the collision cells kept too (SKp) *)

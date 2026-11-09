@@ -608,7 +608,7 @@ Section STEP.
 
   Lemma bb_g : forall XF, xf_st XF -> forall pool hd k st0,
     Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
-    BhvStep.bb_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+    BhvStep.bb_keep pool (k * OW.OSZ) (fun _ : vst => ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
       (ObjFamily.Qfam (v_s st0)).
   Proof.
     intros XF Hxs pool hd k st0 Hp Hk H0 m st w old m1 HG _ _ _ _ _ S.
@@ -617,7 +617,7 @@ Section STEP.
 
   Lemma dr_g : forall XF, xf_st XF -> forall pool hd k st0,
     Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
-    BhvStep.dr_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+    BhvStep.dr_keep pool (k * OW.OSZ) (fun _ : vst => ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
       (ObjFamily.Qfam (v_s st0)).
   Proof.
     intros XF Hxs pool hd k st0 Hp Hk H0 m st w old m1 HG _ _ _ _ _ S.
@@ -713,7 +713,7 @@ Section STEP.
   (* ---- the window-field ghost keeps PROVED (ObjFld + the census) ---- *)
   Lemma setf_g : forall XF, xf_st XF -> forall pool hd k st0,
     Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
-    BhvStep.setf_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+    BhvStep.setf_keep pool (k * OW.OSZ) (fun _ : vst => ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
       (ObjFamily.Qfam (v_s st0)).
   Proof.
     intros XF Hxs pool hd k st0 Hp Hk H0 m st w m1 HG Hst _ Hw Ho S.
@@ -723,7 +723,7 @@ Section STEP.
 
   Lemma addi_g : forall XF, xf_st XF -> forall pool hd k st0,
     Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
-    BhvStep.addi_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+    BhvStep.addi_keep pool (k * OW.OSZ) (fun _ : vst => ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
       (ObjFamily.Qfam (v_s st0)).
   Proof.
     intros XF Hxs pool hd k st0 Hp Hk H0 m st w old m1 HG Hst _ Hw Ho _ S.
@@ -733,7 +733,7 @@ Section STEP.
 
   Lemma ori_g : forall XF, xf_st XF -> forall pool hd k st0,
     Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
-    BhvStep.ori_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+    BhvStep.ori_keep pool (k * OW.OSZ) (fun _ : vst => ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
       (ObjFamily.Qfam (v_s st0)).
   Proof.
     intros XF Hxs pool hd k st0 Hp Hk H0 m st w old m1 HG Hst _ Hw Ho _ S.
@@ -743,7 +743,7 @@ Section STEP.
 
   Lemma atex_g : forall XF, xf_st XF -> forall pool hd k st0,
     Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
-    BhvStep.atex_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+    BhvStep.atex_keep pool (k * OW.OSZ) (fun _ : vst => ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
       (ObjFamily.Qfam (v_s st0)).
   Proof.
     intros XF Hxs pool hd k st0 Hp Hk H0 m st w old m1 HG Hst _ Hw Ho _ S.
@@ -756,16 +756,17 @@ Section STEP.
   Lemma set_g : forall XF, xf_st XF -> forall pool hd k st0,
     Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
     ObjRows.set42_keep lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k) ->
-    BhvStep.set_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+    BhvStep.set_keep pool (k * OW.OSZ) (ObjRows.GPn lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
       (ObjFamily.Qfam (v_s st0)).
   Proof.
-    intros XF Hxs pool hd k st0 Hp Hk H0 K42 m st w m1 HG Hst HQ Hw Ho S.
+    intros XF Hxs pool hd k st0 Hp Hk H0 K42 m st w m1 (Hnw & HG) Hst HQ Hw Ho S.
+    split; [ exact Hnw | ].
     destruct (set_op st w Hst Hw Ho) as [E5 | [E42 | Hf]].
     - rewrite E5 in S.
       refine (fld_g XF Hxs pool hd k k st0 m m1 _ _ _ 156 160 Hp Hk Hk (PK.vm_depth st0 H0) _ _ _ HG S);
         [ | cbn [size_chunk]; lia | exact I ].
       split; [ lia | split; [ lia | ] ]. intros off e A _ _. exact A.
-    - rewrite E42 in S. exact (K42 m st w m1 HG Hst HQ Hw Ho E42 S).
+    - rewrite E42 in S. exact (K42 m st w m1 Hnw HG Hst HQ Hw Ho E42 S).
     - refine (fld_win_g XF Hxs pool hd k st0 m m1 _ (byte2 w) _ Hp Hk H0 Hf _ _ HG S); wf_side.
   Qed.
 
@@ -774,7 +775,7 @@ Section STEP.
      non-NULL parentObj a slot_v *)
   Lemma pbc_g : forall XF, xf_st XF -> forall pool hd k st0,
     Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
-    BhvStep.pbc_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+    BhvStep.pbc_keep pool (k * OW.OSZ) (fun _ : vst => ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
       (ObjFamily.Qfam (v_s st0)).
   Proof.
     intros XF Hxs pool hd k st0 Hp Hk H0 m st w po a old m1 HG Hst _ Hw Ho Lp Hpo _ _ _ S.
@@ -798,7 +799,7 @@ Section STEP.
 
   Lemma home_g : forall XF, xf_st XF -> forall pool hd k st0,
     Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
-    BhvStep.home_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+    BhvStep.home_keep pool (k * OW.OSZ) (fun _ : vst => ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
       (ObjFamily.Qfam (v_s st0)).
   Proof.
     intros XF Hxs pool hd k st0 Hp Hk H0 m st w f1 f2 f3 m1 m2 m3 HG _ _ _ _ _ S1 _ S2 _ S3.
@@ -809,7 +810,7 @@ Section STEP.
 
   Lemma phys_g : forall XF, xf_st XF -> forall pool hd k st0,
     Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
-    BhvStep.phys_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+    BhvStep.phys_keep pool (k * OW.OSZ) (fun _ : vst => ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
       (ObjFamily.Qfam (v_s st0)).
   Proof.
     intros XF Hxs pool hd k st0 Hp Hk H0 m st w z1 z2 z3 m1 m2 m3 m4 m5 m6 HG _ _ _ _ _ _ _ S1 S2 S3 S4 S5 S6.
@@ -880,7 +881,7 @@ Section STEP.
 
   Lemma scale_g : forall XF, xf_st XF -> forall pool hd k st0,
     Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
-    BhvStep.scale_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+    BhvStep.scale_keep pool (k * OW.OSZ) (fun _ : vst => ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
       (ObjFamily.Qfam (v_s st0)).
   Proof.
     intros XF Hxs pool hd k st0 Hp Hk H0 m st w m1 m2 m3 HG Hst HQ Hw Ho S1 S2 S3.
@@ -969,16 +970,20 @@ Section STEP.
                 (fun E => Hsp (eq_sym E))
                 (INV go pool (k * OW.OSZ) bcc st0 (Mem.nextblock m) (XF hd pool k)) (ObjFamily.Qfam (v_s st0))
                 (ObjFamily.Qfam_closed (v_s st0))
-                (ObjInv.inv_scr lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc Hbcc Hp Hpg Hbg Hps st0 (Mem.nextblock m) (XF hd pool k))
+                (ObjInv.inv_scr lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc Hbcc Hp Hps st0 (Mem.nextblock m) (XF hd pool k))
                 (ObjInv.inv_cur lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc st0 (Mem.nextblock m) (XF hd pool k))
                 (ObjInv.inv_frame lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc Hpg Hbg st0 (Mem.nextblock m) (XF hd pool k))
+                (ObjInv.inv_succ lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc st0 (Mem.nextblock m) (XF hd pool k))
                 Hsq Hp (fun _ => SafeB) KR KPRE KPOST
-                (ObjInv.inv_free lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc Hgo Hpg Hbg st0 (Mem.nextblock m) (XF hd pool k))
-                m t m' vr st0 Hst0 HQ0 HV0 HI Hev) as (st' & Hst' & HQ' & HV' & HI').
+                (ObjInv.inv_free lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc Hgo st0 (Mem.nextblock m) (XF hd pool k))
+                m t m' vr st0 Hst0 HQ0 HV0 HI Hev) as (st' & Hst' & HQ' & HV' & HI' & Hx).
+    (* the exit state follows a BREAK-type command: never in the pole window *)
+    pose proof (ObjInv.ext_nW st' Hx) as Hnw.
     pose proof (ObjExit.inv_exit lp bm bc oc0 SafeB go pool bcc k st0 (Mem.nextblock m) (XF hd pool k) m' st'
-                  Hbm_sym Hbc_sym Hp Hbcc HSafeB_scr Hst0 Hst' HQ' HI' HV') as HP'.
+                  Hbm_sym Hbc_sym Hp Hbcc HSafeB_scr Hst0 Hst' HQ' HI' Hnw HV') as HP'.
     split; [ exact HP' | ].
-    destruct HI' as (_ & _ & g & Hg & HVg & _ & U & _ & HXg).
+    destruct (ObjInv.inv_out lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc st0 (Mem.nextblock m) (XF hd pool k) st' m' Hnw HI')
+      as (g & (Hg & HVg & HXg) & _ & U & _).
     exact (Hxc pool bcc hd k st0 st' g m' Hp Hbcc Hk HQ' Hg HVg U HP' HV' HXg).
   Qed.
 

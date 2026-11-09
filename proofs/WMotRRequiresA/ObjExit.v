@@ -2,7 +2,7 @@
 (* ObjExit.v -- the objects step's EXIT: the ghost's Pc carries to the     *)
 (* real memory at cur_obj_update's return (GOAL 2 objects, W2, 2026-11-07).*)
 (*                                                                         *)
-(* At the exit of BhvStep.cou_real, ObjInv.INVk gives a ghost g (the       *)
+(* At the exit of BhvStep.cou_real (never in the pole window: ObjInv.ext_nW, inv_out), ObjInv.INVk gives a ghost g (the *)
 (* invariant ClearKeep.Pc, slot k0 at the update's start VM state st0)     *)
 (* and the real memory m' with                                             *)
 (*   - Mem.unchanged_on Pfr g m': every block of g reads the same, except  *)
@@ -561,12 +561,14 @@ Theorem inv_exit : forall lp bm bc oc0 SafeB go pool bcc k0 st0 nb0 X m' st',
   Genv.find_symbol (lp_ge lp) BhvStep.BS._gCurBhvCommand = Some bcc ->
   (forall b, BhvStep.scr_b lp b -> SafeB b) ->
   In st0 vm_tab -> In st' vm_tab -> ObjFamily.Qfam (v_s st0) st' ->
-  ObjInv.INVk lp bm bc oc0 SafeB go pool (k0 * OW.OSZ) bcc st0 nb0 X m' ->
+  ObjInv.INVk lp bm bc oc0 SafeB go pool (k0 * OW.OSZ) bcc st0 nb0 X st' m' -> ~ ObjInv.Wp st' ->
   BhvStep.Vo lp pool (k0 * OW.OSZ) m' st' ->
   ClearKeep.Pobjc lp bm bc oc0 SafeB m'.
 Proof.
-  intros lp bm bc oc0 SafeB go pool bcc k0 st0 nb0 X m' st' Sbm Sbc Sp Sbcc HSc H0 H1 HQ
-    (_ & _ & g & (Ok & Phi & HD & Hst & _ & How) & HV & _ & U & NV & _) HV'.
+  intros lp bm bc oc0 SafeB go pool bcc k0 st0 nb0 X m' st' Sbm Sbc Sp Sbcc HSc H0 H1 HQ HI Hnw HV'.
+  (* the exit is outside the pole window: the ghost is a full Pobjl memory *)
+  destruct (ObjInv.inv_out lp bm bc oc0 SafeB go pool (k0 * OW.OSZ) bcc st0 nb0 X st' m' Hnw HI)
+    as (g & ((Ok & Phi & HD & Hst & _ & How) & HV & _) & _ & U & NV).
   destruct (exit_pc lp bm Sbm bc oc0 SafeB Sbc pool bcc k0 Sp Sbcc HSc g m'
               (conj Ok (conj Phi (conj HD (conj Hst How)))) U NV st0 st' H0 H1
               (Vo_vm_at _ _ _ _ _ HV) (Vo_vm_at _ _ _ _ _ HV') HQ) as (Ok' & Phi' & HD' & Hst' & How').

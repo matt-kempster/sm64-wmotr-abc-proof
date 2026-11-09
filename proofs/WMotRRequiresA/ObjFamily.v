@@ -42,7 +42,9 @@ Qed.
    once (a constant inside the per-state function is re-run per call) *)
 Definition clsw (sp l12 lv pbc : list ident) (s : ident) : list bool :=
   [memi s sp; memi s l12; memi s lv; memi s pbc;
-   Pos.eqb s OW.BOXS; Pos.eqb s OW.LIDS; Pos.eqb s OW.COINF].
+   Pos.eqb s OW.BOXS; Pos.eqb s OW.LIDS; Pos.eqb s OW.COINF;
+   (* 2026-11-09: the pole and the cannon base (ObjWorld.pin_ok reads them) *)
+   Pos.eqb s OW.POLES; Pos.eqb s OW.CANS].
 
 Definition cls (s : ident) : list bool :=
   clsw OW.sp_scripts ObjCensus.live12 OW.live_bhvs OW.pbc_ids s.
@@ -135,6 +137,13 @@ Proof.
   intros s s' x Hx. destruct Hx as [<- | [<- | [<- | []]]];
     [ apply (g_eqb s s' 4) | apply (g_eqb s s' 5) | apply (g_eqb s s' 6) ]; reflexivity.
 Qed.
+
+Lemma g_id2 : forall s s' x, In x [OW.POLES; OW.CANS] ->
+  clsw sp l12 lv pbc s = clsw sp l12 lv pbc s' -> (s = x <-> s' = x).
+Proof.
+  intros s s' x Hx. destruct Hx as [<- | [<- | []]];
+    [ apply (g_eqb s s' 7) | apply (g_eqb s s' 8) ]; reflexivity.
+Qed.
 End Generic.
 
 Notation CL s := (clsw OW.sp_scripts ObjCensus.live12 OW.live_bhvs OW.pbc_ids s).
@@ -219,6 +228,10 @@ Proof. intros s0 st (E & _). exact (g_pbc _ _ _ _ _ _ E). Qed.
 Lemma Qfam_id : forall s0 st x, In x [OW.BOXS; OW.LIDS; OW.COINF] -> Qfam s0 st ->
   (v_s st = x <-> s0 = x).
 Proof. intros s0 st x Hx (E & _). exact (g_id _ _ _ _ _ _ _ Hx E). Qed.
+
+Lemma Qfam_id2 : forall s0 st x, In x [OW.POLES; OW.CANS] -> Qfam s0 st ->
+  (v_s st = x <-> s0 = x).
+Proof. intros s0 st x Hx (E & _). exact (g_id2 _ _ _ _ _ _ _ Hx E). Qed.
 
 Lemma Qfam_start : forall s0 st, v_s st = s0 -> In s0 OW.live_bhvs -> Qfam s0 st.
 Proof. intros s0 st <- H. split; [ reflexivity | split; [ exact H | intros E; exact E ] ]. Qed.

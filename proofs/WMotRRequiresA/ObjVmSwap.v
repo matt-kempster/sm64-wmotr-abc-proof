@@ -250,6 +250,18 @@ Section VS.
     - exfalso. apply N1. symmetry. apply E. symmetry. exact E2.
   Qed.
 
+  (* 2026-11-09: the pole / cannon-base identity is a class bit too *)
+  Lemma runs_k0' : forall id, In id [OW.POLES; OW.CANS] ->
+    OW.runs ge pool m' k0 id = OW.runs ge pool m k0 id.
+  Proof.
+    intros id Hid. rewrite (runs_vm_at ge pool m' k0 st' id V1), (runs_vm_at ge pool m k0 st0 id V0).
+    pose proof (OF.Qfam_id2 (v_s st0) st' id Hid HQ) as E.
+    destruct (Pos.eqb_spec id (v_s st')) as [E1 | N1]; destruct (Pos.eqb_spec id (v_s st0)) as [E2 | N2];
+      try reflexivity.
+    - exfalso. apply N2. symmetry. apply E. symmetry. exact E1.
+    - exfalso. apply N1. symmetry. apply E. symmetry. exact E2.
+  Qed.
+
   Lemma sp_k0 : OW.sp_vm ge pool m k0 -> OW.sp_vm ge pool m' k0.
   Proof.
     intros (st & Hin & Hsp & V). exists st'. split; [ exact H1 | split; [ | exact V1 ] ].
@@ -382,7 +394,7 @@ Section VS.
     exists pool, la, fl, gol, gmo, sdp, gdi, rs, fs.
     refine (conj Hpool (conj S2 (conj S3 (conj S4 (conj S5 (conj S6 (conj S7 _))))))).
     destruct C as [Cg Cr Cf Cp Cfo Cm Cs Ca Crd Cdb Cst Co Cd12 Cct Cvm Csp Cso Cco Cctr Cter Cscr Cmact Cresp Cgfx Cmsurf Cpar
-                   Cmvm Canim Ccls Cdp Cnco Cmco Ctie].
+                   Cmvm Canim Ccls Cdp Cnco Cmco Ctie Cpin].
     assert (KG : forall id, In id PK.ow_ids -> existsb (Pos.eqb id) PK.ow_xc = false ->
                forall b, Genv.find_symbol ge id = Some b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z)
       by (intros id Hin Hn b Hs; exact (K id b Hin Hn Hs)).
@@ -515,5 +527,15 @@ Section VS.
         destruct (T3 a La Ha) as (k & Rk & Lu & Sk). exists k. split; [ exact Rk | split ].
         * erewrite Kbm; [ exact Lu | right; cbn [In]; repeat (first [ left; reflexivity | right ]) ].
         * exact (sp_all k Sk).
+    - (* PINS (2026-11-09): slot fields off the VM cells; the pole /
+         cannon-base identity of k0 by its class *)
+      intros k Hk.
+      assert (R : forall id, In id [OW.POLES; OW.CANS] -> OW.runs ge pool m' k id = OW.runs ge pool m k id).
+      { intros id Hid. destruct (Z.eq_dec k k0) as [-> | Ne]; [ exact (runs_k0' id Hid) | exact (runs_ne k Ne id) ]. }
+      apply (OW.pin_at_eq ge pool m m' k R); [ | exact (Cpin k Hk) ].
+      intros ch off Hoff Hch.
+      assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).
+      unfold OW.pin_offs, OW.O_BPARAMS in Hoff. cbn [In] in Hoff.
+      apply Kv; rewrite Hs; destruct Hoff as [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]; sv.
   Qed.
 End VS.
