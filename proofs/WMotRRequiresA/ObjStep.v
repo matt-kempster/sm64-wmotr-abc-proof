@@ -40,7 +40,7 @@ From SM64.Proofs Require CensusV2 SpawnInit ActionValueFrame Taint.
 From SM64.Proofs.WMotRRequiresA Require Import BhvVM.
 From SM64.Proofs.WMotRRequiresA Require ObjWorld ObjRing PollKeep ClearKeep BhvStep ObjFamily ObjLoop
   ObjStepSplit UnloadRows RenderAnim RenderKeep FpuFloor ObjSelf.
-From SM64.Proofs.WMotRRequiresA Require ObjInv ObjExit ObjRows ObjGfl ObjFld FieldWin FieldWinCensus.
+From SM64.Proofs.WMotRRequiresA Require ObjInv ObjExit ObjRows ObjGfl ObjFld ObjFldLo FieldWin FieldWinCensus.
 Import ListNotations.
 Local Open Scope Z_scope.
 Local Transparent Archi.ptr64.
@@ -821,6 +821,89 @@ Section STEP.
     refine (fld_win_g XF Hxs pool hd k st0 m m1 _ 40 _ Hp Hk H0 _ _ _ HG S1); [ wf_side | wf_side | wf_side ].
   Qed.
 
+  (* ---- SCALE (2026-11-09): three f32 stores into slot k's header.gfx.scale
+     (bytes 44..56).  obj_w reads no header byte there; PhiW reads them for
+     Mario's object only, and slot k is not Mario's: Mario's slot runs a
+     bhvMario state (ow_mvm), the family keeps bhvMario (Qfam_mario), and no
+     reachable bhvMario state is a SCALE word (vm, scl_ops_ok) ---- *)
+  Lemma fld_lo_g : forall XF, xf_st XF -> forall pool hd k st0 m m1 ch z0 v d n,
+    Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT ->
+    (List.length (v_k st0) <= 8)%nat -> 16 <= d /\ d <= n <= 96 ->
+    (forall gmo km, Genv.find_symbol G OLP._gMarioObject = Some gmo ->
+       Mem.load Mint32 m gmo 0 = Some (OW.slot_v pool km) -> km <> k) ->
+    k * OW.OSZ + d <= z0 /\ z0 + size_chunk ch <= k * OW.OSZ + n ->
+    BhvStep.cvok (fun _ => False) ch v ->
+    ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k) m ->
+    Mem.store ch m pool z0 v = Some m1 ->
+    ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k) m1.
+  Proof.
+    intros XF Hxs pool hd k st0 m m1 ch z0 v d n Hp Hk Hd Hdn Hnm Hz Hv (HP & HV & HX) S.
+    pose proof (pc_of_P _ HP) as Hpc.
+    assert (HP1 : Pobjl m1) by (apply P_of_pc; eapply ObjFldLo.fld_pc_lo; eassumption).
+    split; [ exact HP1 | split ].
+    - apply (vo_unch lp pool (k * OW.OSZ) m m1 st0 Hd); [ | exact HV ].
+      apply (Mem.store_unchanged_on _ _ _ _ _ _ _ S). intros z Hz' (_ & Hz2).
+      destruct Hdn as (D1 & D2). cbn [size_chunk] in Hz'. pose proof (size_chunk_pos ch).
+      unfold OW.O_CMD, OW.OSZ, OW.NSLOT in *. lia.
+    - apply (Hxs pool hd k m m1 Hp HP HP1); [ | | | exact HX ].
+      + intros la Sl. eapply ObjFldLo.fld_rings_lo; try eassumption. apply (SNE _ _ _ _ Sl Hp); idne.
+      + intros j. rewrite !ld32_load. eapply ObjFldLo.fld_vm_lo; try eassumption; unfold OW.O_CMD, OW.OSZ; cbn [size_chunk]; lia.
+      + apply tsa_ld. intros b Sb. apply (Mem.load_store_other _ _ _ _ _ _ S). left. apply (SNE _ _ _ _ Sb Hp); idne.
+  Qed.
+
+  (* PERF TRAP: stated inline (see BhvStep.chk42_ok) *)
+  Lemma scl_ops_ok :
+    forallb (fun st => implb (opc st =? 50) (negb (Pos.eqb (v_s st) ObjFamily.MARIO))) vm_tab = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma not_mario_slot : forall pool k st0 st w m,
+    Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT ->
+    In st vm_tab -> ObjFamily.Qfam (v_s st0) st ->
+    word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 50 ->
+    Pobjl m -> BhvStep.Vo lp pool (k * OW.OSZ) m st0 ->
+    forall gmo km, Genv.find_symbol G OLP._gMarioObject = Some gmo ->
+      Mem.load Mint32 m gmo 0 = Some (OW.slot_v pool km) -> km <> k.
+  Proof.
+    intros pool k st0 st w m Hp Hk Hst HQ Hw Ho HP HV gmo km Hgmo L E. subst km.
+    pose proof HP as (_ & _ & _ & _ & _ & How).
+    pose proof How as (pool' & la & fl & gol & gmo' & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
+    rewrite Hp in S1. injection S1 as <-. rewrite Hgmo in S5. injection S5 as <-.
+    destruct (OW.ow_mvm _ _ _ _ _ _ _ _ _ _ _ _ C k Hk L) as (stM & _ & EM & (b & Hb & Lb) & _).
+    destruct HV as ((b0 & Hb0 & L0) & _).
+    rewrite Lb in L0. injection L0 as <- _.
+    assert (E0 : v_s st0 = ObjFamily.MARIO).
+    { unfold ObjFamily.MARIO. rewrite <- EM. eapply Genv.genv_vars_inj; [ exact Hb0 | exact Hb ]. }
+    pose proof (ObjFamily.Qfam_mario (v_s st0) st HQ E0) as Es.
+    pose proof scl_ops_ok as A. rewrite forallb_forall in A. specialize (A st Hst).
+    unfold opc, w0 in A. rewrite Hw, Ho, Es, Pos.eqb_refl in A. discriminate A.
+  Qed.
+
+  Lemma scale_g : forall XF, xf_st XF -> forall pool hd k st0,
+    Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab ->
+    BhvStep.scale_keep pool (k * OW.OSZ) (ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
+      (ObjFamily.Qfam (v_s st0)).
+  Proof.
+    intros XF Hxs pool hd k st0 Hp Hk H0 m st w m1 m2 m3 HG Hst HQ Hw Ho S1 S2 S3.
+    pose proof (PK.vm_depth st0 H0) as Hd.
+    pose proof (not_mario_slot pool k st0 st w m Hp Hk Hst HQ Hw Ho (proj1 HG) (proj1 (proj2 HG))) as NM.
+    assert (NMk : forall mm, (forall gmo, Genv.find_symbol G OLP._gMarioObject = Some gmo ->
+                    Mem.load Mint32 mm gmo 0 = Mem.load Mint32 m gmo 0) ->
+              forall gmo km, Genv.find_symbol G OLP._gMarioObject = Some gmo ->
+                Mem.load Mint32 mm gmo 0 = Some (OW.slot_v pool km) -> km <> k).
+    { intros mm E gmo km Hg L. rewrite (E gmo Hg) in L. exact (NM gmo km Hg L). }
+    assert (Ngp : forall gmo, Genv.find_symbol G OLP._gMarioObject = Some gmo -> gmo <> pool)
+      by (intros gmo Hg; apply (SNE _ _ _ _ Hg Hp); idne).
+    assert (HG1 := fld_lo_g XF Hxs pool hd k st0 m m1 Mfloat32 (k * OW.OSZ + 44 + 4 * 0) _ 44 56 Hp Hk Hd ltac:(lia) NM
+                     ltac:(cbn [size_chunk]; lia) I HG S1).
+    assert (HG2 := fld_lo_g XF Hxs pool hd k st0 m1 m2 Mfloat32 (k * OW.OSZ + 44 + 4 * 1) _ 44 56 Hp Hk Hd ltac:(lia)
+                     (NMk m1 (fun gmo Hg => Mem.load_store_other _ _ _ _ _ _ S1 _ _ _ (or_introl (Ngp gmo Hg))))
+                     ltac:(cbn [size_chunk]; lia) I HG1 S2).
+    exact (fld_lo_g XF Hxs pool hd k st0 m2 m3 Mfloat32 (k * OW.OSZ + 44 + 4 * 2) _ 44 56 Hp Hk Hd ltac:(lia)
+             (NMk m2 (fun gmo Hg => eq_trans (Mem.load_store_other _ _ _ _ _ _ S2 _ _ _ (or_introl (Ngp gmo Hg)))
+                                             (Mem.load_store_other _ _ _ _ _ _ S1 _ _ _ (or_introl (Ngp gmo Hg)))))
+             ltac:(cbn [size_chunk]; lia) I HG2 S3).
+  Qed.
+
   (* ---- cur_obj_update on slot k: entry, cou_real, exit ---- *)
   Theorem cou_step_g : forall XF, xf_cou XF -> xf_st XF -> cou_keeps_g XF ->
     forall ls go pool hd k m t m' vr,
@@ -876,7 +959,8 @@ Section STEP.
                   (setf_g XF Hxs pool hd k st0 Hp Hk Hst0) (addi_g XF Hxs pool hd k st0 Hp Hk Hst0)
                   (ori_g XF Hxs pool hd k st0 Hp Hk Hst0) (atex_g XF Hxs pool hd k st0 Hp Hk Hst0)
                   (pbc_g XF Hxs pool hd k st0 Hp Hk Hst0)
-                  (home_g XF Hxs pool hd k st0 Hp Hk Hst0) (phys_g XF Hxs pool hd k st0 Hp Hk Hst0) GKr) as GK.
+                  (home_g XF Hxs pool hd k st0 Hp Hk Hst0) (phys_g XF Hxs pool hd k st0 Hp Hk Hst0)
+                  (scale_g XF Hxs pool hd k st0 Hp Hk Hst0) GKr) as GK.
     pose proof (ObjInv.inv_entry lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc st0 (Mem.nextblock m) (XF hd pool k) m
                   eq_refl HP HV0 Hc HF) as HI.
     pose proof (ObjRows.rows_k lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc sb Hbcc Hp Hpg Hbp st0 (Mem.nextblock m)

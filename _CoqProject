@@ -430,6 +430,7 @@ proofs/WMotRRequiresA/ObjExit.v
 proofs/WMotRRequiresA/ObjRows.v
 proofs/WMotRRequiresA/ObjGfl.v
 proofs/WMotRRequiresA/ObjFld.v
+proofs/WMotRRequiresA/ObjFldLo.v
 proofs/WMotRRequiresA/ObjStep.v
 proofs/WMotRRequiresA/TerCtrCensus.v
 proofs/WMotRRequiresA/NativeVmCensus.v

@@ -1050,6 +1050,18 @@ all in `Unwired/`, and the theorem moved nowhere. See
        no nvB for the seed block), srf / sri / sumf / addf (pinned reads 27 / 6-8),
        par51_ok (par_ok clause 2 needs runs = the VM script), deact, hb / hbo,
        la / lcd (pointer stores), scale, sit, set42, begin_ok, gsfr_keep.
+       2026-11-09: SCALE PROVED (ObjStep.scale_g over ObjFldLo.fld_pc_lo: header
+       bytes 16..96 of a non-Mario slot; not_mario_slot from ow_mvm + Qfam_mario +
+       vm).  ghost_keeps_r asks 15.  FOUND FALSE (open, needs coordinator):
+       set42_keep, hence Hobj_cou_nt / Hobj_cou_t (capstones VACUOUS): a pole's
+       first update runs SET_INT(oInteractType, POLE) two commands before
+       bhv_pole_init sets hitboxHeight (100, then SET_HITBOX's 1500; no WMotR pole
+       is either; ObjRows.set42_pole_found), so kind_ok fails mid-update and the
+       ghost Pobjl is not a loop invariant.  Repair = INV_k / obj_w change
+       (script-tied pole pins from level data, or kind_ok at slot k relaxed during
+       its update and re-made at exit).  hb_keep has the same pole problem.
+       Deact next needs an SKc variant with a hole at slot k's [116,118) (only
+       free_off -- value 0 -- and mact -- not Mario -- read it).
        TRAP: never `unfold FieldWin.ucl` in a hypothesis with variable offsets (2^15
        lia case split); keep ucl atomic and use ucl_eq / ucl_lo / ucl_disj / ucl_field.
        TRAP: `cbn; tauto` (and congruence on Ptrofs.repr) for `In 57 [1; 3; ...]` over Z

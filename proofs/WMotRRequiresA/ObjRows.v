@@ -25,7 +25,8 @@ From Coq Require Import ZArith List Lia Bool.
 From compcert Require Import Coqlib Maps AST Integers Values Memory Globalenvs Ctypes Clight.
 From SM64.Proofs Require Import RealFrameLinked LinkedTwelve MWFReal.
 From SM64.Proofs.WMotRRequiresA Require Import BhvVM.
-From SM64.Generated Require behavior_script.
+From SM64.Generated Require behavior_script behavior_data.
+From SM64.Proofs.WMotRRequiresA Require WMotRLevel WMotRWorld.
 From SM64.Proofs.WMotRRequiresA Require BhvStep ClearKeep ObjWorld ObjFamily ObjSelf ObjFrame.
 From SM64.Proofs.WMotRRequiresA Require ObjInv ObjExit.
 Import ListNotations.
@@ -842,12 +843,30 @@ Section Rows.
   (* the residual ghost keeps (2026-11-08): BILLBOARD's and
      DISABLE_RENDERING's (the s16 store into the slot's graph-node flags,
      @2) are PROVED for the objects step's ghost facts (ObjStep.bb_g /
-     dr_g, from ObjGfl); the other 23 remain *)
+     dr_g, from ObjGfl); the window fields and SCALE too (ObjStep) *)
   (* SET_INT's keep at its one read field, 42 (oInteractType: the pole /
      cannon pins, BhvStep.set42); its other fields are windows (ObjStep.set_g) *)
   Definition set42_keep : Prop := forall m st w m1, GP m -> In st vm_tab -> Qk st ->
     word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 16 -> byte2 w = 42 ->
     Mem.store Mint32 m pool (oc + 136 + 4 * 42) (Vint (BhvStep.s16_of w)) = Some m1 -> GP m1.
+
+  (* FOUND 2026-11-09 (set42_keep is FALSE in the real game, so are the
+     capstones' Hobj_cou_nt / Hobj_cou_t, which ask it for every slot and
+     start state): bhvPoleGrabbing's word 2 is SET_INT(oInteractType,
+     INTERACT_POLE = 64), word 3-4 SET_HITBOX(80, 1500), word 5 the
+     CALL_NATIVE of bhv_pole_init (which sets hitboxHeight from the
+     params).  On a pole's first update hitboxHeight is allocate_object's
+     100.0f, then 1500; no WMotR pole is 100 or 1500 tall.  So right after
+     word 2, obj_w's kind_ok (POLE: hitboxHeight = top - base) fails at the
+     updated slot, and INV_k's ghost (Pobjl after every command) is not an
+     invariant of the real dispatch loop.  Checked here from the generated
+     script and level data. *)
+  Lemma set42_pole_found :
+    map (fun i => option_map (fun w => (Z.shiftr w 24, byte2 w, Z.land w 65535))
+                    (word_at behavior_data._bhvPoleGrabbing i)) [2; 3; 4; 5]%nat
+      = [Some (16, 42, WMotRWorld.INTERACT_POLE); Some (35, 0, 0); Some (0, 80, 1500); Some (12, 0, 0)]
+    /\ forallb (fun bt => negb ((snd bt - fst bt =? 100) || (snd bt - fst bt =? 1500))) WMotRLevel.wmotr_pole_list = true.
+  Proof. split; vm_compute; reflexivity. Qed.
 
   Definition ghost_keeps_r : Prop :=
     set42_keep /\ BhvStep.addf_keep pool oc GP Qk /\ BhvStep.sumf_keep pool oc GP Qk
@@ -855,20 +874,22 @@ Section Rows.
     /\ BhvStep.sri_keep pool oc sb GP Qk /\ BhvStep.sir_keep pool oc sb GP Qk /\ BhvStep.par51_ok pool oc GP Qk
     /\ BhvStep.hb_keep pool oc GP Qk /\ BhvStep.hbo_keep pool oc GP Qk
     /\ BhvStep.la_keep lp pool oc GP Qk
-    /\ BhvStep.lcd_keep lp pool oc GP Qk /\ BhvStep.scale_keep pool oc GP Qk /\ BhvStep.begin_ok lp pool oc GP Qk
+    /\ BhvStep.lcd_keep lp pool oc GP Qk /\ BhvStep.begin_ok lp pool oc GP Qk
     /\ gsfr_keep.
 
   (* the keeps PROVED in ObjStep (bb / dr: ObjGfl; setf / addi / ori /
-     atex / home / phys: ObjFld + FieldWinCensus) are this lemma's
+     atex / home / phys: ObjFld + FieldWinCensus; scale: ObjFldLo, the
+     slot is not Mario's) are this lemma's
      arguments; ghost_keeps_r is what is still asked *)
   Lemma ghost_keeps_of : BhvStep.set_keep pool oc GP Qk ->
     BhvStep.bb_keep pool oc GP Qk -> BhvStep.dr_keep pool oc GP Qk ->
     BhvStep.setf_keep pool oc GP Qk -> BhvStep.addi_keep pool oc GP Qk -> BhvStep.ori_keep pool oc GP Qk ->
     BhvStep.atex_keep pool oc GP Qk -> BhvStep.pbc_keep pool oc GP Qk -> BhvStep.home_keep pool oc GP Qk -> BhvStep.phys_keep pool oc GP Qk ->
+    BhvStep.scale_keep pool oc GP Qk ->
     ghost_keeps_r -> ghost_keeps.
   Proof.
-    intros K16 K33 K53 K14 K15 K17 K52 K51 K45 K48
-      (_ & K13 & K31 & K29 & K47 & K20 & K21 & K19 & K51p & K35 & K43 & K39 & K42 & K50 & K0 & Ksfr).
+    intros K16 K33 K53 K14 K15 K17 K52 K51 K45 K48 K50
+      (_ & K13 & K31 & K29 & K47 & K20 & K21 & K19 & K51p & K35 & K43 & K39 & K42 & K0 & Ksfr).
     repeat (apply conj; [ eassumption | ]). exact Ksfr.
   Qed.
 

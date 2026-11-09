@@ -1010,6 +1010,9 @@ without pressing A".*
 
 ### Row 0.7 in detail
 
+- **OPEN FOUND (2026-11-09): `Hobj_cou_nt` / `Hobj_cou_t` are FALSE** (a pole's
+  first update breaks INV_k's pole pin; see "SCALE proved" below). Both
+  capstones that take them are vacuous until INV_k is repaired.
 - **Objects (2026-10-26): one real call.** `HeightFrame.play_frame_step` is now poll ; PRE ;
   `seg_objects_spec` ; POST ; render walk, and `seg_objects_spec` is `ObjPhase.objects_call`:
   the generated `area_update_objects` as one `eval_funcall`. The old `seg_platform` / action /
@@ -1578,6 +1581,24 @@ without pressing A".*
   (`set_op`: its fields are 5 -- bytes both frames already exclude -- 42, or a window);
   SET_INT is asked only as `ObjRows.set42_keep` (oInteractType: the pole / cannon pins).
   `ObjRows.ghost_keeps_r` now asks 16 keeps.
+  **SCALE proved (2026-11-09).** cur_obj_scale's three f32 stores into
+  header.gfx.scale (bytes 44..56) keep the ghost (`ObjStep.scale_g`, over
+  `ObjFldLo.fld_pc_lo`): obj_w reads no header byte there, and PhiW reads them
+  only for Mario's object. Slot k is not Mario's: Mario's slot runs a bhvMario
+  state (`ow_mvm`), the family keeps bhvMario (`Qfam_mario`), and no reachable
+  bhvMario word is SCALE (`scl_ops_ok`, vm). `ghost_keeps_r` now asks 15.
+  **FOUND FALSE (2026-11-09): `set42_keep`, so `Hobj_cou_nt` / `Hobj_cou_t`
+  and both capstones that take them are VACUOUS.** bhvPoleGrabbing's word 2 is
+  SET_INT(oInteractType, POLE); words 3-4 SET_HITBOX(80, 1500); word 5 calls
+  bhv_pole_init, which sets hitboxHeight from the params
+  (`ObjRows.set42_pole_found`, vm on the generated script and level data). On
+  a pole's first update its hitboxHeight is 100 (allocate_object), then 1500;
+  no WMotR pole is either. So after word 2 obj_w's `kind_ok` (POLE: height =
+  top - base) fails at the slot being updated. INV_k's ghost (Pobjl after
+  every command) is not an invariant of the real dispatch loop. NOT REPAIRED
+  yet: the repair changes INV_k / obj_w (e.g. script-tied pole pins, or
+  kind_ok of slot k relaxed inside its own update and re-made at exit), so
+  it waits for the coordinator.
   **Native VM-cell scan (2026-11-08, `NativeVmCensus.native_vm_value`, vm, spine-root),
   behind `native_vals` inside the keeps rows.** INV_k's ghost clause `nvB scr` needs the
   cells where the real memory and the ghost differ (slot k's VM cells and gCurBhvCommand)
