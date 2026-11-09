@@ -317,23 +317,23 @@ End CLAUSES.
    [off, e) miss them *)
 Definition ccl (off e : Z) : Prop :=
   (e <= 112 \/ 116 <= off) /\ (e <= 118 \/ 136 <= off) /\ (e <= 156 \/ 160 <= off)
-  /\ (e <= 400 \/ 404 <= off) /\ FieldWin.ucl off e.
-(* 2026-11-08: and the script-written fields no clause reads (FieldWin.ucl) *)
+  /\ (e <= 400 \/ 404 <= off) /\ FieldWin.ucl_h off e.
+(* 2026-11-08: and the script-written fields no clause reads (FieldWin.ucl_h: since 2026-11-09 not the cannon home) *)
 
 Local Ltac ko := unfold OSZ, O_INTERACT_TYPE, O_POSX, O_POSY, O_POSZ, HITBOX_DOWN_OFF, HITBOX_H_OFF,
-                   RAW_OFF, ccl, FieldWin.ucl; cbn [size_chunk]; lia.
+                   RAW_OFF, ccl, FieldWin.ucl_h; cbn [size_chunk]; lia.
 (* the slot fields obj_w reads: from offset 96 on, except the platform
    field (Object.platform, offset 532, which update_mario_platform writes
    and no obj_w clause reads) and the collision cells (ccl) *)
 Lemma kind_ok_eq : forall pool m m',
   (forall ch k off, 96 <= off -> off + size_chunk ch <= OSZ -> (off + size_chunk ch <= 532 \/ 536 <= off) ->
-     ccl off (off + size_chunk ch) ->
+     ccl off (off + size_chunk ch) -> (off + size_chunk ch <= 356 \/ 368 <= off) ->
      Mem.load ch m' pool (k * OSZ + off) = Mem.load ch m pool (k * OSZ + off)) ->
   forall k, kind_ok pool m k -> kind_ok pool m' k.
 Proof.
   intros pool m m' Kp k (t & Lt & Hin & Hp & Hc & Hpx & Hcx).
   assert (S : forall ch off, 96 <= off -> off + size_chunk ch <= OSZ -> (off + size_chunk ch <= 532 \/ 536 <= off) ->
-            ccl off (off + size_chunk ch) ->
+            ccl off (off + size_chunk ch) -> (off + size_chunk ch <= 356 \/ 368 <= off) ->
             Mem.load ch m' pool (k * OSZ + off) = Mem.load ch m pool (k * OSZ + off)) by (intros; apply Kp; assumption).
   exists t.
   split; [ rewrite S by ko; exact Lt | split; [ exact Hin | split; [ | split; [ | split ] ] ] ].
@@ -756,36 +756,189 @@ Proof.
   intros ge pool m m' k E1 E2 D b o Hb L. rewrite E1 in L. rewrite E2. exact (D b o Hb L).
 Qed.
 
+(* THE CANNON TRAJECTORY (2026-11-09, the native_res repair; docs/TRUST.md
+   row 0.7).  bhv_cannon_base_loop (cannon.inc.c, through
+   sOpenedCannonActions) moves the base as a function of (oAction, oTimer):
+   act 0 at timer 0 resets oPos := oHome; act 4 adds 5 to oPosY at timers
+   0..68 and jitters x / z ((oTimer / 2 & 1) - 0.5) * 2, at 68 once more * 4
+   and goes to act 6; act 6 jitters * 4.0f at timers 0..3, goes to act 5 at
+   26; act 5 goes to act 1 at 25; act 1 waits (Mario's A press in
+   act_in_cannon stores oAction = 2); act 2 goes to act 3; act 3 goes to
+   act 0 at 4.  cur_obj_update resets oTimer to 0 (and oPrevAction :=
+   oAction) when oAction <> oPrevAction, before and after the script, and
+   increments oTimer below 0x3FFFFFFF after it.  So at a frame boundary the
+   tuple (oAction, oPrevAction, oTimer, d, k) with oPos = oHome + (d, 5k, d)
+   is one traj_b admits, and oHome is its lid's macro position - (0, 340,
+   0) (bhv_cannon_closed_init spawns the base at the lid's home; ADD_FLOAT,
+   SET_HOME).  The tuple set is closed under the native followed by the
+   timer step, under the pre-script reset and under Mario's store
+   (1, 1, t) -> (2, 1, t): no A-freedom is used.  Keyed by the VM offset:
+     byte 0   (not yet updated; allocate_object zeroed rawData): A = P = t
+              = 0, oPos = the lid's macro position (can0);
+     byte 28  (word 7: only the RE-ANCHORED ghost after ADD_FLOAT):
+              A = P = t = 0, oPos = lid - (0, 340, 0) (can7);
+     byte >= 32, not 56 (word 8 on; the ghost after SET_HOME, the loop):
+              the trajectory, oHome pinned (can8);
+     byte 56  (word 14, END_LOOP): never (no update ends before END_LOOP,
+              which BREAKs back to word 12). *)
+Definition O_TIMER : Z := RAW_OFF + 4 * 51.      (* oTimer, 0x154 *)
+Definition O_PREVACT : Z := RAW_OFF + 4 * 65.    (* oPrevAction, 0x18C *)
+Definition O_HOMEX : Z := RAW_OFF + 4 * 55.      (* oHomeX, 0x164 *)
+Definition O_HOMEY : Z := RAW_OFF + 4 * 56.      (* oHomeY, 0x168 *)
+Definition O_HOMEZ : Z := RAW_OFF + 4 * 57.      (* oHomeZ, 0x16C *)
+
+Definition cannon_lid_xyz : list (Z * Z * Z) :=
+  map (fun o => (m_x o, m_y o, m_z o))
+      (filter (fun o => Pos.eqb (bhv_of o) macro_special_objects._bhvCannonClosed) wmotr_macro_objs).
+
+Definition TCAP : Z := 1073741823.
+Definition jd4 (t : Z) : Z :=
+  if t mod 4 =? 1 then -1 else if t mod 4 =? 2 then -2 else if t mod 4 =? 3 then -1 else 0.
+Definition jd6 (t : Z) : Z :=
+  if t =? 1 then -5 else if t =? 2 then -7 else if t =? 3 then -5 else -3.
+
+Definition traj_b (a p t d k : Z) : bool :=
+  (0 <=? t) && (t <=? TCAP) &&
+  (   ((a =? 0) && (p =? 0) && (((d =? 0) && (k =? 0)) || ((t =? 0) && (d =? -3) && (k =? 69))))
+   || ((a =? 4) && (p =? 4) && (t <=? 68) && (d =? jd4 t) && (k =? t))
+   || ((a =? 6) && (p =? 6) && (t <=? 26) && (d =? jd6 t) && (k =? 69))
+   || ((a =? 5) && (p =? 5) && (t <=? 25) && (d =? -3) && (k =? 69))
+   || ((a =? 1) && (p =? 1) && (d =? -3) && (k =? 69))
+   || ((a =? 2) && ((p =? 1) || ((p =? 2) && (t =? 0))) && (d =? -3) && (k =? 69))
+   || ((a =? 3) && (p =? 3) && (t <=? 4) && (d =? -3) && (k =? 69))).
+
+Definition can_apt (m : mem) (pool : block) (o : Z) (a p t : int) : Prop :=
+  Mem.load Mint32 m pool (o + O_ACTION) = Some (Vint a)
+  /\ Mem.load Mint32 m pool (o + O_PREVACT) = Some (Vint p)
+  /\ Mem.load Mint32 m pool (o + O_TIMER) = Some (Vint t).
+
+Definition can_pos (m : mem) (pool : block) (o x y z : Z) : Prop :=
+  Mem.load Mfloat32 m pool (o + O_POSX) = Some (f32z x)
+  /\ Mem.load Mfloat32 m pool (o + O_POSY) = Some (f32z y)
+  /\ Mem.load Mfloat32 m pool (o + O_POSZ) = Some (f32z z).
+
+Definition can_home (m : mem) (pool : block) (o x y z : Z) : Prop :=
+  Mem.load Mfloat32 m pool (o + O_HOMEX) = Some (f32z x)
+  /\ Mem.load Mfloat32 m pool (o + O_HOMEY) = Some (f32z y)
+  /\ Mem.load Mfloat32 m pool (o + O_HOMEZ) = Some (f32z z).
+
+Definition can0 (m : mem) (pool : block) (o : Z) : Prop :=
+  exists x y z, In (x, y, z) cannon_lid_xyz /\ can_pos m pool o x y z
+    /\ can_apt m pool o Int.zero Int.zero Int.zero.
+
+(* word 7: past ADD_FLOAT, dropped to lid - 340 (the ghost is re-anchored
+   there in ONE step, drop and command cell together: ObjAnchor) *)
+Definition can7 (m : mem) (pool : block) (o : Z) : Prop :=
+  exists x y z, In (x, y, z) cannon_lid_xyz /\ can_pos m pool o x (y - CANNON_DROP) z
+    /\ can_apt m pool o Int.zero Int.zero Int.zero.
+
+Definition can8 (m : mem) (pool : block) (o : Z) : Prop :=
+  exists x y z d kk a p t, In (x, y, z) cannon_lid_xyz
+    /\ can_home m pool o x (y - CANNON_DROP) z
+    /\ can_pos m pool o (x + d) (y - CANNON_DROP + CANNON_RISE * kk) (z + d)
+    /\ can_apt m pool o a p t
+    /\ traj_b (Int.signed a) (Int.signed p) (Int.signed t) d kk = true.
+
+(* the clause class of a command-pointer offset *)
+Definition ccls (o : Z) : Z :=
+  if o =? 0 then 0 else if o =? 28 then 1 else if (32 <=? o) && negb (o =? 56) then 2 else 3.
+
+Definition can_cl (c : Z) (m : mem) (pool : block) (o : Z) : Prop :=
+  if c =? 0 then can0 m pool o else if c =? 1 then can7 m pool o else if c =? 2 then can8 m pool o else False.
+
+Definition can_traj (ge : genv) (pool : block) (m : mem) (k : Z) : Prop :=
+  forall b o, Genv.find_symbol ge CANS = Some b -> ld32 m pool (k * OSZ + O_CMD) = Some (Vptr b o) ->
+    can_cl (ccls (Ptrofs.unsigned o)) m pool (k * OSZ).
+
+(* the cells can_traj reads besides the command pointer *)
+Definition traj_offs : list Z :=
+  [O_POSX; O_POSY; O_POSZ; O_ACTION; O_PREVACT; O_TIMER; O_HOMEX; O_HOMEY; O_HOMEZ].
+
+Lemma can_cl_eq : forall c m m' pool o,
+  (forall ch off, In off traj_offs -> ch = Mint32 \/ ch = Mfloat32 ->
+     Mem.load ch m' pool (o + off) = Mem.load ch m pool (o + off)) ->
+  can_cl c m pool o -> can_cl c m' pool o.
+Proof.
+  intros c m m' pool o L.
+  assert (Lx := L Mfloat32 O_POSX ltac:(unfold traj_offs; cbn [In]; tauto) ltac:(tauto)).
+  assert (Ly := L Mfloat32 O_POSY ltac:(unfold traj_offs; cbn [In]; tauto) ltac:(tauto)).
+  assert (Lz := L Mfloat32 O_POSZ ltac:(unfold traj_offs; cbn [In]; tauto) ltac:(tauto)).
+  assert (La := L Mint32 O_ACTION ltac:(unfold traj_offs; cbn [In]; tauto) ltac:(tauto)).
+  assert (Lp := L Mint32 O_PREVACT ltac:(unfold traj_offs; cbn [In]; tauto) ltac:(tauto)).
+  assert (Lt := L Mint32 O_TIMER ltac:(unfold traj_offs; cbn [In]; tauto) ltac:(tauto)).
+  assert (Hx := L Mfloat32 O_HOMEX ltac:(unfold traj_offs; cbn [In]; tauto) ltac:(tauto)).
+  assert (Hy := L Mfloat32 O_HOMEY ltac:(unfold traj_offs; cbn [In]; tauto) ltac:(tauto)).
+  assert (Hz := L Mfloat32 O_HOMEZ ltac:(unfold traj_offs; cbn [In]; tauto) ltac:(tauto)).
+  unfold can_cl, can0, can7, can8, can_pos, can_apt, can_home.
+  rewrite Lx, Ly, Lz, La, Lp, Lt, Hx, Hy, Hz. exact (fun H => H).
+Qed.
+
+(* moved command pointer, same clause class *)
+Lemma can_traj_mv : forall (ge : genv) pool m m' k,
+  (forall ch off, In off traj_offs -> ch = Mint32 \/ ch = Mfloat32 ->
+     Mem.load ch m' pool (k * OSZ + off) = Mem.load ch m pool (k * OSZ + off)) ->
+  (forall b o', Genv.find_symbol ge CANS = Some b -> ld32 m' pool (k * OSZ + O_CMD) = Some (Vptr b o') ->
+     exists o, ld32 m pool (k * OSZ + O_CMD) = Some (Vptr b o) /\ ccls (Ptrofs.unsigned o) = ccls (Ptrofs.unsigned o')) ->
+  can_traj ge pool m k -> can_traj ge pool m' k.
+Proof.
+  intros ge pool m m' k L Ck D b o' Hb L'. destruct (Ck b o' Hb L') as (o & Lo & Eo).
+  rewrite <- Eo. exact (can_cl_eq _ m m' pool _ L (D b o Hb Lo)).
+Qed.
+
+Lemma can_traj_eq : forall (ge : genv) pool m m' k,
+  (forall ch off, In off traj_offs -> ch = Mint32 \/ ch = Mfloat32 ->
+     Mem.load ch m' pool (k * OSZ + off) = Mem.load ch m pool (k * OSZ + off)) ->
+  ld32 m' pool (k * OSZ + O_CMD) = ld32 m pool (k * OSZ + O_CMD) ->
+  can_traj ge pool m k -> can_traj ge pool m' k.
+Proof.
+  intros ge pool m m' k L C. apply (can_traj_mv ge pool m m' k L).
+  intros b o' Hb L'. exists o'. rewrite <- C. exact (conj L' eq_refl).
+Qed.
+
 Definition pin_at (ge : genv) (pool : block) (m : mem) (k : Z) : Prop :=
   (forall t, Mem.load Mint32 m pool (k * OSZ + O_INTERACT_TYPE) = Some (Vint t) ->
      (Int.unsigned t = INTERACT_POLE -> runs ge pool m k POLES = true)
      /\ (Int.unsigned t = INTERACT_CANNON_BASE -> runs ge pool m k CANS = true)
      /\ (runs ge pool m k CANS = true -> Int.unsigned t <> INTERACT_CANNON_BASE -> cannon_xz_ok m pool (k * OSZ)))
   /\ (runs ge pool m k POLES = true -> pole_pin m pool (k * OSZ))
-  /\ can_pin ge pool m k.
+  /\ can_pin ge pool m k
+  /\ can_traj ge pool m k.
 
 Definition pin_ok (ge : genv) (pool : block) (m : mem) (rs : list (list Z)) : Prop :=
   forall k, In k (concat rs) -> pin_at ge pool m k.
 
-(* the cells pin_at reads besides the command pointer *)
-Definition pin_offs : list Z :=
+(* the cells pin_at reads besides the command pointer: the six of the
+   pole / cannon identity pins (pin_offs0) and the trajectory's *)
+Definition pin_offs0 : list Z :=
   [O_INTERACT_TYPE; O_POSX; O_POSY; O_POSZ; HITBOX_DOWN_OFF; O_BPARAMS].
+Definition pin_offs : list Z :=
+  [O_INTERACT_TYPE; O_POSX; O_POSY; O_POSZ; HITBOX_DOWN_OFF; O_BPARAMS;
+   O_ACTION; O_PREVACT; O_TIMER; O_HOMEX; O_HOMEY; O_HOMEZ].
 
+Lemma traj_pin_offs : forall off, In off traj_offs -> In off pin_offs.
+Proof. intros off H. unfold traj_offs in H. unfold pin_offs. cbn [In] in H |- *. tauto. Qed.
+
+Lemma pin_offs0_offs : forall off, In off pin_offs0 -> In off pin_offs.
+Proof. intros off H. unfold pin_offs0 in H. unfold pin_offs. cbn [In] in H |- *. tauto. Qed.
+
+(* the identity pins move with their six cells; the trajectory is carried
+   separately (Ct: the frames' callers re-make it, a moved slot by its class) *)
 Lemma pin_at_eq : forall ge pool m m' k,
   (forall id, In id [POLES; CANS] -> runs ge pool m' k id = runs ge pool m k id) ->
-  (forall ch off, In off pin_offs -> ch = Mint32 \/ ch = Mfloat32 ->
+  (forall ch off, In off pin_offs0 -> ch = Mint32 \/ ch = Mfloat32 ->
      Mem.load ch m' pool (k * OSZ + off) = Mem.load ch m pool (k * OSZ + off)) ->
   (can_pin ge pool m k -> can_pin ge pool m' k) ->
+  (can_traj ge pool m k -> can_traj ge pool m' k) ->
   pin_at ge pool m k -> pin_at ge pool m' k.
 Proof.
-  intros ge pool m m' k R L Dk (T & P & D).
-  assert (Lt0 := L Mint32 O_INTERACT_TYPE ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
-  assert (Lx0 := L Mfloat32 O_POSX ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
-  assert (Ly0 := L Mfloat32 O_POSY ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
-  assert (Lz0 := L Mfloat32 O_POSZ ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
-  assert (Ld0 := L Mfloat32 HITBOX_DOWN_OFF ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
-  assert (Lp0 := L Mint32 O_BPARAMS ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
-  split; [ | split; [ | exact (Dk D) ] ].
+  intros ge pool m m' k R L Dk Ct (T & P & D & Tr).
+  assert (Lt0 := L Mint32 O_INTERACT_TYPE ltac:(unfold pin_offs0; cbn [In]; tauto) ltac:(tauto)).
+  assert (Lx0 := L Mfloat32 O_POSX ltac:(unfold pin_offs0; cbn [In]; tauto) ltac:(tauto)).
+  assert (Ly0 := L Mfloat32 O_POSY ltac:(unfold pin_offs0; cbn [In]; tauto) ltac:(tauto)).
+  assert (Lz0 := L Mfloat32 O_POSZ ltac:(unfold pin_offs0; cbn [In]; tauto) ltac:(tauto)).
+  assert (Ld0 := L Mfloat32 HITBOX_DOWN_OFF ltac:(unfold pin_offs0; cbn [In]; tauto) ltac:(tauto)).
+  assert (Lp0 := L Mint32 O_BPARAMS ltac:(unfold pin_offs0; cbn [In]; tauto) ltac:(tauto)).
+  split; [ | split; [ | split; [ exact (Dk D) | exact (Ct Tr) ] ] ].
   - intros t Lt. rewrite Lt0 in Lt. destruct (T t Lt) as (T1 & T2 & T3).
     rewrite (R POLES (or_introl eq_refl)), (R CANS (or_intror (or_introl eq_refl))). split; [ exact T1 | split; [ exact T2 | ] ].
     intros Hc Ht. destruct (T3 Hc Ht) as (x & z & y & dj & Hin & Hdj & Lx & Ly & Lz).
@@ -795,7 +948,7 @@ Proof.
     exact (conj Hin (conj Lx (conj Ly (conj Lz (conj Ld (conj Lp Ep)))))).
 Qed.
 
-(* the same when the command pointer is kept too *)
+(* the same when the command pointer and every pinned cell are kept *)
 Lemma pin_at_eq' : forall ge pool m m' k,
   (forall id, In id [POLES; CANS] -> runs ge pool m' k id = runs ge pool m k id) ->
   (forall ch off, In off pin_offs -> ch = Mint32 \/ ch = Mfloat32 ->
@@ -803,9 +956,12 @@ Lemma pin_at_eq' : forall ge pool m m' k,
   ld32 m' pool (k * OSZ + O_CMD) = ld32 m pool (k * OSZ + O_CMD) ->
   pin_at ge pool m k -> pin_at ge pool m' k.
 Proof.
-  intros ge pool m m' k R L C. apply (pin_at_eq ge pool m m' k R L).
-  apply (can_pin_eq ge pool m m' k C).
-  exact (L Mfloat32 O_POSY ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
+  intros ge pool m m' k R L C. apply (pin_at_eq ge pool m m' k R).
+  - intros ch off Hoff Hch. exact (L ch off (pin_offs0_offs off Hoff) Hch).
+  - apply (can_pin_eq ge pool m m' k C).
+    exact (L Mfloat32 O_POSY ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
+  - apply (can_traj_eq ge pool m m' k); [ | exact C ].
+    intros ch off Hoff Hch. exact (L ch off (traj_pin_offs off Hoff) Hch).
 Qed.
 
 Definition sdyn (ge : genv) (pool : block) (m : mem) (k : Z) : Z :=
@@ -2705,7 +2861,7 @@ Section ChkPin.
     end
     && (negb (runs ge pool m k POLES) || pole_pin_b (k * OSZ)).
 
-  Definition can_pin_b (k : Z) : bool :=
+  Definition can_pin_b0 (k : Z) : bool :=
     match Genv.find_symbol ge CANS with
     | Some b => match ld32 m pool (k * OSZ + O_CMD) with
                 | Some (Vptr b' o) =>
@@ -2717,17 +2873,128 @@ Section ChkPin.
     | None => true
     end.
 
-  Lemma can_pin_b_sound : forall k, can_pin_b k = true -> can_pin ge pool m k.
+  Lemma can_pin_b0_sound : forall k, can_pin_b0 k = true -> can_pin ge pool m k.
   Proof.
-    intros k H b o Hb L. unfold can_pin_b in H. rewrite Hb, L, Pos.eqb_refl in H. cbn [negb orb] in H.
+    intros k H b o Hb L. unfold can_pin_b0 in H. rewrite Hb, L, Pos.eqb_refl in H. cbn [negb orb] in H.
     apply orb_true_iff in H as [H | H]; [ left | right; apply Z.leb_le; exact H ].
     apply andb_prop in H as [H1 H2]. split; [ apply Z.eqb_eq; exact H1 | ].
     apply existsb_exists in H2 as (y & Hy & Ly). exists y. exact (conj Hy (f32_at_b_sound _ _ _ _ Ly)).
   Qed.
 
+  (* the cannon trajectory's checker (2026-11-09) *)
+  Definition i32_at_b (o : Z) (i : int) : bool :=
+    match ld32 m pool o with Some (Vint j) => Int.eq j i | _ => false end.
+
+  Lemma i32_at_b_sound : forall o i, i32_at_b o i = true -> Mem.load Mint32 m pool o = Some (Vint i).
+  Proof.
+    intros o i H. unfold i32_at_b, ld32 in H. rewrite CM.load_eq in H.
+    destruct (Mem.load Mint32 m pool o) as [[| j | | | |]|]; try discriminate H.
+    apply Int.same_if_eq in H. subst j. reflexivity.
+  Qed.
+
+  Definition pos_b (o x y z : Z) : bool :=
+    f32_at_b pool m (o + O_POSX) (f32z x) && f32_at_b pool m (o + O_POSY) (f32z y)
+    && f32_at_b pool m (o + O_POSZ) (f32z z).
+
+  Lemma pos_b_sound : forall o x y z, pos_b o x y z = true -> can_pos m pool o x y z.
+  Proof.
+    intros o x y z H. unfold pos_b in H. apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
+    exact (conj (f32_at_b_sound _ _ _ _ H1) (conj (f32_at_b_sound _ _ _ _ H2) (f32_at_b_sound _ _ _ _ H3))).
+  Qed.
+
+  Definition home_b (o x y z : Z) : bool :=
+    f32_at_b pool m (o + O_HOMEX) (f32z x) && f32_at_b pool m (o + O_HOMEY) (f32z y)
+    && f32_at_b pool m (o + O_HOMEZ) (f32z z).
+
+  Lemma home_b_sound : forall o x y z, home_b o x y z = true -> can_home m pool o x y z.
+  Proof.
+    intros o x y z H. unfold home_b in H. apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
+    exact (conj (f32_at_b_sound _ _ _ _ H1) (conj (f32_at_b_sound _ _ _ _ H2) (f32_at_b_sound _ _ _ _ H3))).
+  Qed.
+
+  Definition apt0_b (o : Z) : bool :=
+    i32_at_b (o + O_ACTION) Int.zero && i32_at_b (o + O_PREVACT) Int.zero && i32_at_b (o + O_TIMER) Int.zero.
+
+  Lemma apt0_b_sound : forall o, apt0_b o = true -> can_apt m pool o Int.zero Int.zero Int.zero.
+  Proof.
+    intros o H. unfold apt0_b in H. apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
+    exact (conj (i32_at_b_sound _ _ H1) (conj (i32_at_b_sound _ _ H2) (i32_at_b_sound _ _ H3))).
+  Qed.
+
+  Definition can0_b (o : Z) : bool :=
+    existsb (fun '(x, y, z) => pos_b o x y z) cannon_lid_xyz && apt0_b o.
+  Definition can7_b (o : Z) : bool :=
+    existsb (fun '(x, y, z) => pos_b o x (y - CANNON_DROP) z) cannon_lid_xyz && apt0_b o.
+  Definition can8_b (o : Z) : bool :=
+    match ld32 m pool (o + O_ACTION), ld32 m pool (o + O_PREVACT), ld32 m pool (o + O_TIMER) with
+    | Some (Vint a), Some (Vint p), Some (Vint t) =>
+        existsb (fun '(x, y, z) =>
+          home_b o x (y - CANNON_DROP) z
+          && existsb (fun d => existsb (fun kk =>
+               pos_b o (x + d) (y - CANNON_DROP + CANNON_RISE * kk) (z + d)
+               && traj_b (Int.signed a) (Int.signed p) (Int.signed t) d kk)
+               (map Z.of_nat (seq 0 70))) cannon_jit) cannon_lid_xyz
+    | _, _, _ => false
+    end.
+
+  Lemma can0_b_sound : forall o, can0_b o = true -> can0 m pool o.
+  Proof.
+    intros o H. unfold can0_b in H. apply andb_prop in H as [H Ha].
+    apply existsb_exists in H as ([[x y] z] & Hin & Hp).
+    exists x, y, z. exact (conj Hin (conj (pos_b_sound _ _ _ _ Hp) (apt0_b_sound _ Ha))).
+  Qed.
+
+  Lemma can7_b_sound : forall o, can7_b o = true -> can7 m pool o.
+  Proof.
+    intros o H. unfold can7_b in H. apply andb_prop in H as [H Ha].
+    apply existsb_exists in H as ([[x y] z] & Hin & Hp).
+    exists x, y, z. exact (conj Hin (conj (pos_b_sound _ _ _ _ Hp) (apt0_b_sound _ Ha))).
+  Qed.
+
+  Lemma can8_b_sound : forall o, can8_b o = true -> can8 m pool o.
+  Proof.
+    intros o H. unfold can8_b, ld32 in H. rewrite !CM.load_eq in H.
+    destruct (Mem.load Mint32 m pool (o + O_ACTION)) as [[| a | | | |]|] eqn:La; try discriminate H.
+    destruct (Mem.load Mint32 m pool (o + O_PREVACT)) as [[| p | | | |]|] eqn:Lp; try discriminate H.
+    destruct (Mem.load Mint32 m pool (o + O_TIMER)) as [[| t | | | |]|] eqn:Lt; try discriminate H.
+    apply existsb_exists in H as ([[x y] z] & Hin & H). apply andb_prop in H as [Hh H].
+    apply existsb_exists in H as (d & _ & H). apply existsb_exists in H as (kk & _ & H).
+    apply andb_prop in H as [Hp Ht].
+    exists x, y, z, d, kk, a, p, t. split; [ exact Hin | split; [ exact (home_b_sound _ _ _ _ Hh) | ] ].
+    split; [ exact (pos_b_sound _ _ _ _ Hp) | split; [ exact (conj La (conj Lp Lt)) | exact Ht ] ].
+  Qed.
+
+  Definition can_cl_b (c o : Z) : bool :=
+    if c =? 0 then can0_b o else if c =? 1 then can7_b o else if c =? 2 then can8_b o else false.
+
+  Lemma can_cl_b_sound : forall c o, can_cl_b c o = true -> can_cl c m pool o.
+  Proof.
+    intros c o H. unfold can_cl_b in H. unfold can_cl.
+    destruct (c =? 0); [ exact (can0_b_sound _ H) | ].
+    destruct (c =? 1); [ exact (can7_b_sound _ H) | ].
+    destruct (c =? 2); [ exact (can8_b_sound _ H) | discriminate H ].
+  Qed.
+
+  Definition can_traj_b (k : Z) : bool :=
+    match Genv.find_symbol ge CANS with
+    | Some b => match ld32 m pool (k * OSZ + O_CMD) with
+                | Some (Vptr b' o) => negb (Pos.eqb b b') || can_cl_b (ccls (Ptrofs.unsigned o)) (k * OSZ)
+                | _ => true end
+    | None => true
+    end.
+
+  Lemma can_traj_b_sound : forall k, can_traj_b k = true -> can_traj ge pool m k.
+  Proof.
+    intros k H b o Hb L. unfold can_traj_b in H. rewrite Hb, L, Pos.eqb_refl in H. cbn [negb orb] in H.
+    exact (can_cl_b_sound _ _ H).
+  Qed.
+
+  Definition can_pin_b (k : Z) : bool := can_pin_b0 k && can_traj_b k.
+
   Lemma pin_b_sound : forall k, pin_b k = true -> can_pin_b k = true -> pin_at ge pool m k.
   Proof.
-    intros k H Hcb. split; [ | split; [ | exact (can_pin_b_sound k Hcb) ] ].
+    intros k H Hcb. unfold can_pin_b in Hcb. apply andb_prop in Hcb as [Hcb Hct].
+    split; [ | split; [ | split; [ exact (can_pin_b0_sound k Hcb) | exact (can_traj_b_sound k Hct) ] ] ].
     all: unfold pin_b in H; apply andb_prop in H as [H Hp].
     2: { intros Hr. rewrite Hr in Hp. cbn [negb orb] in Hp. exact (pole_pin_b_sound _ Hp). }
     - intros t Lt. unfold ld32 in H. rewrite CM.load_eq, Lt in H.

@@ -254,23 +254,23 @@ Section CS.
         destruct Hw as [Hw | [Hw | [Hw | [Hw | (co & (j & Hj & Ec) & _ & Hw)]]]].
         - apply (LPw ch' z' km); [ lia | lia | ].
           destruct (Z.eq_dec km k) as [E | Ne];
-            [ right; unfold OW.ccl; refine (conj _ (conj _ (conj _ (conj _ _)))); [ lia | lia | lia | lia | apply FieldWin.ucl_lo; lia ] | left; exact Ne ].
+            [ right; unfold OW.ccl; refine (conj _ (conj _ (conj _ (conj _ _)))); [ lia | lia | lia | lia | apply FieldWin.ucl_h_lo; lia ] | left; exact Ne ].
         - apply (LPw ch' z' km); [ lia | lia | ].
           destruct (Z.eq_dec km k) as [E | Ne];
-            [ right; unfold OW.ccl; refine (conj _ (conj _ (conj _ (conj _ _)))); [ lia | lia | lia | lia | apply FieldWin.ucl_lo; lia ] | left; exact Ne ].
+            [ right; unfold OW.ccl; refine (conj _ (conj _ (conj _ (conj _ _)))); [ lia | lia | lia | lia | apply FieldWin.ucl_h_lo; lia ] | left; exact Ne ].
         - apply (LPw ch' z' km); [ lia | lia | ].
           destruct (Z.eq_dec km k) as [E | Ne];
-            [ right; unfold OW.ccl; refine (conj _ (conj _ (conj _ (conj _ _)))); [ lia | lia | lia | lia | apply FieldWin.ucl_lo; lia ] | left; exact Ne ].
+            [ right; unfold OW.ccl; refine (conj _ (conj _ (conj _ (conj _ _)))); [ lia | lia | lia | lia | apply FieldWin.ucl_h_lo; lia ] | left; exact Ne ].
         - destruct Hw as (Hw1 & Hw2 & Hc1 & Hc2 & Hc3 & Hu).
           apply (LPw ch' z' km); [ lia | lia | ].
           destruct (Z.eq_dec km k) as [E | Ne]; [ right | left; exact Ne ].
           unfold OW.ccl. refine (conj _ (conj _ (conj _ (conj _ _)))); [ lia | lia | lia | lia | ].
-          eapply FieldWin.ucl_eq; [ | | exact Hu ]; lia.
+          eapply FieldWin.ucl_h_eq; [ | | exact (FieldWin.ucl_ucl_h _ _ Hu) ]; lia.
         - rewrite Ec in Hw. unfold OW.OSZ in Hw. destruct Hw as (Hw1 & Hw2 & Hc1 & Hc2 & Hc3 & Hu).
           apply (LPw ch' z' j); [ lia | lia | ].
           destruct (Z.eq_dec j k) as [E | Ne]; [ right | left; exact Ne ].
           unfold OW.ccl. refine (conj _ (conj _ (conj _ (conj _ _)))); [ lia | lia | lia | lia | ].
-          eapply FieldWin.ucl_eq; [ | | exact Hu ]; lia. }
+          eapply FieldWin.ucl_h_eq; [ | | exact (FieldWin.ucl_ucl_h _ _ Hu) ]; lia. }
       assert (CL : forall gp, closed_by gp m -> gp pool <> None ->
                 (forall id b, Genv.find_symbol G id = Some b -> gp b <> None) ->
                 exists gp', (forall b, gp b <> None -> gp' b <> None) /\ closed_by gp' m2).
@@ -286,7 +286,7 @@ Section CS.
                 exists f, -1 <= f <= hs_le k0
                   /\ Mem.load Mint16signed m2 pool (u (Ptrofs.repr (km * OW.OSZ)) + 64) = Some (Vint (Int.repr f))).
       { intros bt0 ot0 k0 _ _ _ (f & Rf & L64) _ _. exists f. split; [ exact Rf | ]. rewrite Ukm in *.
-        rewrite LPs; [ exact L64 | lia | cbn [size_chunk]; lia | right; unfold OW.ccl, FieldWin.ucl; cbn [size_chunk]; lia ]. }
+        rewrite LPs; [ exact L64 | lia | cbn [size_chunk]; lia | right; unfold OW.ccl, FieldWin.ucl_h; cbn [size_chunk]; lia ]. }
       assert (CKo : forall i cb co, 0 <= i < 4 ->
                 Mem.load Mint32 m2 pool (u (Ptrofs.repr (km * OW.OSZ)) + COLL_OFF + 4 * i) = Some (Vptr cb co) ->
                 Mem.load Mint32 m pool (u (Ptrofs.repr (km * OW.OSZ)) + COLL_OFF + 4 * i) = Some (Vptr cb co)
@@ -353,7 +353,7 @@ Section CS.
           by (change Ptrofs.max_unsigned with 4294967295; lia).
         unfold OW.OSZ. apply Ptrofs.unsigned_repr. change Ptrofs.max_unsigned with 4294967295; lia. }
       rewrite Eu in Hk0 |- *.
-      rewrite LPs; [ exact Hk0 | lia | cbn [size_chunk]; lia | right; unfold OW.ccl, FieldWin.ucl; cbn [size_chunk]; lia ]. }
+      rewrite LPs; [ exact Hk0 | lia | cbn [size_chunk]; lia | right; unfold OW.ccl, FieldWin.ucl_h; cbn [size_chunk]; lia ]. }
     (* ---- obj_w: PollKeep.obj_w_slots_c, the pool's collision cells ---- *)
     assert (SKc : forall pool', Genv.find_symbol G OLP._gObjectPool = Some pool' -> PollKeep.SKc m m2 pool').
     { intros pool' Hs'. rewrite Sp in Hs'. injection Hs' as <-. intros ch' k' off' H1 H2 H3 H4.
@@ -363,7 +363,7 @@ Section CS.
       - intros id b Hin Hn Hs ch' z'. apply LO. intros ->.
         assert (E : id = OLP._gObjectPool) by (eapply Genv.genv_vars_inj; eassumption). subst id.
         vm_compute in Hn. discriminate Hn.
-      - apply (PollKeep.surf_keep_of_KN m m2 G); [ | exact SKc | ].
+      - apply (PollKeep.surf_keep_of_KN m m2 G); [ | exact (fun p Hs => PollKeep.SKc_h m m2 p (SKc p Hs)) | ].
         + intros id b Hin Hne Hs ch' z'. apply LO. intros ->. apply Hne. eapply Genv.genv_vars_inj; eassumption.
         + intros b Hb ch' z'. apply LO. intros ->. pose proof (Genv.genv_symb_range _ _ Sp). unfold Plt, Ple in *. lia.
       - intros (a & Hg & Hb). exists a. split; [ | exact Hb ]. apply (PollKeep.gcell_K m m2); [ | exact Hg ].

@@ -29,6 +29,8 @@ From SM64.Proofs Require Import HeightInvariant WMotRWorld FrameSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld AnimData AnimWorld RenderKeep BhvVM.
 From SM64.Proofs.WMotRRequiresA Require ObjWorld ObjRing PollKeep PlatformKeep ClearKeep BhvStep.
 From SM64.Proofs.WMotRRequiresA Require ObjExit FieldWin FieldWinCensus.
+From SM64.Proofs Require Interp.CMem.
+Module CM := SM64.Proofs.Interp.CMem.
 Import ListNotations.
 Local Open Scope Z_scope.
 Local Transparent Archi.ptr64.
@@ -38,15 +40,16 @@ Module OLP := object_list_processor.
 Module PK := PollKeep.
 
 Local Ltac wtac d n := let D := fresh in
-  pose proof (FieldWin.ucl_disj d n _ _ ltac:(cbn; tauto) ltac:(eassumption)) as D;
+  pose proof (FieldWin.ucl_h_disj d n _ _ ltac:(cbn; tauto) ltac:(eassumption)) as D;
   match goal with |- ?e <= ?a \/ ?b <= ?off => edestruct (D a (b - a)) as [X | X]; lia end.
 
-(* the window of a census field misses every ucl range *)
-Lemma ucl_field : forall f, In f FieldWinCensus.win_fields -> forall off e, FieldWin.ucl off e ->
+(* the window of a census field misses every ucl_h range (obj_w's windows:
+   the census's minus the cannon home, FieldWinCensus.win_fields_ow) *)
+Lemma ucl_field : forall f, In f FieldWinCensus.win_fields_ow -> forall off e, FieldWin.ucl_h off e ->
   e <= 136 + 4 * f \/ 140 + 4 * f <= off.
 Proof.
   intros f Hf off e U.
-  rewrite FieldWinCensus.win_fields_value in Hf. cbn [In] in Hf.
+  rewrite FieldWinCensus.win_fields_ow_value in Hf. cbn [In] in Hf.
   repeat (destruct Hf as [<- | Hf];
     [ first [ wtac 140 144
             | wtac 148 152
@@ -60,22 +63,28 @@ Proof.
             | wtac 296 304
             | wtac 324 328
             | wtac 344 348
-            | wtac 356 376
+            | wtac 368 376
             | wtac 380 384
             | wtac 404 408 ] | ]).
   destruct Hf.
 Qed.
 
 (* a census field's window satisfies the section's Hdn *)
-Lemma field_dn : forall f, In f FieldWinCensus.win_fields ->
+Lemma field_dn : forall f, In f FieldWinCensus.win_fields_ow ->
   136 <= 136 + 4 * f /\ 136 + 4 * f <= 140 + 4 * f <= 460
-  /\ forall off e, (e <= 156 \/ 160 <= off) -> (e <= 400 \/ 404 <= off) -> FieldWin.ucl off e ->
+  /\ forall off e, (e <= 156 \/ 160 <= off) -> (e <= 400 \/ 404 <= off) -> FieldWin.ucl_h off e ->
        e <= 136 + 4 * f \/ 140 + 4 * f <= off.
 Proof.
-  intros f Hf. pose proof Hf as Hf'. rewrite FieldWinCensus.win_fields_value in Hf'.
+  intros f Hf. pose proof Hf as Hf'. rewrite FieldWinCensus.win_fields_ow_value in Hf'.
   assert (R : 1 <= f <= 67) by (cbn [In] in Hf'; repeat (destruct Hf' as [<- | Hf']; [ lia | ]); destruct Hf').
   split; [ lia | split; [ lia | ] ]. intros off e _ _ U. exact (ucl_field f Hf off e U).
 Qed.
+
+(* the PhiW form (ucl) of a window's disjointness *)
+Lemma dn_weak : forall d n, (forall off e, (e <= 156 \/ 160 <= off) -> (e <= 400 \/ 404 <= off) -> FieldWin.ucl_h off e ->
+    e <= d \/ n <= off) ->
+  forall off e, (e <= 156 \/ 160 <= off) -> (e <= 400 \/ 404 <= off) -> FieldWin.ucl off e -> e <= d \/ n <= off.
+Proof. intros d n H off e A B U. exact (H off e A B (FieldWin.ucl_ucl_h off e U)). Qed.
 
 Section FLD.
   Variable lp : Clight.program.
@@ -92,6 +101,10 @@ Section FLD.
   Hypothesis Hpool : Genv.find_symbol G OLP._gObjectPool = Some pool.
 
   Variables (d n : Z).
+  (* Hdn: [d, n) misses PhiW's reads (ucl).  obj_w's (2026-11-09: ccl's
+     ucl_h, which reads the cannon home) need, besides, the trajectory's
+     keep: from a window (kt_win, Hdh) or from a home store at a slot no
+     bhvCannon runs (ObjStep) *)
   Hypothesis Hdn : 136 <= d /\ d <= n <= 460
     /\ forall off e, (e <= 156 \/ 160 <= off) -> (e <= 400 \/ 404 <= off) -> FieldWin.ucl off e ->
          e <= d \/ n <= off.
@@ -314,20 +327,26 @@ Section FLD.
             | exact CKo | exact CKn | exact Hphi | exact (phiw_surf_apart lp bm _ g Hphi) ].
   Qed.
 
-  (* obj_w's pool frame (SKc: ccl) misses [d, n) *)
-  Lemma SKC : PK.SKc g m1 pool.
+  (* obj_w's pool frame off the homes (SKh: ccl) misses [d, n) *)
+  Lemma SKH : PK.SKh g m1 pool.
   Proof.
-    intros ch' k off A B _ Cc. pose proof (size_chunk_pos ch').
+    intros ch' k off A B _ Cc Hh. pose proof (size_chunk_pos ch').
     destruct Cc as (_ & _ & C3 & C4 & U).
-    pose proof (Dw _ _ C3 C4 U) as Dd.
+    pose proof (Dw _ _ C3 C4 (FieldWin.ucl_h_ucl off (off + size_chunk ch') ltac:(lia) U Hh)) as Dd.
     apply LPs; [ lia | exact B | right; exact Dd ].
   Qed.
+
+  Section KT.
+    Hypothesis KT : forall k, OW.can_traj G pool g k -> OW.can_traj G pool m1 k.
 
   Lemma ow1 : OW.obj_w G bm m1.
   Proof.
     destruct Hg as (_ & _ & _ & _ & How).
-    assert (KP : forall pool', Genv.find_symbol G OLP._gObjectPool = Some pool' -> PK.SKc g m1 pool').
-    { intros pool' Sp. rewrite Hpool in Sp. injection Sp as <-. exact SKC. }
+    assert (KP : forall pool', Genv.find_symbol G OLP._gObjectPool = Some pool' -> PK.SKh g m1 pool').
+    { intros pool' Sp. rewrite Hpool in Sp. injection Sp as <-. exact SKH. }
+    assert (KT' : forall pool' k, Genv.find_symbol G OLP._gObjectPool = Some pool' ->
+              OW.can_traj G pool' g k -> OW.can_traj G pool' m1 k).
+    { intros pool' k Sp. rewrite Hpool in Sp. injection Sp as <-. exact (KT k). }
     assert (K : forall id b, In id PK.ow_ids -> existsb (Pos.eqb id) PK.ow_xc = false -> Genv.find_symbol G id = Some b ->
               forall ch' z, Mem.load ch' m1 b z = Mem.load ch' g b z).
     { intros id b Hin Hn Hs ch' z. apply (LOs id b ch' z Hs).
@@ -359,7 +378,7 @@ Section FLD.
     assert (KSc : forall s b, In s (map v_s vm_tab) -> Genv.find_symbol G s = Some b ->
               forall ch' z, Mem.load ch' m1 b z = Mem.load ch' g b z).
     { intros s b Hin Hs ch' z. destruct (ObjExit.scr_ids_ne s Hin) as (_ & N2). exact (LOs s b ch' z Hs N2). }
-    apply (PK.obj_w_slots_c g m1 G bm K KP KS KC Kbm KSc); [ | | exact How ].
+    apply (PK.obj_w_slots_h g m1 G bm K KP KT' KS KC Kbm KSc); [ | | exact How ].
     - intros pool' rs S1 Cnco k Hk. rewrite Hpool in S1. injection S1 as <-.
       destruct (Cnco k Hk) as (n0 & Ln & Rn). exists n0.
       unfold OW.O_NCOLL in *. rewrite LPlo by (cbn [size_chunk]; lia). exact (conj Ln Rn).
@@ -371,14 +390,37 @@ Section FLD.
       rewrite LPlo by (cbn [size_chunk]; lia). exact (conj Lv Sv).
   Qed.
 
-  Theorem fld_pc : Pc m1.
+  Theorem fld_pc_t : Pc m1.
   Proof. exact (conj ok1 (conj phi1 (conj ad1 (conj ps1 ow1)))). Qed.
+  End KT.
+
+  (* a window off obj_w's reads too (ucl_h: the home is no window): the
+     trajectory's cells stay *)
+  Lemma kt_win : (forall off e, (e <= 156 \/ 160 <= off) -> (e <= 400 \/ 404 <= off) -> FieldWin.ucl_h off e ->
+      e <= d \/ n <= off) ->
+    forall k, OW.can_traj G pool g k -> OW.can_traj G pool m1 k.
+  Proof.
+    intros Hdh k. apply (OW.can_traj_eq G pool g m1 k).
+    - intros ch' off Hoff Hch. assert (Hs : size_chunk ch' = 4) by (destruct Hch as [-> | ->]; reflexivity).
+      unfold OW.traj_offs in Hoff. cbn [In] in Hoff.
+      apply LPs; try rewrite Hs; [ | | right ];
+        destruct Hoff as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]];
+        unfold O_POSX, O_POSY, O_POSZ, OW.O_ACTION, OW.O_PREVACT, OW.O_TIMER, OW.O_HOMEX, OW.O_HOMEY, OW.O_HOMEZ,
+          RAW_OFF, OW.OSZ; try lia;
+        (apply Hdh; [ lia | lia | unfold FieldWin.ucl_h; lia ]).
+    - unfold OW.ld32. rewrite !CM.load_eq. destruct Hdn as (_ & D2 & _).
+      apply LPs; unfold OW.O_CMD, OW.OSZ; cbn [size_chunk]; lia.
+  Qed.
+
+  Theorem fld_pc : (forall off e, (e <= 156 \/ 160 <= off) -> (e <= 400 \/ 404 <= off) -> FieldWin.ucl_h off e ->
+      e <= d \/ n <= off) -> Pc m1.
+  Proof. intros Hdh. exact (fld_pc_t (kt_win Hdh)). Qed.
 
   (* the ring links (96 / 100) and the list heads stay *)
   Lemma fld_rings : forall la, la <> pool -> OW.rings m1 pool la = OW.rings g pool la.
   Proof.
     intros la Nl. apply (PK.rings_eq g m1).
-    - exact SKC.
+    - exact SKH.
     - intros z. apply PK.ld32_eq. intros ch' z'. exact (LO ch' la z' Nl).
   Qed.
 

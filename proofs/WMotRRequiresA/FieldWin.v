@@ -79,3 +79,61 @@ Definition field_bytes (l : list Z) : list Z :=
   List.flat_map (fun f => (136 + 4 * f :: 137 + 4 * f :: 138 + 4 * f :: 139 + 4 * f :: nil)%list) l.
 Lemma uwin_census : uwin_bytes = field_bytes FieldWinCensus.win_fields.
 Proof. rewrite FieldWinCensus.win_fields_value. vm_compute. reflexivity. Qed.
+
+(* THE OBJECT WORLD'S WINDOWS (2026-11-09, the cannon trajectory).  obj_w
+   reads a cannon base's home (fields 55-57, ObjWorld.can_traj), so for
+   obj_w's frames (ObjWorld.ccl) the window [356, 376) narrows to its
+   fields 58-59, [368, 376); PhiW's frames (RenderKeep.ccl_at) keep ucl.
+   SET_HOME's store is then no window store for obj_w: its keep is the
+   re-anchor at the cannon's word 7 (ObjHome) and, at every other slot,
+   the cannon pin's script key (a home is read at a bhvCannon slot only). *)
+Definition ucl_h (off e : Z) : Prop :=
+  (e <= 140 \/ 144 <= off) /\ (e <= 148 \/ 152 <= off) /\ (e <= 176 \/ 180 <= off)
+  /\ (e <= 184 \/ 188 <= off) /\ (e <= 200 \/ 204 <= off) /\ (e <= 208 \/ 232 <= off)
+  /\ (e <= 240 \/ 244 <= off) /\ (e <= 248 \/ 256 <= off) /\ (e <= 288 \/ 292 <= off)
+  /\ (e <= 296 \/ 304 <= off) /\ (e <= 324 \/ 328 <= off) /\ (e <= 344 \/ 348 <= off)
+  /\ (e <= 368 \/ 376 <= off) /\ (e <= 380 \/ 384 <= off) /\ (e <= 404 \/ 408 <= off).
+
+Lemma ucl_ucl_h : forall off e, ucl off e -> ucl_h off e.
+Proof. intros off e. unfold ucl, ucl_h. intros; lia. Qed.
+
+(* a range missing ucl_h and the home fields misses ucl *)
+Lemma ucl_h_ucl : forall off e, off < e -> ucl_h off e -> (e <= 356 \/ 368 <= off) -> ucl off e.
+Proof. intros off e. unfold ucl, ucl_h. intros; lia. Qed.
+
+Lemma ucl_h_eq : forall a b a' b', a = a' -> b = b' -> ucl_h a b -> ucl_h a' b'.
+Proof. intros a b a' b' -> ->. exact (fun H => H). Qed.
+Lemma ucl_h_lo : forall off e, e <= 140 -> ucl_h off e.
+Proof. intros off e H. unfold ucl_h. lia. Qed.
+Lemma ucl_h_hi : forall off e, 408 <= off -> ucl_h off e.
+Proof. intros off e H. unfold ucl_h. lia. Qed.
+
+Definition UWIN_H : list (Z * Z) :=
+  ((140, 144) :: (148, 152) :: (176, 180) :: (184, 188) :: (200, 204) :: (208, 232) :: (240, 244)
+   :: (248, 256) :: (288, 292) :: (296, 304) :: (324, 328) :: (344, 348) :: (368, 376) :: (380, 384)
+   :: (404, 408) :: nil)%list.
+
+Lemma ucl_h_disj : forall d n off e, List.In (d, n) UWIN_H -> ucl_h off e ->
+  forall z0 s, d <= z0 -> z0 + s <= n -> 0 <= s -> e <= z0 \/ z0 + s <= off.
+Proof.
+  intros d n off e Hin U z0 s A B C.
+  destruct U as (U1 & U2 & U3 & U4 & U5 & U6 & U7 & U8 & U9 & U10 & U11 & U12 & U13 & U14 & U15).
+  unfold UWIN_H in Hin. cbn in Hin.
+  repeat (destruct Hin as [Hin | Hin];
+    [ injection Hin as <- <-;
+      first [ exact (ucl_gen _ _ _ _ _ _ U1 A B C) | exact (ucl_gen _ _ _ _ _ _ U2 A B C)
+            | exact (ucl_gen _ _ _ _ _ _ U3 A B C) | exact (ucl_gen _ _ _ _ _ _ U4 A B C)
+            | exact (ucl_gen _ _ _ _ _ _ U5 A B C) | exact (ucl_gen _ _ _ _ _ _ U6 A B C)
+            | exact (ucl_gen _ _ _ _ _ _ U7 A B C) | exact (ucl_gen _ _ _ _ _ _ U8 A B C)
+            | exact (ucl_gen _ _ _ _ _ _ U9 A B C) | exact (ucl_gen _ _ _ _ _ _ U10 A B C)
+            | exact (ucl_gen _ _ _ _ _ _ U11 A B C) | exact (ucl_gen _ _ _ _ _ _ U12 A B C)
+            | exact (ucl_gen _ _ _ _ _ _ U13 A B C) | exact (ucl_gen _ _ _ _ _ _ U14 A B C)
+            | exact (ucl_gen _ _ _ _ _ _ U15 A B C) ] | ]).
+  destruct Hin.
+Qed.
+
+(* obj_w's windows are exactly the census's window fields minus the home *)
+Definition uwin_h_bytes : list Z :=
+  List.flat_map (fun p => List.map (fun i => fst p + Z.of_nat i) (List.seq 0 (Z.to_nat (snd p - fst p)))) UWIN_H.
+Lemma uwin_h_census : uwin_h_bytes = field_bytes FieldWinCensus.win_fields_ow.
+Proof. rewrite FieldWinCensus.win_fields_ow_value. vm_compute. reflexivity. Qed.

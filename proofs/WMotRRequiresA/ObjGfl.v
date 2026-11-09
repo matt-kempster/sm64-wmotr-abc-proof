@@ -284,7 +284,7 @@ Section GF.
   Lemma gfl_rings : forall la, la <> pool -> OW.rings m1 pool la = OW.rings g pool la.
   Proof.
     intros la Nl. apply (PK.rings_eq g m1).
-    - intros ch' k off A B _ _. pose proof (size_chunk_pos ch'). apply LPs; [ lia | exact B | right; lia ].
+    - intros ch' k off A B _ _ _. pose proof (size_chunk_pos ch'). apply LPs; [ lia | exact B | right; lia ].
     - intros z. apply PK.ld32_eq. intros ch' z'. exact (LO ch' la z' Nl).
   Qed.
 

@@ -226,6 +226,17 @@ Qed.
 (* ---------------------------------------------------------------------- *)
 (* 4. The keeps for INV_k from the keeps for the ghost.                    *)
 (* ---------------------------------------------------------------------- *)
+(* the cannon's word 7 is SET_HOME, its word 14 END_LOOP *)
+Lemma sL_op' : forall st w, st = ObjInv.sL -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 45.
+Proof. intros st w -> Hw. exact (ObjInv.sL_op w Hw). Qed.
+
+Lemma c14_op : forall st w, word_at (v_s st) (v_i st) = Some w -> v_s st = OW.CANS -> v_i st = 14%nat ->
+  Z.shiftr w 24 = 9.
+Proof.
+  intros st w Hw Es E14. rewrite Es, E14 in Hw. destruct ObjInv.c14_word as (w' & Hw' & Eo).
+  rewrite Hw in Hw'. injection Hw' as <-. exact Eo.
+Qed.
+
 Section Rows.
   Variable lp : Clight.program.
   Notation G := (lp_ge lp).
@@ -259,19 +270,22 @@ Section Rows.
   Notation GPi := (fun _ : vst => GP).
   Definition GPn (s : vst) (g : mem) : Prop := ~ ObjInv.Wp s /\ GP g.
   Notation GPs := (ObjInv.GPs lp bm bc0 oc0 SafeB pool oc st0 X).
-  (* 2026-11-09, the cannon prologue (ObjInv.inP): past it the ghost may be
-     RE-ANCHORED, slot k at ObjInv.sL (GPL; t_addf at word 6).  GPx: the
-     ghost of a keep at state s, either kind (the keeps at GPL are the same
-     premises at start state sL, ObjStep) *)
-  Definition GPL (g : mem) : Prop := Pobjl g /\ Vo g ObjInv.sL /\ X g.
+  Notation okA := (ObjInv.okA st0).
+  Notation GPL := (ObjInv.GPL lp bm bc0 oc0 SafeB pool oc X).
+  Notation GP8 := (ObjInv.GP8 lp bm bc0 oc0 SafeB pool oc X).
+  (* 2026-11-09, the cannon's trajectory (ObjInv's kinds): past its
+     prologue the ghost is RE-ANCHORED at ObjInv.sL (GPL; t_addf at word 6,
+     anc_keep), past SET_HOME at ObjInv.s8 (GP8; t_home at word 7,
+     home8_keep).  GPx: the ghost of a one-command keep at state s, the
+     start-state ghost (in st0's region, okA) or the s8 one (the keeps at
+     GP8 are the same premises at start state s8, ObjStep: gk_8).  At sL
+     only SET_HOME runs, at word 14 only END_LOOP *)
   Definition GPx (s : vst) (g : mem) : Prop :=
-    GP g \/ (v_s st0 = OW.CANS /\ v_s s = OW.CANS /\ ~ ObjInv.inP s /\ GPL g).
+    (okA s /\ GP g) \/ (v_s st0 = OW.CANS /\ ObjInv.R8n s /\ GP8 g).
   Definition GPxn (s : vst) (g : mem) : Prop := ~ ObjInv.Wp s /\ GPx s g.
-  Definition GPxc (s : vst) (g : mem) : Prop := ~ ObjInv.inP s /\ GPx s g.
-  Notation GPLi := (fun _ : vst => GPL).
-  Definition GPLn (s : vst) (g : mem) : Prop := ~ ObjInv.Wp s /\ GPL g.
+  Notation GP8i := (fun _ : vst => GP8).
+  Definition GP8n (s : vst) (g : mem) : Prop := ~ ObjInv.Wp s /\ GP8 g.
   Definition GPc (s : vst) (g : mem) : Prop := ~ ObjInv.inP s /\ GP g.
-  Definition GPLc (s : vst) (g : mem) : Prop := ~ ObjInv.inP s /\ GPL g.
   (* ghost and real memory: equal off the cursor and slot k's VM cells *)
   Definition GR (g m : mem) : Prop :=
     Ple (Mem.nextblock g) nb0 /\ Mem.unchanged_on Pfr g m /\ BhvStep.nvB scr g m.
@@ -285,17 +299,17 @@ Section Rows.
     exists g1. exact (conj HG (conj Hgn (conj U NV))).
   Qed.
 
-  Lemma inv_fin : forall s, (ObjInv.inP s -> ObjInv.inP st0) ->
+  Lemma inv_fin : forall s, (ObjInv.inP s -> ObjInv.inP st0) -> okA s ->
     forall m m1 g1, Ple nb0 (Mem.nextblock m) -> Ple (Mem.nextblock m) (Mem.nextblock m1) ->
     cur m1 -> GP g1 -> GR g1 m1 -> INV s m1.
-  Proof. intros s Hcp m m1 g1 Hn L Hc HG. exact (inv_fin_s s Hcp m m1 g1 Hn L Hc (or_introl HG)). Qed.
+  Proof. intros s Hcp Ho m m1 g1 Hn L Hc HG. exact (inv_fin_s s Hcp m m1 g1 Hn L Hc (or_introl (conj Ho HG))). Qed.
 
   Lemma inv_finx : forall s, (ObjInv.inP s -> ObjInv.inP st0) ->
     forall m m1 g1, Ple nb0 (Mem.nextblock m) -> Ple (Mem.nextblock m) (Mem.nextblock m1) ->
     cur m1 -> GPx s g1 -> GR g1 m1 -> INV s m1.
   Proof.
     intros s Hcp m m1 g1 Hn L Hc HG. apply (inv_fin_s s Hcp m m1 g1 Hn L Hc).
-    destruct HG as [HG | HG]; [ left; exact HG | right; right; exact HG ].
+    destruct HG as [HG | (E & R & HG)]; [ left; exact HG | right; right; right; left; exact (conj E (conj R HG)) ].
   Qed.
 
   (* a symbol's block is valid in the ghost (MWF's nextblock bound; as ObjInv.sym_valid) *)
@@ -308,7 +322,7 @@ Section Rows.
 
   Lemma gx_valid : forall s g id b, GPx s g -> Genv.find_symbol G id = Some b -> Mem.valid_block g b.
   Proof.
-    intros s g id b [HG | (_ & _ & _ & HP & _)] Hs; [ exact (sym_v g id b HG Hs) | ].
+    intros s g id b [(_ & HG) | (_ & _ & HP & _)] Hs; [ exact (sym_v g id b HG Hs) | ].
     exact (ObjInv.sym_valid lp bm bc0 oc0 SafeB g id b HP Hs).
   Qed.
 
@@ -344,11 +358,21 @@ Section Rows.
     assert (Hgr : GR g m) by exact (conj Hgn (conj U NV)); clear Hgn U NV.
   (* a command other than SET_INT / SET_HITBOX / CALL_NATIVE is never run in
      the pole window (ObjInv.W_not): there the ghost is GP *)
+  (* nor SET_HOME (sL's) or END_LOOP (word 14's): there the ghost is GPx *)
   Ltac gout_ HGs g st w Hst Hw Ho :=
-    assert (HG : GPx st g) by (destruct HGs as [HG | [(Hwp & _) | (Ec & Es & Hnp & HG)]];
+    assert (HG : GPx st g) by (destruct HGs as [HG | [(Hwp & _) | [(Ec & Es & _) | [(Ec & Hr & HG) | (Ec & Es & E14 & _)]]]];
       [ left; exact HG | exfalso; exact (ObjInv.W_not st w _ Hst Hwp Hw Ho ltac:(lia) ltac:(lia) ltac:(lia))
-      | right; exact (conj Ec (conj Es (conj Hnp HG))) ]);
+      | exfalso; pose proof (sL_op' st w Es Hw) as Eo; rewrite Ho in Eo; discriminate Eo
+      | right; exact (conj Ec (conj Hr HG))
+      | exfalso; pose proof (c14_op st w Hw Es E14) as Eo; rewrite Ho in Eo; discriminate Eo ]);
     clear HGs; assert (Hv : Mem.valid_block g pool) by exact (gx_valid st g _ _ HG Hpool).
+  (* the same outside the pole window, for SET_INT / SET_HITBOX *)
+  Ltac gnw HGs g st w Hw Ho Hnw :=
+    assert (HG : GPx st g) by (destruct HGs as [HG | [(Hwp & _) | [(Ec & Es & _) | [(Ec & Hr & HG) | (Ec & Es & E14 & _)]]]];
+      [ left; exact HG | exfalso; exact (Hnw Hwp)
+      | exfalso; pose proof (sL_op' st w Es Hw) as Eo; rewrite Ho in Eo; discriminate Eo
+      | right; exact (conj Ec (conj Hr HG))
+      | exfalso; pose proof (c14_op st w Hw Es E14) as Eo; rewrite Ho in Eo; discriminate Eo ]).
 
   (* ---- the one-store keeps ---- *)
   (* SET_INT: in the pole window it is SET_INT(oInteractType, INTERACT_POLE)
@@ -367,7 +391,7 @@ Section Rows.
       refine (ObjInv.win_keep lp bm bc0 oc0 SafeB pool oc st0 X st g g1 Hwp HGs U1 N1 _).
       right. replace (oc + 304) with (oc + 136 + 4 * 42) by lia.
       rewrite (Mem.load_store_same _ _ _ _ _ _ Sg). reflexivity.
-    - assert (HG : GPx st g) by (destruct HGs as [HG | [(Hwp & _) | HG]]; [ left; exact HG | contradiction | right; exact HG ]).
+    - gnw HGs g st w Hw Ho Hnw.
       destruct (K g st w g1 (conj Hnw HG) Hst HQ Hw Ho Sg) as (_ & HG1).
       exact (inv_finx st Hcp m m1 g1 Hn (nb_st _ _ _ _ _ S) (cur_st _ _ _ _ _ Hc S) HG1 Hgr1).
   Qed.
@@ -395,13 +419,13 @@ Section Rows.
     exact (inv_finx st Hcp m m1 g1 Hn (nb_st _ _ _ _ _ S) (cur_st _ _ _ _ _ Hc S) (K g st w old g1 HG Hst HQ Hw Ho L Sg) Hgr1).
   Qed.
 
-  (* ADD_FLOAT (2026-11-09).  Outside the cannon prologue: the ghost keep,
-     asked there only (GPxc; it is FALSE at a phantom ghost inside it).
-     Inside it: bhvCannon's word 6, ADD_FLOAT(oPosY, -340) (ObjInv.P_addf),
-     and the update started in the prologue (INV_k's clause), so the ghost
-     is GP with slot k at its lid's y (obj_w's cannon pin D): the ghost is
-     RE-ANCHORED at sL, slot k dropped to lid - 340 (anc_keep, PROVED in
-     ObjAnchor for the objects step's ghost facts) *)
+  (* ADD_FLOAT (2026-11-09).  Outside the cannon: the ghost keep (asked
+     outside the prologue, GPc; it is FALSE at a phantom ghost inside it).
+     The cannon's ADD_FLOAT is its prologue's (word 6, ObjInv.can_op /
+     P_addf), and the update started in the prologue (INV_k's clause), so
+     the ghost is GP with slot k at its lid's y (obj_w's can_traj, class
+     0): the ghost is RE-ANCHORED at sL, slot k dropped to lid - 340
+     (anc_keep, PROVED in ObjAnchor for the objects step's ghost facts) *)
   Definition anc_keep : Prop := forall g m m1 w old, GP g -> ObjInv.inP st0 -> GR g m ->
     word_at OW.CANS 6 = Some w ->
     Mem.load Mfloat32 g pool (oc + 136 + 4 * 7) = Some (Vsingle old) ->
@@ -411,13 +435,13 @@ Section Rows.
   Lemma sL_nP : ~ ObjInv.inP ObjInv.sL.
   Proof. intros (_ & H). cbn in H. lia. Qed.
 
-  Lemma t_addf : BhvStep.addf_keep pool oc GPxc Qk -> anc_keep -> BhvStep.addf_keep pool oc INV Qk.
+  Lemma t_addf : BhvStep.addf_keep pool oc GPc Qk -> anc_keep -> BhvStep.addf_keep pool oc INV Qk.
   Proof.
     intros K A m st w old m1 HI Hst HQ Hw Ho L S l st' Hl Hin'. ginv HI m. gout_ HGs g st w Hst Hw Ho.
     rewrite (ld_gr g m _ _ Hgr Hv (fld2 st w Hst Hw ltac:(rewrite Ho; reflexivity) oc Mfloat32 ltac:(cbn; lia))) in L.
     destruct (ObjInv.inP_dec st) as [Hp | Hnp].
     - (* the cannon's word 6: the ghost re-anchored at sL *)
-      destruct HG as [HG | (_ & _ & Hnp & _)]; [ | contradiction ].
+      destruct HG as [(_ & HG) | (_ & (_ & H8 & _) & _)]; [ | exfalso; destruct Hp as (_ & Hp); lia ].
       destruct (ObjInv.P_addf st w Hst Hp Hw Ho) as (Ei & Eb & _ & Es).
       rewrite Es in Hl. injection Hl as <-. destruct Hin' as [<- | []].
       pose proof Hp as (Ec & _). rewrite Ec, Ei in Hw. rewrite Eb in L, S.
@@ -425,10 +449,17 @@ Section Rows.
       destruct (A g m m1 w old HG Hp0 Hgr Hw L S) as (g1 & HG1 & Hgr1).
       refine (inv_fin_s ObjInv.sL (fun H => False_ind _ (sL_nP H)) m m1 g1 Hn (nb_st _ _ _ _ _ S)
                 (cur_st _ _ _ _ _ Hc S) _ Hgr1).
-      right; right. exact (conj (proj1 Hp0) (conj eq_refl (conj sL_nP HG1))).
-    - destruct (gr_st _ _ _ _ _ _ Hgr Hv S) as (g1 & Sg & Hgr1 & _).
+      right; right; left. exact (conj (proj1 Hp0) (conj eq_refl HG1)).
+    - (* not the cannon: its ADD_FLOAT is inside the prologue *)
+      destruct (Pos.eq_dec (v_s st0) OW.CANS) as [Ec | Nc].
+      { exfalso. apply Hnp.
+        assert (Es : v_s st = OW.CANS) by exact (ObjInv.Qk_can st0 st HQ Ec).
+        exact (proj2 (proj2 (ObjInv.can_op st Hst Es) w Hw) Ho). }
+      destruct HG as [(_ & HG) | (E & _)]; [ | exfalso; exact (Nc E) ].
+      destruct (gr_st _ _ _ _ _ _ Hgr Hv S) as (g1 & Sg & Hgr1 & _).
       destruct (K g st w old g1 (conj Hnp HG) Hst HQ Hw Ho L Sg l st' Hl Hin') as (Hnp' & HG1).
-      exact (inv_finx st' (fun H => False_ind _ (Hnp' H)) m m1 g1 Hn (nb_st _ _ _ _ _ S) (cur_st _ _ _ _ _ Hc S) HG1 Hgr1).
+      exact (inv_finx st' (fun H => False_ind _ (Hnp' H)) m m1 g1 Hn (nb_st _ _ _ _ _ S) (cur_st _ _ _ _ _ Hc S)
+               (or_introl (conj (fun E => False_ind _ (Nc E)) HG1)) Hgr1).
   Qed.
 
   Lemma t_sumf : BhvStep.sumf_keep pool oc GPx Qk -> BhvStep.sumf_keep pool oc INV Qk.
@@ -512,7 +543,7 @@ Section Rows.
                 (Mem.unchanged_on_trans _ _ _ _ U1 U2) (eq_trans N2 N1) _).
       left. rewrite (Mem.load_store_other _ _ _ _ _ _ Sg2) by (right; left; cbn [size_chunk]; lia).
       rewrite (Mem.load_store_other _ _ _ _ _ _ Sg1) by (right; left; cbn [size_chunk]; lia). reflexivity.
-    - assert (HG : GPx st g) by (destruct HGs as [HG | [(Hwp & _) | HG]]; [ left; exact HG | contradiction | right; exact HG ]).
+    - gnw HGs g st w Hw Ho Hnw.
       destruct (K g st w z g1 g2 (conj Hnw HG) Hst HQ Hw Ho Hz Sg1 Sg2) as (_ & HG2).
       exact (inv_finx st Hcp m m2 g2 Hn Nb Cu HG2 Hgr2).
   Qed.
@@ -528,18 +559,67 @@ Section Rows.
              (K g st w z z2 g1 g2 g3 HG Hst HQ Hw Ho Hz Hz2 Sg1 Sg2 Sg3) Hgr3).
   Qed.
 
-  Lemma t_home : BhvStep.home_keep pool oc GPx Qk -> BhvStep.home_keep pool oc INV Qk.
+  (* SET_HOME (2026-11-09).  Outside the cannon: the ghost keep (ObjStep,
+     PROVED: the slot runs no cannon, the trajectory pin is vacuous).  The
+     cannon's SET_HOME is sL's (ObjInv.can_op); there the ghost is the
+     re-anchored one (GPL), or the start-state ghost of an update started
+     at word 7 (st0 = sL, so GPL too): it is RE-ANCHORED at s8 (oHome :=
+     oPos, home8_keep, PROVED in ObjHome) *)
+  Definition home8_keep : Prop := forall g m f1 f2 f3 m1 m2 m3, GPL g -> GR g m ->
+    Mem.load Mfloat32 m pool (oc + 136 + 4 * 6) = Some (Vsingle f1) ->
+    Mem.store Mfloat32 m pool (oc + 136 + 4 * 55) (Vsingle f1) = Some m1 ->
+    Mem.load Mfloat32 m1 pool (oc + 136 + 4 * 7) = Some (Vsingle f2) ->
+    Mem.store Mfloat32 m1 pool (oc + 136 + 4 * 56) (Vsingle f2) = Some m2 ->
+    Mem.load Mfloat32 m2 pool (oc + 136 + 4 * 8) = Some (Vsingle f3) ->
+    Mem.store Mfloat32 m2 pool (oc + 136 + 4 * 57) (Vsingle f3) = Some m3 ->
+    exists g8, GP8 g8 /\ GR g8 m3.
+
+  Lemma creg1 : forall s, ObjInv.creg s = 1%nat -> v_i s = 7%nat.
   Proof.
-    intros K m st w f1 f2 f3 m1 m2 m3 HI Hst HQ Hw Ho L1 S1 L2 S2 L3 S3. ginv HI m. gout_ HGs g st w Hst Hw Ho.
-    rewrite (ld_gr g m Mfloat32 (oc + 136 + 4 * 6) Hgr Hv ltac:(left; unfold OW.O_CMD; cbn [size_chunk]; lia)) in L1.
-    destruct (gr_st _ _ _ _ _ _ Hgr Hv S1) as (g1 & Sg1 & Hgr1 & Hv1).
-    rewrite (ld_gr g1 m1 Mfloat32 (oc + 136 + 4 * 7) Hgr1 Hv1 ltac:(left; unfold OW.O_CMD; cbn [size_chunk]; lia)) in L2.
-    destruct (gr_st _ _ _ _ _ _ Hgr1 Hv1 S2) as (g2 & Sg2 & Hgr2 & Hv2).
-    rewrite (ld_gr g2 m2 Mfloat32 (oc + 136 + 4 * 8) Hgr2 Hv2 ltac:(left; unfold OW.O_CMD; cbn [size_chunk]; lia)) in L3.
-    destruct (gr_st _ _ _ _ _ _ Hgr2 Hv2 S3) as (g3 & Sg3 & Hgr3 & _).
-    exact (inv_finx st Hcp m m3 g3 Hn (Ple_trans _ _ _ (Ple_trans _ _ _ (nb_st _ _ _ _ _ S1) (nb_st _ _ _ _ _ S2)) (nb_st _ _ _ _ _ S3))
-             (cur_st _ _ _ _ _ (cur_st _ _ _ _ _ (cur_st _ _ _ _ _ Hc S1) S2) S3)
-             (K g st w f1 f2 f3 g1 g2 g3 HG Hst HQ Hw Ho L1 Sg1 L2 Sg2 L3 Sg3) Hgr3).
+    intros s E. unfold ObjInv.creg in E.
+    destruct (Nat.leb_spec (v_i s) 6); [ discriminate E | ].
+    destruct (Nat.eqb_spec (v_i s) 7); [ assumption | discriminate E ].
+  Qed.
+
+  Lemma t_home : In st0 vm_tab -> (v_s st0 <> OW.CANS -> BhvStep.home_keep pool oc GPi Qk) -> home8_keep ->
+    BhvStep.home_keep pool oc INV Qk.
+  Proof.
+    intros H0 K KH m st w f1 f2 f3 m1 m2 m3 HI Hst HQ Hw Ho L1 S1 L2 S2 L3 S3 l st' Hl Hin. ginv HI m.
+    assert (Nb : Ple (Mem.nextblock m) (Mem.nextblock m3))
+      by exact (Ple_trans _ _ _ (Ple_trans _ _ _ (nb_st _ _ _ _ _ S1) (nb_st _ _ _ _ _ S2)) (nb_st _ _ _ _ _ S3)).
+    assert (Cu : cur m3) by exact (cur_st _ _ _ _ _ (cur_st _ _ _ _ _ (cur_st _ _ _ _ _ Hc S1) S2) S3).
+    destruct (Pos.eq_dec (v_s st0) OW.CANS) as [Ec | Nc].
+    - (* the cannon: SET_HOME at sL, the ghost re-anchored at s8 *)
+      assert (Es : v_s st = OW.CANS) by exact (ObjInv.Qk_can st0 st HQ Ec).
+      pose proof (proj1 (proj2 (ObjInv.can_op st Hst Es) w Hw) Ho) as EsL. subst st.
+      pose proof (ObjInv.sL_succ l st' Hl Hin) as ->.
+      assert (HL : GPL g).
+      { destruct HGs as [(Hoa & HG) | [(Hwp & _) | [(_ & _ & HG) | [(_ & (_ & H8 & _) & _) | (_ & _ & E14 & _)]]]].
+        - destruct (Hoa Ec) as (Er & _). pose proof (creg1 st0 (eq_sym Er)) as E7.
+          pose proof (proj1 (ObjInv.can_op st0 H0 Ec) E7) as E0. rewrite E0 in HG. exact HG.
+        - exfalso. destruct Hwp as (Ew & _). vm_compute in Ew. discriminate Ew.
+        - exact HG.
+        - exfalso. cbn in H8. lia.
+        - exfalso. cbn in E14. discriminate E14. }
+      destruct (KH g m f1 f2 f3 m1 m2 m3 HL Hgr L1 S1 L2 S2 L3 S3) as (g8 & HG8 & Hgr8).
+      refine (inv_fin_s ObjInv.s8 _ m m3 g8 Hn Nb Cu _ Hgr8).
+      + intros (_ & H8). cbn in H8. lia.
+      + right; right; right; left. exact (conj Ec (conj ObjInv.s8_R8n HG8)).
+    - (* any other script: the ghost keep *)
+      assert (HG : GPx st g) by (destruct HGs as [HG | [(Hwp & _) | [(Ec & _) | [(Ec & _) | (Ec & _)]]]];
+        [ left; exact HG | exfalso; exact (ObjInv.W_not st w _ Hst Hwp Hw Ho ltac:(lia) ltac:(lia) ltac:(lia))
+        | exfalso; exact (Nc Ec) .. ]).
+      clear HGs. assert (Hv : Mem.valid_block g pool) by exact (gx_valid st g _ _ HG Hpool).
+      destruct HG as [(_ & HG) | (E & _)]; [ | exfalso; exact (Nc E) ].
+      rewrite (ld_gr g m Mfloat32 (oc + 136 + 4 * 6) Hgr Hv ltac:(left; unfold OW.O_CMD; cbn [size_chunk]; lia)) in L1.
+      destruct (gr_st _ _ _ _ _ _ Hgr Hv S1) as (g1 & Sg1 & Hgr1 & Hv1).
+      rewrite (ld_gr g1 m1 Mfloat32 (oc + 136 + 4 * 7) Hgr1 Hv1 ltac:(left; unfold OW.O_CMD; cbn [size_chunk]; lia)) in L2.
+      destruct (gr_st _ _ _ _ _ _ Hgr1 Hv1 S2) as (g2 & Sg2 & Hgr2 & Hv2).
+      rewrite (ld_gr g2 m2 Mfloat32 (oc + 136 + 4 * 8) Hgr2 Hv2 ltac:(left; unfold OW.O_CMD; cbn [size_chunk]; lia)) in L3.
+      destruct (gr_st _ _ _ _ _ _ Hgr2 Hv2 S3) as (g3 & Sg3 & Hgr3 & _).
+      exact (inv_finx st' (fun H => Hcp (ObjInv.P_back st l st' Hst Hl Hin H)) m m3 g3 Hn Nb Cu
+               (or_introl (conj (fun E => False_ind _ (Nc E))
+                  (K Nc g st w f1 f2 f3 g1 g2 g3 HG Hst HQ Hw Ho L1 Sg1 L2 Sg2 L3 Sg3 l st' Hl Hin))) Hgr3).
   Qed.
 
   Lemma t_phys : BhvStep.phys_keep pool oc GPx Qk -> BhvStep.phys_keep pool oc INV Qk.
@@ -912,13 +992,15 @@ Section Rows.
   Proof.
     intros K m m1 st HI _ Hst HQ Hgen U1 NV1. ginv HI m.
     (* the pole and the cannon are special scripts: their natives are the residual's *)
-    destruct HGs as [HG | [(Hwp & _) | (_ & Es & _)]];
-      [ | rewrite (ObjInv.W_sp st Hwp) in Hgen; discriminate Hgen | rewrite Es, ObjInv.P_sp in Hgen; discriminate Hgen ].
+    destruct HGs as [(Ho & HG) | [(Hwp & _) | [(_ & Es & _) | [(_ & (Es & _) & _) | (_ & Es & _)]]]];
+      [ | rewrite (ObjInv.W_sp st Hwp) in Hgen; discriminate Hgen
+        | subst st; cbn [v_s ObjInv.sL] in Hgen; rewrite ObjInv.P_sp in Hgen; discriminate Hgen
+        | rewrite Es, ObjInv.P_sp in Hgen; discriminate Hgen .. ].
     assert (Hv : Mem.valid_block g pool) by exact (sym_v g _ _ HG Hpool).
     pose proof (sym_v g _ _ HG Hbcc) as Hvc.
     destruct (K g (folv g m1) st HG Hst HQ Hgen (sfr_fol g m m1 Hgr U1 (proj1 NV1)) (sfr_nv g m m1 Hgr NV1)
                 (fol_nb _ _ _ _ _ _)) as (Kp & Kx).
-    exact (inv_fin st Hcp m m1 (folv g m1) Hn (Mem.unchanged_on_nextblock _ _ _ U1) (cur_sfr m m1 Hc U1)
+    exact (inv_fin st Hcp Ho m m1 (folv g m1) Hn (Mem.unchanged_on_nextblock _ _ _ U1) (cur_sfr m m1 Hc U1)
              (conj Kp (conj (vo_fol g m m1 (proj1 (proj2 HG)) Hgr (proj1 NV1) Hv) Kx))
              (fol_gr_n 40 g m m1 ltac:(cbn; lia) Hgr (Mem.unchanged_on_nextblock _ _ _ U1) (sfr_hh g m m1 Hgr Hv Hvc U1))).
   Qed.
@@ -934,21 +1016,22 @@ Section Rows.
     /\ BhvStep.sri_keep pool oc sb GPi Qk /\ BhvStep.sir_keep pool oc sb GPi Qk /\ BhvStep.par51_ok pool oc GPi Qk
     /\ BhvStep.pbc_keep pool oc GPi Qk /\ BhvStep.atex_keep pool oc GPi Qk /\ BhvStep.bb_keep pool oc GPi Qk
     /\ BhvStep.dr_keep pool oc GPi Qk /\ BhvStep.hb_keep pool oc GPn Qk /\ BhvStep.hbo_keep pool oc GPi Qk
-    /\ BhvStep.home_keep pool oc GPi Qk /\ BhvStep.phys_keep pool oc GPi Qk /\ BhvStep.la_keep lp pool oc GPi Qk
+    /\ (v_s st0 <> OW.CANS -> BhvStep.home_keep pool oc GPi Qk) /\ BhvStep.phys_keep pool oc GPi Qk /\ BhvStep.la_keep lp pool oc GPi Qk
     /\ BhvStep.lcd_keep lp pool oc GPi Qk /\ BhvStep.scale_keep pool oc GPi Qk /\ BhvStep.begin_ok lp pool oc GPi Qk
     /\ gsfr_keep.
 
-  (* the same keeps at the re-anchored ghost (ObjStep: ghost_keeps at start
-     state sL, gk_L); SFR's is not asked (the cannon is a special script) *)
-  Definition ghost_keeps_L : Prop :=
-    BhvStep.set_keep pool oc GPLn Qk /\ BhvStep.setf_keep pool oc GPLi Qk /\ BhvStep.addi_keep pool oc GPLi Qk
-    /\ BhvStep.ori_keep pool oc GPLi Qk /\ BhvStep.addf_keep pool oc GPLc Qk /\ BhvStep.sumf_keep pool oc GPLi Qk
-    /\ BhvStep.deact_keep pool oc GPLi Qk /\ BhvStep.sit_keep pool oc GPLi Qk /\ BhvStep.srf_keep pool oc sb GPLi Qk
-    /\ BhvStep.sri_keep pool oc sb GPLi Qk /\ BhvStep.sir_keep pool oc sb GPLi Qk /\ BhvStep.par51_ok pool oc GPLi Qk
-    /\ BhvStep.pbc_keep pool oc GPLi Qk /\ BhvStep.atex_keep pool oc GPLi Qk /\ BhvStep.bb_keep pool oc GPLi Qk
-    /\ BhvStep.dr_keep pool oc GPLi Qk /\ BhvStep.hb_keep pool oc GPLn Qk /\ BhvStep.hbo_keep pool oc GPLi Qk
-    /\ BhvStep.home_keep pool oc GPLi Qk /\ BhvStep.phys_keep pool oc GPLi Qk /\ BhvStep.la_keep lp pool oc GPLi Qk
-    /\ BhvStep.lcd_keep lp pool oc GPLi Qk /\ BhvStep.scale_keep pool oc GPLi Qk /\ BhvStep.begin_ok lp pool oc GPLi Qk.
+  (* the same keeps at the s8 ghost (ObjStep: ghost_keeps at start state
+     s8, gk_8); ADD_FLOAT's, SET_HOME's and SFR's are not asked (not run
+     past SET_HOME; the cannon is a special script) *)
+  Definition ghost_keeps_8 : Prop :=
+    BhvStep.set_keep pool oc GP8n Qk /\ BhvStep.setf_keep pool oc GP8i Qk /\ BhvStep.addi_keep pool oc GP8i Qk
+    /\ BhvStep.ori_keep pool oc GP8i Qk /\ BhvStep.sumf_keep pool oc GP8i Qk
+    /\ BhvStep.deact_keep pool oc GP8i Qk /\ BhvStep.sit_keep pool oc GP8i Qk /\ BhvStep.srf_keep pool oc sb GP8i Qk
+    /\ BhvStep.sri_keep pool oc sb GP8i Qk /\ BhvStep.sir_keep pool oc sb GP8i Qk /\ BhvStep.par51_ok pool oc GP8i Qk
+    /\ BhvStep.pbc_keep pool oc GP8i Qk /\ BhvStep.atex_keep pool oc GP8i Qk /\ BhvStep.bb_keep pool oc GP8i Qk
+    /\ BhvStep.dr_keep pool oc GP8i Qk /\ BhvStep.hb_keep pool oc GP8n Qk /\ BhvStep.hbo_keep pool oc GP8i Qk
+    /\ BhvStep.phys_keep pool oc GP8i Qk /\ BhvStep.la_keep lp pool oc GP8i Qk
+    /\ BhvStep.lcd_keep lp pool oc GP8i Qk /\ BhvStep.scale_keep pool oc GP8i Qk /\ BhvStep.begin_ok lp pool oc GP8i Qk.
 
   Definition rest_keeps : Prop :=
     BhvStep.native_vals lp pool oc bcc INV Qk (fun _ => SafeB) /\ BhvStep.native_res lp pool oc bcc INV Qk
@@ -1012,7 +1095,7 @@ Section Rows.
   Lemma ghost_keeps_of : BhvStep.set_keep pool oc GPn Qk ->
     BhvStep.bb_keep pool oc GPi Qk -> BhvStep.dr_keep pool oc GPi Qk ->
     BhvStep.setf_keep pool oc GPi Qk -> BhvStep.addi_keep pool oc GPi Qk -> BhvStep.ori_keep pool oc GPi Qk ->
-    BhvStep.atex_keep pool oc GPi Qk -> BhvStep.pbc_keep pool oc GPi Qk -> BhvStep.home_keep pool oc GPi Qk -> BhvStep.phys_keep pool oc GPi Qk ->
+    BhvStep.atex_keep pool oc GPi Qk -> BhvStep.pbc_keep pool oc GPi Qk -> (v_s st0 <> OW.CANS -> BhvStep.home_keep pool oc GPi Qk) -> BhvStep.phys_keep pool oc GPi Qk ->
     BhvStep.scale_keep pool oc GPi Qk ->
     ghost_keeps_r -> ghost_keeps.
   Proof.
@@ -1021,125 +1104,128 @@ Section Rows.
     repeat (apply conj; [ eassumption | ]). exact Ksfr.
   Qed.
 
-  Theorem rows_k : ghost_keeps -> (v_s st0 = OW.CANS -> ghost_keeps_L) -> anc_keep -> rest_keeps ->
-    BhvStep.row_keeps lp go pool oc bcc sb INV Qk (fun _ => SafeB).
+  Theorem rows_k : In st0 vm_tab -> ghost_keeps -> (v_s st0 = OW.CANS -> ghost_keeps_8) -> anc_keep -> home8_keep ->
+    rest_keeps -> BhvStep.row_keeps lp go pool oc bcc sb INV Qk (fun _ => SafeB).
   Proof.
-    intros (K16 & K14 & K15 & K17 & K13 & K31 & K29 & K47 & K20 & K21 & K19 & K51p & K51 & K52 & K33 & K53
-            & K35 & K43 & K45 & K48 & K39 & K42 & K50 & K0 & Ksfr) KL Kanc
+    intros H0 (K16 & K14 & K15 & K17 & K13 & K31 & K29 & K47 & K20 & K21 & K19 & K51p & K51 & K52 & K33 & K53
+            & K35 & K43 & K45 & K48 & K39 & K42 & K50 & K0 & Ksfr) K8 Kanc Khome
            (Kv & Kr & Kc1 & Kc2 & Kc3 & Kw1 & Kw2 & Kw3 & Kw4 & Kan & Kd1 & Kd2).
-    (* the keeps at GPx / GPxn / GPxc *)
+    (* the keeps at GPx / GPxn *)
     assert (X16 : BhvStep.set_keep pool oc GPxn Qk).
-    { intros m st w m1 (Hnw & [H | (E & Es & Hnp & H)]) Hst HQ Hw Ho S; split; [ exact Hnw | | exact Hnw | ].
-      - left. exact (proj2 (K16 m st w m1 (conj Hnw H) Hst HQ Hw Ho S)).
-      - right. exact (conj E (conj Es (conj Hnp (proj2 (proj1 (KL E) m st w m1 (conj Hnw H) Hst HQ Hw Ho S))))). }
+    { intros m st w m1 (Hnw & HG) Hst HQ Hw Hop S. split; [ exact Hnw | ].
+      destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (proj2 (K16 m st w m1 (conj Hnw H) Hst HQ Hw Hop S))).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (proj2 (L16 m st w m1 (conj Hnw H) Hst HQ Hw Hop S)))). }
     assert (X35 : BhvStep.hb_keep pool oc GPxn Qk).
-    { intros m st w z m1 m2 (Hnw & [H | (E & Es & Hnp & H)]) Hst HQ Hw Ho Hz S1 S2; split; [ exact Hnw | | exact Hnw | ].
-      - left. exact (proj2 (K35 m st w z m1 m2 (conj Hnw H) Hst HQ Hw Ho Hz S1 S2)).
-      - right. destruct (KL E) as (_ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & _ & L35 & _).
-        exact (conj E (conj Es (conj Hnp (proj2 (L35 m st w z m1 m2 (conj Hnw H) Hst HQ Hw Ho Hz S1 S2))))). }
-    assert (X13 : BhvStep.addf_keep pool oc GPxc Qk).
-    { intros m st w old m1 (Hnp & [H | (E & Es & Hnp0 & H)]) Hst HQ Hw Ho L S l st' Hl Hin.
-      - destruct (K13 m st w old m1 (conj Hnp H) Hst HQ Hw Ho L S l st' Hl Hin) as (Hnp1 & H1).
-        exact (conj Hnp1 (or_introl H1)).
-      - destruct (KL E) as (_ & _ & _ & _ & L13 & _).
-        destruct (L13 m st w old m1 (conj Hnp H) Hst HQ Hw Ho L S l st' Hl Hin) as (Hnp1 & H1).
-        pose proof (ObjFamily.Qfam_closed (v_s st0) st l st' Hst HQ Hl Hin) as HQ'.
-        pose proof (proj2 (ObjFamily.Qfam_id2 (v_s st0) st' OW.CANS ltac:(right; left; reflexivity) HQ') E) as Es'.
-        exact (conj Hnp1 (or_intror (conj E (conj Es' (conj Hnp1 H1))))). }
-    assert (KL' : v_s st0 = OW.CANS -> ghost_keeps_L) by exact KL. clear KL.
+    { intros m st w z m1 m2 (Hnw & HG) Hst HQ Hw Hop Hz S1 S2. split; [ exact Hnw | ].
+      destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (proj2 (K35 m st w z m1 m2 (conj Hnw H) Hst HQ Hw Hop Hz S1 S2))).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (proj2 (L35 m st w z m1 m2 (conj Hnw H) Hst HQ Hw Hop Hz S1 S2)))). }
     assert (X14 : BhvStep.setf_keep pool oc GPx Qk).
-    { intros m st w m1 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5;
-        [ left; exact (K14 m st w m1 H h1 h2 h3 h4 h5) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (KL' E)))) m st w m1 H h1 h2 h3 h4 h5)))) ]. }
+    { intros m st w m1 HG h1 h2 h3 h4 h5. destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (K14 m st w m1 H h1 h2 h3 h4 h5)).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (L14 m st w m1 H h1 h2 h3 h4 h5))). }
     assert (X15 : BhvStep.addi_keep pool oc GPx Qk).
-    { intros m st w old m1 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5 h6;
-        [ left; exact (K15 m st w old m1 H h1 h2 h3 h4 h5 h6) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (proj2 (KL' E))))) m st w old m1 H h1 h2 h3 h4 h5 h6)))) ]. }
+    { intros m st w old m1 HG h1 h2 h3 h4 h5 h6. destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (K15 m st w old m1 H h1 h2 h3 h4 h5 h6)).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (L15 m st w old m1 H h1 h2 h3 h4 h5 h6))). }
     assert (X17 : BhvStep.ori_keep pool oc GPx Qk).
-    { intros m st w old m1 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5 h6;
-        [ left; exact (K17 m st w old m1 H h1 h2 h3 h4 h5 h6) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (proj2 (proj2 (KL' E)))))) m st w old m1 H h1 h2 h3 h4 h5 h6)))) ]. }
+    { intros m st w old m1 HG h1 h2 h3 h4 h5 h6. destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (K17 m st w old m1 H h1 h2 h3 h4 h5 h6)).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (L17 m st w old m1 H h1 h2 h3 h4 h5 h6))). }
     assert (X31 : BhvStep.sumf_keep pool oc GPx Qk).
-    { intros m st w a1 a2 m1 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5 h6 h7;
-        [ left; exact (K31 m st w a1 a2 m1 H h1 h2 h3 h4 h5 h6 h7) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (KL' E)))))))) m st w a1 a2 m1 H h1 h2 h3 h4 h5 h6 h7)))) ]. }
+    { intros m st w a1 a2 m1 HG h1 h2 h3 h4 h5 h6 h7. destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (K31 m st w a1 a2 m1 H h1 h2 h3 h4 h5 h6 h7)).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (L31 m st w a1 a2 m1 H h1 h2 h3 h4 h5 h6 h7))). }
     assert (X29 : BhvStep.deact_keep pool oc GPx Qk).
-    { intros m st w m1 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5;
-        [ left; exact (K29 m st w m1 H h1 h2 h3 h4 h5) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (KL' E))))))))) m st w m1 H h1 h2 h3 h4 h5)))) ]. }
+    { intros m st w m1 HG h1 h2 h3 h4 h5. destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (K29 m st w m1 H h1 h2 h3 h4 h5)).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (L29 m st w m1 H h1 h2 h3 h4 h5))). }
     assert (X47 : BhvStep.sit_keep pool oc GPx Qk).
-    { intros m st w a m1 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5 h6;
-        [ left; exact (K47 m st w a m1 H h1 h2 h3 h4 h5 h6) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (KL' E)))))))))) m st w a m1 H h1 h2 h3 h4 h5 h6)))) ]. }
+    { intros m st w a m1 HG h1 h2 h3 h4 h5 h6. destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (K47 m st w a m1 H h1 h2 h3 h4 h5 h6)).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (L47 m st w a m1 H h1 h2 h3 h4 h5 h6))). }
     assert (X20 : BhvStep.srf_keep pool oc sb GPx Qk).
-    { intros m st w z u m1 m2 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5 h6 h7 h8;
-        [ left; exact (K20 m st w z u m1 m2 H h1 h2 h3 h4 h5 h6 h7 h8) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (KL' E))))))))))) m st w z u m1 m2 H h1 h2 h3 h4 h5 h6 h7 h8)))) ]. }
+    { intros m st w z u m1 m2 HG h1 h2 h3 h4 h5 h6 h7 h8. destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (K20 m st w z u m1 m2 H h1 h2 h3 h4 h5 h6 h7 h8)).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (L20 m st w z u m1 m2 H h1 h2 h3 h4 h5 h6 h7 h8))). }
     assert (X21 : BhvStep.sri_keep pool oc sb GPx Qk).
-    { intros m st w z u ri m1 m2 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5 h6 h7 h8 h9;
-        [ left; exact (K21 m st w z u ri m1 m2 H h1 h2 h3 h4 h5 h6 h7 h8 h9) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (KL' E)))))))))))) m st w z u ri m1 m2 H h1 h2 h3 h4 h5 h6 h7 h8 h9)))) ]. }
+    { intros m st w z u ri m1 m2 HG h1 h2 h3 h4 h5 h6 h7 h8 h9. destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (K21 m st w z u ri m1 m2 H h1 h2 h3 h4 h5 h6 h7 h8 h9)).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (L21 m st w z u ri m1 m2 H h1 h2 h3 h4 h5 h6 h7 h8 h9))). }
     assert (X19 : BhvStep.sir_keep pool oc sb GPx Qk).
-    { intros m st w z u ri m1 m2 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5 h6 h7 h8 h9;
-        [ left; exact (K19 m st w z u ri m1 m2 H h1 h2 h3 h4 h5 h6 h7 h8 h9) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (KL' E))))))))))))) m st w z u ri m1 m2 H h1 h2 h3 h4 h5 h6 h7 h8 h9)))) ]. }
+    { intros m st w z u ri m1 m2 HG h1 h2 h3 h4 h5 h6 h7 h8 h9. destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (K19 m st w z u ri m1 m2 H h1 h2 h3 h4 h5 h6 h7 h8 h9)).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (L19 m st w z u ri m1 m2 H h1 h2 h3 h4 h5 h6 h7 h8 h9))). }
     assert (X51p : BhvStep.par51_ok pool oc GPx Qk).
-    { intros m st w [H | (E & Es & Hnp & H)] h1 h2 h3 h4;
-        [ exact (K51p m st w H h1 h2 h3 h4) | exact (((proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (KL' E)))))))))))))) m st w H h1 h2 h3 h4) ]. }
+    { intros m st w HG h1 h2 h3 h4. destruct HG as [(Ho & H) | (E & R & H)].
+      - exact (K51p m st w H h1 h2 h3 h4).
+      - destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (L51p m st w H h1 h2 h3 h4). }
     assert (X51 : BhvStep.pbc_keep pool oc GPx Qk).
-    { intros m st w po a old m1 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5 h6 h7 h8 h9 h10;
-        [ left; exact (K51 m st w po a old m1 H h1 h2 h3 h4 h5 h6 h7 h8 h9 h10) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (KL' E))))))))))))))) m st w po a old m1 H h1 h2 h3 h4 h5 h6 h7 h8 h9 h10)))) ]. }
+    { intros m st w po a old m1 HG h1 h2 h3 h4 h5 h6 h7 h8 h9 h10. destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (K51 m st w po a old m1 H h1 h2 h3 h4 h5 h6 h7 h8 h9 h10)).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (L51 m st w po a old m1 H h1 h2 h3 h4 h5 h6 h7 h8 h9 h10))). }
     assert (X52 : BhvStep.atex_keep pool oc GPx Qk).
-    { intros m st w old m1 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5 h6;
-        [ left; exact (K52 m st w old m1 H h1 h2 h3 h4 h5 h6) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (KL' E)))))))))))))))) m st w old m1 H h1 h2 h3 h4 h5 h6)))) ]. }
+    { intros m st w old m1 HG h1 h2 h3 h4 h5 h6. destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (K52 m st w old m1 H h1 h2 h3 h4 h5 h6)).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (L52 m st w old m1 H h1 h2 h3 h4 h5 h6))). }
     assert (X33 : BhvStep.bb_keep pool oc GPx Qk).
-    { intros m st w old m1 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5 h6;
-        [ left; exact (K33 m st w old m1 H h1 h2 h3 h4 h5 h6) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (KL' E))))))))))))))))) m st w old m1 H h1 h2 h3 h4 h5 h6)))) ]. }
+    { intros m st w old m1 HG h1 h2 h3 h4 h5 h6. destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (K33 m st w old m1 H h1 h2 h3 h4 h5 h6)).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (L33 m st w old m1 H h1 h2 h3 h4 h5 h6))). }
     assert (X53 : BhvStep.dr_keep pool oc GPx Qk).
-    { intros m st w old m1 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5 h6;
-        [ left; exact (K53 m st w old m1 H h1 h2 h3 h4 h5 h6) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (KL' E)))))))))))))))))) m st w old m1 H h1 h2 h3 h4 h5 h6)))) ]. }
+    { intros m st w old m1 HG h1 h2 h3 h4 h5 h6. destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (K53 m st w old m1 H h1 h2 h3 h4 h5 h6)).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (L53 m st w old m1 H h1 h2 h3 h4 h5 h6))). }
     assert (X43 : BhvStep.hbo_keep pool oc GPx Qk).
-    { intros m st w z z2 m1 m2 m3 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5 h6 h7 h8 h9;
-        [ left; exact (K43 m st w z z2 m1 m2 m3 H h1 h2 h3 h4 h5 h6 h7 h8 h9) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (KL' E)))))))))))))))))))) m st w z z2 m1 m2 m3 H h1 h2 h3 h4 h5 h6 h7 h8 h9)))) ]. }
-    assert (X45 : BhvStep.home_keep pool oc GPx Qk).
-    { intros m st w f1 f2 f3 m1 m2 m3 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5 h6 h7 h8 h9 h10;
-        [ left; exact (K45 m st w f1 f2 f3 m1 m2 m3 H h1 h2 h3 h4 h5 h6 h7 h8 h9 h10) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (KL' E))))))))))))))))))))) m st w f1 f2 f3 m1 m2 m3 H h1 h2 h3 h4 h5 h6 h7 h8 h9 h10)))) ]. }
+    { intros m st w z z2 m1 m2 m3 HG h1 h2 h3 h4 h5 h6 h7 h8 h9. destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (K43 m st w z z2 m1 m2 m3 H h1 h2 h3 h4 h5 h6 h7 h8 h9)).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (L43 m st w z z2 m1 m2 m3 H h1 h2 h3 h4 h5 h6 h7 h8 h9))). }
     assert (X48 : BhvStep.phys_keep pool oc GPx Qk).
-    { intros m st w z1 z2 z3 m1 m2 m3 m4 m5 m6 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13;
-        [ left; exact (K48 m st w z1 z2 z3 m1 m2 m3 m4 m5 m6 H h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (KL' E)))))))))))))))))))))) m st w z1 z2 z3 m1 m2 m3 m4 m5 m6 H h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13)))) ]. }
+    { intros m st w z1 z2 z3 m1 m2 m3 m4 m5 m6 HG h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13. destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (K48 m st w z1 z2 z3 m1 m2 m3 m4 m5 m6 H h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13)).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (L48 m st w z1 z2 z3 m1 m2 m3 m4 m5 m6 H h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13))). }
     assert (X39 : BhvStep.la_keep lp pool oc GPx Qk).
-    { intros m st w ta oa bt m1 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5 h6 h7;
-        [ left; exact (K39 m st w ta oa bt m1 H h1 h2 h3 h4 h5 h6 h7) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (KL' E))))))))))))))))))))))) m st w ta oa bt m1 H h1 h2 h3 h4 h5 h6 h7)))) ]. }
+    { intros m st w ta oa bt m1 HG h1 h2 h3 h4 h5 h6 h7. destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (K39 m st w ta oa bt m1 H h1 h2 h3 h4 h5 h6 h7)).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (L39 m st w ta oa bt m1 H h1 h2 h3 h4 h5 h6 h7))). }
     assert (X42 : BhvStep.lcd_keep lp pool oc GPx Qk).
-    { intros m st w ta oa bt m1 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5 h6 h7;
-        [ left; exact (K42 m st w ta oa bt m1 H h1 h2 h3 h4 h5 h6 h7) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (KL' E)))))))))))))))))))))))) m st w ta oa bt m1 H h1 h2 h3 h4 h5 h6 h7)))) ]. }
+    { intros m st w ta oa bt m1 HG h1 h2 h3 h4 h5 h6 h7. destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (K42 m st w ta oa bt m1 H h1 h2 h3 h4 h5 h6 h7)).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (L42 m st w ta oa bt m1 H h1 h2 h3 h4 h5 h6 h7))). }
     assert (X50 : BhvStep.scale_keep pool oc GPx Qk).
-    { intros m st w m1 m2 m3 [H | (E & Es & Hnp & H)] h1 h2 h3 h4 h5 h6 h7;
-        [ left; exact (K50 m st w m1 m2 m3 H h1 h2 h3 h4 h5 h6 h7) | right; exact (conj E (conj Es (conj Hnp (((proj1 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (KL' E))))))))))))))))))))))))) m st w m1 m2 m3 H h1 h2 h3 h4 h5 h6 h7)))) ]. }
+    { intros m st w m1 m2 m3 HG h1 h2 h3 h4 h5 h6 h7. destruct HG as [(Ho & H) | (E & R & H)].
+      - left. exact (conj Ho (K50 m st w m1 m2 m3 H h1 h2 h3 h4 h5 h6 h7)).
+      - right. destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (conj E (conj R (L50 m st w m1 m2 m3 H h1 h2 h3 h4 h5 h6 h7))). }
     assert (X0 : BhvStep.begin_ok lp pool oc GPx Qk).
-    { intros m st w [H | (E & Es & Hnp & H)] h1 h2 h3 h4;
-        [ exact (K0 m st w H h1 h2 h3 h4) | exact (((proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (proj2 (KL' E))))))))))))))))))))))))) m st w H h1 h2 h3 h4) ]. }
-    clear K16 K14 K15 K17 K13 K31 K29 K47 K20 K21 K19 K51p K51 K52 K33 K53 K35 K43 K45 K48 K39 K42 K50 K0.
-    rename X16 into K16, X14 into K14, X15 into K15, X17 into K17, X31 into K31, X29 into K29, X47 into K47,
-      X20 into K20, X21 into K21, X19 into K19, X51p into K51p, X51 into K51, X52 into K52, X33 into K33,
-      X53 into K53, X35 into K35, X43 into K43, X45 into K45, X48 into K48, X39 into K39, X42 into K42,
-      X50 into K50, X0 into K0, X13 into K13.
+    { intros m st w HG h1 h2 h3 h4. destruct HG as [(Ho & H) | (E & R & H)].
+      - exact (K0 m st w H h1 h2 h3 h4).
+      - destruct (K8 E) as (L16 & L14 & L15 & L17 & L31 & L29 & L47 & L20 & L21 & L19 & L51p & L51 & L52 & L33 & L53 & L35 & L43 & L48 & L39 & L42 & L50 & L0). exact (L0 m st w H h1 h2 h3 h4). }
     unfold BhvStep.row_keeps.
-    refine (conj (t_set K16) _).
-    refine (conj (t_setf K14) _).
-    refine (conj (t_addi K15) _).
-    refine (conj (t_ori K17) _).
+    refine (conj (t_set X16) _).
+    refine (conj (t_setf X14) _).
+    refine (conj (t_addi X15) _).
+    refine (conj (t_ori X17) _).
     refine (conj (t_addf K13 Kanc) _).
-    refine (conj (t_sumf K31) _).
-    refine (conj (t_deact K29) _).
-    refine (conj (t_sit K47) _).
-    refine (conj (t_srf K20) _).
-    refine (conj (t_sri K21) _).
-    refine (conj (t_sir K19) _).
-    refine (conj (t_par51 K51p) _).
-    refine (conj (t_pbc K51) _).
-    refine (conj (t_atex K52) _).
-    refine (conj (t_bb K33) _).
-    refine (conj (t_dr K53) _).
-    refine (conj (t_hb K35) _).
-    refine (conj (t_hbo K43) _).
-    refine (conj (t_home K45) _).
-    refine (conj (t_phys K48) _).
-    refine (conj (t_la K39) _).
-    refine (conj (t_lcd K42) _).
-    refine (conj (t_scale K50) _).
-    refine (conj (t_begin K0) _).
+    refine (conj (t_sumf X31) _).
+    refine (conj (t_deact X29) _).
+    refine (conj (t_sit X47) _).
+    refine (conj (t_srf X20) _).
+    refine (conj (t_sri X21) _).
+    refine (conj (t_sir X19) _).
+    refine (conj (t_par51 X51p) _).
+    refine (conj (t_pbc X51) _).
+    refine (conj (t_atex X52) _).
+    refine (conj (t_bb X33) _).
+    refine (conj (t_dr X53) _).
+    refine (conj (t_hb X35) _).
+    refine (conj (t_hbo X43) _).
+    refine (conj (t_home H0 K45 Khome) _).
+    refine (conj (t_phys X48) _).
+    refine (conj (t_la X39) _).
+    refine (conj (t_lcd X42) _).
+    refine (conj (t_scale X50) _).
+    refine (conj (t_begin X0) _).
     refine (conj (t_sfr Ksfr) _).
     refine (conj (Kv) _).
     refine (conj (Kr) _).
@@ -1156,16 +1242,16 @@ Section Rows.
   Qed.
 End Rows.
 
-(* the keeps at the re-anchored ghost are the ghost keeps at start state sL *)
-Lemma gk_L : forall lp bm bc0 oc0 SafeB go pool oc sb st0 X, v_s st0 = OW.CANS ->
-  ghost_keeps lp bm bc0 oc0 SafeB go pool oc sb ObjInv.sL X -> ghost_keeps_L lp bm bc0 oc0 SafeB pool oc sb st0 X.
+(* the keeps at the s8 ghost are the ghost keeps at start state s8 *)
+Lemma gk_8 : forall lp bm bc0 oc0 SafeB go pool oc sb st0 X, v_s st0 = OW.CANS ->
+  ghost_keeps lp bm bc0 oc0 SafeB go pool oc sb ObjInv.s8 X -> ghost_keeps_8 lp bm bc0 oc0 SafeB pool oc sb st0 X.
 Proof.
-  intros lp bm bc0 oc0 SafeB go pool oc sb st0 X E GK. unfold ghost_keeps_L.
-  assert (EQ : ObjFamily.Qfam (v_s st0) = ObjFamily.Qfam (v_s ObjInv.sL)) by (rewrite E; reflexivity).
+  intros lp bm bc0 oc0 SafeB go pool oc sb st0 X E GK. unfold ghost_keeps_8.
+  assert (EQ : ObjFamily.Qfam (v_s st0) = ObjFamily.Qfam (v_s ObjInv.s8)) by (rewrite E; reflexivity).
   rewrite EQ.
   destruct GK as (K16 & K14 & K15 & K17 & K13 & K31 & K29 & K47 & K20 & K21 & K19 & K51p & K51 & K52 & K33 & K53
             & K35 & K43 & K45 & K48 & K39 & K42 & K50 & K0 & _).
-  exact (conj K16 (conj K14 (conj K15 (conj K17 (conj K13 (conj K31 (conj K29 (conj K47 (conj K20 (conj K21
-          (conj K19 (conj K51p (conj K51 (conj K52 (conj K33 (conj K53 (conj K35 (conj K43 (conj K45 (conj K48
-          (conj K39 (conj K42 (conj K50 K0))))))))))))))))))))))).
+  exact (conj K16 (conj K14 (conj K15 (conj K17 (conj K31 (conj K29 (conj K47 (conj K20 (conj K21
+          (conj K19 (conj K51p (conj K51 (conj K52 (conj K33 (conj K53 (conj K35 (conj K43 (conj K48
+          (conj K39 (conj K42 (conj K50 K0))))))))))))))))))))).
 Qed.

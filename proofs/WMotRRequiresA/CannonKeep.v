@@ -195,39 +195,61 @@ Section CK.
   Hypothesis Hpool : Genv.find_symbol G OLP._gObjectPool = Some pool.
   Hypothesis Hk0 : 0 <= k0 < OW.NSLOT.
 
-  (* slot k0 runs bhvCannon past its prologue, at a lid's y, in a ring *)
-  Variables (st : vst) (lid : Z) (g m1 : mem).
+  (* slot k0 runs bhvCannon: in g at st, at a lid's y, in a ring; the
+     poke gp is g with slot k0's command cell moved to st' past the
+     prologue (the re-anchor: ObjAnchor); m1 is gp with the drop stored *)
+  Variables (st st' : vst) (lid : Z) (g gp m1 : mem).
   Hypothesis Hst : In st vm_tab.
+  Hypothesis Hst' : In st' vm_tab.
   Hypothesis V0 : OW.vm_at G pool g k0 st.
   Hypothesis Ecs : v_s st = OW.CANS.
-  Hypothesis Hvi : (7 <= v_i st /\ v_i st < 1000)%nat.
+  Hypothesis V1p : OW.vm_at G pool gp k0 st'.
+  Hypothesis Ecs' : v_s st' = OW.CANS.
+  Hypothesis Hvi : (7 <= v_i st' /\ v_i st' < 1000)%nat.
   Hypothesis Hlid : In lid OW.cannon_lids.
   Hypothesis Ly : Mem.load Mfloat32 g pool (k0 * OW.OSZ + O_POSY) = Some (f32z lid).
   Hypothesis Hg : Pc g.
   Hypothesis Hring : forall la rs, Genv.find_symbol G OLP._gObjectListArray = Some la ->
     OW.rings g pool la = Some rs -> In k0 (concat rs).
-  Hypothesis S : Mem.store Mfloat32 g pool (k0 * OW.OSZ + O_POSY) (f32z (lid - 340)) = Some m1.
+  Hypothesis LGP : forall ch' b z, (b <> pool \/ z + size_chunk ch' <= k0 * OW.OSZ + OW.O_CMD
+                                    \/ k0 * OW.OSZ + OW.O_CMD + 4 <= z) ->
+    Mem.load ch' gp b z = Mem.load ch' g b z.
+  Hypothesis PGP : forall b o kk p, Mem.perm gp b o kk p <-> Mem.perm g b o kk p.
+  Hypothesis NBP : Mem.nextblock gp = Mem.nextblock g.
+  Hypothesis NVP : BhvStep.nvB (BhvStep.scr_b lp) g gp.
+  Hypothesis HSc : forall b, BhvStep.scr_b lp b -> SafeB b.
+  Hypothesis HCt : OW.can_traj G pool g k0 -> OW.can_traj G pool m1 k0.
+  Hypothesis S : Mem.store Mfloat32 gp pool (k0 * OW.OSZ + O_POSY) (f32z (lid - 340)) = Some m1.
 
   Lemma LO : forall ch' b z, b <> pool -> Mem.load ch' m1 b z = Mem.load ch' g b z.
-  Proof. intros ch' b z N. exact (Mem.load_store_other _ _ _ _ _ _ S _ _ _ (or_introl N)). Qed.
+  Proof.
+    intros ch' b z N. rewrite (Mem.load_store_other _ _ _ _ _ _ S _ _ _ (or_introl N)).
+    apply LGP. left. exact N.
+  Qed.
 
   Lemma LOs : forall id b ch' z, Genv.find_symbol G id = Some b -> id <> OLP._gObjectPool ->
     Mem.load ch' m1 b z = Mem.load ch' g b z.
   Proof. intros id b ch' z Hs N. apply LO. exact (ObjExit.SNE lp _ _ _ _ Hs Hpool N). Qed.
 
-  (* a cell of slot j: off slot k0's oPosY [164, 168) *)
+  (* a cell of slot j: off slot k0's oPosY [164, 168) and command cell [460, 464) *)
   Lemma LPw : forall ch' z j, j * OW.OSZ <= z -> z + size_chunk ch' <= j * OW.OSZ + OW.OSZ ->
-    (j <> k0 \/ z + size_chunk ch' <= k0 * OW.OSZ + 164 \/ k0 * OW.OSZ + 168 <= z) ->
+    (j <> k0 \/ ((z + size_chunk ch' <= k0 * OW.OSZ + 164 \/ k0 * OW.OSZ + 168 <= z)
+                /\ (z + size_chunk ch' <= k0 * OW.OSZ + 460 \/ k0 * OW.OSZ + 464 <= z))) ->
     Mem.load ch' m1 pool z = Mem.load ch' g pool z.
   Proof.
-    intros ch' z j A B C. apply (Mem.load_store_other _ _ _ _ _ _ S). right.
-    pose proof (size_chunk_pos ch'). cbn [size_chunk]. unfold O_POSY, RAW_OFF, OW.OSZ in *.
-    destruct (Z.lt_trichotomy j k0) as [L | [<- | L]]; [ left; nia | | right; nia ].
-    destruct C as [C | [C | C]]; [ exfalso; exact (C eq_refl) | left; lia | right; lia ].
+    intros ch' z j A B C. pose proof (size_chunk_pos ch').
+    assert (D : (z + size_chunk ch' <= k0 * OW.OSZ + 164 \/ k0 * OW.OSZ + 168 <= z)
+                /\ (z + size_chunk ch' <= k0 * OW.OSZ + 460 \/ k0 * OW.OSZ + 464 <= z)).
+    { destruct C as [C | C]; [ | exact C ]. unfold OW.OSZ in *.
+      destruct (Z.lt_trichotomy j k0) as [L | [E | L]];
+        [ split; left; nia | exfalso; exact (C E) | split; right; nia ]. }
+    destruct D as (D1 & D2).
+    rewrite (Mem.load_store_other _ _ _ _ _ _ S); [ | right; cbn [size_chunk]; unfold O_POSY, RAW_OFF; lia ].
+    apply LGP. right. unfold OW.O_CMD. lia.
   Qed.
 
   Lemma LPs : forall ch' k off, 0 <= off -> off + size_chunk ch' <= OW.OSZ ->
-    (k <> k0 \/ off + size_chunk ch' <= 164 \/ 168 <= off) ->
+    (k <> k0 \/ ((off + size_chunk ch' <= 164 \/ 168 <= off) /\ (off + size_chunk ch' <= 460 \/ 464 <= off))) ->
     Mem.load ch' m1 pool (k * OW.OSZ + off) = Mem.load ch' g pool (k * OW.OSZ + off).
   Proof.
     intros ch' k off A B C. apply (LPw ch' _ k); [ lia | lia | ].
@@ -237,16 +259,27 @@ Section CK.
 
   Lemma LPlo : forall ch' k off, 0 <= off -> off + size_chunk ch' <= 136 ->
     Mem.load ch' m1 pool (k * OW.OSZ + off) = Mem.load ch' g pool (k * OW.OSZ + off).
-  Proof. intros ch' k off A B. apply LPs; [ lia | unfold OW.OSZ; lia | right; left; lia ]. Qed.
+  Proof. intros ch' k off A B. apply LPs; [ lia | unfold OW.OSZ; lia | right; lia ]. Qed.
 
   Lemma Ly1 : Mem.load Mfloat32 m1 pool (k0 * OW.OSZ + O_POSY) = Some (f32z (lid - 340)).
   Proof. rewrite (Mem.load_store_same _ _ _ _ _ _ S). reflexivity. Qed.
 
-  Lemma NV : BhvStep.nvB (fun _ => False) g m1.
-  Proof. exact (BhvStep.nvB_store_c _ _ _ _ _ _ _ S I). Qed.
-
   Lemma NB : Mem.nextblock m1 = Mem.nextblock g.
-  Proof. exact (Mem.nextblock_store _ _ _ _ _ _ S). Qed.
+  Proof. rewrite (Mem.nextblock_store _ _ _ _ _ _ S). exact NBP. Qed.
+
+  Lemma NV : BhvStep.nvB (BhvStep.scr_b lp) g m1.
+  Proof.
+    apply (BhvStep.nvB_trans _ g gp m1 NVP (BhvStep.nvB_store_c _ _ _ _ _ _ _ S I)).
+    rewrite NBP. apply Ple_refl.
+  Qed.
+
+  Lemma VB : forall b, Mem.valid_block g b -> Mem.valid_block m1 b.
+  Proof.
+    intros b H. apply (Mem.store_valid_block_1 _ _ _ _ _ _ S). unfold Mem.valid_block in *. rewrite NBP. exact H.
+  Qed.
+
+  Lemma PM1 : forall b o kk p, Mem.perm g b o kk p -> Mem.perm m1 b o kk p.
+  Proof. intros b o kk p Hp. exact (Mem.perm_store_1 _ _ _ _ _ _ S _ _ _ _ (proj2 (PGP b o kk p) Hp)). Qed.
 
   Lemma Hbc_bm : bc <> bm.
   Proof. apply (ObjExit.SNE lp _ _ _ _ Hbc_sym Hbm_sym). vm_compute. discriminate. Qed.
@@ -257,9 +290,9 @@ Section CK.
   Lemma ok1 : mem_ok_lp bm MWF m1.
   Proof.
     destruct Hg as ((Hv0 & Hnt & M) & _).
-    split; [ exact (Mem.store_valid_block_1 _ _ _ _ _ _ S _ Hv0) | split ].
+    split; [ exact (VB _ Hv0) | split ].
     - intros v L. rewrite LObm in L. exact (Hnt v L).
-    - apply (MWF_real_transfer lp bm bc oc0 SafeB Hbc_bm g m1 (fun b H => Mem.store_valid_block_1 _ _ _ _ _ _ S b H));
+    - apply (MWF_real_transfer lp bm bc oc0 SafeB Hbc_bm g m1 VB);
         [ | | | exact M ].
       + intros v L. rewrite LObm in L. exact (mwf_real_inp lp bm bc oc0 SafeB g M v L).
       + intros ch1 x ofs v Hx L.
@@ -272,7 +305,7 @@ Section CK.
         * assert (A2 : gid <> OLP._gObjectPool) by (intros ->; vm_compute in Hk; discriminate Hk).
           rewrite (LOs _ _ _ _ H A2) in L. exact L.
         * rewrite (LOs _ _ _ _ H) in L by (vm_compute; discriminate). exact L.
-      + apply (BhvStep.closed_nvB SafeB (fun _ => False) g m1 NV (fun b F => False_ind _ F)).
+      + apply (BhvStep.closed_nvB SafeB (BhvStep.scr_b lp) g m1 NV HSc).
         * intros b Hb. exact (mwf_real_safe_valid lp bm bc oc0 SafeB g M b Hb).
         * intros b ofs b' o' Hb L. exact (mwf_real_chase_step lp bm bc oc0 SafeB g b ofs b' o' M Hb L).
   Qed.
@@ -289,10 +322,10 @@ Section CK.
 
   Lemma ps1 : PlatformKeep.plat_still lp m1.
   Proof.
-    destruct Hg as (_ & _ & _ & Hst' & _).
+    destruct Hg as (_ & _ & _ & Hpst & _).
     intros bp v1 Hbp Hl0.
     rewrite LO in Hl0 by exact (ObjExit.SNE lp _ _ _ _ Hbp Hpool ltac:(vm_compute; discriminate)).
-    destruct (Hst' bp v1 Hbp Hl0) as [Hzz | (pb & po & -> & Hpb0 & Hkk & Hal)]; [ left; exact Hzz | right ].
+    destruct (Hpst bp v1 Hbp Hl0) as [Hzz | (pb & po & -> & Hpb0 & Hkk & Hal)]; [ left; exact Hzz | right ].
     rewrite Hpool in Hpb0. injection Hpb0 as <-.
     exists pool, po. split; [ reflexivity | split; [ exact Hpool | split; [ | exact Hal ] ] ].
     intros kk Hkk'. destruct Hal as (j & Hj & Ej).
@@ -303,11 +336,15 @@ Section CK.
         by (change Ptrofs.max_unsigned with 4294967295; lia).
       unfold OW.OSZ. apply Ptrofs.unsigned_repr. change Ptrofs.max_unsigned with 4294967295; unfold OW.NSLOT in Hj; lia. }
     rewrite Eu in Hkk |- *.
-    rewrite LPs; [ exact Hkk | lia | unfold OW.OSZ; cbn [size_chunk]; lia | right; right; lia ].
+    rewrite LPs; [ exact Hkk | lia | unfold OW.OSZ; cbn [size_chunk]; lia | right; cbn [size_chunk]; lia ].
   Qed.
 
-  Lemma CLm : forall gp, closed_by gp g -> closed_by gp m1.
-  Proof. intros gp Hc. exact (ObjExit.nvB_closed _ gp g m1 Hc NV NB (fun b F => False_ind _ F)). Qed.
+  Lemma CLm : forall gq, closed_by gq g -> (forall id b, Genv.find_symbol G id = Some b -> gq b <> None) ->
+    closed_by gq m1.
+  Proof.
+    intros gq Hc HS. apply (ObjExit.nvB_closed _ gq g m1 Hc NV NB).
+    intros b (s & _ & Hs). exact (HS _ _ Hs).
+  Qed.
 
   (* ---- the slot's own facts ---- *)
   Lemma Uj : forall j, 0 <= j < OW.NSLOT -> u (Ptrofs.repr (j * OW.OSZ)) = j * OW.OSZ.
@@ -410,7 +447,7 @@ Section CK.
     assert (RGa : forall b, rgb lp (@nil ident) b -> b <> pool /\ AnimWorld.tab_apart G g b) by (intros b (id & [] & _)).
     assert (NB' : Ple (Mem.nextblock g) (Mem.nextblock m1)) by (rewrite NB; apply Ple_refl).
     assert (PM : forall b o k p, Plt b (Mem.nextblock g) -> Mem.perm g b o k p -> Mem.perm m1 b o k p).
-    { intros b o k p _ Hp. exact (Mem.perm_store_1 _ _ _ _ _ _ S _ _ _ _ Hp). }
+    { intros b o k p _ Hp. exact (PM1 b o k p Hp). }
     assert (LD : forall ch' b z', ~ rgb lp (@nil ident) b -> b <> bm ->
               (b <> pool \/ owinc Q (Ptrofs.repr (km * OW.OSZ)) ch' z') -> Mem.load ch' m1 b z' = Mem.load ch' g b z').
     { intros ch' b z' _ _ Hw.
@@ -428,7 +465,7 @@ Section CK.
     assert (CL : forall gp, closed_by gp g -> gp pool <> None ->
               (forall id b, Genv.find_symbol G id = Some b -> gp b <> None) ->
               exists gp', (forall b, gp b <> None -> gp' b <> None) /\ closed_by gp' m1).
-    { intros gp HC _ _. exists gp. split; [ intros b H; exact H | exact (CLm gp HC) ]. }
+    { intros gq HC _ HS. exists gq. split; [ intros b H; exact H | exact (CLm gq HC HS) ]. }
     assert (FR : forall bt0 ot0 kk, In kk hs_ids ->
               Mem.load Mint32 g pool (u (Ptrofs.repr (km * OW.OSZ)) + 60) = Some (Vptr bt0 ot0) ->
               Mem.load Mint32 g pool (u (Ptrofs.repr (km * OW.OSZ)) + 72) = Some (Vint Int.zero) ->
@@ -487,16 +524,19 @@ Section CK.
   Qed.
 
   (* ---- obj_w: ObjVmSwap's keeper, the VM kept and k0's oPosY moved ---- *)
-  Lemma V1 : OW.vm_at G pool m1 k0 st.
+  Lemma V1 : OW.vm_at G pool m1 k0 st'.
   Proof.
-    destruct V0 as ((b & Hs & L1) & L2 & F).
-    pose proof (PK.vm_depth st Hst) as Dp.
-    split; [ exists b; rewrite LPs by (unfold OW.O_CMD, OW.OSZ; cbn [size_chunk]; lia); exact (conj Hs L1) | split ].
-    - rewrite LPs by (unfold OW.O_SIDX, OW.OSZ; cbn [size_chunk]; lia). exact L2.
+    destruct V1p as ((b & Hs & L1) & L2 & F).
+    pose proof (PK.vm_depth st' Hst') as Dp.
+    split; [ exists b; rewrite (Mem.load_store_other _ _ _ _ _ _ S); [ exact (conj Hs L1) | ] | split ].
+    - right; right. unfold O_POSY, RAW_OFF, OW.O_CMD; cbn [size_chunk]; lia.
+    - rewrite (Mem.load_store_other _ _ _ _ _ _ S); [ exact L2 | right; right ].
+      unfold O_POSY, RAW_OFF, OW.O_SIDX; cbn [size_chunk]; lia.
     - intros n f Hn. pose proof (F n f Hn) as Fn.
-      assert (Hlt : (n < List.length (v_k st))%nat) by (apply nth_error_Some; rewrite Hn; discriminate).
-      unfold OW.stk_cell in *. rewrite <- Z.add_assoc in *.
-      rewrite LPs by (unfold OW.O_STK, OW.OSZ; cbn [size_chunk]; lia). exact Fn.
+      assert (Hlt : (n < List.length (v_k st'))%nat) by (apply nth_error_Some; rewrite Hn; discriminate).
+      unfold OW.stk_cell in *.
+      rewrite (Mem.load_store_other _ _ _ _ _ _ S); [ exact Fn | right; right ].
+      unfold O_POSY, RAW_OFF, OW.O_STK; cbn [size_chunk]; lia.
   Qed.
 
   Lemma ow1 : OW.obj_w G bm m1.
@@ -536,7 +576,7 @@ Section CK.
               OW.ccl off (off + size_chunk ch) -> (k <> k0 \/ ObjVmSwap.vmc off (off + size_chunk ch)) ->
               Mem.load ch m1 pool (k * OW.OSZ + off) = Mem.load ch g pool (k * OW.OSZ + off)).
     { intros ch k off A B _ _ D. pose proof (size_chunk_pos ch). apply LPs; [ lia | exact B | ].
-      unfold ObjVmSwap.vmc, O_POSY, RAW_OFF in D. lia. }
+      unfold ObjVmSwap.vmc, O_POSY, RAW_OFF, OW.O_CMD, OW.O_STK, OW.O_HOMEX, OW.O_HOMEZ in D. lia. }
     assert (K : forall id b, In id PK.ow_ids -> existsb (Pos.eqb id) PK.ow_xc = false -> Genv.find_symbol G id = Some b ->
               forall ch' z, Mem.load ch' m1 b z = Mem.load ch' g b z).
     { intros id b Hin Hn Hs ch' z. apply (LOs id b ch' z Hs).
@@ -579,11 +619,12 @@ Section CK.
       intros k Hk Lg' i Hi. rewrite Km in Lg'. destruct (Cmco k Hk Lg' i Hi) as (v1 & Lv & Sv).
       exists v1. unfold OW.O_COLLS in *. rewrite <- !Z.add_assoc in Lv |- *.
       rewrite LPlo by (cbn [size_chunk]; lia). exact (conj Lv Sv). }
-    assert (HQ : ObjFamily.Qfam (v_s st) st).
-    { apply (ObjFamily.Qfam_start (v_s st) st eq_refl). rewrite Ecs. apply (proj1 (ObjFamily.memi_in _ _)). vm_compute. reflexivity. }
-    assert (HCn : v_s st = OW.CANS -> (7 <= v_i st /\ v_i st < 1000)%nat) by (intros _; exact Hvi).
-    exact (ObjVmSwap.obj_w_vm_swap g m1 G pool k0 Kv st st Hst V0 V1 HQ Hy0 Hpool
-             bm HCn K KS KC Kbm KSc KNC KMC How).
+    assert (HQ : ObjFamily.Qfam (v_s st) st').
+    { apply (ObjFamily.Qfam_start (v_s st) st' (eq_trans Ecs' (eq_sym Ecs))). rewrite Ecs.
+      apply (proj1 (ObjFamily.memi_in _ _)). vm_compute. reflexivity. }
+    assert (HCn : v_s st' = OW.CANS -> (7 <= v_i st' /\ v_i st' < 1000)%nat) by (intros _; exact Hvi).
+    exact (ObjVmSwap.obj_w_vm_swap g m1 G pool k0 Kv st st' Hst' V0 V1 HQ Hy0 Hpool
+             bm HCn HCt K KS KC Kbm KSc KNC KMC How).
   Qed.
 
   Theorem can_drop_pc : Pc m1.
@@ -598,6 +639,12 @@ Section CK.
     - intros z. unfold OW.ld32. rewrite !CM.load_eq. exact (LO Mint32 la z Nl).
   Qed.
 
-  Lemma can_cmd : forall j, OW.ld32 m1 pool (j * OW.OSZ + OW.O_CMD) = OW.ld32 g pool (j * OW.OSZ + OW.O_CMD).
-  Proof. intros j. unfold OW.ld32. rewrite !CM.load_eq. apply LPs; unfold OW.O_CMD, OW.OSZ; cbn [size_chunk]; lia. Qed.
+  Lemma can_cmd : forall j, j <> k0 -> OW.ld32 m1 pool (j * OW.OSZ + OW.O_CMD) = OW.ld32 g pool (j * OW.OSZ + OW.O_CMD).
+  Proof. intros j Nj. unfold OW.ld32. rewrite !CM.load_eq. apply LPs; unfold OW.O_CMD, OW.OSZ; cbn [size_chunk]; lia. Qed.
+
+  Lemma can_tsa : OW.tsa G m1 = OW.tsa G g.
+  Proof.
+    unfold OW.tsa. destruct (Genv.find_symbol G surface_load._gTimeStopState) as [bt |] eqn:Et; [ | reflexivity ].
+    rewrite (LOs _ _ _ _ Et); [ reflexivity | vm_compute; discriminate ].
+  Qed.
 End CK.

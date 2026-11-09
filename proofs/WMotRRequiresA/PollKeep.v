@@ -351,19 +351,32 @@ Section OWK.
   Lemma SKp_c : forall pool, SKp pool -> SKc pool.
   Proof. intros pool K ch k off H1 H2 H3 _. exact (K ch k off H1 H2 H3). Qed.
 
+  (* the same off every slot's home too (fields 55-57, [356, 368)): what
+     every obj_w clause but ow_ncoll / ow_mcoll and the cannon trajectory
+     (OW.can_traj, a bhvCannon slot's home) reads of the pool (2026-11-09) *)
+  Definition SKh (pool : block) : Prop :=
+    forall ch k off, (96 <= off \/ (4 <= off /\ off + size_chunk ch <= 16)) -> off + size_chunk ch <= OW.OSZ ->
+      (off + size_chunk ch <= 532 \/ 536 <= off) -> OW.ccl off (off + size_chunk ch) ->
+      (off + size_chunk ch <= 356 \/ 368 <= off) ->
+      Mem.load ch m' pool (k * OW.OSZ + off) = Mem.load ch m pool (k * OW.OSZ + off).
+
+  Lemma SKc_h : forall pool, SKc pool -> SKh pool.
+  Proof. intros pool K ch k off H1 H2 H3 H4 _. exact (K ch k off H1 H2 H3 H4). Qed.
+
   Ltac sk_side := unfold OW.O_BHV, OW.O_CMD, OW.O_SIDX, OW.O_STK, OW.O_ACTION, OW.O_HSCOUNT,
     OW.O_FLAGS, OW.O_NEXT, OW.O_PREV, OW.OSZ, O_INTERACT_TYPE, O_POSX, O_POSY, O_POSZ, HITBOX_DOWN_OFF,
-    HITBOX_H_OFF, RAW_OFF, OW.O_RTYPE, OW.O_RINFO, OW.G_PREV, OW.G_NEXT, OW.G_PAR, OW.ccl, FieldWin.ucl in *; cbn [size_chunk]; lia.
+    HITBOX_H_OFF, OW.O_RTYPE, OW.O_RINFO, OW.G_PREV, OW.G_NEXT, OW.G_PAR, OW.ccl, FieldWin.ucl_h,
+    OW.O_TIMER, OW.O_PREVACT, OW.O_HOMEX, OW.O_HOMEY, OW.O_HOMEZ, RAW_OFF in *; cbn [size_chunk]; lia.
 
-  Lemma ld32_sk : forall pool, SKc pool -> forall k off, 96 <= off -> off + 4 <= OW.OSZ ->
-    (off + 4 <= 532 \/ 536 <= off) -> OW.ccl off (off + 4) ->
+  Lemma ld32_sk : forall pool, SKh pool -> forall k off, 96 <= off -> off + 4 <= OW.OSZ ->
+    (off + 4 <= 532 \/ 536 <= off) -> OW.ccl off (off + 4) -> (off + 4 <= 356 \/ 368 <= off) ->
     OW.ld32 m' pool (k * OW.OSZ + off) = OW.ld32 m pool (k * OW.OSZ + off).
   Proof.
-    intros pool SK k off H1 H2 H3 H4. unfold OW.ld32. rewrite !CM.load_eq.
-    apply SK; [ left; exact H1 | exact H2 | exact H3 | exact H4 ].
+    intros pool SK k off H1 H2 H3 H4 H5. unfold OW.ld32. rewrite !CM.load_eq.
+    apply SK; [ left; exact H1 | exact H2 | exact H3 | exact H4 | exact H5 ].
   Qed.
 
-  Lemma ring_from_eq : forall pool hb, SKc pool ->
+  Lemma ring_from_eq : forall pool hb, SKh pool ->
     (forall z, OW.ld32 m' hb z = OW.ld32 m hb z) ->
     forall n ho prev cur, OW.ring_from m' pool hb ho prev cur n = OW.ring_from m pool hb ho prev cur n.
   Proof.
@@ -380,7 +393,7 @@ Section OWK.
     rewrite IH. reflexivity.
   Qed.
 
-  Lemma rings_eq : forall pool la, SKc pool -> (forall z, OW.ld32 m' la z = OW.ld32 m la z) ->
+  Lemma rings_eq : forall pool la, SKh pool -> (forall z, OW.ld32 m' la z = OW.ld32 m la z) ->
     OW.rings m' pool la = OW.rings m pool la.
   Proof.
     intros pool la SK Kl. unfold OW.rings.
@@ -391,7 +404,7 @@ Section OWK.
     rewrite E. reflexivity.
   Qed.
 
-  Lemma free_from_eq : forall pool, SKc pool ->
+  Lemma free_from_eq : forall pool, SKh pool ->
     forall n cur, OW.free_from m' pool cur n = OW.free_from m pool cur n.
   Proof.
     intros pool SK n. induction n as [| n IH]; intros cur; cbn [OW.free_from]; [ reflexivity | ].
@@ -407,7 +420,7 @@ Section OWK.
 
   Section POOL.
     Variables (ge : genv) (pool : block).
-    Hypothesis Kp : SKc pool.
+    Hypothesis Kp : SKh pool.
 
     Lemma is_bhv_eq : forall k id, OW.is_bhv ge pool m k id -> OW.is_bhv ge pool m' k id.
     Proof. intros k id (b & Hs & L). exists b. rewrite Kp by sk_side. exact (conj Hs L). Qed.
@@ -474,7 +487,7 @@ Section OWK.
     (* the surface budget (ObjWorld 3c): the script a slot runs and its
        collisionData (offsets 460, 536) *)
     Lemma runs_eq : forall k id, OW.runs ge pool m' k id = OW.runs ge pool m k id.
-    Proof. intros k id. unfold OW.runs. rewrite (ld32_sk pool Kp) by (unfold OW.O_CMD, OW.OSZ, OW.ccl, FieldWin.ucl; lia). reflexivity. Qed.
+    Proof. intros k id. unfold OW.runs. rewrite (ld32_sk pool Kp) by (unfold OW.O_CMD, OW.OSZ, OW.ccl, FieldWin.ucl_h; lia). reflexivity. Qed.
 
     Lemma sdyn_eq : forall k, OW.sdyn ge pool m' k = OW.sdyn ge pool m k.
     Proof. intros k. unfold OW.sdyn. rewrite !runs_eq. reflexivity. Qed.
@@ -482,7 +495,7 @@ Section OWK.
     Lemma coll_pin_eq : forall k, OW.coll_pin ge pool m k -> OW.coll_pin ge pool m' k.
     Proof.
       intros k (C1 & C2). unfold OW.coll_pin. rewrite !runs_eq.
-      rewrite (Kp Mint32 k OW.O_COLL) by (unfold OW.O_COLL, OW.OSZ, OW.ccl, FieldWin.ucl; cbn [size_chunk]; lia).
+      rewrite (Kp Mint32 k OW.O_COLL) by (unfold OW.O_COLL, OW.OSZ, OW.ccl, FieldWin.ucl_h; cbn [size_chunk]; lia).
       exact (conj C1 C2).
     Qed.
   End POOL.
@@ -497,15 +510,15 @@ Section OWK.
 
   (* a listed slot's angle velocity (offsets 276..287) is a slot field
      past 96 *)
-  Lemma angv_sk : forall pool, SKc pool -> forall k j, 0 <= k < OW.NSLOT -> In j OW.ANGV ->
+  Lemma angv_sk : forall pool, SKh pool -> forall k j, 0 <= k < OW.NSLOT -> In j OW.ANGV ->
     Mem.load Mint32 m' pool (k * OW.OSZ + RAW_OFF + 4 * j) = Mem.load Mint32 m pool (k * OW.OSZ + RAW_OFF + 4 * j).
   Proof.
     intros pool Kp k j _ Hj. rewrite <- Z.add_assoc.
-    apply Kp; unfold OW.OSZ, RAW_OFF, OW.ccl, FieldWin.ucl; cbn [size_chunk];
+    apply Kp; unfold OW.OSZ, RAW_OFF, OW.ccl, FieldWin.ucl_h; cbn [size_chunk];
       unfold OW.ANGV in Hj; cbn [In] in Hj; destruct Hj as [<- | [<- | [<- | []]]]; lia.
   Qed.
 
-  Lemma is_bhv_b_eq : forall ge pool id k, SKc pool ->
+  Lemma is_bhv_b_eq : forall ge pool id k, SKh pool ->
     OW.is_bhv_b ge pool m' id k = OW.is_bhv_b ge pool m id k.
   Proof.
     intros ge pool id k Kp. unfold OW.is_bhv_b. rewrite (ld32_sk pool Kp) by sk_side. reflexivity.
@@ -526,7 +539,7 @@ Section OWK.
   Lemma surf_keep_of_KN : forall (ge : genv),
     (forall id b, In id ow_ids -> id <> object_list_processor._gObjectPool -> Genv.find_symbol ge id = Some b ->
        forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
-    (forall pool, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool -> SKc pool) ->
+    (forall pool, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool -> SKh pool) ->
     (forall b, Ple (Genv.genv_next ge) b -> forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
     surf_keep ge.
   Proof.
@@ -545,10 +558,14 @@ Section OWK.
       intros P HP _ _ ch z _. exact (KN P HP ch z).
   Qed.
 
-  Theorem obj_w_slots_c : forall (ge : genv) bm,
+  (* 2026-11-09: off every home (SKh), with the cannon trajectory's keep
+     (KT) given: a home store at a slot no bhvCannon runs (ObjFld) *)
+  Theorem obj_w_slots_h : forall (ge : genv) bm,
     (forall id b, In id ow_ids -> existsb (Pos.eqb id) ow_xc = false -> Genv.find_symbol ge id = Some b ->
        forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
-    (forall pool, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool -> SKc pool) ->
+    (forall pool, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool -> SKh pool) ->
+    (forall pool k, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool ->
+       OW.can_traj ge pool m k -> OW.can_traj ge pool m' k) ->
     surf_keep ge ->
     (* the surface counter (ow_ctr): kept, or re-made by the writer *)
     (OW.ctr_s_ok ge m -> OW.ctr_s_ok ge m') ->
@@ -565,7 +582,7 @@ Section OWK.
        OW.mcoll_ok pool gmo m -> OW.mcoll_ok pool gmo m') ->
     OW.obj_w ge bm m -> OW.obj_w ge bm m'.
   Proof.
-    intros ge bm K KP KS KC Kbm KSc KNC KMC
+    intros ge bm K KP KT KS KC Kbm KSc KNC KMC
       (pool & la & fl & gol & gmo & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
     assert (Kp := KP pool S1).
     assert (Kl := K object_list_processor._gObjectListArray la ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; reflexivity) S2).
@@ -707,12 +724,40 @@ Section OWK.
         * erewrite Kbm; [ exact Lu | right; cbn [In]; repeat (first [ left; reflexivity | right ]) ].
         * exact (sp_vm_eq ge pool Kp k Sk).
     - (* PINS (2026-11-09): the command pointer and slot fields past 96 *)
-      intros k Hk. apply (OW.pin_at_eq' ge pool m m' k (fun id _ => runs_eq ge pool Kp k id)); [ | | exact (Cpin k Hk) ];
-        [ | rewrite (ld32_sk pool Kp) by (unfold OW.O_CMD, OW.OSZ, OW.ccl, FieldWin.ucl; lia); reflexivity ].
-      intros ch off Hoff Hch.
-      assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).
-      unfold OW.pin_offs, OW.O_BPARAMS in Hoff. cbn [In] in Hoff.
-      apply Kp; rewrite Hs; destruct Hoff as [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]; sk_side.
+      intros k Hk.
+      apply (OW.pin_at_eq ge pool m m' k (fun id _ => runs_eq ge pool Kp k id)); [ | | exact (KT pool k S1) | exact (Cpin k Hk) ].
+      + intros ch off Hoff Hch.
+        assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).
+        unfold OW.pin_offs0, OW.O_BPARAMS in Hoff. cbn [In] in Hoff.
+        apply Kp; rewrite Hs; destruct Hoff as [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]; sk_side.
+      + apply (OW.can_pin_eq ge pool m m' k);
+          [ rewrite (ld32_sk pool Kp) by (unfold OW.O_CMD, OW.OSZ, OW.ccl, FieldWin.ucl_h; lia); reflexivity
+          | apply Kp; sk_side ].
+  Qed.
+
+  Theorem obj_w_slots_c : forall (ge : genv) bm,
+    (forall id b, In id ow_ids -> existsb (Pos.eqb id) ow_xc = false -> Genv.find_symbol ge id = Some b ->
+       forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+    (forall pool, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool -> SKc pool) ->
+    surf_keep ge ->
+    (OW.ctr_s_ok ge m -> OW.ctr_s_ok ge m') ->
+    (forall z, z = MARIOOBJ_OFF \/ In z [120; 124; 128; 132; 96; 100; 104; 12] ->
+       Mem.load Mint32 m' bm z = Mem.load Mint32 m bm z) ->
+    (forall s b, In s (map BhvVM.v_s BhvVM.vm_tab) -> Genv.find_symbol ge s = Some b ->
+       forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
+    (forall pool rs, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool ->
+       OW.ncoll_ok pool m rs -> OW.ncoll_ok pool m' rs) ->
+    (forall pool gmo, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool ->
+       Genv.find_symbol ge object_list_processor._gMarioObject = Some gmo ->
+       OW.mcoll_ok pool gmo m -> OW.mcoll_ok pool gmo m') ->
+    OW.obj_w ge bm m -> OW.obj_w ge bm m'.
+  Proof.
+    intros ge bm K KP. apply (obj_w_slots_h ge bm K (fun pool Hs => SKc_h pool (KP pool Hs))).
+    intros pool k S1. apply (OW.can_traj_eq ge pool m m' k).
+    - intros ch off Hoff Hch. assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).
+      unfold OW.traj_offs in Hoff. cbn [In] in Hoff.
+      apply (KP pool S1); rewrite Hs; destruct Hoff as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]; sk_side.
+    - unfold OW.ld32. rewrite !CM.load_eq. apply (KP pool S1); sk_side.
   Qed.
 
   (* the same with the collision cells kept too (SKp) *)
@@ -778,7 +823,7 @@ Section OWK.
     OW.obj_w ge bm m -> OW.obj_w ge bm m'.
   Proof.
     intros ge bm K KP KN Kbm KSc. apply obj_w_slots_s; [ exact K | exact KP | | exact Kbm | exact KSc ].
-    exact (surf_keep_of_KN ge K (fun pool Hs => SKp_c pool (KP pool Hs)) KN).
+    exact (surf_keep_of_KN ge K (fun pool Hs => SKc_h pool (SKp_c pool (KP pool Hs))) KN).
   Qed.
 
   (* the same with the surface clause's keep given (a row's footprint) *)

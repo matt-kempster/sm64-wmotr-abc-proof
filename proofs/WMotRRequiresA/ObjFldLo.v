@@ -318,7 +318,7 @@ Section FLDL.
   Lemma fld_rings_lo : forall la, la <> pool -> OW.rings m1 pool la = OW.rings g pool la.
   Proof.
     intros la Nl. apply (PK.rings_eq g m1).
-    - exact SKC.
+    - exact (PK.SKc_h g m1 pool SKC).
     - intros z. apply PK.ld32_eq. intros ch' z'. exact (LO ch' la z' Nl).
   Qed.
 
