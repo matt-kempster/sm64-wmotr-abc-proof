@@ -342,8 +342,8 @@ Proof.
   - intros E. destruct (Hc E) as (y & Hy & L). exists y. rewrite S by ko. exact (conj Hy L).
   - intros E. destruct (Hpx E) as (x & z & base & top & Hb & L1 & L2 & L3).
     exists x, z, base, top. rewrite !S by ko. exact (conj Hb (conj L1 (conj L2 L3))).
-  - intros E. destruct (Hcx E) as (x & z & y & Hy & L1 & L2 & L3).
-    exists x, z, y. rewrite !S by ko. exact (conj Hy (conj L1 (conj L2 L3))).
+  - intros E. destruct (Hcx E) as (x & z & y & dj & Hy & Hdj & L1 & L2 & L3).
+    exists x, z, y, dj. rewrite !S by ko. exact (conj Hy (conj Hdj (conj L1 (conj L2 L3)))).
 Qed.
 
 (* ORDER: update_non_terrain_objects / unload_deactivated_objects walk the
@@ -788,8 +788,8 @@ Proof.
   split; [ | split; [ | exact (Dk D) ] ].
   - intros t Lt. rewrite Lt0 in Lt. destruct (T t Lt) as (T1 & T2 & T3).
     rewrite (R POLES (or_introl eq_refl)), (R CANS (or_intror (or_introl eq_refl))). split; [ exact T1 | split; [ exact T2 | ] ].
-    intros Hc Ht. destruct (T3 Hc Ht) as (x & z & y & Hin & Lx & Ly & Lz).
-    exists x, z, y. rewrite Lx0, Ly0, Lz0. exact (conj Hin (conj Lx (conj Ly Lz))).
+    intros Hc Ht. destruct (T3 Hc Ht) as (x & z & y & dj & Hin & Hdj & Lx & Ly & Lz).
+    exists x, z, y, dj. rewrite Lx0, Ly0, Lz0. exact (conj Hin (conj Hdj (conj Lx (conj Ly Lz)))).
   - intros Hp. rewrite (R POLES (or_introl eq_refl)) in Hp. destruct (P Hp) as (x & z & base & top & p & Hin & Lx & Ly & Lz & Ld & Lp & Ep).
     exists x, z, base, top, p. rewrite Lx0, Ly0, Lz0, Ld0, Lp0.
     exact (conj Hin (conj Lx (conj Ly (conj Lz (conj Ld (conj Lp Ep)))))).
@@ -1659,15 +1659,16 @@ Section CHK.
   Qed.
 
   Definition cannon_xz_b (o : Z) : bool :=
-    existsb (fun '(x, z, y) => f32_at_b (o + O_POSX) (f32z x)
+    existsb (fun '(x, z, y) => existsb (fun d => f32_at_b (o + O_POSX) (f32z (x + d))
                                && f32_at_b (o + O_POSY) (f32z (y - CANNON_SEAT))
-                               && f32_at_b (o + O_POSZ) (f32z z)) wmotr_cannon_xzy.
+                               && f32_at_b (o + O_POSZ) (f32z (z + d))) cannon_jit) wmotr_cannon_xzy.
 
   Lemma cannon_xz_b_sound : forall o, cannon_xz_b o = true -> cannon_xz_ok m pool o.
   Proof.
     intros o H. apply existsb_exists in H as ([[x z] y] & Hin & H).
+    apply existsb_exists in H as (d & Hd & H).
     apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
-    exists x, z, y. split; [ exact Hin | ].
+    exists x, z, y, d. split; [ exact Hin | split; [ exact Hd | ] ].
     exact (conj (f32_at_b_sound _ _ H1) (conj (f32_at_b_sound _ _ H2) (f32_at_b_sound _ _ H3))).
   Qed.
 

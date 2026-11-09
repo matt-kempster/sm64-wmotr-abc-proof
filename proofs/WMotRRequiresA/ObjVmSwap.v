@@ -211,8 +211,8 @@ Section VS.
     - intros Et. destruct (Hc Et) as (y & Hy & L). exists y. rewrite (E Mfloat32). exact (conj Hy L).
     - intros Et. destruct (Hpx Et) as (x & z & base & top & Hb & L1 & L2 & L3).
       exists x, z, base, top. rewrite (E Mfloat32). rewrite !Kv by sv. exact (conj Hb (conj L1 (conj L2 L3))).
-    - intros Et. destruct (Hcx Et) as (x & z & y & Hy & L1 & L2 & L3).
-      exists x, z, y. rewrite (E Mfloat32). rewrite !Kv by sv. exact (conj Hy (conj L1 (conj L2 L3))).
+    - intros Et. destruct (Hcx Et) as (x & z & y & dj & Hy & Hdj & L1 & L2 & L3).
+      exists x, z, y, dj. rewrite (E Mfloat32). rewrite !Kv by sv. exact (conj Hy (conj Hdj (conj L1 (conj L2 L3)))).
   Qed.
 
   Lemma kind_v : forall k, OW.kind_ok pool m k -> OW.kind_ok pool m' k.
@@ -226,8 +226,8 @@ Section VS.
     - intros E. destruct (Hc E) as (y & Hy & L). exists y. rewrite Kv by sv. exact (conj Hy L).
     - intros E. destruct (Hpx E) as (x & z & base & top & Hb & L1 & L2 & L3).
       exists x, z, base, top. rewrite !Kv by sv. exact (conj Hb (conj L1 (conj L2 L3))).
-    - intros E. destruct (Hcx E) as (x & z & y & Hy & L1 & L2 & L3).
-      exists x, z, y. rewrite !Kv by sv. exact (conj Hy (conj L1 (conj L2 L3))).
+    - intros E. destruct (Hcx E) as (x & z & y & dj & Hy & Hdj & L1 & L2 & L3).
+      exists x, z, y, dj. rewrite !Kv by sv. exact (conj Hy (conj Hdj (conj L1 (conj L2 L3)))).
   Qed.
 
   (* ---- the VM clauses at a slot other than k0 ---- *)

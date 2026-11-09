@@ -1071,9 +1071,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
        (poke cmd cell -> ObjExit.exit_pc; posY store -> CannonKeep.can_drop_pc,
        RenderKeep k_all_wc's new re-pinned class Qy; ObjVmSwap Hy0).  addf_keep now
        asked outside the prologue only (GPc); keeps at GPL = same rows at st0 := sL
-       (ObjRows.gk_L).  STILL VACUOUS: FOUND cannon x/z jitter -- kind_ok's
-       cannon_xz_ok pins a CANNON_BASE's x/z, opened_cannon act 4/6 jitter them, so
-       native_res at CANS@12 is false; restating cannon_xz_ok is the next step.
+       (ObjRows.gk_L).  x/z jitter RESTATED (cannon_xz_ok: entry + d, d in
+       cannon_jit, same d for x and z).  STILL VACUOUS: FOUND native_res phantom at
+       bhv_cannon_base_loop -- obj_w does not tie a cannon's pos to oAction /
+       oTimer / oHome, so act_4 at k = 69 (y) or act_6 at d = -7 (x) leaves the
+       pins.  Next: a cannon trajectory invariant (TRUST 0.7).  Other native
+       writes to pinned fields to check (phantom): red coin's parent counter++
+       (red_ok < 8), hidden-star init counter := 8 - count, lid init spawning a
+       cannon at the lid's unpinned oHome, exclamation box act_2 oPosY := oHomeY
+       and act_3's rise (box_pos_ok).
        TRAP: `tauto` in a section with a Qfam hypothesis hangs (ObjInv / ObjVmSwap);
        prove `In CANS [POLES; CANS]` by `right; left; reflexivity`.
        TRAP: a generic eapply/eassumption combinator over the keep rows hung

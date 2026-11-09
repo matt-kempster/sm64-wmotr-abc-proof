@@ -172,8 +172,8 @@ Section KEEP.
       - intros E. destruct (Hc E) as (y & Hy & L). exists y. rewrite (SK j Hj) by ks. exact (conj Hy L).
       - intros E. destruct (Hpx E) as (x & z & base & top & Hb & L1 & L2 & L3).
         exists x, z, base, top. rewrite !(SK j Hj) by ks. exact (conj Hb (conj L1 (conj L2 L3))).
-      - intros E. destruct (Hcx E) as (x & z & y & Hy & L1 & L2 & L3).
-        exists x, z, y. rewrite !(SK j Hj) by ks. exact (conj Hy (conj L1 (conj L2 L3))).
+      - intros E. destruct (Hcx E) as (x & z & y & dj & Hy & Hdj & L1 & L2 & L3).
+        exists x, z, y, dj. rewrite !(SK j Hj) by ks. exact (conj Hy (conj Hdj (conj L1 (conj L2 L3)))).
     Qed.
     Lemma runs_u : forall id, OW.runs ge pool m' j id = OW.runs ge pool m j id.
     Proof. intros id. unfold OW.runs. rewrite (ld32_SK j Hj) by ks. reflexivity. Qed.

@@ -1017,13 +1017,11 @@ without pressing A".*
   `kind_ok` between SET_INT(oInteractType, POLE) and bhv_pole_init; INV_k is
   now state-indexed with a pole window (see "FOUND FALSE ... set42_keep"
   below). (2) Cannon, REPAIRED 2026-11-09 by RE-ANCHORING the ghost (see
-  "cannon REPAIRED" below). **The vacuity window is NOT closed**: a second
-  cannon FOUND (below, "cannon x-jitter") says `obj_w`'s `kind_ok` pins a
-  CANNON_BASE slot's x / z exactly (`cannon_xz_ok`), while
-  `bhv_opened_cannon_loop`'s actions 4 / 6 jitter oPosX / oPosZ (cannon.inc.c) with Mario
-  in the cannon; so the residual `native_res` at bhvCannon's CALL_NATIVE is
-  false as stated wherever a cannon is entered, and the capstones stay
-  vacuous until `cannon_xz_ok` is restated (OPEN).
+  "cannon REPAIRED" below). **The vacuity window is NOT closed.** The cannon
+  x-jitter FOUND (below) is restated so `obj_w` holds in the real game, but
+  `native_res` is still FALSE at phantom INV states for the cannon's native
+  (below, "native_res phantom at bhv_cannon_base_loop"), so the capstones
+  stay vacuous (OPEN).
 - **Objects (2026-10-26): one real call.** `HeightFrame.play_frame_step` is now poll ; PRE ;
   `seg_objects_spec` ; POST ; render walk, and `seg_objects_spec` is `ObjPhase.objects_call`:
   the generated `area_update_objects` as one `eval_funcall`. The old `seg_platform` / action /
@@ -1672,13 +1670,40 @@ without pressing A".*
     reads its offset.
   - `obj_w` / `cannon_obj_ok` / `cannon_xz_ok` needed no restatement for
     this half: the real code's heights are listed (vm, `CannonKeep.lid_chk`).
-  **FOUND 2026-11-09 (OPEN): cannon x-jitter.** `kind_ok` pins a CANNON_BASE
-  slot's oPosX / oPosZ to a level-data entry (`cannon_xz_ok`).
-  `bhv_opened_cannon_loop` jitters oPosX / oPosZ (cannon.inc.c, actions 4 and 6)
-  while Mario is in the cannon, so `obj_w` is false in the real game there
-  and `native_res` at bhvCannon's CALL_NATIVE (word 12) is false as stated.
-  Not repaired here; it keeps the capstones vacuous (see the top of this
-  section). Sweep (2026-11-09, vm over `vm_tab`): among the still-asked
+  **FOUND 2026-11-09, RESTATED 2026-11-09: cannon x-jitter.** `kind_ok`
+  pinned a CANNON_BASE slot's oPosX / oPosZ to a level-data entry exactly
+  (`cannon_xz_ok`), but `bhv_cannon_base_loop`'s actions 4 and 6
+  (cannon.inc.c:45-62) jitter both while Mario is in the cannon, so `obj_w`
+  was false in the real game there. Restated (`WMotRWorld.cannon_xz_ok`):
+  x, z = an entry's x, z + d, with the SAME d for both and d in
+  `cannon_jit` = {0, -1, -2, -3, -5, -7}. Read from the C: act 4 enters
+  timer t with offset [0, -1, -2, -1] (t mod 4) and leaves at t = 68 with
+  -3; act 6, timers 0..3: -5, -7, -5, -3; acts 5 / 1 / 2 / 3 stay at -3;
+  act_0's timer-0 reset returns to 0. Every value is a small integer, so
+  binary32 is exact. **This is a statement read from cannon.inc.c, not
+  vm-derived**; the boot witness and the first real objects phase (d = 0)
+  are checked by the existing ow_chk. Readers: no capstone path reads a
+  cannon's x / z (`cannon_xz_seat` has no user; `used_ok` / `coll_obj_ok`
+  read only `cannon_obj_ok`'s y). The other users are keeps (ObjWorld pin C,
+  CannonKeep.xz1, ObjVmSwap, UnloadOw), and they carry d through.
+  **FOUND 2026-11-09 (OPEN): native_res phantom at bhv_cannon_base_loop.**
+  `native_res` is asked at EVERY INV state at a special CALL_NATIVE.
+  `obj_w` does not tie a cannon's oPosX / Y / Z to its oAction / oTimer /
+  oHome* (act_ok bounds oAction only to [0, 7)). Two cases make it false:
+  - From an INV state with the base already 69 rise steps up
+    (`cannon_obj_ok` allows home + 5k, k <= 69) and oAction = 4, oTimer = 0,
+    act_4 adds 5 more: home + 350 is not in `wmotr_cannon_list`.
+  - With x at d = -7 and act 6, timer 0, x goes to d = -9.
+  The y half predates the x / z pins (the rise list, 2026-10-24). This is
+  false at phantom states only: the real run follows the trajectory above.
+  The repair is a cannon trajectory invariant that pins (oAction, oTimer)
+  with oPos - oHome and oHome = the lid's spawn position. Its cost:
+  - new obj_w read cells: oTimer, oPrevAction, oHome*;
+  - keeps for cur_obj_update's timer / action-reset stores (ObjStep), for
+    SET_HOME (bhvCannon word 7, `home_keep` at the re-anchored ghost), and
+    for Mario's A-gated `usedObj->oAction = 2` (act_in_cannon).
+  No new assumption is needed, but it is a multi-file redesign.
+  Sweep (2026-11-09, vm over `vm_tab`): among the still-asked
   per-command keeps (SET_INT, ADD_FLOAT, SUM_FLOAT, SET_RANDOM_*, SET_INT_UNUSED,
   DEACTIVATE, PARENT_BIT_CLEAR, SET_HITBOX[_WITH_OFFSET], LOAD_ANIMATIONS,
   LOAD_COLLISION_DATA, BEGIN), the only writes of a field `obj_w` reads

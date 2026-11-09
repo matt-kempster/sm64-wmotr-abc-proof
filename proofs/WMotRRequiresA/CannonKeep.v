@@ -351,9 +351,9 @@ Section CK.
 
   Lemma xz1 : cannon_xz_ok g pool (k0 * OW.OSZ) -> cannon_xz_ok m1 pool (k0 * OW.OSZ).
   Proof.
-    intros (x & z & y & Hin & Lx & Lyy & Lz). rewrite Ly in Lyy. injection Lyy as E.
+    intros (x & z & y & d & Hin & Hd & Lx & Lyy & Lz). rewrite Ly in Lyy. injection Lyy as E.
     destruct (lid_xz lid Hlid x z y Hin (eq_sym (f_equal Vsingle E))) as (Hin' & E').
-    exists x, z, (y - 340). split; [ exact Hin' | ].
+    exists x, z, (y - 340), d. split; [ exact Hin' | split; [ exact Hd | ] ].
     rewrite Ly1, <- E'.
     rewrite !LPs; [ exact (conj Lx (conj eq_refl Lz)) | .. ];
       unfold O_POSX, O_POSZ, RAW_OFF, OW.OSZ; cbn [size_chunk]; lia.

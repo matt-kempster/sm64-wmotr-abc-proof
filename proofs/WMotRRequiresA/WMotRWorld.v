@@ -184,11 +184,29 @@ Definition pole_xz_ok (m : mem) (b : block) (o : Z) : Prop :=
     /\ Mem.load Mfloat32 m b (o + O_POSY) = Some (f32z base)
     /\ Mem.load Mfloat32 m b (o + O_POSZ) = Some (f32z z).
 
+(* THE CANNON'S X / Z JITTER (FOUND 2026-11-09; this pin was exact x / z,
+   false in the game with Mario in a cannon).  opened_cannon_act_4
+   (cannon.inc.c:45-50) adds (f32)((oTimer / 2 & 1) - 0.5) * 2 (+-1) to BOTH
+   oPosX and oPosZ every frame, and at its last timer (68) another * 4
+   (+-2); act_6 (:60-62) adds * 4.0f (+-2) at timers 0..3.  Over the real run
+   the offset from the spawn x / z (the lid's; SET_HOME's) is: act 4 at
+   timer t, entering with [0; -1; -2; -1] (t mod 4) and leaving at t = 68
+   with -3; act 6, timers 0..3: -5, -7, -5, -3; then -3 through acts 5, 1,
+   2, 3 until act_0's timer-0 reset (oPos := oHome: 0).  x and z get the SAME
+   offset (one formula, one timer).  Small integers: exact in binary32.
+   So: x, z = an entry's + d, d in cannon_jit.  Nothing downstream reads a
+   cannon's x / z (cannon_xz_seat has no user): the pin is carried, for the
+   word-5 re-make of kind_ok (ObjWorld pin C) and a future x / z box. *)
+Definition cannon_jit : list Z := [0; -1; -2; -3; -5; -7].
+
 Definition cannon_xz_ok (m : mem) (b : block) (o : Z) : Prop :=
-  exists x z y, In (x, z, y) wmotr_cannon_xzy
-    /\ Mem.load Mfloat32 m b (o + O_POSX) = Some (f32z x)
+  exists x z y d, In (x, z, y) wmotr_cannon_xzy /\ In d cannon_jit
+    /\ Mem.load Mfloat32 m b (o + O_POSX) = Some (f32z (x + d))
     /\ Mem.load Mfloat32 m b (o + O_POSY) = Some (f32z (y - CANNON_SEAT))
-    /\ Mem.load Mfloat32 m b (o + O_POSZ) = Some (f32z z).
+    /\ Mem.load Mfloat32 m b (o + O_POSZ) = Some (f32z (z + d)).
+
+Lemma cannon_jit_range : forall d, In d cannon_jit -> -7 <= d <= 0.
+Proof. intros d H. unfold cannon_jit in H. cbn [In] in H. lia. Qed.
 
 Lemma pole_xz_base : forall m b o, pole_xz_ok m b o ->
   exists x z base top, In (base, top) wmotr_pole_list /\ (-8192 < x < 8192 /\ -8192 < z < 8192)
@@ -207,9 +225,13 @@ Lemma cannon_xz_seat : forall m b o, cannon_xz_ok m b o ->
     /\ Mem.load Mfloat32 m b (o + O_POSY) = Some (f32z (y - CANNON_SEAT))
     /\ Mem.load Mfloat32 m b (o + O_POSZ) = Some (f32z z).
 Proof.
-  intros m b o (x & z & y & Hin & Lx & Ly & Lz).
-  exists x, z, y. split; [ exact (cannon_xzy_in_list _ _ _ Hin) | ].
-  split; [ exact (cannon_xz_box _ _ _ Hin) | exact (conj Lx (conj Ly Lz)) ].
+  intros m b o (x & z & y & d & Hin & Hd & Lx & Ly & Lz).
+  exists (x + d), (z + d), y. split; [ exact (cannon_xzy_in_list _ _ _ Hin) | ].
+  pose proof (cannon_jit_range d Hd) as Rd.
+  pose proof (proj1 (forallb_forall _ _) cannon_xzy_xz _ Hin) as A. cbn beta iota in A.
+  split; [ | exact (conj Lx (conj Ly Lz)) ].
+  apply orb_true_iff in A as [A | A]; apply andb_true_iff in A as [A1 A2];
+    apply Z.eqb_eq in A1; apply Z.eqb_eq in A2; subst x z; lia.
 Qed.
 
 (* both accessors survive any change that keeps the object's block's loads *)
@@ -223,8 +245,8 @@ Qed.
 Lemma cannon_xz_ok_eq : forall m m' b o, (forall ch z, Mem.load ch m' b z = Mem.load ch m b z) ->
   cannon_xz_ok m b o -> cannon_xz_ok m' b o.
 Proof.
-  intros m m' b o K (x & z & y & Hin & Lx & Ly & Lz).
-  exists x, z, y. rewrite !K. exact (conj Hin (conj Lx (conj Ly Lz))).
+  intros m m' b o K (x & z & y & d & Hin & Hd & Lx & Ly & Lz).
+  exists x, z, y, d. rewrite !K. exact (conj Hin (conj Hd (conj Lx (conj Ly Lz)))).
 Qed.
 
 Definition coll_obj_ok (m : mem) (v : val) : Prop :=
