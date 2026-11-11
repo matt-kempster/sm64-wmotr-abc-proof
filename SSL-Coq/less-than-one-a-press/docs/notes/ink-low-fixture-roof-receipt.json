@@ -1,0 +1,7968 @@
+{
+  "schema": 1,
+  "scope": "Eight supplied roof positions, inherited action/cache/items/depth, no-A input-only continuation",
+  "summary": {
+    "trials": 352,
+    "updates": 20891,
+    "positiveGapTrials": 0,
+    "maxPositiveDisplayGap": 0.0,
+    "crawlingTrials": 80,
+    "maxCrawlY": 1280.0,
+    "stopCounts": {
+      "horizon": 334,
+      "left-area": 18
+    },
+    "freshReplayUpdates": 180
+  },
+  "rows": [
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 0,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "12bf7982ac61a30b8a8b9b86e2711e3b6c1bf7787434f4de9bb4971962eb76b1"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 1,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "76a22c78039a30f552d933075e55037d2a94b63809156d14eb73409e8c377c5a"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 2,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "cd4b4f60cd94b69d94019db4a1c31a5ce2272d95ab13933f4cadea6bbcdf8137"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 3,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "97bc35bdb914293c75572f9a80e17cf3587fbe37a659017fc4a3c26a99f6bbe9"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 4,
+      "updates": 45,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "left-area",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "855ba140999c476c73a13a82c47308b945ebee0ff119c288cf827671b7a10f2d"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 5,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "ab7cd413ea5f88fc594ac640e511688cddc04682f5e5d7fc46833d7bdc23f2ba"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 6,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "2cafd70f3635ce17585ad21ed37a0c3dd1cd0c36f0461387d43d76f93277608e"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 7,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "6ced654c207c6917fab8d80d138d525f51e91a51c01115961d4eee6d5e3a01cc"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 8,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "8440561ff574f90df802fc12e73f19390af2526bfc7bd426a2a61cef1533cf85"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 9,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "1763416113bb53d1109176ccdb5d38d6cd85d813be2420879f4d5110e7b3a074"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 10,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "aea4fb01915e730510b9c4dc700d7f944743ad724bc24fda44c8498624fa4a54"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 11,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "ae98022f388deaaf0a2b9a2052f78a96a7d817989bc17bba752085582ceba391"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 12,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "74efeeaed6a4dd1f33bc1b8bc88cc068492a39d2384de33bfda85cf2df63d49d"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 13,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "c4c05776cd449323f18f69b564facad23573e43089f84d00c5a24c068fac879b"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 14,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "9e01c8d88c86b0e8ab27834fdc2a6d092ebbd372715a6d94d6a7bcaed65a6411"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 15,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "a25c8a9234ce87d6e05f5045e4481025dc10031092374b03f6076a186b755d97"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 16,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "3c8ddeedc2b71e9834df3281e60e3a8f785344ce8e5669f17c1c394f0ae90d05"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 17,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "f749de45d948942d87be9aa7f1a394e75358329d17d0c4471de5169df9ce05d2"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 18,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "dac006aec4fe0a871d2d98c7459b3324441b89d082780fd238b1c6d41d63a52d"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 19,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "eac8e7e32ff20b9ba485771efea3e37aeb164400fbc0329d34dd2248d10cace4"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 20,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "1b0162e0294ead92651d4bf03c6948732b2f3770a513e8ba106c547b571d89b3"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 21,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "c401057d5c8bee4ac8f5482231c72654a4e619e638fbdca08e6c625ec3b36840"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 22,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "e5408d8d6cdf14cc23c38a035d2ec3300edc2fe54251d9abd86e1b53d9d267d6"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 23,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "adc12891a0a6f01323ef6e3d73fba0ea1b5620c6d759a173281edcd5ba1bb2f1"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 24,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "dff46f0b79d825ad37249bc16ff1e13b7210015e6ffbceadd5372b776ce72666"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 25,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "716fa616ae23fec6698bb586381baa749efbcd53476a3a7fff5f0b05828b3e6f"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 26,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "ce73bd4756a36bdee6f88d4ee70d02e812c0a9d5a6d71d71343f180e21f56393"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 27,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "9f1597b48d4b29493209b6ebe86a26f490cfe33fdf8b582f0636728b38f1a26c"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 28,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "3c0c15c90b6832b44e26494d7f1cf011fbea990769e85b456d0ad2b58c03581a"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 29,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "d94e3cc34cf866271a7f3de14c32d4144b77c2e16db6b2d6e3271202b23bed7c"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 30,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "97205f70fed66e1e30128cf539c12a7aae23836ebc34538a39bbb51ff08cf1d3"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 31,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "5eb4e36b4ede1be1fee46ac4b9f7f776fae11bc6f886b7be0ae765181d77934f"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 32,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "4db46b6441a4aed9f414533ec6325fe30151368448240b77efdaa7e81a5c63ee"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 33,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "33e44d0046bb188e863f2fb9509ae8e1c8b7e1ff52c030dbd3e49c452765145f"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 34,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "0b28221ac7359959d010b949a16ce9ba112807f7cddf162916d0b4db87bcb5ed"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 35,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "ab80c609599ee17519c7a8f73a7003a6d86857a4f972c0f818e5c8bc6e601f69"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 36,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "294cf417a3fc29d00e2d5713040a222e5f57fbe52846585c7e2eaadffa760c9f"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 37,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "04af75337b500451fb87539cd585fc316579035936c6eb1dc6c70fd5915b41d9"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 38,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "d7f245054be8acf6bbb4a24361fbd22956e9d8cffe7a21b195181de525d712c0"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 39,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "4d6a254b065afb96d44ec8fb7fbc95c8e38ec86dec87094b7fa25e92e22c004f"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 40,
+      "updates": 45,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "left-area",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "ac8fcaa7e25fa625754312555bd4b2687416c44018aca5ecb5d4dd667aef055f"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 41,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "db881bac8d0c4c0bfdac63986a1a10ae5743b7f40fdac05ba379aab140762403"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 42,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "233353057a729957559d4ed3c1f4c200afa1bd8ca4a13d8a3835af79b81d10d1"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 43,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "3a9c2aea7e9612be9486dd001a71dc77c157909ff01c97c570ca58f2467c284b"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 0,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "47ca10408dbbc9a7ab6be2d168e83018593d86ca971383f82a40482692cdd215"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 1,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "09dd528e257f1c24e58eeff4d9261552b616ba8e0f9cc78faf3903af271aebaa"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 2,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "b77df839eeae35c411cae11fc1a4ed94147124eb5307160cbbce470221f8c856"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 3,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "1f42cd8c62d203040c0eadae1813277a6edb9c6ae1a570eaa91a30eea80e8df9"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 4,
+      "updates": 46,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "left-area",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "8468cd76dc3c283a0e050487a136984bd4fb8529f6b1b74fd4de652b1d6e2346"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 5,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "5d8740e37204b17e1ebc00a068b9a69dfc076b7d331607a5f0b6e8b0f2fc401a"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 6,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "3653b4c505c13956bbceb3e6063a499e9caa4a009646fe5a4d14237a6fc827a7"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 7,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "40194ce5727e31b2a415785fb5e6f269c3734b18d5ac85535029166ef627e311"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 8,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "1f88f1bb359c34fc83a97b6bc19b4b0f2c68a94f185d5b05727d4e6bb6cd9f50"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 9,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "09fa8bc1c2014e0840901cccc1e43805a780df5106d06ef6d5311c1ad9800d7a"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 10,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "ef8ac258d09719afb4eee4544383e294b2aa606376e41cc03450ce761097fff1"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 11,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "9668e21c1ff755ec6a459ea2554022fa8850884fa34582033b8dae7860d33f64"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 12,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "b99f7987adec8ec80067ad1fc63042ea422cfd2041a3be1e36b4ec00c5e04c87"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 13,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "50ee9f6db7dd866cece7c07ae58416345984d46bf6243e6040638fa1a45318d5"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 14,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "423005999fcf995a8e00ea43cae7c8245d3a783da0e534d4f9fc9e21a72f7365"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 15,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "ac648f89070ac3337811add31fc555b969522c5b4e50f7554945097738659f1b"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 16,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "88d82969eec8ae5d7ab2480f5c66142e8307542079ad82a79a3b4a2c4f036d64"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 17,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "070e2ec531a96271172c63e84cd7a1293a97c0d1df00a31b4aedf96e344e5bdf"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 18,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "7d6c4e7461bda165975ba0bf75559036c1cda0f0715e87f515831e784eb7095d"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 19,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "b6845113460593344fdc5157f9e27f8ec5d630c3043c90932fd8d03813fdba78"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 20,
+      "updates": 45,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "left-area",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "d7f79ac38716c9529905094bb8f86c405f0e6a31f2ee01238c29407342b54878"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 21,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "bd2fa1cfae0cd3048416533125dc5d98568373599e57848d987ac14d8bb30049"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 22,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "c479797ffc7cf6a39aabe4533f98def29f15e6a27d57f099635da2b7416abe96"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 23,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "bcaf056fed14c2051aeffe44b8613c471c2fd9a982e1f05e4e48aed33d8f4d5b"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 24,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "d151880730371e25fe48869da7a3a777b3f4c310ca7830a6b09fcbc16aa9fdf1"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 25,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "947f607ad5ea8589b25cd7e88049955ca24cfa484fff8f52ad69abb281977be7"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 26,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "724e10dd2b1d6bf883f6706cbded11f0d14259fa49275ae702a7163012d7b299"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 27,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "f0f9a2695608fdbc78038eb9e476c9b2718ac6f64b1492db135f953bd8692719"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 28,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "aec726b14ba96d282b42233191c9fc423ffe989fbf4ba4f4fc9d8b872ca922c8"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 29,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "d0f967cd56c11cd5ca3e9d7c7259c0344206b6b12232c087818e15dfe0a46c2b"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 30,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "6f38ae42e8a13ac107aa8db9326e0a723ebb8e658d96b507610af08f908ab3ac"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 31,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "8ae46a3f205e3c477b7824047f2f3161ada328ebd1eef5844d3507f251761c57"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 32,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "299350dc1eca76eabf4f56a8061ce95d8360128dcd34b898fc45bf166668c27d"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 33,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "f309aeebd4f7d37fd8915f798716209c4de84b04e14c3b60711e6c38aeade718"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 34,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "76cca9378533d5f2798ac7fe26a3caa2dec4588912bcc57f58eebfd3fe0c604b"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 35,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "f8583b38021b0e6b3529ace7b7eb5ee4732c03d4a062f1c2dad85f1918595394"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 36,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "d22ea2da557f1e44ea1a182315b6d889776945dd66b5b9cf7d32906baa906581"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 37,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "8da346817bdb80d607046fcdbe09243c9f656c4d363529c4a2e715f2d22b8d57"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 38,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "736eedd340ee7083b7ace49b7f78c42ecd35ef066010e0c11e4e4d86402f9be0"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 39,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "66d88d203e132274f30f9ff0f40af76b5bc3cceb2fee6ec5444f888f06614e79"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 40,
+      "updates": 46,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "left-area",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "af2a0fd6a467d27339d0e5d3123439af0c86b35a5ea4985db8a31c3bc04ef3d4"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 41,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "72063b61519e74019e8397860c295c3a41146c119f57e10d9863b3af1d5074d1"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 42,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "2db10a538027ea82c811158ad95100853cdda541f68fa1b251f89a68a7b62538"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 43,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "2b6aac467c6134653e1b29be26eaead8a2c8e6e2f9bdd91c0db9f14b9674d1ef"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 0,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "111afbf7b4620a1a81d384b4d54fa37a23f802394f255346dcb50d728fb7765d"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 1,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "d5d1294ef53cdc353f662d54590b05b1c322ee90bba2011ec569f8ead6c61f80"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 2,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "37c527bb9e3b06b224acf3fb749b1d03f464469f3b7cc9366edce9c4c2981ebc"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 3,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "7aa88bf200fad1883483006838e9347a96954a73649616c7116d3c500c736161"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 4,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "033ab2eea8b6f2d013c42aba0c8ddbeca5bcae51c0f6c48082932c002a728f69"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 5,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "12ca3c967c4c393695894b9e1ec65b49e8cb815ac609506fbeaebfca83a0135a"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 6,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "db47d1678b1e53c4e9015b2622394520d3a63db3a78aab6aefbf405304781e85"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 7,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "ce6526e0384cea29d721430ab105f99c1f1ba6b9f5f4d2310421460ea9ae5092"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 8,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "4f75fa0703f51fd06ca82d8d3d493e2bc5d81964099a9312cda8c39244e23d4c"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 9,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "bb58ebbb2f73f9bcc3c62b811ac9f510314ff48343861e4c1cc291b47dd9ec9a"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 10,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "317d584ca72f1ab1f8d8e2ed2c9477118231aa4ea8a0e330c21533b8ec1f20d3"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 11,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "9c3869c1dca697f545f8355f02d13105a81cb62f6007b70584a8cbfa810b3c68"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 12,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "e9e12b3d0384ff6ec313fcf6f9e97ec676155cca07f33d32194162a7bc97d9d5"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 13,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "4171a59cbd5897b43cf2bffe5f54613104688f0d327a2613efe4b8a5ddd282c2"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 14,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "639f21653656e4ca40ec7085ed4ec8d9695666651c86a900b0356153be51d583"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 15,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "a0bc46923da86824f6d24f5e464de72ffc27ceece1416dbadcd2b034745c6c06"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 16,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "360cf065d885c786ab4f3787b42968b6314781e4c4a6b4eb7693eec1994db1ad"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 17,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "607c92300620627252a55f109cd805b0f8e6f2904c77c9c355f3cdfb7e7d560a"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 18,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "383534b4a7bbe5809e77a1d36ff6034c16d43ec5d639cbaa74e35777b18fd748"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 19,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "6f6ab700d3567764a397eda670dc9f1c212ef21dec51ff7941ae86dfb7147e68"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 20,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "8d938bd49e87815c67e82b910ec6cc520815cb9efc0115296431b705aa3105ad"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 21,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "35f8f41581192396124ceedb511d0f4ef62caabd142de1a5ca1a7e645b049f93"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 22,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "754345612d73886b173fc1cf02973db5baff70baed9f4173fe2d390faa5abe17"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 23,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "78533e6d3cead37bfb4734d70a8825e96add4fb60d3981b41612da9f4bf8f864"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 24,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "f9303d0152e5fe8a8e4d423a5384b0ed46ede4479b8839d0fa3e7fb412d550a5"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 25,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "eaaecac8c6706f260e4c190a4cb96e95ead4daf66ac8042d2e67a32e345e83a3"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 26,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "03fe8ea0bcb5bef4ad43589bf9690b065aa2176e3df986556fc4a99d2d1e4e59"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 27,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "a47e7ae28d16d19c4da8da06e7686a3590fe01e983bdb929d42af1b70b06d679"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 28,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "df2ec4e62f477e71511deb6273d41c6b78097266ffd95e3fd8e2d9529bc00ad0"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 29,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "376d00958237395a0e001ec1b384d1564003ef0a9b39e74bef9e1c911313101f"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 30,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "31a1788e8ff417ce087f842fb645368de52c4f36b6f941f22b7a62b6adc91c74"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 31,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "d1ba5ea33196ecbe9dd3b6738b3a7b0b7d8250d652d4a1e621ac208f5ef4aad9"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 32,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "77930794e86a932b3003753e7cb073b30c8ffe92267b2e9801fb3ae9df13e81d"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 33,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "0352c0b7430f993a2287456b9af938b880e42793b88b03b115e4d7c326a82aef"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 34,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "628099083f2a5ba9c90d4922c63fdae3e3369f4594a681e0c7f67f2a2823642b"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 35,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "c5d3b2c14fb65022a7976b5bd4dfc17ffc86894dce85e45a6ddff7e895d1a194"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 36,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "5498ab863d03e8dcfd1c472454b1bc2eecada7b06e7c680ef398a9f1a517276a"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 37,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "489e80608b112a5ca50503c7d88e6d8f97e5d1123c6cddb09d661d9dfdadee21"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 38,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "65ede2c49026de0f0adb8bed04b42e3b478650d9cb07701929e07da4afecf136"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 39,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "ecdb549160ceb8daa82d23f658e202228287d090537658baf34beb5d7655d7fa"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 40,
+      "updates": 46,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "left-area",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "611f5bf4814efc1d38fde52a44bc4ab45e12bb3bf3310953196eee710d25f00e"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 41,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "0a515b554264e866311239a97c54a1c2b06848cf1ff6aa7d76e9e46ab9c10192"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 42,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "6228bb54f204dd8c7fb2b9974ce8ceaf195eb6e03ed4ab269221f70e7a3b1ff1"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1125.0
+      ],
+      "policy": 43,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "09e4b1a491462526cd9ff93698d46b03ed6c9c239490b518b26e3a513041144b"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 0,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "8e9636851a78e2639b308531b114be7e5e756910d3de0bee8f96f45f852e862f"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 1,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "b8c19377e64a2860fa95df3c0e22cd3cda812756f6459c231593a31f942306f5"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 2,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "93c799c6505418630d5e453f318de99fc5faf814aac0a4429329bd18ccae263f"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 3,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "9ec2926382d08d939ff740b82bb20b421f108475a702d061060291f078b231a9"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 4,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "de86c6a3fb6e461b8e1430a63711e650dbd002788ac68e4f8c099bbfae66485e"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 5,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "fccfa55761184606cecc2f80e116f1c261b39650471e0186466ca478bce8d5a3"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 6,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "50ab578923f54f997632a268c51a34c36361bbd4d8e0a23e37544fee684c5d92"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 7,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "6dc9c71fa0f280c8134a651b714d4ae3c814b7d6194faba9639978b99ee13e5b"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 8,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "980fcf92fa55751c29dc410e69124b767256265124259d6044135095364ab87c"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 9,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "d32c0d9b4deedc08b9c445e01c7e07eb5f0f52e21218739fe2821950dba65c19"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 10,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "3e861c4657b534352ecf92c04bd3e72f1c20fe267322ec5eccf68e72b6ccb045"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 11,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "dbaa6dcfe6ad735550d4bd6f1d7e9b895da23c7f10348c93da725f5a66570771"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 12,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "76687f8c545a4828fe5d765efc5b5ff08114e7b9b27604412e46d5ffab0b867d"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 13,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "54a66695fad6be05b3d0621a74e268d3c5f12b99fc9f6cbb8267c8b8ca6e044e"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 14,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "7ca3e2d66a6d73c305a620eed30a08379273fbb05345f6c84678e02ee69e90cd"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 15,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "b5c2cab44183e37cd2a417b87983bf89f00e8a7bf9caf1cecf621b4abfec7aa4"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 16,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "e21c195790b3dde8eab0f611a89bbd57f19d813d9ced50733f4b798adfd8bbee"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 17,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "06137478d19d79830451003253188164db5c9984975dae774862b350655eb38d"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 18,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "7cedae6b74f6a654fc0d9a064730e479e66278fc3e1d7dc06cca934486ed4ae2"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 19,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "4f3d1046dd7abc5df8c958c1f4ea23d336a1d98dfc8edc60801ebfa53244e489"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 20,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "8f1b38e8e408875b718e2873c91566f7d323fbcb71570e9f1b06e0954459a13c"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 21,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "1346a903835a4e0c9273bdc4a8c7abf25df9c1690f5c3f30b2ef124b82262833"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 22,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "a1563f1013c6e6fa550e2f3f4d5c522045a16f676cd2d5b778fdd0d8a515052e"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 23,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "4893f6975111e47c3b6e94e92b44236faee0d1919f512ff3dde1ceb92cb1e21a"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 24,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "2bbbc4704e53c1f99f30d7578f8338c96d17ed972ab6dcb89390a42b0cc8a27b"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 25,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "2efe41fe4186d506579fe6f574eb3077d87e8bf2afb9fea3fe02d0aceb515368"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 26,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "f77af0a73e21d128160cacd8274d545f89d6359620075f42df357bbfae2e176e"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 27,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "b4f38fd6a1cb27f66c8be811241484e7b892c44c5f40340ab28f181729a68001"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 28,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "4795ec66ba79071bf804790a7568b00e8779ae0cde3a1581a11eb613a6edcbcb"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 29,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "8ea9b7ad6ac7758dacdd3cb50dddf3b781786df5d15eb5f7d7cc6090f5884158"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 30,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "51a81c097a759a5db023fb18925be0e8ff5145befb89d76c6d568a6fe1a904cd"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 31,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "45fc490750695b2831dbc1077b9d80324e096b48f0a37f8f4e53092f2acf1e77"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 32,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "046545eef3affd6cb70417a86d4cb41d6ff80e500ea24b84e467faef002dc596"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 33,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "f8271fe27e29257519f4ddff3468c5a5215f8f081dec11f80171f75418b95e8f"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 34,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "0c8e9e644de9ef20a8cb5018b0dc538dafc43844f0d0efb07802ad86d8b57e0e"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 35,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "5cac267ef816d2c163f64a3c5d816149d041e20bb404fc6594e60f3fb5879902"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 36,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "5b79b0ea84143de78e3ccbc9827fa5ecd045ac9bcc323649d73a6f196fe2030c"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 37,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "ff4509f63a7e091458d7515676bd9ac137bec00fe7158a03dc13d3418a7c17f4"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 38,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "1e68341df5deb0d9929733ccb2f9b533ad8bcfbb8ceb8083ea908d73f70dfea9"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 39,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "dc1609cfde85f7fac2bfbcf7f6a345b8910bfb452390d534327180b4bd93b598"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 40,
+      "updates": 47,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "left-area",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "ab26dd28ac3565eff141aff100cfc52b2dbff111e6f6127aea443e7a36974f41"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 41,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "35494915ba13ce56b28444a93cf3404515dee4070bb49240da1462292d39fe54"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 42,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "b9f116e947e858f824fc45c2ca0b46c5388e898de3b905006d2e748f67702396"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 43,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "36b8eb3a8aacc204d8b76f70fe241715d28c0164af62f3f86435912f1c3f301b"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 0,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "b3c8946a202554e42c82f3e285ea4c4dfd5cb0db7023cd87bc8319da877a48bd"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 1,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "83bd79e660c3a7ca66206d00ce13e68ed6ad6e2c8ff2bcfbd4a3fd6239ed1baa"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 2,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "225c4c320091649d75455b46dee367e3bc015bc7a755ac148c676bf555238301"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 3,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "33cf758a6944ebbbee53d1a1f3cd1f4cc575a47e0c5c968279a545932fe9247e"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 4,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "896e9cb3c0ce447ba91d78a2aaedbcd834054d58927e33a025962506a6e360a6"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 5,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "9e2382bfba22b65003ec6c07a0f1fcb54025b65a9d5149e55a2b3be1c90d7c6c"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 6,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "d58b84542f67c55a8672b5e89459a1b6ee13dd62caadaadf335bb9122b651d9d"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 7,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "f306748630a1696ba2717175fae51c7a8fe850aa32aa9a8ceff5deee41c0786a"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 8,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "f75cc1ad4962a0281f2465c9576ae016650925bc058572d27ee07e377a032a11"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 9,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "6d655711abc0012b35c03d8bdabd9da0ad09eab97af412f19c1c4f634e0e4493"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 10,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "59bdb49786a6931159bcb5878a88857572395396e4673202b7f919e70871e5ac"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 11,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "85410753b60c3caca65e6144925de24b9531e40bceac50abd6310c2e368de5c6"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 12,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "64e1619ef6aecf5632cc4c356694767e1255464c45e3c1370bf1145d177fa3c6"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 13,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "b0c3bebad4a8f131cd410c0c5f6d60dea5b1951926a80d505ac071f2a5464843"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 14,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "9ff1ceb69f75f5788ed769300460c6d53fc1fe1358cf093b32e4a4cd7ca4dbcd"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 15,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "6df6e899ffc2b55ddf3ba05f6df0b82403f91baba4d1ed0750d8945a6e1867a3"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 16,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "e66850309f549cd500da7bf353acaa1ce5b5a9baf60cb65bc6e48bedfa7b4c8b"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 17,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "3d0785a321f85e65846e98be88b2d043e37258d6246f8644b9c8b6857712be32"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 18,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "8a9efe422ffa74df27864f52392d24aa593740200acad3f213e1c15b8b9172a4"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 19,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "2b7017455c7b4eb99203092eb32c89c8848b98c961d34020b4f8ed349b939ed1"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 20,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "dedff56b9a38255ec5800a03e4e1eaec443ab42f1a3c0cb83b83cd87bc092518"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 21,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "9a5bc5e2a8ba918cb9d4545d69e27f01167be0d947949988fb1f34e235004240"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 22,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "1f295e58c0d370ebe16ead6c2bdd8b6b2fe2af0edc6b374333f07eb334a6c620"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 23,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "b20f7011fc8393ea38e76712ba4107887e0e92b8f0ac6a247c975e771f4140e6"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 24,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "588ce73508164aea2088e13893d5a57f662d66d7062df13d8107e52acd8e9858"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 25,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "8006b879fb651ad289d903cbee72f6712fe60e234fae141cdb92edaa22ebcbe3"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 26,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "d40b26e30249892d66c4a7eb425a7a27aa35ca3b5dba91252c46343fae4bb420"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 27,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "9d80039a07cc076544845b6cf42832f32202ab09475d3de42492e38a9c872617"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 28,
+      "updates": 46,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "left-area",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "28e031147915814e7ddcaf3f57be9e0176cd2ca8e9af36817bce91d674d1f10f"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 29,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "00fd5d01807c7a2db27404dee8122d2e3a3d9b3e2a891e5794ec2ad1f095ff63"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 30,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "a3ed7cab775b448893c52b2a7b10b89c7138e73b2a50c924594e4ffbb19a1287"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 31,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "007a854175f0465ae39c52b91976f03705b08ffde87eb6b0c51d1b1d81b3a2ca"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 32,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "86a5f7e30fa5081e4f9af78e7514ca4df7792cbd05c106632e0b66f2189ec827"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 33,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "825cf1a7e5ec7378157af41fd6353add91b5318bc8fc8d4ce898c0ead40e21ef"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 34,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "7a849764a83c5c10a67e8589076c5902c68c4ceba3bbed8ce1673f243499eb91"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 35,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "68f9f488610a1f489401c90fbaa508a50d48077995e53d546587706761c1c0c5"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 36,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "1b29c4ae4aa1620e9bcae144ff1e3654842f2edf3dd900c3af4063d386b08383"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 37,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "8e6b7477284627e7ff8227ddc3460a2abb33a63a1ba6f689b931af0915cea592"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 38,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "c48e25dbffb585323637dff0b10676c8f23f19921bd24603388ffbf7e7329be3"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 39,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "eb3d2c89401b54282f42c4b1f83a31dbc3dc321c493aaaad5e7a860a881e6b14"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 40,
+      "updates": 46,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "left-area",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "00b3b5319eb60558aef2839c505065b6feac6f14702206ec20bcb77481b85bd7"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 41,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "9140124444a82613679ba0695d4ca03464256bc10c6f3a677bcf20f568b7950f"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 42,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "62f510579aaf06dfeb9dce5768fa758e77e1d4ed00c1ec49d80149e2314d1896"
+    },
+    {
+      "seed": [
+        -1882.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 43,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "57c5f732a9d9db9c53c57caf96a05c7e14bb617cac885b265f18fc9045fbdc02"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 0,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "634f8b4c20e932a14f012d7682d915d25c54fc92bc722e28ddbc09a522351a5b"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 1,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "40d2b42026087242fb6a2303aed1e723f06870428cb087aa48ad0e3e5017599f"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 2,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "97bff13a138df95c7f37a36e561b4750fd069ff2827cd869d859578584c9fcea"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 3,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "ba0ea180cdbfd9632402b7dcd28aeb940f43d7d94d010f1934b18c256c513ad1"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 4,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "1391f4f2c5380de75d56d3e4f8a2dd2d77966bf92660223d756e00273ff4a06a"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 5,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "668cdffcf3f6a198fc940d5b543f0ce05b0e434b565c71e9d95de4ae9d4cbf43"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 6,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "53e30afa8709787399698905385062a91ccabe3a7e5e8c32d1717199e1594ed8"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 7,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "ce3c595a05b3d656fb03ee03594b6a9bf82589c874b4bbeb4b2f5394b6fd5cf0"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 8,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "0a25fbad1328a08e9030ae9970fc9f5503f7ae3053ca76b614174d4370affd2a"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 9,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "351d303132a2d1a5a30d4627e3f238a3f50167aa4f65657523c539972eea7b26"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 10,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "286c2bc621c0cda20dee4dff4594de4fecef7803c7e613c69af0216bebd041b6"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 11,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "5c63f25b69085df2992aa4c4f7dd6f2a43cd81b61c3ab17a58ee9ce79afd9ebe"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 12,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "8d5abdaac7380a34d05e7db6eae888cac231cd391e3dd82bbb9ff2691a5d9306"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 13,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "286881f08db9dbad03f8088bfa6ba446d7851ce9f3616a076ba1ead5859115be"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 14,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "13fa6c44c3a5af8edfd98eff74571172ed6503073f038e436dc822873e938151"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 15,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "459d4f6fa7279107729b55df3adbc942a11844233a5a4f772d4c65b048c445a4"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 16,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "092198837e1004867b463f55732b391deb2955484334c595456eb97e8ac8d748"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 17,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "1e00302168224f9935ee5e8cf4badb3465366b872eea5dfe0d64f2d31c919547"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 18,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "82499da0518921674004a6de810ef237dc415f022ed01e9e2c5aede67de85342"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 19,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "28f5104fc3a5d83f6923e0ffd93c7f9e36a3c0519e5092d42c041aad1a9858a7"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 20,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "528f5b6aeeb00a1ca0d902521590611ab490ca4694d8aee051511cf4c3fc293a"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 21,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "e9ffa87bce7d9d979e3f24ab8cfd2d7617b4a1ecfed882c7d39d81dbd816be94"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 22,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "cbe2355a8bd3ce6ad0b99f79cdff99e978e3f96ae1fc012c7958e0f2ceb674a0"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 23,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "0bfa93ba3545f7eaf09a831d32bc39122a2ebd081431f05d5e025d24ebf5ed5f"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 24,
+      "updates": 43,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "left-area",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "e1582e5826966f38c29016a1b7f3a82b2ef7b687a77a25e2e82f880d06dbd037"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 25,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "6f4c27e3b3bfa5babf890e0bc628e8124f25369944f62e9e8bdedc5bc2b451f4"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 26,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "82f1e16d3352b8d0e3cb242f89e6613bdb72174f007041623bbaae253b6a1cf6"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 27,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "7cd47e140a4ca9dbbc7d47da096fe43da90170966d4c2edc394b73c8451e003f"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 28,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "03dff27bff3624fbbda2a72dc08195a7938e643651befc17075849419705acbc"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 29,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "bdfcdfae2ef83424bcd880a55b4bf65f0314b7e27dca4f1d736cf10b53127983"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 30,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "50e58a93b4d4346409dd1a1d4c7156e63dc8701983f32680a5e3a201c2ab1126"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 31,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "4faffd7fae90d09a61b97388adf5753dd89e29404785251701803d37dba7c17e"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 32,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "3582195039670464dc84fda855a7f3964e637a76cda9d8dcb43ef41a39e08f61"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 33,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "04688734da1770280e2ec5e583f292dfbfde52c91f4a00e85ca2b18c248b9737"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 34,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "16107366afab940039433c38abf4c9a5a4bf149671657fb2eac95856763ff18f"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 35,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "48d53980f83041e1a3053eec78f9085a89e62a593ba33a91eb7bfadf56f2a9cc"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 36,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "a0ddff076cbe082097dea4d54511c073d2e35eae246fc98e1770aaacbf207e55"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 37,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "4db0b6be0f189f6f62daf0196f0580a21e6219c0bb8416bee2b5439fdfc65d8b"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 38,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "659228963b9a951c3cbbd76aade62b1e186c9cae09e232d49fdf36f1512b570a"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 39,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "93f959fcd7fa6b7129752b7fbc19a302a7209265f3f5da5df1adcfc017ef2820"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 40,
+      "updates": 59,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "left-area",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "1c1692575c734eb5e47d056ba5fcadd80fabcd9f10a1183e84e74ecd7d65889e"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 41,
+      "updates": 59,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "left-area",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "c3f3b4600ea3f79d86c2e66f633f5d12eef82d3de6de50c5046176f1eec1c075"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 42,
+      "updates": 47,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "left-area",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "40d11c5f0a0f50989e88ebfbb57ddabb1deeacf923bc640ed76c35ab5988d5d1"
+    },
+    {
+      "seed": [
+        -1936.0,
+        1280.0,
+        -1144.0
+      ],
+      "policy": 43,
+      "updates": 47,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "left-area",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "372fae5b6f6340f46b6cdc23b51d7a5b62b515bbfb6c3d8321c1a98f70ca3e2d"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 0,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "dc1dc030c4e8d303518ffcbefb0bc04eeec037c873723e50719817953da7d735"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 1,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "e4e35d1f3c6de33b14b9bec2bc066aab1247494851f1a4cbd259c6728c3a250b"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 2,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "5caa9cefe06ec91382c3c4214080faff5990403c37c8b17224ce562350aeb84a"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 3,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "b4649494b53538ee920633a15abc3d52a07fd503b5ef37b6c60a7f4efe3609ea"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 4,
+      "updates": 47,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "left-area",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "8bd82b836335de017b376d2bf97128cd640faf09da4a6bf141004474fbe7fafc"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 5,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "e554c18a473742d5757ce2841de93749ccc043880ca1a822a9572aa8c694b130"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 6,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "76964348056e770b931b7eec072fdc3a6f96dd096e07ead324fb8837688e4c08"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 7,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "47c4b13f2905f6158e82f76f019474d68a1b5fbadf97ddf6ced246c3c1118554"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 8,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "35c15ad2c3c92110a951a263b82110ea4c31349b7b69b95461515aa0e36f29d6"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 9,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "2927b622f25118acb55b4537ba88c42d629e2106f2e74b8bf0e67b936206185a"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 10,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "c42d011a10d9ad231924c4f5f77eff71e25abf521d3e9774648ccbdb7fc0778f"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 11,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "a08034722bc968be66bb2e464fb67b259edb179803b796fdc039d563898d15bf"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 12,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "d9b5efc308102e813fcc676cf996d06259743d8071c40fcfa8f34e196b1e8437"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 13,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "b88cec6fd0096efe7ea6d5b721bd28ccbac6ed767881dea8b076b9f9ecd2388f"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 14,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "10fec02ff9330785165358fc0c8305ea7b3e0a92c469190f87e3d93498050027"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 15,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "00860d4a2976c841df5029e5b87e897ee83ce1dbb435e7bc0f9c9689905bb7ec"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 16,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "3df7595f4e29e7522c583665aab6f864b26ae7be9b401fd0a8807ac2585a76ce"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 17,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "b1ae3e70e0c189fac9e31a80cbc9434fb51a99c531254e6fa1d8a4b538dd9f8d"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 18,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "6130fa4dc8c198b83fb5ff2e730c35b36cc49b3cc33dc2e99f68c9f719bd7164"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 19,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "fd727e6df796789676abbf118c71307f0edd0ffaca3e1a904456223911bf9ac1"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 20,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "0bb187f2954094bf9c578e65c42ac6c7d60846a13bef955c886125b8c58f7636"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 21,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "caefbca22c867217ff2eb90e1fc570ed55f3a8c89d87f70db975d4eedad75945"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 22,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "2941caa6fb2aceb6e52fd6007c4d16b7ad194d68459c9f0c334d1711bfe538c5"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 23,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "6cf2c8ab736da80d7f7958a4732cc4dc88b8025ef888ae0bffdb5ceae91ed87a"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 24,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "c22559ae105eaffb4330bc5a71ba01fdf04132767f77c885bb2549d86b5ab75c"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 25,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "1839c3f3bf36133b15692da6aed57c19c0d7f1b5a01f1fd92c62c98beeec4bb5"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 26,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "e0389db6fd183f3554f6c9d82c6d40cb376f33ca73c2185436b24f1dce991c3f"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 27,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "1d587c77922b78a9da1a77f6620d961770715a8cb7cc4c8977318510ffab4af4"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 28,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "188c086c21f0a27d17d7e393a6f1de05c551f6f52c42d2e51c6aa169d6829e88"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 29,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "2ce3c251b4ea2d6d633b0aa87969a6d3243e78f2ec2feb561b3dcd0758a253a0"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 30,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "c2ea7d516dd1f129abaf5c2fd803242ea88dcd374ae0d986be5ab21f971491b3"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 31,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "0abde1aff08b66ea92f1b23f5f05ceddd7299a5ff2eb0172aaf9f7234cabbb62"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 32,
+      "updates": 45,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "left-area",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "c8a2279b2f0caaf4ed189a7ac717514bb13453f212d458372604d3710310d3b6"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 33,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "b38010cc579edc147b5fef251c46cc954122b4c70360851a55ccd84a8e601d7c"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 34,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "6e9ae0761a9b1aedb7993e7976a5f7795b18abebe5af4d13892fc791ea836349"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 35,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "89ac32585779139b5bd1014b7ae11f6203c8e53b2f12eedd817f061592b9ca25"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 36,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "3af9ab450f2d873145bd8367e432a67eff419b92287ccc2afa76524231fc8ecf"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 37,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "9c1a951e9cbcbf520e622ddb383a58cb2151ecfb5075ea4ea1459fc91d51226a"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 38,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "5db7e93b94a0cb8a11c771a19ca36876616501dd7756ff82e5a5d2de133b8b95"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 39,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "a014f93e878fc2021927b7d7f496be109fc368001e1ea855671384a370e0284c"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 40,
+      "updates": 46,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "left-area",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "f410f90d35602bd87b64ca3e4b795ca473a24a2896a0a0655e5449fea1c3d0d5"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 41,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "dcae44b3d1a5430f3b4fd0d2f5414b243491fd13f7abced954d66de17f468bdf"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 42,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "c62eb85966c97d0169012c2f01925b5538e967d3b315d2847a1af598395ff4d9"
+    },
+    {
+      "seed": [
+        -2152.0,
+        1280.0,
+        -872.0
+      ],
+      "policy": 43,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "2fb59bfc360b4368f7a11a41dd70ce9c262a429e608efbf37131310d8db10af0"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 0,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "467b29467410be488bf6c64c7a413938da79c54d1d5e6736ff50894b337fa4f8"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 1,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "89d2f1c9f59ead6caba47490583623d34d9f48a379802d94d12828d1a855c89a"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 2,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "709351af73f11c158c8037bdf312b155bba3bf11cf32edd10cc3289521a359a6"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 3,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "e4fd4263271255459d352808232d766f27ecd442878d34574ac94082a34cfbdd"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 4,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "a12c9c18d5521248e399f4be4bf6c5c7872ea196e2dcd0d7cc704bdd18eb4b25"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 5,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "407751dd61ee8d9f751facad1f79570637adc3628385b6a0fa831c83bc2d32b1"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 6,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "93cc6fce864ff9d8962004590ff638ed7091373bbd746e9c191b0e90386521b0"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 7,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "3e70a5141e27020c2219e542aef66928ee662dc5e2247d23bc9c71c022db2051"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 8,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "1552790d3e4fabbdcaba439a0056892bcb0aa9acc474eed7c7e6b425f120fd72"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 9,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "b39f72229be6128bca30d5b8a9b7221c06d65bbad13e9cf87af634905f95810b"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 10,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "bd42f7d2d26aaec015e124d122b965013a69c323987537b062fcbdf26e573f29"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 11,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "d669ed45272004271843a3c8e1b6a4c1b55f111addbe0e8e5ef327b9e0609a2f"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 12,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "469d504d4e486f8ab98553104d7b594daf61b5a2378e42229a23550fcdd40f99"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 13,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "ac6c1e14a87db7340866457fa4c87a9ea6d29e0fbe058595a34ec86872e62e52"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 14,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "5c5e8bf5a2cc51923a0ad215bb1ad971a1dcb372dac8c2f569055e2c69a976d4"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 15,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "c93cd9703d4e469b17e8befccd4c342be59cd0f9e1cfe7842225f7c13cce0481"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 16,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "eba9d559d9beb34b2d82b460a2d9ed670cddf8ed2bc684dd6111f11f11e3f86f"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 17,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "7d05625c4e09152adc1a2559338e711d3354b55aae853b42a6de1651f7a930fd"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 18,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "c537c9b5c374bcc20bcab3f7cd977f0d6b90100a416bb16d9ce2631d7341c54f"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 19,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "59e34659eacac8427eec3d4fe2344edbfb58ef4e6f49695a63c87fea26712e34"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 20,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "754ab0f8766f85b242c4e869382797d9a3100506eaba5b4fadaf7be3c2f02b0b"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 21,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "818670820f52bb5f71ec006dc54f2b14d54e9cfdea09cb6abfa3582656291adf"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 22,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "051b86ca9953eda204b342af701a3d5ef5d98951f076a1153529d09cfd12a335"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 23,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "062d99adaeadcf1e76991ba58128930b606149c318c3563f3e8f072fe0c48d39"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 24,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "cfa65b39ac9f029bbe628888c86c33ca7a1dcb3c6f7bc0882970897de59ff71f"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 25,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "4f683a3f1bd73e006520a63c634e1b61bafa67707be09e7f1b3fd67e16d8c14e"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 26,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "c96af68c749db9297096fefc0a68f2f10e57572450f76607dad53937be54c286"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 27,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "10febd10fb5296a8dfad8081802043278977a9313752232914d9f2dbf3e2fc5c"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 28,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "fcb634bfd39b4a0905f90c74a4a041b68808fc34bc887e4cdf04459663af630f"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 29,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "898ceb910c71c22221de2fa82df2d8cbd15e0550925696a8bc58d04c707f5a29"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 30,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "3f0dca8befa9636a1ccf6625d5f9096a9d80df90aee77f95c69cd759cd71c914"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 31,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "db9a7180d1c4b4e7a513922b6c0aea5ca084d28d08f15de2a4b4ba361a2a6850"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 32,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "26e89a24007a5f0c4da11281dfbb41bed8166e9a9cdd9876b9d0bf31a08b9f47"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 33,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "0dcf0d9993a0f24b3be77a7dc9db2e08e4cc2aa108f3b993d7a68ccd89b380b3"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 34,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "55d35f90962de577f6431eea71b36560c5071f5c25ccde7602734d79bf56d736"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 35,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "da4c56d99444c9e22ca8251d0ee1dc61e5da632bbf036a88371f294f27941d58"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 36,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "64708ccc79a2b8548126bea6555a03bfa4ed35b6e670396721c946ef12f961bd"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 37,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "0b4981001751e971eb07912ea7366d1dd7916e7306dc0c7b7deaeb3d06652b39"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 38,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "910004930ca5f625e0c0ef3084a3549978f714206214ea196fbf8b9cb6d613d8"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 39,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "6152ec241d111e54c0bec79038dc66e0571d9ec8d51b03704d2f5525bbfa3037"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 40,
+      "updates": 46,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "left-area",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "fd0f561af7267c241f7f684e22e9b623dd3ea92e6484018d9c8e10206268b3ed"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 41,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "840e7706278b10d7dd0ffbcaddbd3afef1d9512f83fd8579c5375f0704320aba"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 42,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "9d68a745ee0df4f8a200577a77cbebd67dd28470e84e388042f3760cc45485c9"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 43,
+      "updates": 60,
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": null,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "99b7ec799c498d2bb2a25b4b9677ac47a59eeec394574131e6985d50da69bd94"
+    }
+  ],
+  "freshChecks": [
+    {
+      "index": 5,
+      "updates": 60,
+      "matched": true
+    },
+    {
+      "index": 49,
+      "updates": 60,
+      "matched": true
+    },
+    {
+      "index": 313,
+      "updates": 60,
+      "matched": true
+    }
+  ],
+  "sourceHashes": {
+    "ink_low_fixture_roof.py": "8cb36d9e4c3e714c430abe2f3aca36d6dbc22005db962f0e4dda5f1f7a3d5e8e",
+    "ink_low_fixture_producers.py": "590cbe849b488a70d610c57c51a4b1f278204c9f174c7c6cd4ed82a45007c13c"
+  },
+  "captureSha256": "9bcc451964025d9f0bb1344c45957b6bfd095451b44bfb9a01f8584a75db6a72",
+  "screen": "Same conservative cap AABB update/action-entry screen as producer matrix; not internal-write tracing",
+  "rawSha256": "189d0c49f4e6e1331af4b65ba8b4d6854e5c847558bed59cc0317174f1ac05f4",
+  "representatives": [
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -1024.0
+      ],
+      "policy": 5,
+      "updates": 60,
+      "initial": {
+        "timer": 2680,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 205521409,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 1024.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -2200.0,
+          1280.0,
+          -1024.0
+        ],
+        "collision": [
+          -2200.0,
+          1280.0,
+          -1024.0
+        ],
+        "display": [
+          -2200.0,
+          1280.0,
+          -1024.0
+        ],
+        "topTimer": 130,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          208,
+          0
+        ],
+        "input": 32,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -5743,
+            1024,
+            624
+          ],
+          [
+            -6031,
+            1024,
+            912
+          ],
+          [
+            -5743,
+            1024,
+            912
+          ]
+        ],
+        "depth": 0.0,
+        "hitbox": 160.0,
+        "held": -1
+      },
+      "final": {
+        "timer": 2740,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 4,
+        "countdown": 4,
+        "sourceNode": 30,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 4864,
+        "actionArg": 262129,
+        "used": 64,
+        "floor": true,
+        "floorY": 768.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1995.0,
+          768.0,
+          -1023.9599609375
+        ],
+        "collision": [
+          -1995.0,
+          768.0,
+          -1023.9599609375
+        ],
+        "display": [
+          -1995.0,
+          768.0,
+          -1023.9599609375
+        ],
+        "topTimer": 1,
+        "topAction": 2,
+        "topActive": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          16353,
+          0
+        ],
+        "input": 16385,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -1945,
+            768,
+            -921
+          ],
+          [
+            -1945,
+            768,
+            -1125
+          ],
+          [
+            -2149,
+            768,
+            -1125
+          ]
+        ],
+        "depth": 0.0,
+        "hitbox": 160.0,
+        "held": -1
+      },
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "ab7cd413ea5f88fc594ac640e511688cddc04682f5e5d7fc46833d7bdc23f2ba"
+    },
+    {
+      "seed": [
+        -2200.0,
+        1280.0,
+        -939.0
+      ],
+      "policy": 5,
+      "updates": 60,
+      "initial": {
+        "timer": 2680,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 205521409,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 1024.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -2200.0,
+          1280.0,
+          -939.0
+        ],
+        "collision": [
+          -2200.0,
+          1280.0,
+          -939.0
+        ],
+        "display": [
+          -2200.0,
+          1280.0,
+          -939.0
+        ],
+        "topTimer": 130,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          208,
+          0
+        ],
+        "input": 32,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -5743,
+            1024,
+            624
+          ],
+          [
+            -6031,
+            1024,
+            912
+          ],
+          [
+            -5743,
+            1024,
+            912
+          ]
+        ],
+        "depth": 0.0,
+        "hitbox": 160.0,
+        "held": -1
+      },
+      "final": {
+        "timer": 2740,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 4,
+        "countdown": 6,
+        "sourceNode": 30,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 4864,
+        "actionArg": 262131,
+        "used": 64,
+        "floor": true,
+        "floorY": 768.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -2001.97900390625,
+          768.0,
+          -1062.600341796875
+        ],
+        "collision": [
+          -2001.97900390625,
+          768.0,
+          -1062.600341796875
+        ],
+        "display": [
+          -2001.97900390625,
+          768.0,
+          -1062.600341796875
+        ],
+        "topTimer": 1,
+        "topAction": 2,
+        "topActive": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          11071,
+          0
+        ],
+        "input": 16385,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -1945,
+            768,
+            -921
+          ],
+          [
+            -1945,
+            768,
+            -1125
+          ],
+          [
+            -2149,
+            768,
+            -1125
+          ]
+        ],
+        "depth": 0.0,
+        "hitbox": 160.0,
+        "held": -1
+      },
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "5d8740e37204b17e1ebc00a068b9a69dfc076b7d331607a5f0b6e8b0f2fc401a"
+    },
+    {
+      "seed": [
+        -2208.0,
+        1280.0,
+        -1104.0
+      ],
+      "policy": 5,
+      "updates": 60,
+      "initial": {
+        "timer": 2680,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 205521409,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 1024.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -2208.0,
+          1280.0,
+          -1104.0
+        ],
+        "collision": [
+          -2208.0,
+          1280.0,
+          -1104.0
+        ],
+        "display": [
+          -2208.0,
+          1280.0,
+          -1104.0
+        ],
+        "topTimer": 130,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          208,
+          0
+        ],
+        "input": 32,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -5743,
+            1024,
+            624
+          ],
+          [
+            -6031,
+            1024,
+            912
+          ],
+          [
+            -5743,
+            1024,
+            912
+          ]
+        ],
+        "depth": 0.0,
+        "hitbox": 160.0,
+        "held": -1
+      },
+      "final": {
+        "timer": 2740,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 4,
+        "countdown": 9,
+        "sourceNode": 30,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 4864,
+        "actionArg": 262134,
+        "used": 64,
+        "floor": true,
+        "floorY": 768.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1995.0,
+          768.0,
+          -987.458740234375
+        ],
+        "collision": [
+          -1995.0,
+          768.0,
+          -987.458740234375
+        ],
+        "display": [
+          -1995.0,
+          768.0,
+          -987.458740234375
+        ],
+        "topTimer": 2,
+        "topAction": 0,
+        "topActive": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          -0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          21406,
+          0
+        ],
+        "input": 16385,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -1945,
+            768,
+            -921
+          ],
+          [
+            -1945,
+            768,
+            -1125
+          ],
+          [
+            -2149,
+            768,
+            -1125
+          ]
+        ],
+        "depth": 0.0,
+        "hitbox": 160.0,
+        "held": -1
+      },
+      "firstPositiveGap": null,
+      "maxPositiveDisplayGap": 0.0,
+      "maxCrawlY": 1280.0,
+      "stop": "horizon",
+      "initialEdits": [
+        "Mario movement XYZ",
+        "Mario collision XYZ",
+        "Mario display XYZ"
+      ],
+      "intermediateEdits": 0,
+      "AInputs": 0,
+      "historyDigest": "407751dd61ee8d9f751facad1f79570637adc3628385b6a0fa831c83bc2d32b1"
+    }
+  ]
+}

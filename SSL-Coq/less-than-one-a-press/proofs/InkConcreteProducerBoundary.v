@@ -9,7 +9,8 @@ From LessThanOneAPress.Proofs Require Import InkFloorProducerEffect
   InkBounceLiveReadBoundary InkStockBounceHeight InkFlyGuyCycleHeight InkPokeyLiveScale
   InkObjectPushHandoff InkNearbyFloorGeometry InkTimer130Geometry
   InkCrawlQuarterHandoff InkCrawlQuarterPrefix InkItemDropPlacement
-  InkObjectPushQuery InkCrawlLiveQueries InkFreshPushCrawl.
+  InkObjectPushQuery InkCrawlLiveQueries InkFreshPushCrawl InkLowFixturePush
+  InkLowFixtureCrawl.
 
 (** Actor placement is not bounded by the old low-spawn example.  A matched
     fresh guard bounds the newly created rise; the completed actual air call
@@ -72,7 +73,8 @@ Definition InkConcreteProducerCheckedBoundary : Prop :=
   InkBounceHeightCheckpoint /\ InkBounceBoundedProducerCheckpoint /\
   InkBounceFreshContactNoDownwardCheckpoint /\
   InkQuicksandProducerSizeBoundary /\ InkStoppedFloorProducerCheckedBoundary /\
-  InkBounceAirProducerCheckedBoundary.
+  InkBounceAirProducerCheckedBoundary /\ InkLowFixturePushBoundary /\
+  InkLowFixtureCrawlBoundary.
 
 Theorem icpb_concrete_producer_boundary_checked : InkConcreteProducerCheckedBoundary.
 Proof.
@@ -83,5 +85,7 @@ Proof.
   split; [exact ibp_fresh_contact_bounce_cannot_snap_below_collision|].
   split; [exact iqps_quicksand_producer_size_checked|].
   split; [exact icpb_stopped_floor_producer_checked|].
-  exact icpb_bounce_air_producer_checked.
+  split; [exact icpb_bounce_air_producer_checked|].
+  split; [exact ilfp_low_fixture_push_checked|].
+  exact ilfc_low_fixture_crawl_checked.
 Qed.

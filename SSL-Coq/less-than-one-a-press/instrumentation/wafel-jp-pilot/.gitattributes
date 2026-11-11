@@ -1,0 +1,4 @@
+# Preserve the source bytes pinned by the alternative-gap receipts.
+ink_low_fixture_producers.py text eol=lf
+ink_low_fixture_roof.py text eol=lf
+ink_low_fixture_verify.py text eol=lf
