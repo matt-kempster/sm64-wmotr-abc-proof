@@ -1,5 +1,10 @@
 # Working backward from the jumping-box Ink handoff
 
+Follow-up: [clean hands-free holding and low crawl](ink-handsfree-clean-followup.md)
+now have a continuous controller history and an original-ROM recording.
+The high joint state remains open; the supplied high demonstrations are
+separate runs.
+
 **No clean no-A handoff has been found, but box acquisition, transport and
 an elevated live release now have concrete controller histories.** The
 accepted recording carries the western jumping box onto the pyramid roof;

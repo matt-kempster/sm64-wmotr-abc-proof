@@ -1,0 +1,1292 @@
+{
+  "schema": 1,
+  "scope": "Controller-only low hands-free/drop/crawl component from accepted debug level-select entry; not a full no-A pyramid route",
+  "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+  "rawLogSha256": "c80b195fec7a0cda6e07b7036a626387964d3911bf581f54488c57ac190fba94",
+  "traceSha256": "e4a88dbb68a57d93c1c420010464c342e5eaa6d53d72d3ad14e8f15a21a08efa",
+  "inputSha256": "9c90c2d6bdf8f38cf2856a7ba8d56ce1094ff1370b1c9f42c4875b18c0f3f795",
+  "acquisitionRecordSha256": "aa8ff7b813ae243111d2a038329185fa7f73172fe1b458a418c1b18f450a65f0",
+  "continuationRecordSha256": "0da29b4cda15f4a146b5bf6eb0f73a3695619bba82da2447004e08ad8fa109d7",
+  "inputCount": 656,
+  "aInputs": 0,
+  "gameplayStateWrites": 0,
+  "cameraWrites": 0,
+  "comparedSnapshots": 305,
+  "matchingSnapshots": 305,
+  "differences": [],
+  "comparisonFields": [
+    "area",
+    "topTimer",
+    "topAction",
+    "action",
+    "held",
+    "movement",
+    "collision",
+    "display",
+    "floorY",
+    "boxXYZ"
+  ],
+  "globalTimerConvention": "Every compared Wafel after-advance timer equals native camera-callback timer + 2. Match inputs and top state, not absolute global timer.",
+  "imageMapping": "Image index n corresponds completed total input349+n, accounting for preceding-frame capture latency. The final CLI testshot is not part of this consecutive sequence.",
+  "milestones": {
+    "pickup": {
+      "input": 424,
+      "image": 75
+    },
+    "divePickingUp": {
+      "input": 435,
+      "image": 86
+    },
+    "handsfreeStomachSlide": {
+      "input": 436,
+      "image": 87
+    },
+    "drop": {
+      "input": 515,
+      "image": 166
+    },
+    "boxInactive": {
+      "input": 516,
+      "image": 167
+    },
+    "lowCrawl": {
+      "input": 528,
+      "image": 179,
+      "y": 38
+    }
+  },
+  "screenshots": [
+    {
+      "file": "super_mario_64-000.png",
+      "sha256": "2ec97dd35234413ca74301b685e797f29e7031158c4def52fb2dc5cf275af320"
+    },
+    {
+      "file": "super_mario_64-001.png",
+      "sha256": "54a995a98c05c129dcf4c06cb8e1c772102142b8540e97c45746e526f2a7b8d6"
+    },
+    {
+      "file": "super_mario_64-002.png",
+      "sha256": "d43a69f848089a1a9e4265ec28427f9945fd0e4ff1a98bf87dc3a5120a213b9b"
+    },
+    {
+      "file": "super_mario_64-003.png",
+      "sha256": "cd6776736d6cf9b5fcac60b0b4a3906b34fc42d7434823bed482272fbb3f2fad"
+    },
+    {
+      "file": "super_mario_64-004.png",
+      "sha256": "c7605bd2d44bffe611728e9cd99d64e0a425e8c6cf30633eb3013d085ac358de"
+    },
+    {
+      "file": "super_mario_64-005.png",
+      "sha256": "aec4a12940cde9d96251d7c1f5d35202cfeb4d9a8374b9dcfdcf41cea1076190"
+    },
+    {
+      "file": "super_mario_64-006.png",
+      "sha256": "f9af59c976ce3936b69d27264461d6bdf46dc6d45d9c993b501118bdc49c7e55"
+    },
+    {
+      "file": "super_mario_64-007.png",
+      "sha256": "66fc291d959c03fcd23a23eb43601e592a9a9ff79c9f773b9c1864cc1104a54b"
+    },
+    {
+      "file": "super_mario_64-008.png",
+      "sha256": "a66756325ab0b0af7a165c6f9c1983410d64827ffd938642091808819449a684"
+    },
+    {
+      "file": "super_mario_64-009.png",
+      "sha256": "301d5548329a064ec44b3943997b6c80af37103bfc5f638d0692b69c593e5f92"
+    },
+    {
+      "file": "super_mario_64-010.png",
+      "sha256": "bb0e4b9686a10a2bd6ba95a806748036a04e22d1478d9afd0882632936cc2d0e"
+    },
+    {
+      "file": "super_mario_64-011.png",
+      "sha256": "c38ff46b7e78b3952148a21aa14e3916c53a5fa4859d5c465e2c09e07732e9ea"
+    },
+    {
+      "file": "super_mario_64-012.png",
+      "sha256": "7f5a75f75f02753c2f2d2e0d2f83690f398b2e085bd01b73ad661da7bc4f5385"
+    },
+    {
+      "file": "super_mario_64-013.png",
+      "sha256": "14c2021a33028e25409f0db3aab751b8b97fb62e6a1a401387281a05c21592af"
+    },
+    {
+      "file": "super_mario_64-014.png",
+      "sha256": "d1918c6bf6454f1e0b56e57aafdfc9e50c8c94d44ed23c575e68b90355c9d54e"
+    },
+    {
+      "file": "super_mario_64-015.png",
+      "sha256": "b6931f1dc9c818eb7ac1580319e62d932ed549f4e44c82d6f696771ea02ad940"
+    },
+    {
+      "file": "super_mario_64-016.png",
+      "sha256": "5317a3b047d14ac4332e95d4b26587d9bf5d99ea1944a08380b1de275c018abe"
+    },
+    {
+      "file": "super_mario_64-017.png",
+      "sha256": "9025367d297943b8b25d467c5949b8ba99142a365dc7d49543c5dff91e5f8e02"
+    },
+    {
+      "file": "super_mario_64-018.png",
+      "sha256": "c760c27ec06edac849ea9976b336be364dd64dd6bc0f81c5ca8080f4f48e7c62"
+    },
+    {
+      "file": "super_mario_64-019.png",
+      "sha256": "e81f0294002c5467e71b8dd69548ed1a017eebaca337297ba1e4ff4a909055a9"
+    },
+    {
+      "file": "super_mario_64-020.png",
+      "sha256": "0cde0376e4eb6742faf0f3f3572338b62a1539c9f5d8afeb5e8c17493afd526b"
+    },
+    {
+      "file": "super_mario_64-021.png",
+      "sha256": "b4f65ca0b3870c8d4b409d1212b26cffc36aab1c4aa838af26abd0319f52bfa2"
+    },
+    {
+      "file": "super_mario_64-022.png",
+      "sha256": "913a7d517e49aad07d1a0b44e618c291dcaca2eeea5167393d6e2903bf27efc4"
+    },
+    {
+      "file": "super_mario_64-023.png",
+      "sha256": "ae1fc710799ac3bb36abbb3b87249af534fc9c17edb06f7e1a38e494be0180db"
+    },
+    {
+      "file": "super_mario_64-024.png",
+      "sha256": "ab588162a03a410920c78268237ee45dca3ab573d5386a49c1a7710aad69ea65"
+    },
+    {
+      "file": "super_mario_64-025.png",
+      "sha256": "d06aa1d5e4774fa0473a43313d280b7d9779c7096b1f3d9f41a1301cf6e2e9fd"
+    },
+    {
+      "file": "super_mario_64-026.png",
+      "sha256": "07854f4ca45030126a104879146cfe039efb1a528cb7122c1aad48a6507dc1cd"
+    },
+    {
+      "file": "super_mario_64-027.png",
+      "sha256": "6fbb6b33d563dcdd2c70d4a09d4d5f96a5259218e9a6f18fb4405d800f3e1126"
+    },
+    {
+      "file": "super_mario_64-028.png",
+      "sha256": "f129abe35396891c64dceff4ab38474435e9eb86ad7fc73ae31d49c13071d937"
+    },
+    {
+      "file": "super_mario_64-029.png",
+      "sha256": "41391badac7bcce492c5d65275c4494abc0410ceec36d2b0a1a96f59442027be"
+    },
+    {
+      "file": "super_mario_64-030.png",
+      "sha256": "546a3ae2961a9391246f9efcbcc80d70d5cfa6655e75cbc2b57791e0eed71927"
+    },
+    {
+      "file": "super_mario_64-031.png",
+      "sha256": "6b9a12a8a67bc43fa3803af917ce04e1dc3b0e1a761b94e2dea65fd0cd46b07d"
+    },
+    {
+      "file": "super_mario_64-032.png",
+      "sha256": "7d9a34771b21302e04e26932be34e1efd9e193bbd655eb0353983620203695ed"
+    },
+    {
+      "file": "super_mario_64-033.png",
+      "sha256": "4361151c6d3f315767c401f366538b11384483af4b9b753a14cb8fb1a0e0c1b5"
+    },
+    {
+      "file": "super_mario_64-034.png",
+      "sha256": "5ee1576ce5205da56cbc190cd1b250c1ca01c5a9c9417836b9baeaa1320a85c7"
+    },
+    {
+      "file": "super_mario_64-035.png",
+      "sha256": "6a474dd4d19ebee86a232e32857a63038c8eb968597236473a9a6075b1f014eb"
+    },
+    {
+      "file": "super_mario_64-036.png",
+      "sha256": "b5180101361034d196d8fdd8764eade8ccc89f1463efd767b83c84d7f4440dd2"
+    },
+    {
+      "file": "super_mario_64-037.png",
+      "sha256": "b56a446479e190d89b3f426b26dc703a273861745ed7572c9c90d520862ed2c4"
+    },
+    {
+      "file": "super_mario_64-038.png",
+      "sha256": "9afc222cd5a93c1f0e3547b1317d349438c94025063ff11dbef8c6da358fd265"
+    },
+    {
+      "file": "super_mario_64-039.png",
+      "sha256": "75f53b356aac09083a0698bb6f0d8ad2ae3627178114b8854afb6c6af933be96"
+    },
+    {
+      "file": "super_mario_64-040.png",
+      "sha256": "4fa48cee775e42a22bd744a1d02d9a65cd85baa36f3382e33384cf8525c06d8e"
+    },
+    {
+      "file": "super_mario_64-041.png",
+      "sha256": "f896943f3ae55beb9a6a598bfb1220700569b6c152a29ffd1e07e5df2364e775"
+    },
+    {
+      "file": "super_mario_64-042.png",
+      "sha256": "b6e6967350f45c79e9b4b14aacbb9ac762f8530c06b9c04b9a5582411f79ebd9"
+    },
+    {
+      "file": "super_mario_64-043.png",
+      "sha256": "78aa3acf356c063f0486c6205ab81b2f8b4e18b72cddfa1cc0ff94e83d4730f4"
+    },
+    {
+      "file": "super_mario_64-044.png",
+      "sha256": "e81523884b85f950dd1fb9c99c062a3afa660d5ff8eb4b7ed79f0d14a00e3f15"
+    },
+    {
+      "file": "super_mario_64-045.png",
+      "sha256": "45f588a7e0a1a4bd6fddc31903470ff3ebb293043fdb22b351425712837fcba3"
+    },
+    {
+      "file": "super_mario_64-046.png",
+      "sha256": "e62224e7994cfd11327ff66bdbf83a5d9be85d25f170614932e988cc6e718e43"
+    },
+    {
+      "file": "super_mario_64-047.png",
+      "sha256": "8e425b133c7348fd8de65d5c5b79146099b6564c13120ffd58fab0ce4d65d58a"
+    },
+    {
+      "file": "super_mario_64-048.png",
+      "sha256": "869fabf6af7f6f0e90e4764fa86f155d7ebf0c27da1372b204e8b453b286f732"
+    },
+    {
+      "file": "super_mario_64-049.png",
+      "sha256": "57e99f6616890d5cb3b09e272f07d4fa4f52e5aeea1d93cdbc79f2082e32e145"
+    },
+    {
+      "file": "super_mario_64-050.png",
+      "sha256": "498b015eb81c52a601e5f344e8b10020cfadec804d428d8ee010a4b795ac45a3"
+    },
+    {
+      "file": "super_mario_64-051.png",
+      "sha256": "1951d4d8098dd6847ec58d563d5b1fe8dfec9d9ee5b8753550fab5552b87ab80"
+    },
+    {
+      "file": "super_mario_64-052.png",
+      "sha256": "bbfbdb2860a0666f34e9296be9efdca16930844734d860ee0516d86d49c9c823"
+    },
+    {
+      "file": "super_mario_64-053.png",
+      "sha256": "a01f45f5c8547061dc765be749729bb67f4d85ae2c8efa09b9215a82c64343b7"
+    },
+    {
+      "file": "super_mario_64-054.png",
+      "sha256": "5ca915db8c5a981af6fb88ad52258ff039b612d7f6a0fee5cd03a19334041526"
+    },
+    {
+      "file": "super_mario_64-055.png",
+      "sha256": "e074b3ccc6370765a6399e27585a9635d4e46251e667167b45eaaba418b52b92"
+    },
+    {
+      "file": "super_mario_64-056.png",
+      "sha256": "9db9121cfc722ce677448cb4a08ab376f240b4c5f1ff267c34ec57ad9df8452e"
+    },
+    {
+      "file": "super_mario_64-057.png",
+      "sha256": "731b31c358decc7d276186c493333d8b96c2043f0ba6de51da51e713c5aa6b2c"
+    },
+    {
+      "file": "super_mario_64-058.png",
+      "sha256": "b038d427c898a7e96389de795ee154b9205b18cf1a6cb8cd16d60949b6ab2150"
+    },
+    {
+      "file": "super_mario_64-059.png",
+      "sha256": "c2217947cb17c6447d57a5217c4f7ca3580e2c7ff2633e4655cdacccb0ce8f22"
+    },
+    {
+      "file": "super_mario_64-060.png",
+      "sha256": "be3134d40fc21e56abba4eaf1c35deca44baf7470748920a03c052dcf7f0503f"
+    },
+    {
+      "file": "super_mario_64-061.png",
+      "sha256": "5da34641a8a4fe97b6ace2884ab014fe833c77b1d25d1de57613f595b0a5a7fc"
+    },
+    {
+      "file": "super_mario_64-062.png",
+      "sha256": "cf0749f4ed9f54953514be26c69fbe2c1c11e5bb5b5c3621467ab2932c0a683b"
+    },
+    {
+      "file": "super_mario_64-063.png",
+      "sha256": "3d8f6936311cd49fe0631cde67572821c95a2a0265f529536d80b9eb47db644f"
+    },
+    {
+      "file": "super_mario_64-064.png",
+      "sha256": "0fe4998cc16869512159b9ac07f2d28dd50d8111a04db106b0d572e253bf599d"
+    },
+    {
+      "file": "super_mario_64-065.png",
+      "sha256": "7db3c4adacce2fbbb3aa00ad61fcd1239fc44f24bde6a81a7ba0d930731ec13b"
+    },
+    {
+      "file": "super_mario_64-066.png",
+      "sha256": "4a7362e8bdeb332535745e8b4017d0774e3502e5d961c45f7a0c76d8c348af50"
+    },
+    {
+      "file": "super_mario_64-067.png",
+      "sha256": "d16573cca2f66f7bc90e7474cffe8f335f9d2eea84fd4222ea2661babc513453"
+    },
+    {
+      "file": "super_mario_64-068.png",
+      "sha256": "1cad326d7cc3977a374da1f116a9b8fb8972249cd86a8b5c327310c031de6ef6"
+    },
+    {
+      "file": "super_mario_64-069.png",
+      "sha256": "05660540e553c207a5499bc5e466a152f92b6502e94f13ee9e404643d0eb11ff"
+    },
+    {
+      "file": "super_mario_64-070.png",
+      "sha256": "991a2c299cf3c8c239e8e462aa90e913e8aa80b3a6285fa07da345d0a8978aec"
+    },
+    {
+      "file": "super_mario_64-071.png",
+      "sha256": "a482507849ab323aa094f60c6695f6ffa18a279f5b01718c1eb1a9edf9b872e4"
+    },
+    {
+      "file": "super_mario_64-072.png",
+      "sha256": "0f25a2e4217122d1a702c0b3b7907162cd5a96d0517f72a25da027128521f050"
+    },
+    {
+      "file": "super_mario_64-073.png",
+      "sha256": "358b2e740e38d1b9fea9fbb1598834d5aa88c8638723880bfaa1a6e67393500d"
+    },
+    {
+      "file": "super_mario_64-074.png",
+      "sha256": "f2f88a0d964e8312f75719fb724185e44223ad7c03cedcf8f9df4fc8c2392bd3"
+    },
+    {
+      "file": "super_mario_64-075.png",
+      "sha256": "ef915c795ea0278ace74a24e9945712bc7a81c7e59d9b99635b5083bc46bcd8f"
+    },
+    {
+      "file": "super_mario_64-076.png",
+      "sha256": "135c3e4415e7794f90131d5178d85aa9c14cd6be28e162be8bf2c3b9f50c1d6d"
+    },
+    {
+      "file": "super_mario_64-077.png",
+      "sha256": "52637c868efbd352dbd9ed73e3f0bca52e03de225302977e10a380a7ca2c8c8d"
+    },
+    {
+      "file": "super_mario_64-078.png",
+      "sha256": "2986c5f8338da9e5b3eefe379f122c691c839a1ba3e90bf8be73b5e146cfe256"
+    },
+    {
+      "file": "super_mario_64-079.png",
+      "sha256": "ac032b64fe04d22e5020234b5378d9adbe98c73ee230549ac7e0495579a6a3fd"
+    },
+    {
+      "file": "super_mario_64-080.png",
+      "sha256": "3e57851374892e5bc2b2bb39ed38ae6f73d00d6b63b08e363fda831e2e32baff"
+    },
+    {
+      "file": "super_mario_64-081.png",
+      "sha256": "a23184a6516d27206cf85371322172cc68fd0ab8470bd5a60538a69084e1c9b9"
+    },
+    {
+      "file": "super_mario_64-082.png",
+      "sha256": "60f02f0f80cd8b7703371f1f125d67039c2f7aa45a5e0ee1f8d3cd89cc8ebeb5"
+    },
+    {
+      "file": "super_mario_64-083.png",
+      "sha256": "1ed8ea05c25d084dc3ad0a3dcabee67a29b654de95d8dae751050be37e1acbe6"
+    },
+    {
+      "file": "super_mario_64-084.png",
+      "sha256": "81d49ee2fcba669fe1ba79e03ceffad99b2289de93495e4e268a8f8056a8f710"
+    },
+    {
+      "file": "super_mario_64-085.png",
+      "sha256": "d55957c1a62d43473eec975d39683b5e9ca1c70d9ce5fc943e7d20e04fa01f31"
+    },
+    {
+      "file": "super_mario_64-086.png",
+      "sha256": "525e6d74847beafadeda2df2334e7e4623c3d80a0070de8703d38a83c4868849"
+    },
+    {
+      "file": "super_mario_64-087.png",
+      "sha256": "da37b311e4763b56237c9b1491c7e4ffa9f82ea9b2bf323550eac1991274db9a"
+    },
+    {
+      "file": "super_mario_64-088.png",
+      "sha256": "16b05a61f4bcca7a44152899a3e4d0919521ab20e029b9cc03cb56fb83fb7591"
+    },
+    {
+      "file": "super_mario_64-089.png",
+      "sha256": "c83ca5369a3dfe1bf3af2903b2c3a6183834031dd6168e5154c905e42f088924"
+    },
+    {
+      "file": "super_mario_64-090.png",
+      "sha256": "3124dfa271adb20e2853835ce56a09505aecbe065138f5675b66c12d0cbfd9d7"
+    },
+    {
+      "file": "super_mario_64-091.png",
+      "sha256": "f49e0bea6e3e9e6a4ee8b5fa7a9e35bdb470fed7e8a68c7751bfbfce2024fd71"
+    },
+    {
+      "file": "super_mario_64-092.png",
+      "sha256": "10e666a7b74309ed6d5726a10de4c0ab07b242cf21ca7f5ca4eb7721de3615ed"
+    },
+    {
+      "file": "super_mario_64-093.png",
+      "sha256": "cd0778e30f6a719694cf9c1738fd56c84109da1f20e4a6a8c085d2906c12acea"
+    },
+    {
+      "file": "super_mario_64-094.png",
+      "sha256": "7f4e350b553954c642dcb6f4de4826b4a1550c350055afe8cb8101372c2b47e6"
+    },
+    {
+      "file": "super_mario_64-095.png",
+      "sha256": "b004ed0b8ad33ee7bc7d3a8ef61d5860eabba3e0f4be089ef5e5fa556cb0d82e"
+    },
+    {
+      "file": "super_mario_64-096.png",
+      "sha256": "9da96e84e960730baa0b9b09205d0be8df2b2f540361fbe821f2a6f0b36987d2"
+    },
+    {
+      "file": "super_mario_64-097.png",
+      "sha256": "0487cd58d6007dcf5588e26c5298ecb7e8574f4676d1064dfefdeb46ed4b79cf"
+    },
+    {
+      "file": "super_mario_64-098.png",
+      "sha256": "c0a46f7207788b1face803cd15a8e05cb760f08001c65feaea481edca1669487"
+    },
+    {
+      "file": "super_mario_64-099.png",
+      "sha256": "9cc76dbc2d39bde15c9e2d7d57ad6f23ecca6f2f821e39bc30be0eb304f5bb37"
+    },
+    {
+      "file": "super_mario_64-100.png",
+      "sha256": "8bde4cfe986d648d744ef4b5b71d2d056b3f6cefbe44e84a1c68b03b8005f842"
+    },
+    {
+      "file": "super_mario_64-101.png",
+      "sha256": "74dbc8329ba968edade3e3625c351129f0305fcd196b08758364eb6d86a24d26"
+    },
+    {
+      "file": "super_mario_64-102.png",
+      "sha256": "eac5a026b98eca1c3431e8b50fc7351d90b0ebc9f6d2380e42aa4e3221130a45"
+    },
+    {
+      "file": "super_mario_64-103.png",
+      "sha256": "8cf7087bf00e228e78f83a8f0ca2388f05fbfe7b0e373d25710346cd622d3573"
+    },
+    {
+      "file": "super_mario_64-104.png",
+      "sha256": "9be3fbae3a6df04202e594ac419a5fcdeffdc371e6c68d802068932d86a39e95"
+    },
+    {
+      "file": "super_mario_64-105.png",
+      "sha256": "6f645d49c5f4f669722f87f5f379d34a46b2ec402e96ca7de78c087cf94aad75"
+    },
+    {
+      "file": "super_mario_64-106.png",
+      "sha256": "5f04a3ccd037cd1c5da53b906665fa3a7683e5412127b70e0b0084052a587ae7"
+    },
+    {
+      "file": "super_mario_64-107.png",
+      "sha256": "1485c10290c7433d5bba0398d0f87c867c39b58b01058e48e40d2d4df17f510f"
+    },
+    {
+      "file": "super_mario_64-108.png",
+      "sha256": "f4008801f240d7bbc7f2871855e186e52a145477033c61a88bf8a3d93ac33d21"
+    },
+    {
+      "file": "super_mario_64-109.png",
+      "sha256": "7578d824c5bfe051032fcef0d65d39cb41c85133be552805a8357602ca9a10ff"
+    },
+    {
+      "file": "super_mario_64-110.png",
+      "sha256": "f8330e0b0923a1ed9fff0eb85cb0c7273676863469c89fa16d1d5df2589e1cce"
+    },
+    {
+      "file": "super_mario_64-111.png",
+      "sha256": "8cde0902ef6414e72dd391ff8ae94bab3cdc25b9b2e3b775c3fabb1cdc796b4d"
+    },
+    {
+      "file": "super_mario_64-112.png",
+      "sha256": "2290091075f146ff0944273a5d27e43b4b8a4c9e9bd4d8f2c20ef7acafda36d2"
+    },
+    {
+      "file": "super_mario_64-113.png",
+      "sha256": "85b9a5fb313e0e1ed00e6697f1be459080be97bc6133da23032ab3115a34d90b"
+    },
+    {
+      "file": "super_mario_64-114.png",
+      "sha256": "5fa275f66b8301cc5c8f3116b6aae1390247a7ab4878e8fdfbf257250027f1e4"
+    },
+    {
+      "file": "super_mario_64-115.png",
+      "sha256": "f8d5fdc0350f1c34485a48192914f2e61b86ed722ca29eeb76d27f7e4a4a1775"
+    },
+    {
+      "file": "super_mario_64-116.png",
+      "sha256": "3e8bf9efec0e5a2d9efa547804fbcdf1dcca2497b51b7c753016b55296036426"
+    },
+    {
+      "file": "super_mario_64-117.png",
+      "sha256": "1c9858b855eb6ab33febbee6a8c00290f01bebd9308d9f678c389a17b66e09d6"
+    },
+    {
+      "file": "super_mario_64-118.png",
+      "sha256": "cb7e198233f97ca104459ff99d4bfecf368778b6e4a1c455f9debe0f6602ac13"
+    },
+    {
+      "file": "super_mario_64-119.png",
+      "sha256": "e5173b4dd2e51f07688bd265c7268f785c7ccf879f87d635bb7cde0e6c15061a"
+    },
+    {
+      "file": "super_mario_64-120.png",
+      "sha256": "c846b1cb57b51e537e25ebacea87be6d092e136e6e5cf84e5209bb058d90983c"
+    },
+    {
+      "file": "super_mario_64-121.png",
+      "sha256": "840cc578d1b28ddb544c6cde66f35d3925c59428404cfe2d3ced4f9c4c9a8a45"
+    },
+    {
+      "file": "super_mario_64-122.png",
+      "sha256": "855e5914804be2b71d13e37b28a86ea979a2facef7bfb18ebab004a1f5656c2f"
+    },
+    {
+      "file": "super_mario_64-123.png",
+      "sha256": "0869b152cd959112e23f0891bf67fc2ddbbacf0c34434c96fde676f5caf0139d"
+    },
+    {
+      "file": "super_mario_64-124.png",
+      "sha256": "2cd83d4e91cdb8637a4283a8879a9826b81f6e0926338d27b97fe64b79266ffd"
+    },
+    {
+      "file": "super_mario_64-125.png",
+      "sha256": "b52f163655e05bb69ec923a1d6836a51da743e1d1b60f9eee112eb45221fe38b"
+    },
+    {
+      "file": "super_mario_64-126.png",
+      "sha256": "9027ea493818cae6b66147bf158351fdb90e93d349afb68a91a28aa1cdd53ac5"
+    },
+    {
+      "file": "super_mario_64-127.png",
+      "sha256": "6debd85df158d23735baef315d5afd5bffb2e994dff4eb527b42aad1a646684e"
+    },
+    {
+      "file": "super_mario_64-128.png",
+      "sha256": "7415a650ecedac1f8865268dade06919f25daa29d5432b403d267d39cb7509fe"
+    },
+    {
+      "file": "super_mario_64-129.png",
+      "sha256": "9b5b1d8e6442f8658a901ca5a62738588059ba31f7a2bb97a8a19cbcf289ed08"
+    },
+    {
+      "file": "super_mario_64-130.png",
+      "sha256": "3c925746a827ad1bc96ed7e1142c9deb1b271a7407ee70edfd696c61e7b2af13"
+    },
+    {
+      "file": "super_mario_64-131.png",
+      "sha256": "da01c404fcdfc5c85e052dff71142b1fb9ee55295f74cd879bb4882ca1cf0c7a"
+    },
+    {
+      "file": "super_mario_64-132.png",
+      "sha256": "28e89820b4ec3dadb6b9cc388db706dc2c70d143c18c1391b722766d2f5d97fa"
+    },
+    {
+      "file": "super_mario_64-133.png",
+      "sha256": "a6df99c285e9649e65009c81ea7a7c62e2aaa1f7738e0b597be222eed203772a"
+    },
+    {
+      "file": "super_mario_64-134.png",
+      "sha256": "a95f3bcbfe646c8571653a2d6200f4d46cc958b66486b569b5e27e1e468aa7fc"
+    },
+    {
+      "file": "super_mario_64-135.png",
+      "sha256": "19196320b51457e232f0b08c753a71fdacee9040b9ee1263a07437dff71cff64"
+    },
+    {
+      "file": "super_mario_64-136.png",
+      "sha256": "43ec30e9b417610f0372429c4cf6af21595d03f5726ae9c64c27b51f45da389b"
+    },
+    {
+      "file": "super_mario_64-137.png",
+      "sha256": "493fc188412f3797b4c326b925eb193415d57aa1a009b877f2f360afe629381f"
+    },
+    {
+      "file": "super_mario_64-138.png",
+      "sha256": "c0e2d1cc21d927b0e2e4d21ed2022549289be8a1c49d38ad3115b859631c7185"
+    },
+    {
+      "file": "super_mario_64-139.png",
+      "sha256": "455508820f8454654d239e64b88c4df63577394e1c610b4ffa5a4eb0a69a4df5"
+    },
+    {
+      "file": "super_mario_64-140.png",
+      "sha256": "151ddbc766f51b41658f2af4aa46f0ae6a7513acfe5962523f85bd3484ea7200"
+    },
+    {
+      "file": "super_mario_64-141.png",
+      "sha256": "288e637a6df6f2613b36029912ccb877a4e1f5314eea4a1809dae55a543b671c"
+    },
+    {
+      "file": "super_mario_64-142.png",
+      "sha256": "2031262271f480b3549e3f4f9b9223a36f0ba8912102e667b48c5ebe6fecdb4c"
+    },
+    {
+      "file": "super_mario_64-143.png",
+      "sha256": "9378e6ad5ff48c4c1e3145bd6531dcf14baff3a35a713d6bd1693388e0e9746a"
+    },
+    {
+      "file": "super_mario_64-144.png",
+      "sha256": "7e415e3f5cfb3cb0a9bb2caecb30007c4426d893d49b38f76b46d62ebc52238c"
+    },
+    {
+      "file": "super_mario_64-145.png",
+      "sha256": "e9410e80a12acf74da37a793b0fbc56f6ad70adf03e69de7152d986f80e77d69"
+    },
+    {
+      "file": "super_mario_64-146.png",
+      "sha256": "53eafd49f40f610195cb8b96efb5a04a958e40c4df6f6f2d6b0459a11878b22a"
+    },
+    {
+      "file": "super_mario_64-147.png",
+      "sha256": "cc1213bed3d7fef86b9cb964cece3c66c5a3e544322ac10d5eb7b9be018cbc54"
+    },
+    {
+      "file": "super_mario_64-148.png",
+      "sha256": "279e755b1cc59c891282c43ad350a4e37f8108e35ba5ae1d2379a1c26579c083"
+    },
+    {
+      "file": "super_mario_64-149.png",
+      "sha256": "769e1b6667c8a4d1fdf6c194e98ecae10a468c647eab2b5330037051156301f0"
+    },
+    {
+      "file": "super_mario_64-150.png",
+      "sha256": "0d8d8446606df1ae6723be3672448ae2ecbf7e47f677954fb31326f4173bbd3f"
+    },
+    {
+      "file": "super_mario_64-151.png",
+      "sha256": "bd461104c938fd60ba442c3e7dfabbde73f978e42fcca275fe9c61958e5bd37c"
+    },
+    {
+      "file": "super_mario_64-152.png",
+      "sha256": "71dc153af4384aa41da681f0f8ed4c0315bcda2acc619836c6760e0280a7dc12"
+    },
+    {
+      "file": "super_mario_64-153.png",
+      "sha256": "1ef5e6ce589acc241234cd1e4872a341fd0035970f32622a5acc42a002c3d3dc"
+    },
+    {
+      "file": "super_mario_64-154.png",
+      "sha256": "e4b1f958371229bd82ca020d239e5f86dbb484d094013e475785b15ceb700f8f"
+    },
+    {
+      "file": "super_mario_64-155.png",
+      "sha256": "80c39a86944df35bc90c3bd31cadddd7a793907206dc9017fafaef58545c6912"
+    },
+    {
+      "file": "super_mario_64-156.png",
+      "sha256": "013b0b85e21990b7d77c5fd0b945117f37f1fb73f9609d80c7a0118665ef4b65"
+    },
+    {
+      "file": "super_mario_64-157.png",
+      "sha256": "a1ba1e5cf78696192e9f0855f3600480a1a69cacea5ff5832f2bd389b7f57d6e"
+    },
+    {
+      "file": "super_mario_64-158.png",
+      "sha256": "7a49e597ef9d57763e6fcc3ba2f917c207dae0ba1838fbe3a7582a8c4d76fc57"
+    },
+    {
+      "file": "super_mario_64-159.png",
+      "sha256": "5b696d64e195e79201406d9d1392d000feb3ff2a538f1a661a676df01cb8c51b"
+    },
+    {
+      "file": "super_mario_64-160.png",
+      "sha256": "14a7cad45ac822f23906cdf2bba927dbfe6838b241c08e275a15d2152589bf9b"
+    },
+    {
+      "file": "super_mario_64-161.png",
+      "sha256": "a3fab1b45346e6fd81691bb531ff185a75fa84499f4bf2c4ab8eb6a6c513c423"
+    },
+    {
+      "file": "super_mario_64-162.png",
+      "sha256": "9ce6e818ed6bb237aa9880964fab865940d46f46573bfe034aabbcc3d114dd39"
+    },
+    {
+      "file": "super_mario_64-163.png",
+      "sha256": "6a266584c0b50453e15e59b4ae3b69fedf48fc7b856407419257104f531be8ac"
+    },
+    {
+      "file": "super_mario_64-164.png",
+      "sha256": "b8bdadc00a7ce9019fa0dca8a1b25356b31f968e7a1986880ee0593235ac2b40"
+    },
+    {
+      "file": "super_mario_64-165.png",
+      "sha256": "c60ee7f41782d971d92d958c5db969e3ac092e2cd386d5cb244e88aa5ac37d14"
+    },
+    {
+      "file": "super_mario_64-166.png",
+      "sha256": "c17590c940b97dc5082f09bb80a6aa40da2b81385e555ee59eb3ed7f42a0dd03"
+    },
+    {
+      "file": "super_mario_64-167.png",
+      "sha256": "1f165ec5eb48ee618310f7ced0536bcc5248ee25a2fee219713da4c8605805e3"
+    },
+    {
+      "file": "super_mario_64-168.png",
+      "sha256": "2a1eb4314a50bd83447ddd49b1ff23f54b56545ba4eb885da80e5e01bae5058b"
+    },
+    {
+      "file": "super_mario_64-169.png",
+      "sha256": "4af869f40ba14231195513af2ef8fdbd372154ee932cd6a40193d77f644fe930"
+    },
+    {
+      "file": "super_mario_64-170.png",
+      "sha256": "d157239edd51c75248f62620086a68d8927d60f1923d21b9437661a8a8dc6051"
+    },
+    {
+      "file": "super_mario_64-171.png",
+      "sha256": "f919931cb64ffebbbe52ce1d6fa2cec45f15f83c070988e37226d818933545d1"
+    },
+    {
+      "file": "super_mario_64-172.png",
+      "sha256": "45d79e170b515c0a2596c59bc9658ff8e726761bd8026df00516fc1c2fd884ed"
+    },
+    {
+      "file": "super_mario_64-173.png",
+      "sha256": "b2bb8ac2eaa69cc7e4fc91bb75813e4b0bf2689dbbdb342eb80145e023129a29"
+    },
+    {
+      "file": "super_mario_64-174.png",
+      "sha256": "6ec2207bc8c9efa2f0f08382069eb3f7682ef83bf6443157cebabadc95e67ca3"
+    },
+    {
+      "file": "super_mario_64-175.png",
+      "sha256": "6192c3291431faec2334ff69532c100cee0b57e62af87a495338fd2e43fb8103"
+    },
+    {
+      "file": "super_mario_64-176.png",
+      "sha256": "d25587ead6be2e3a8d85eb092220618db1fd55dc3d952d92c952a80363bfd178"
+    },
+    {
+      "file": "super_mario_64-177.png",
+      "sha256": "779e5df3ac71c34c6f4886f1b54bfdcd7267f21e597e91dfe8199c691fc7dc39"
+    },
+    {
+      "file": "super_mario_64-178.png",
+      "sha256": "a5e88a920a87d10517927b887681e9afdf2ee78291a3931ab5964fdaa3dd3a95"
+    },
+    {
+      "file": "super_mario_64-179.png",
+      "sha256": "55df959a62d816d1670d1c1b9642cffb9c793f4c87ec81b258bdab36fce36a18"
+    },
+    {
+      "file": "super_mario_64-180.png",
+      "sha256": "1628962a823ca121c23d9b30939411af2354679b9d5bc04a7b70ec31664aa1e0"
+    },
+    {
+      "file": "super_mario_64-181.png",
+      "sha256": "890f884d1db78a4a6777ed67fb49b24c12a34bc83c0b7fe1588a55634a282ead"
+    },
+    {
+      "file": "super_mario_64-182.png",
+      "sha256": "9e361a1bab8bfa25d7682663736209e9dac7b71889199ff08ea35fb3b487d477"
+    },
+    {
+      "file": "super_mario_64-183.png",
+      "sha256": "90069c8272d00033f368c8c7ba10a5b6f1277d32da011430bfe4f2371c9cc776"
+    },
+    {
+      "file": "super_mario_64-184.png",
+      "sha256": "ee097808b0b9fb0105fd02de173b6874739cebb1bb76b9bb9704e5acec6802f5"
+    },
+    {
+      "file": "super_mario_64-185.png",
+      "sha256": "20a1fafb50e98ed6c11d34f4ac7124023060b70b5944bbc431bf8622a3a52aa7"
+    },
+    {
+      "file": "super_mario_64-186.png",
+      "sha256": "b8231ab2bbc9841f840e8d738dd943a709515ccf7a70bddf42ca9ef9d2b8348e"
+    },
+    {
+      "file": "super_mario_64-187.png",
+      "sha256": "44ff25abacd8fd5cfacbe6df71ab4ed377cdf3751734b46168e6a173e29b9db4"
+    },
+    {
+      "file": "super_mario_64-188.png",
+      "sha256": "6e0a18ba2a264f3b818d3fb270e70db62d4f46c4c2232bf59b314aa240f4a08f"
+    },
+    {
+      "file": "super_mario_64-189.png",
+      "sha256": "7aaa62b74c9c1f6a91f4cc12e40a251424776c06f180259d43013ddc13c47cd6"
+    },
+    {
+      "file": "super_mario_64-190.png",
+      "sha256": "0bca376ea68b55477d2ae032d3f67362ff41028d9e58efb52a5e3ac88d6fa8b2"
+    },
+    {
+      "file": "super_mario_64-191.png",
+      "sha256": "ebc62f9c696e48c4d7b915ec5826788823dd06ad9e0be2f1d35cb989a734fc2a"
+    },
+    {
+      "file": "super_mario_64-192.png",
+      "sha256": "e5f3435a79f0bad0a5225e52b5a4f49f4ba71e3d3181a508ebd93199242a3c5f"
+    },
+    {
+      "file": "super_mario_64-193.png",
+      "sha256": "0e2e7aaec1b4e0cdb12009f1f715eb849ec7ec00e00238863ba4fb6daf0eb62e"
+    },
+    {
+      "file": "super_mario_64-194.png",
+      "sha256": "84cd7171c9847a5566b54c1f924acf90cb71afb1c6e089724ec022a7e1521997"
+    },
+    {
+      "file": "super_mario_64-195.png",
+      "sha256": "92999ac089d37581222e3d5e5719ce3585e30a5543b51213c54077baa505ce43"
+    },
+    {
+      "file": "super_mario_64-196.png",
+      "sha256": "bf77e5003aa0f761036039154c790bf172aa2a612f365a6b19e77bf20296a343"
+    },
+    {
+      "file": "super_mario_64-197.png",
+      "sha256": "5f42e63b055f479a6f18d09700ca03c5e6c36016aa8e0855bda328cbce85998b"
+    },
+    {
+      "file": "super_mario_64-198.png",
+      "sha256": "7641ed1924f305dbf6ac2db1d1fe3a1b52e0aa7a9058bc6c53629a0d4f15f5d6"
+    },
+    {
+      "file": "super_mario_64-199.png",
+      "sha256": "314b42c4a161f7f7118c7d012f82e4f1c922ba679fccebafa80e90208ecd7e1d"
+    },
+    {
+      "file": "super_mario_64-200.png",
+      "sha256": "2ca2d418ebd8b7f7061c35178312468be6fc08ff11c539294eee31c5aea80750"
+    },
+    {
+      "file": "super_mario_64-201.png",
+      "sha256": "234b724d2b1a9f8df79b04637814a30f2725b82e4bd7bd840572f36d0d927ff8"
+    },
+    {
+      "file": "super_mario_64-202.png",
+      "sha256": "b6546ab7a701f15c2578ce78b01e2b0ed7d6f64cba7627f021d53250542c7346"
+    },
+    {
+      "file": "super_mario_64-203.png",
+      "sha256": "3c9d2e05840ff4de847314dcb55f215732f2da51907d872b86496e8e30a3abf5"
+    },
+    {
+      "file": "super_mario_64-204.png",
+      "sha256": "28d81389e815ba96f0ad9674fdbb230b75314517dd011cd18ab165c5df1796a3"
+    },
+    {
+      "file": "super_mario_64-205.png",
+      "sha256": "e6f2aa8ac4ac5d168c5476fb3113748025d8c09c92bf75c2ba76efab1260bd09"
+    },
+    {
+      "file": "super_mario_64-206.png",
+      "sha256": "4d690eca2c745be6a0ebcffc2b4b7a92b0adf36a5d3a289ba5829474bd204ae4"
+    },
+    {
+      "file": "super_mario_64-207.png",
+      "sha256": "c8e106624ef1aefef79dba8f7172d0f1c0ea91097799d9d432971c61b5402f96"
+    },
+    {
+      "file": "super_mario_64-208.png",
+      "sha256": "5cb0fceaea9d67c473fe7ddcd4e2716f0bcc0895ff0b89be51ec8d363b4b3acd"
+    },
+    {
+      "file": "super_mario_64-209.png",
+      "sha256": "39f0ad8bde8e7f7df4ee3158dfa52d125c48dc9675778461ca8d4f52baa4f814"
+    },
+    {
+      "file": "super_mario_64-210.png",
+      "sha256": "ec9339353158c5e6beef4a5c182a22af983c3cbce75fbe4503725deafdad31ef"
+    },
+    {
+      "file": "super_mario_64-211.png",
+      "sha256": "3ea4aceac08e335fe72509a496c6057c13e4edc9c2f54e6ce816dacbb7dc73f2"
+    },
+    {
+      "file": "super_mario_64-212.png",
+      "sha256": "144911236661d3dd762db3ce55776ad2e0922b6645636b9672d9c996f2aaadcd"
+    },
+    {
+      "file": "super_mario_64-213.png",
+      "sha256": "0b1abed7ffb60e841dba94ec48e5143f3c953c649f61939cc32c972f9923788d"
+    },
+    {
+      "file": "super_mario_64-214.png",
+      "sha256": "6227882ce315b80fe6418200ee3b16ed5329cdc0cce1fba527b9c58bc1093f88"
+    },
+    {
+      "file": "super_mario_64-215.png",
+      "sha256": "3e85fdb250fd4d6f924ea69712923ab7f16b7eba1adeb83a2a46c6fa7abe14cc"
+    },
+    {
+      "file": "super_mario_64-216.png",
+      "sha256": "6ac46722b370684b875ba8365ed7240b612c28e5306b22a784bb2b2baecbbda7"
+    },
+    {
+      "file": "super_mario_64-217.png",
+      "sha256": "c98f199340df13aa8184a92979375a63ce7bab762e1a34518b5eed57e9bfabe1"
+    },
+    {
+      "file": "super_mario_64-218.png",
+      "sha256": "e658c2a7b9427be90ef165941a29986c7ac8ed83b1e30d507e84cb921a455a81"
+    },
+    {
+      "file": "super_mario_64-219.png",
+      "sha256": "fe71fd5b9441d373234618558aa75217da91a3fcebe32fd71740fdbac069f9ac"
+    },
+    {
+      "file": "super_mario_64-220.png",
+      "sha256": "5b82d523bec003634f8b35849d8484d5f2b957f9cc5b95f040f4eccc08d7cc92"
+    },
+    {
+      "file": "super_mario_64-221.png",
+      "sha256": "c37710b3d6a5ca5010eb0af85733e9840a5a45fef4d59885d7b6e1090b4a4c5f"
+    },
+    {
+      "file": "super_mario_64-222.png",
+      "sha256": "3167d22b025f0ba984b3882f85cf3ea1cafa68266f041731c2985d804ed5c289"
+    },
+    {
+      "file": "super_mario_64-223.png",
+      "sha256": "82d76ae334bdcffffa000e5acb4b1d226e0a3bbe26506b452c4b07f776c54fb9"
+    },
+    {
+      "file": "super_mario_64-224.png",
+      "sha256": "90fd52212db8a7ade47eef3e09e967d8d1bb278da2a76358515b7d7e159c591b"
+    },
+    {
+      "file": "super_mario_64-225.png",
+      "sha256": "7b65d54908a2e804753dedd32ace55fe419d23b71035a5f6e97d5d38f91c140e"
+    },
+    {
+      "file": "super_mario_64-226.png",
+      "sha256": "44d7f36c62247d31f85952476eedfd7aa86afd9b8a192f57ebfbb71c7a89023e"
+    },
+    {
+      "file": "super_mario_64-227.png",
+      "sha256": "e07b11d1b3beac82686cf77ccf9249852ae98ebfec28e45dda6fd76a5d1829ba"
+    },
+    {
+      "file": "super_mario_64-228.png",
+      "sha256": "8dcd30f96515c953af8bb3e28fecf8d21f543f7e3632c9785f69f8e31ccb4add"
+    },
+    {
+      "file": "super_mario_64-229.png",
+      "sha256": "79397bfc5b64dbe397ffbc68b4fb230ab623581ad1fd25912f97f1289b711446"
+    },
+    {
+      "file": "super_mario_64-230.png",
+      "sha256": "57a7f4e98b27999e49ac6c1afcea800eedd7ba09e99f3d9004c69e662608b3ac"
+    },
+    {
+      "file": "super_mario_64-231.png",
+      "sha256": "b0e4c251692c273f9e646fcf420415cac75759fe90b5d9e21f1e9bd162f5ea90"
+    },
+    {
+      "file": "super_mario_64-232.png",
+      "sha256": "255f2df2cc3fc2e01fd6f549b95ec6ffaa88ddccbb97717b2a2ff50942062288"
+    },
+    {
+      "file": "super_mario_64-233.png",
+      "sha256": "caa9d491dedf4684152092fc56b89793b12f5d3114d97af02621bf731c9e3ef3"
+    },
+    {
+      "file": "super_mario_64-234.png",
+      "sha256": "6a79ef7d9a180fa97cb312a798c51e67ec64930c7ef6354382ea432bf57833ab"
+    },
+    {
+      "file": "super_mario_64-235.png",
+      "sha256": "fc3930e88be760c4674bf59fa7b22f77111d80017ceb7f7f3d57153c8b08ef9a"
+    },
+    {
+      "file": "super_mario_64-236.png",
+      "sha256": "4669dcbed8bcda27bff52fed2280b5d1b8f64128760d37e93af87212ec56c96f"
+    },
+    {
+      "file": "super_mario_64-237.png",
+      "sha256": "bd1d601de3fa8d80ec00d4a379d973530e5d2617acd68162cd6a04e1aa0cdcd7"
+    },
+    {
+      "file": "super_mario_64-238.png",
+      "sha256": "b3005dbb2e8852212fab6e2992a9bad22a329bb9946f53ba3c711b7d7949f735"
+    },
+    {
+      "file": "super_mario_64-239.png",
+      "sha256": "81e267011a03655140da5b166ae83f4cfbd4e135fa0aa72c8a1edeb9728b3ca9"
+    },
+    {
+      "file": "super_mario_64-240.png",
+      "sha256": "a1e8e0071e40ffd941c332270227580f1533d6ed3a6679a67d209ddcd4f0a75d"
+    },
+    {
+      "file": "super_mario_64-241.png",
+      "sha256": "b1a793338d0748569b4100aa777f7e57bb68c50954dd81ccae61028ef9ce789f"
+    },
+    {
+      "file": "super_mario_64-242.png",
+      "sha256": "20982f163cd5ec8e3ec1085284694ae851552708a6f190483c9271be227fb6f8"
+    },
+    {
+      "file": "super_mario_64-243.png",
+      "sha256": "0537391b2b53c8f794c039b1a8a7500a4dc121a70416c0b5307e113eb7937339"
+    },
+    {
+      "file": "super_mario_64-244.png",
+      "sha256": "e8e54c6f1c7a1c16dc0da191140f8a4a239c3c0fa1e791eeb85bf681ecd3f7ae"
+    },
+    {
+      "file": "super_mario_64-245.png",
+      "sha256": "ed1d9859c3e4918586a61405fdaccf9a38995a0c40fcb96805e95a1e91c8b6ca"
+    },
+    {
+      "file": "super_mario_64-246.png",
+      "sha256": "80312448fc9c29d2721fda795b065a72425678386731f40f4ac01523e73bf631"
+    },
+    {
+      "file": "super_mario_64-247.png",
+      "sha256": "f63ee1c36c1cccf8b6eed7d997ed30ec3cf73b842e9e504292cc3e56c6434615"
+    },
+    {
+      "file": "super_mario_64-248.png",
+      "sha256": "25edce2e5fd0e08695c4c2f4db0b2446bc8c5121e0f7ae7aa375527128354308"
+    },
+    {
+      "file": "super_mario_64-249.png",
+      "sha256": "62c9bcaa53e9f7e66f94e23eb79d1e4f47515fcba7e205ab5582e835a79ad301"
+    },
+    {
+      "file": "super_mario_64-250.png",
+      "sha256": "effa331c8309a411f4a41945bdc780902681459f1855a6f8e3bdb1425a88f5a8"
+    },
+    {
+      "file": "super_mario_64-251.png",
+      "sha256": "2c0cb2eb5c479dac7ae2aca0b0c4d555ee4fecc82daad1a4e8bf59240d8bf744"
+    },
+    {
+      "file": "super_mario_64-252.png",
+      "sha256": "65b2bb07094ff07b77e642ce81637c7909d3211237bb79c32f9952ccc6b2eb7d"
+    },
+    {
+      "file": "super_mario_64-253.png",
+      "sha256": "2a3dc8db1f0b8bbf70fd2926c6509b95d951dbdaf961fd1f752a03695f94f839"
+    },
+    {
+      "file": "super_mario_64-254.png",
+      "sha256": "7ba123683d8f8bf55e6473eb18a7c4beb3efc59dfc62791ff805ff717aedcc19"
+    },
+    {
+      "file": "super_mario_64-255.png",
+      "sha256": "4fef18242ade833e94a4ee44dcfdded616e700bea8a4d2415ae73f8bf3ae20e3"
+    },
+    {
+      "file": "super_mario_64-256.png",
+      "sha256": "ee97572384712b967c5a38ac832967a80ff699de1359166f360549b96df118b8"
+    },
+    {
+      "file": "super_mario_64-257.png",
+      "sha256": "409fbce9187001de7a204b412698a119db2f47175b65eaf5d58740b9c074b27b"
+    },
+    {
+      "file": "super_mario_64-258.png",
+      "sha256": "e3319727aab0d557e89c98f936fcbf8565ddee028dfda9fbe26468c8d02d4ea0"
+    },
+    {
+      "file": "super_mario_64-259.png",
+      "sha256": "f3f997771221a01db19e2976e57603133a32e70078301686c6330bbd433556b3"
+    },
+    {
+      "file": "super_mario_64-260.png",
+      "sha256": "b99e9ca3176c23f2664daec1bff091537458f00f0aa15ef944c8aa4d94733a30"
+    },
+    {
+      "file": "super_mario_64-261.png",
+      "sha256": "0ea14d47be1f5a688de5813b8f75f7b7bd404300fd60f088770b6cee936e9319"
+    },
+    {
+      "file": "super_mario_64-262.png",
+      "sha256": "f909ad4d226cca9469d37fd17fe0e1c9a8c4938fb532243d1ba5e4964a68252e"
+    },
+    {
+      "file": "super_mario_64-263.png",
+      "sha256": "3dfc3326391470aa9156954e4acccdcb558875588b9fb8e2c307b838556dcaba"
+    },
+    {
+      "file": "super_mario_64-264.png",
+      "sha256": "d14fcd77568f815576e561f137cd2491a797873487cbcf5b8c84e31ebc29c800"
+    },
+    {
+      "file": "super_mario_64-265.png",
+      "sha256": "a2b4b575fa08a903ec2a21cd4893d2a0e9ef21e27971e10effd9823ce949e221"
+    },
+    {
+      "file": "super_mario_64-266.png",
+      "sha256": "b163e89f93480f7acb9ba88adc0d9d6da8a34beea045a13f757e3bcc98536d90"
+    },
+    {
+      "file": "super_mario_64-267.png",
+      "sha256": "aa7c4924260038f45ee38fdbb3fc2302c02051cc683738e67e1cff756b5dee6a"
+    },
+    {
+      "file": "super_mario_64-268.png",
+      "sha256": "6e8b186edac2320208150fca26a7aea7d32ad3ac4835e6f88be48076764f4245"
+    },
+    {
+      "file": "super_mario_64-269.png",
+      "sha256": "c6b0dbb53b2bc4473d618cc6c50f01ae385b35eb9553cabbb949e60c76a6c4df"
+    },
+    {
+      "file": "super_mario_64-270.png",
+      "sha256": "7a4f4ed956a1909647063d2480458f7faf79eb2a095cc89b6d3be508bc30c644"
+    },
+    {
+      "file": "super_mario_64-271.png",
+      "sha256": "b586a6b9b5b218606fa703fb84bcac5b989c08b1a3ba002d0da02b76ab4ec776"
+    },
+    {
+      "file": "super_mario_64-272.png",
+      "sha256": "654996d85f50637f65c3f5604992ca8d1ba48f0525615522d8e4fdecb1234158"
+    },
+    {
+      "file": "super_mario_64-273.png",
+      "sha256": "c09643bb6cec46f87f95f4e4b1324230038b744954c8b622fd9c799631a8c0c2"
+    },
+    {
+      "file": "super_mario_64-274.png",
+      "sha256": "d6adf384c00151e57366a5bc596fcfdcf82bac1b403023103762a484cfbdb77f"
+    },
+    {
+      "file": "super_mario_64-275.png",
+      "sha256": "df1e83ab678b6aff19ed1bef4b2961b4df62296c275aee53239cc00dca2ca803"
+    },
+    {
+      "file": "super_mario_64-276.png",
+      "sha256": "862a9d87a6d36fc69fdc179eab1f3eaeec5eac69100f08a291119aa189b23616"
+    },
+    {
+      "file": "super_mario_64-277.png",
+      "sha256": "8d5a244fac39134f5782b5a747a446a6c13f0058e4775ea1afb835f3b241c73e"
+    },
+    {
+      "file": "super_mario_64-278.png",
+      "sha256": "fcf9758a0d033c97cff5367367fbd3ff43bdd8b892ab81f9dac36c18eca9d15d"
+    },
+    {
+      "file": "super_mario_64-279.png",
+      "sha256": "0e51d92a1c762a73e9a0a56b772871213dc0cd9759322a7a00d0935d7e32b441"
+    },
+    {
+      "file": "super_mario_64-280.png",
+      "sha256": "30e90f5766d850dab55f5e05c676144f0898681304c1b7f124aadb0f3d0cd2dc"
+    },
+    {
+      "file": "super_mario_64-281.png",
+      "sha256": "015bcddcf2c438f49739400f78a01ed13a29d925a9544e9ac30ac9931ec315a6"
+    },
+    {
+      "file": "super_mario_64-282.png",
+      "sha256": "7653cb1672ed6654b864d67899f3da4d9fa44a3818430b8f6c9cf0c54c355858"
+    },
+    {
+      "file": "super_mario_64-283.png",
+      "sha256": "f09392180d71fec678cb6dd8d4809875df3dcdee7bfa54afc8416429efd84a5e"
+    },
+    {
+      "file": "super_mario_64-284.png",
+      "sha256": "a5d96a86b01977d389a79c617d4b6e5dbd89d538ddaa476fee3ce296e177281e"
+    },
+    {
+      "file": "super_mario_64-285.png",
+      "sha256": "c0460f0a88fb5c2f8dbd13fb708c1e5781dec0b9f03adc5f034ad01dc4de3528"
+    },
+    {
+      "file": "super_mario_64-286.png",
+      "sha256": "58def88505d0c73ca0535496c8186e1559d10066429a876d0848a6d165627259"
+    },
+    {
+      "file": "super_mario_64-287.png",
+      "sha256": "8d8c53c6bec0b48d88a12e75e9d54c7975948a0b3b78d3b08a78eb5eaa556f83"
+    },
+    {
+      "file": "super_mario_64-288.png",
+      "sha256": "f1c9e21c5a6203c767dabb84e146cef7442f7a4f98f5a5a82543b4fc8d628759"
+    },
+    {
+      "file": "super_mario_64-289.png",
+      "sha256": "a8a7b977bc83daba1b8542af09d1793b8ce94654e481e713c7235aecf3156278"
+    },
+    {
+      "file": "super_mario_64-290.png",
+      "sha256": "a0484eeff7f5667459c9c0b26d2819aa3cdeaf2a36ca86be2fe7d67a54f74486"
+    },
+    {
+      "file": "super_mario_64-291.png",
+      "sha256": "a67a14f7d5f37c66df0b8e1bbc1009669c8d0d51b7c67ccac10382a0226e0240"
+    },
+    {
+      "file": "super_mario_64-292.png",
+      "sha256": "b2de7113426f87c915d7f31b441ede0d575e735410dda6fc440342456f6b700e"
+    },
+    {
+      "file": "super_mario_64-293.png",
+      "sha256": "1ca4ff8bd56a94d330f03d98fcabb170572e45884bcfc4b87cfdf0f177b4b24e"
+    },
+    {
+      "file": "super_mario_64-294.png",
+      "sha256": "ea16ab458f969e76e90419f607b1fc1124b41cf652bed8efcec10a0b9af47a85"
+    },
+    {
+      "file": "super_mario_64-295.png",
+      "sha256": "67935bdf83c1a05e8fad824ff0a693b462a4b4468dd6aaf683e59aa162b6cf6a"
+    },
+    {
+      "file": "super_mario_64-296.png",
+      "sha256": "25d955f6ffdda15f3c11164248aac6282aaf4956df78abfd6a82294fd5d862f1"
+    },
+    {
+      "file": "super_mario_64-297.png",
+      "sha256": "72f32839cc3fafe355e7c34caef9a3eb142af4daeaa3c150572f7ac2eb19145e"
+    },
+    {
+      "file": "super_mario_64-298.png",
+      "sha256": "2943eaad1a0782afddc18dbba5be7f22eaa9f844340af50cd001f31ce061a22e"
+    },
+    {
+      "file": "super_mario_64-299.png",
+      "sha256": "466baf85db002d14c73a6d265c5e254d8a0d250b0e4535aac9f2ee1266dd2131"
+    },
+    {
+      "file": "super_mario_64-300.png",
+      "sha256": "7d0c8651b3bb31a48e72f28dc97c69390f6ed59ee0f013ef284fc20713a17102"
+    },
+    {
+      "file": "super_mario_64-301.png",
+      "sha256": "fccc8a2c8e6bcc2f6e1071d93ec459d0943256e81ddd966a9bb4dd88c0e9efbc"
+    },
+    {
+      "file": "super_mario_64-302.png",
+      "sha256": "66047804552ab03bf79864fbd2729535a38ac142b9a993f63e8c36d5b667dc9d"
+    },
+    {
+      "file": "super_mario_64-303.png",
+      "sha256": "c7cbf19d1579c2d68e8ec86c00ac1a5d1268d1cc7bfbb905d634a3c9c33fccfb"
+    },
+    {
+      "file": "super_mario_64-304.png",
+      "sha256": "5a74b1ed99969cd1abc18f8a5c64392d72a44502c1c04c3d4f89148c6059f6e2"
+    },
+    {
+      "file": "super_mario_64-305.png",
+      "sha256": "61dff511780ff823292d974a18f3c95d62b200cd815e5f45cacd66989a0d3f6e"
+    },
+    {
+      "file": "super_mario_64-306.png",
+      "sha256": "c550e1720a17c3b2d505c707504849bee93f70d837be617663abc76891a98f24"
+    },
+    {
+      "file": "super_mario_64-307.png",
+      "sha256": "d91895c083a0880da01bb6c30b97f4b9a5f981a94074d2413b7da81838504e81"
+    }
+  ]
+}

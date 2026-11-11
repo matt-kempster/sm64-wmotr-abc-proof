@@ -1,0 +1,89 @@
+{
+  "schema": 1,
+  "scope": "Three independent native captures; clean low component, supplied high hands-free component, and separately supplied 973-unit handoff. No joined clean no-A pyramid route.",
+  "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+  "romMd5": "85d61f5525af708c9f1e84dce6dc10e9",
+  "emulator": "Mupen64Plus core/UI2.5.9, interpreter; Rice2.5.9; HLE RSP2.5.9; dummy audio",
+  "environment": "Ubuntu-24.04 WSL",
+  "preEntrySetup": "Existing debug level-select cheat6; stock camera throughout",
+  "captures": [
+    {
+      "finalSourceRebuildByteIdentical": true,
+      "traceSha256": "e4a88dbb68a57d93c1c420010464c342e5eaa6d53d72d3ad14e8f15a21a08efa",
+      "receipt": "clean-receipt.json",
+      "probeSha256": "900b363cfc5966a105eda07345ab11b84fee874a850137a2a1acc7ac687e6759",
+      "rawDirectory": "build/jp-ink-clean-handsfree-crawl-demo-20261112-a",
+      "receiptSha256": "df15512dd13d2cc447783f0e9fed3d4cba00342b808c6d3c7b05e95fcc325b9b",
+      "chapter": "clean",
+      "trace": "clean-trace.txt"
+    },
+    {
+      "finalSourceRebuildByteIdentical": true,
+      "traceSha256": "eeb72439476f8213437c45d144518683cb8a59ddd0e3966928b4a890f46abe47",
+      "receipt": "supplied-handsfree-receipt.json",
+      "probeSha256": "db43721e86d8d795adb614ec56d1f97bdc417d7e9923e8bb3cb28d5b5dfabccb",
+      "rawDirectory": "build/jp-ink-handsfree-demo-20261112-a",
+      "receiptSha256": "aa1de2c6494647b48fa3153df98e89ee734e2346089a8fe6cfcea8738ad83be2",
+      "chapter": "supplied-handsfree",
+      "trace": "supplied-handsfree-trace.txt"
+    },
+    {
+      "finalSourceRebuildByteIdentical": true,
+      "traceSha256": "ab0512d84c8924310632cbfa97a22983eeaf0a6c14ab392d68621e214a9a1576",
+      "receipt": "supplied-handoff-receipt.json",
+      "probeSha256": "93f9a7d926bc8c0ace55b9d980ab07763f0244fb8ffe4732cf23a811e1858d4b",
+      "rawDirectory": "build/jp-ink-handoff-demo-20261112-a",
+      "receiptSha256": "e8f0ea852056ff16f790e7272d4f0c6d56ca744f27599f431efb4aff03b8b98c",
+      "chapter": "supplied-handoff",
+      "trace": "supplied-handoff-trace.txt"
+    }
+  ],
+  "sourceFiles": [
+    {
+      "sha256": "5cec00146b0a2d00a03e93de35c39421a6d6a004787069c6a4a956430ac12c2c",
+      "path": "instrumentation/jp-ink-handsfree-demo/probe.c"
+    },
+    {
+      "sha256": "cbcd9b0f8478b4eccece0cffee54b9f7ab6ea25c14c8b9de46670bff549c31d4",
+      "path": "instrumentation/jp-ink-handsfree-demo/prepare.py"
+    },
+    {
+      "sha256": "d625bab5de63984ba5a880eaf66dce4b9b59342882c87fa67b2adae59eeaf541",
+      "path": "instrumentation/jp-ink-handsfree-demo/prepare-clean.py"
+    },
+    {
+      "sha256": "f90b7371f3bcb5dbc89e82614f3365d10ab9f66ef757498b75bb1a2d9130a673",
+      "path": "instrumentation/jp-ink-handsfree-demo/check.py"
+    },
+    {
+      "sha256": "0819095d3b987f1d0279c257db9fcde70296136e8f5fcf2942586172f0ee13b7",
+      "path": "instrumentation/jp-ink-handsfree-demo/check-clean.py"
+    },
+    {
+      "sha256": "dc50e2a04a291a4bb46956bcad3370b8f96b1c7f04ca92e68c1f7fd06ec71206",
+      "path": "instrumentation/jp-ink-handsfree-demo/check-handoff.py"
+    },
+    {
+      "sha256": "ea2f6232882cfa5f46efaf89a5f98c960c751d085dee530e76947066031fa8e2",
+      "path": "instrumentation/jp-ink-handsfree-demo/run.sh"
+    },
+    {
+      "sha256": "67fa34e1ed76ab61bb44454c6126f1445bd55488594860ddd57952414a483be5",
+      "path": "instrumentation/jp-ink-handsfree-demo/run-clean.sh"
+    },
+    {
+      "sha256": "2b67d52f369b787f09d0823cde9d658230f2f79e1048cbe2abcfa3e3764dc576",
+      "path": "instrumentation/jp-ink-handsfree-demo/run-handoff.sh"
+    },
+    {
+      "sha256": "939be001b98ad1f92bdbee46ec7b0a0b5d644d09ad05f1931769369e367e4643",
+      "path": "instrumentation/jp-ink-handsfree-demo/clean-component-inputs.jsonl"
+    },
+    {
+      "sha256": "7dff0a48a1333676200225395b963839a10663d7d4a71bee9b4c5cec39f28556",
+      "path": "instrumentation/jp-ink-handsfree-demo/check-replay.py"
+    }
+  ],
+  "inputLineEndings": "Captured clean input JSONL uses CRLF; committed replay JSONL uses LF. Parsed656 controller records are identical; hashes name their own exact byte files.",
+  "receiptLineEndings": "Committed native receipts and traces use canonical LF. JSON content matches the captured check output; byte hashes refer to these canonical files."
+}

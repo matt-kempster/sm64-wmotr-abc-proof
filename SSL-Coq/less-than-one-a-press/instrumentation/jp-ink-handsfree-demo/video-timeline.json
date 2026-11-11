@@ -1,0 +1,280 @@
+{
+  "title": "SSL: hands-free holding and the supplied Ink handoff",
+  "segments": [
+    {
+      "source": "build/jp-ink-clean-handsfree-crawl-demo-20261112-a/shots",
+      "start": 0,
+      "stop": 1,
+      "repeat": 150,
+      "label": "ORIGINAL JAPANESE ROM  |  THREE SEPARATE RUNS",
+      "labelColor": "0xffd475",
+      "headline": "What these recordings establish",
+      "detail": "1. A clean hands-free pickup and low crawl.\n2. A supplied-position hands-free test.\n3. A separate supplied Ink installation.",
+      "footer": "No complete clean no-A SSL Pyramid route is established by these clips."
+    },
+    {
+      "source": "build/jp-ink-clean-handsfree-crawl-demo-20261112-a/shots",
+      "start": 0,
+      "stop": 75,
+      "repeat": 2,
+      "label": "1/3  CLEAN CONTROLLER COMPONENT  |  A inputs: 0  |  slow motion",
+      "labelColor": "0xa4e5c4",
+      "headline": "Approach the eastern box with controller inputs",
+      "detail": "Accepted debug level-select startup and earlier travel are omitted.\nNo gameplay positions, actions or object references are edited.",
+      "footer": "Clean component: zero pillars; the spinning-top handoff remains open."
+    },
+    {
+      "source": "build/jp-ink-clean-handsfree-crawl-demo-20261112-a/shots",
+      "start": 75,
+      "stop": 87,
+      "repeat": 10,
+      "label": "1/3  CLEAN CONTROLLER COMPONENT  |  A inputs: 0  |  slow motion",
+      "labelColor": "0xa4e5c4",
+      "headline": "Dive pickup",
+      "detail": "Inputs create the dive and pickup.\nMario reaches a slippery slope while holding the box.",
+      "footer": "Clean component: zero pillars; the spinning-top handoff remains open."
+    },
+    {
+      "source": "build/jp-ink-clean-handsfree-crawl-demo-20261112-a/shots",
+      "start": 87,
+      "stop": 88,
+      "repeat": 150,
+      "label": "1/3  CLEAN CONTROLLER COMPONENT  |  A inputs: 0  |  paused",
+      "labelColor": "0xa4e5c4",
+      "headline": "Hands-free holding, without a position edit",
+      "detail": "The game uses a normal stomach-slide action while retaining box 47.\nHands-free means a non-holding action with a held reference.",
+      "footer": "Clean component: zero pillars; the spinning-top handoff remains open."
+    },
+    {
+      "source": "build/jp-ink-clean-handsfree-crawl-demo-20261112-a/shots",
+      "start": 87,
+      "stop": 166,
+      "repeat": 2,
+      "label": "1/3  CLEAN CONTROLLER COMPONENT  |  A inputs: 0  |  slow motion",
+      "labelColor": "0xa4e5c4",
+      "headline": "Brake toward the flat patch",
+      "detail": "This continuation keeps the box until Mario slows enough to stop.\nThe location remains low and far from the upper warp.",
+      "footer": "Clean component: zero pillars; the spinning-top handoff remains open."
+    },
+    {
+      "source": "build/jp-ink-clean-handsfree-crawl-demo-20261112-a/shots",
+      "start": 166,
+      "stop": 167,
+      "repeat": 120,
+      "label": "1/3  CLEAN CONTROLLER COMPONENT  |  A inputs: 0  |  paused",
+      "labelColor": "0xa4e5c4",
+      "headline": "Stopping releases the box at Y = 38",
+      "detail": "Drop Y uses Mario's height; X/Z uses the previous rendered hand position.\nThe box lands and is deleted one update later.",
+      "footer": "Clean component: zero pillars; the spinning-top handoff remains open."
+    },
+    {
+      "source": "build/jp-ink-clean-handsfree-crawl-demo-20261112-a/shots",
+      "start": 167,
+      "stop": 196,
+      "repeat": 4,
+      "label": "1/3  CLEAN CONTROLLER COMPONENT  |  A inputs: 0  |  slow motion",
+      "labelColor": "0xa4e5c4",
+      "headline": "Crawl is reached after the box is gone",
+      "detail": "First crawl: completed input 528, at Y = 38.\nThis is not the high Y = 1741 handoff.",
+      "footer": "Clean component: zero pillars; the spinning-top handoff remains open."
+    },
+    {
+      "source": "build/jp-ink-clean-handsfree-crawl-demo-20261112-a/shots",
+      "start": 195,
+      "stop": 196,
+      "repeat": 120,
+      "label": "1/3  CLEAN CONTROLLER COMPONENT  |  A inputs: 0  |  paused",
+      "labelColor": "0xa4e5c4",
+      "headline": "Clean pickup, hands-free slide, drop, low crawl",
+      "detail": "That sequence is demonstrated without gameplay edits.\nA live box, high crawl and timer-130 contact are not joined.",
+      "footer": "No complete clean no-A SSL Pyramid route is established by these clips."
+    },
+    {
+      "source": "build/jp-ink-handsfree-demo-20261112-a/shots",
+      "start": 0,
+      "stop": 1,
+      "repeat": 120,
+      "label": "NEW RUN  |  SUPPLIED-POSITION TEST",
+      "labelColor": "0xffd475",
+      "headline": "A separate test near the pyramid",
+      "detail": "This is a new emulator run with an explicitly supplied position cut.\nIt is not travel from the preceding scene.",
+      "footer": "Supplied-state test: marked setup edits are not controller inputs."
+    },
+    {
+      "source": "build/jp-ink-handsfree-demo-20261112-a/shots",
+      "start": 0,
+      "stop": 7,
+      "repeat": 16,
+      "label": "2/3  SUPPLIED-POSITION TEST  |  A inputs: 0  |  slow motion",
+      "labelColor": "0xffd475",
+      "headline": "First, inputs produce a normal dive",
+      "detail": "Six ordinary controller inputs; no action or velocity is written.\nThe position edit comes next.",
+      "footer": "Supplied-state test: marked setup edits are not controller inputs."
+    },
+    {
+      "source": "build/jp-ink-handsfree-demo-20261112-a/shots",
+      "start": 6,
+      "stop": 7,
+      "repeat": 180,
+      "label": "2/3  SUPPLIED-POSITION TEST  |  A inputs: 0  |  next-update setup / paused",
+      "labelColor": "0xffd475",
+      "headline": "Next: supply Mario and box positions",
+      "detail": "Mario M/C/D: (-2559, 1741, -1535).\nBox: (-2559, 1741, -1465).\nThese writes precede the next update; action and velocity stay native.",
+      "footer": "Supplied-state test: marked setup edits are not controller inputs."
+    },
+    {
+      "source": "build/jp-ink-handsfree-demo-20261112-a/shots",
+      "start": 7,
+      "stop": 25,
+      "repeat": 6,
+      "label": "2/3  SUPPLIED-POSITION TEST  |  A inputs: 0  |  slow motion",
+      "labelColor": "0xffd475",
+      "headline": "The game performs the pickup",
+      "detail": "After the one setup edit, only controller inputs are used.\nThe dive lands on a sloping face of the moving pyramid top.",
+      "footer": "Supplied-state test: marked setup edits are not controller inputs."
+    },
+    {
+      "source": "build/jp-ink-handsfree-demo-20261112-a/shots",
+      "start": 25,
+      "stop": 26,
+      "repeat": 150,
+      "label": "2/3  SUPPLIED-POSITION TEST  |  A inputs: 0  |  paused",
+      "labelColor": "0xffd475",
+      "headline": "Hands-free slide from the supplied high approach",
+      "detail": "Normal butt-slide action; the game still holds box 49.\nMario has already descended to about Y = 1391.",
+      "footer": "Supplied-state test: marked setup edits are not controller inputs."
+    },
+    {
+      "source": "build/jp-ink-handsfree-demo-20261112-a/shots",
+      "start": 25,
+      "stop": 46,
+      "repeat": 6,
+      "label": "2/3  SUPPLIED-POSITION TEST  |  A inputs: 0  |  slow motion",
+      "labelColor": "0xffd475",
+      "headline": "This steering loses the roof",
+      "detail": "Avoiding automatic bouncing does not keep Mario high.\nThe selected continuation slides off the pyramid.",
+      "footer": "Supplied-state test: marked setup edits are not controller inputs."
+    },
+    {
+      "source": "build/jp-ink-handsfree-demo-20261112-a/shots",
+      "start": 46,
+      "stop": 88,
+      "repeat": 3,
+      "label": "2/3  SUPPLIED-POSITION TEST  |  A inputs: 0  |  slow motion",
+      "labelColor": "0xffd475",
+      "headline": "The example ends in quicksand",
+      "detail": "Mario loses the box during quicksand death.\nNo high crawl or Ink handoff occurs in this run.",
+      "footer": "Supplied-state test: marked setup edits are not controller inputs."
+    },
+    {
+      "source": "build/jp-ink-handsfree-demo-20261112-a/shots",
+      "start": 87,
+      "stop": 88,
+      "repeat": 120,
+      "label": "2/3  SUPPLIED-POSITION TEST  |  A inputs: 0  |  paused",
+      "labelColor": "0xffd475",
+      "headline": "The local exception works; this continuation fails",
+      "detail": "The high starting positions were supplied.\nThis clip does not show gameplay reaching those positions.",
+      "footer": "No complete clean no-A SSL Pyramid route is established by these clips."
+    },
+    {
+      "source": "build/jp-ink-handoff-demo-20261112-a/shots",
+      "start": 0,
+      "stop": 1,
+      "repeat": 120,
+      "label": "NEW RUN  |  SEPARATE SUPPLIED INK FIXTURE",
+      "labelColor": "0xffd475",
+      "headline": "The 973-unit installation test",
+      "detail": "This test supplies crawl action and a high Mario/box placement.\nIt does not continue from either preceding clip.",
+      "footer": "Supplied-state test: marked setup edits are not controller inputs."
+    },
+    {
+      "source": "build/jp-ink-handoff-demo-20261112-a/shots",
+      "start": 0,
+      "stop": 5,
+      "repeat": 24,
+      "label": "3/3  SEPARATE SUPPLIED INK FIXTURE  |  A inputs: 0  |  slow motion",
+      "labelColor": "0xffd475",
+      "headline": "Prepare the crawl hitbox",
+      "detail": "Crawl action is supplied before the high-position cut.\nA native update establishes the 100-unit collision height.",
+      "footer": "Supplied-state test: marked setup edits are not controller inputs."
+    },
+    {
+      "source": "build/jp-ink-handoff-demo-20261112-a/shots",
+      "start": 5,
+      "stop": 6,
+      "repeat": 180,
+      "label": "3/3  SEPARATE SUPPLIED INK FIXTURE  |  A inputs: 0  |  next-update setup / paused",
+      "labelColor": "0xffd475",
+      "headline": "Next: supply the high pose and nearby box",
+      "detail": "Mario M/C/D: (-1950, 1741, -939).\nFree box: (-1989, 1741, -939).\nThe floor cache is not edited; these writes precede the next update.",
+      "footer": "Supplied-state test: marked setup edits are not controller inputs."
+    },
+    {
+      "source": "build/jp-ink-handoff-demo-20261112-a/shots",
+      "start": 6,
+      "stop": 7,
+      "repeat": 180,
+      "label": "3/3  SEPARATE SUPPLIED INK FIXTURE  |  A inputs: 0  |  paused",
+      "labelColor": "0xffd475",
+      "headline": "The game produces the 973-unit split",
+      "detail": "Trace: movement/collision Y = 768; display Y = 1741.\nThe solid top hides Mario in this camera view.\nThese values come from the recorded state, not visible pixels.",
+      "footer": "Supplied-state test: marked setup edits are not controller inputs."
+    },
+    {
+      "source": "build/jp-ink-handoff-demo-20261112-a/shots",
+      "start": 7,
+      "stop": 8,
+      "repeat": 150,
+      "label": "3/3  SEPARATE SUPPLIED INK FIXTURE  |  A inputs: 0  |  paused",
+      "labelColor": "0xffd475",
+      "headline": "Update at timer 131 installs the top reference",
+      "detail": "The upper warp is accepted and the spinning top is remembered.\nThis follows the explicitly supplied setup.",
+      "footer": "Supplied-state test: marked setup edits are not controller inputs."
+    },
+    {
+      "source": "build/jp-ink-handoff-demo-20261112-a/shots",
+      "start": 8,
+      "stop": 31,
+      "repeat": 5,
+      "label": "3/3  SEPARATE SUPPLIED INK FIXTURE  |  A inputs: 0  |  slow motion",
+      "labelColor": "0xffd475",
+      "headline": "Warping to Area 2",
+      "detail": "No A input is used.\nThe remembered top produces the displaced arrival.",
+      "footer": "Supplied-state test: marked setup edits are not controller inputs."
+    },
+    {
+      "source": "build/jp-ink-handoff-demo-20261112-a/shots",
+      "start": 30,
+      "stop": 31,
+      "repeat": 150,
+      "label": "3/3  SEPARATE SUPPLIED INK FIXTURE  |  A inputs: 0  |  paused",
+      "labelColor": "0xffd475",
+      "headline": "Area 2: outside the elevator",
+      "detail": "Recorded arrival: (365.593, 5500, -1096.803).\nThe ordinary camera briefly obscures Mario during the transition.",
+      "footer": "Supplied-state test: marked setup edits are not controller inputs."
+    },
+    {
+      "source": "build/jp-ink-handoff-demo-20261112-a/shots",
+      "start": 31,
+      "stop": 66,
+      "repeat": 4,
+      "label": "3/3  SEPARATE SUPPLIED INK FIXTURE  |  A inputs: 0  |  slow motion",
+      "labelColor": "0xffd475",
+      "headline": "Mario lands on the upper walkway",
+      "detail": "The conditional installation and elevator bypass work.\nThe missing clean approach is not supplied by this footage.",
+      "footer": "Supplied-state test: marked setup edits are not controller inputs."
+    },
+    {
+      "source": "build/jp-ink-handoff-demo-20261112-a/shots",
+      "start": 65,
+      "stop": 66,
+      "repeat": 180,
+      "label": "RESULT  |  COMPONENTS DEMONSTRATED; FULL ROUTE OPEN",
+      "labelColor": "0xffd475",
+      "headline": "What remains open",
+      "detail": "One controller history must deliver a live box,\nreach high crawl, and make the timer-130 handoff.\nThese component demonstrations do not yet establish that route.",
+      "footer": "No complete clean no-A SSL Pyramid route is established by these clips."
+    }
+  ]
+}
