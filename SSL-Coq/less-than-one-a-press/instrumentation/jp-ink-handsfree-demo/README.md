@@ -93,13 +93,20 @@ Rice screenshots contain the preceding completed framebuffer. Accordingly:
 |167|516|Box inactive|
 |179|528|First crawl at Y=38|
 
-For clean PNG index `n`, the completed input is `349+n`. For both supplied
-chapters, PNG index `n` is completed chapter input `n`; index0 is the preceding
-frame. Supplied hands-free: cut before input 7, pickup 7, dive-picking-up 24,
-hands-free 25, quicksand death 86. Separate handoff: action setup before input 5,
-position setup before 6, split 6, top capture 7, first Area 2 state 30. The final
-CLI-requested PNG in each folder is an extra later image, not the next member
-of the consecutive callback sequence.
+For clean PNG index `n`, the completed input is `349+n`. For the supplied
+hands-free chapter, PNG index `n` is completed chapter input `n`; index 0 is the
+preceding frame. Its position cut precedes input 7, followed by pickup at 7,
+dive-picking-up at 24, hands-free holding at 25, and quicksand death at 86.
+
+For the separate handoff, crawl is supplied before input 5 and positions
+before input 6. The split and top capture are completed inputs 6 and 7,
+shown in PNGs 6 and 7. Inputs 28 and 29 have no camera callback in the trace.
+The first Area 2 state is completed input 30. The callback on input 31 requests
+PNG 28, which captures that preceding input-30 framebuffer. From PNG 28 on,
+the completed input is `n+2` in the recorded callback sequence. The original
+video's Area 2 pause uses PNG 30, a later frame of the wipe. The archived
+receipt's simplified PNG mapping omits this transition offset. The final
+CLI-requested PNG in each folder is an extra later image.
 
 All three final-source probe builds were byte-identical to the captured
 `probe.so` binaries. The native receipts pin the ROM, logs, traces and every

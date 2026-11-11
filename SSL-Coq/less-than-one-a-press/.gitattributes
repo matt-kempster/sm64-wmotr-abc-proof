@@ -26,6 +26,13 @@ instrumentation/wafel-jp-pilot/ink-bobomb-regrab-transport-inputs.jsonl text eol
 instrumentation/wafel-jp-pilot/verify_ink_bobomb_regrab_transport.py text eol=lf
 instrumentation/wafel-jp-pilot/ink_hft_pyramid_carry.py text eol=lf
 instrumentation/wafel-jp-pilot/verify_ink_hft_pyramid_carry.py text eol=lf
+# Preserve the source hashes recorded by the supplied-entry experiments.
+instrumentation/wafel-jp-pilot/ink_crawl_top_entry.py text eol=lf
+instrumentation/wafel-jp-pilot/ink_crawl_edge_entry.py text eol=lf
+instrumentation/wafel-jp-pilot/ink_crawl_edge_entry-v1.py text eol=lf
+instrumentation/wafel-jp-pilot/ink_top_entry_witnesses.py text eol=lf
+instrumentation/wafel-jp-pilot/ink_air_entry_to_crawl.py text eol=lf
+instrumentation/wafel-jp-pilot/ink_air_crawl_examples.py text eol=lf
 instrumentation/jp-ink-candidate-views/*.sh text eol=lf
 instrumentation/jp-ink-candidate-views/*.c text eol=lf
 instrumentation/jp-ink-candidate-views/*.py text eol=lf
