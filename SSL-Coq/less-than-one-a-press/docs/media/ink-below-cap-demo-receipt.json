@@ -1,0 +1,363 @@
+{
+  "schema": 1,
+  "scope": "Original-ROM frames with labeled cuts, pauses and text outside the game image; no clean full-route claim",
+  "videoSha256": "2893a6808b57b0e6a62fedd995f7eca5236dc6d373314cdbb229a6e134575efc",
+  "manifestSha256": "468af79578be8502ae6f78a45370f85471e5528946130d9032addecd6ea444ec",
+  "rendererSha256": "56f4c6fa74df539f356beff201a29a5b0d6f3a6df55917b376db0720dd18a412",
+  "fps": 30,
+  "frames": 1884,
+  "durationSeconds": 62.8,
+  "probe": {
+    "programs": [],
+    "streams": [
+      {
+        "width": 960,
+        "height": 1008,
+        "r_frame_rate": "30/1",
+        "duration": "62.800000",
+        "nb_frames": "1884"
+      }
+    ]
+  },
+  "segments": [
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots",
+      "start": 6,
+      "stop": 7,
+      "repeat": 150,
+      "label": "ORIGINAL JAPANESE ROM | CONDITIONAL TEST | paused",
+      "headline": "A smaller gap works, but does not install the top",
+      "detail": "The game creates a 632-unit position disagreement.\nCrawl and the initial Mario/box positions are supplied.\nThis is a local mechanism demonstration, not a clean gameplay route.",
+      "footer": "Normal gameplay image. Exact coordinates come from the recorded trace.",
+      "firstVideoFrame": 0,
+      "lastVideoFrame": 149,
+      "startTime": "00:00:00.000",
+      "endTime": "00:00:05.000"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots",
+      "start": 0,
+      "stop": 6,
+      "repeat": 20,
+      "label": "NORMAL CAMERA | SUPPLIED CRAWL | slow motion",
+      "headline": "Prepare an established crawl before the position cut",
+      "detail": "The earlier no-A four-pillar controller replay is omitted.\nCrawl action is supplied; a native update makes its hitbox 100 high.\nNext, all three Mario positions and the box position are supplied.",
+      "footer": "No floor cache, velocity, timer, held reference or display gap is written.",
+      "firstVideoFrame": 150,
+      "lastVideoFrame": 269,
+      "startTime": "00:00:05.000",
+      "endTime": "00:00:09.000"
+    },
+    {
+      "source": "build/jp-ink-below-cap-display-20261111-v2/shots",
+      "start": 5,
+      "stop": 6,
+      "repeat": 270,
+      "label": "RENDER-ONLY STARTING-COORDINATE ILLUSTRATION | paused",
+      "headline": "Y = 1400 is a supplied hover, 120 above the roof",
+      "detail": "Mario: (-2132, 1400, -1024). Box: (-2093, 1400, -1024).\nRoof Y = 1280. The 100-high body would end at Y = 1500.\nThe loaded cap underside is 1518, then 1523 on the next update.",
+      "footer": "Camera, render positions and render matrices changed for this illustration only.",
+      "firstVideoFrame": 270,
+      "lastVideoFrame": 539,
+      "startTime": "00:00:09.000",
+      "endTime": "00:00:18.000"
+    },
+    {
+      "source": "build/jp-ink-below-cap-display-20261111-v2/shots",
+      "start": 5,
+      "stop": 7,
+      "repeat": 45,
+      "label": "RENDER-ONLY COORDINATE ILLUSTRATION | two recorded frames",
+      "headline": "The box pushes Mario 68 units west",
+      "detail": "The actual next input is Z plus stick (0, 64), with no A.\nThe native push takes X from -2132 to -2200.\nThe stopped crawl then retains the earlier display height.",
+      "footer": "Render edits are restored before input; the logged gameplay matches the stock run.",
+      "firstVideoFrame": 540,
+      "lastVideoFrame": 629,
+      "startTime": "00:00:18.000",
+      "endTime": "00:00:21.000"
+    },
+    {
+      "source": "build/jp-ink-below-cap-display-20261111-v2/shots",
+      "start": 6,
+      "stop": 7,
+      "repeat": 240,
+      "label": "RENDER-ONLY DISPLAY-COORDINATE VIEW | paused",
+      "headline": "Movement/collision Y = 768; stored display Y = 1400",
+      "detail": "Both now use X/Z = (-2200, -1024). The difference is 632.\nA stopped ground quarter preserves the low floor cache.\nDisplay refresh precedes crawl alignment and the collision copy.",
+      "footer": "Mario is drawn at the stored display coordinates by clearing his render matrix.",
+      "firstVideoFrame": 630,
+      "lastVideoFrame": 869,
+      "startTime": "00:00:21.000",
+      "endTime": "00:00:29.000"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots",
+      "start": 6,
+      "stop": 7,
+      "repeat": 210,
+      "label": "BACK TO NORMAL CAMERA AND NATIVE RENDER MATRIX | paused",
+      "headline": "Stored display coordinates are not the final model transform",
+      "detail": "Crawl also supplies a separate floor-alignment render matrix.\nThe ordinary game image therefore differs from the illustration.\nThe 632-unit disagreement is verified in memory, not measured in pixels.",
+      "footer": "The stock run has no render edits. The illustration is a separate matching replay.",
+      "firstVideoFrame": 870,
+      "lastVideoFrame": 1079,
+      "startTime": "00:00:29.000",
+      "endTime": "00:00:36.000"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots",
+      "start": 7,
+      "stop": 8,
+      "repeat": 240,
+      "label": "NORMAL CAMERA | NEXT UPDATE | paused",
+      "headline": "The raised retry reaches the roof, not the top",
+      "detail": "The low floor query misses; the retry uses the raised display.\nIt selects the static roof at Y = 1280.\nMario accepts the upper warp, but remembers no spinning-top platform.",
+      "footer": "The starting hover and box placement remain supplied assumptions.",
+      "firstVideoFrame": 1080,
+      "lastVideoFrame": 1319,
+      "startTime": "00:00:36.000",
+      "endTime": "00:00:44.000"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots",
+      "start": 8,
+      "stop": 46,
+      "repeat": 3,
+      "label": "NORMAL CAMERA | CONTINUOUS WARP CONTINUATION | slow motion",
+      "headline": "The continuation gives an ordinary Area-2 arrival",
+      "detail": "All later controller inputs are neutral; A-input counters stay zero.\nFirst Area-2 position: (0, 5500, 256).\nMario lands inside the elevator rather than bypassing it.",
+      "footer": "The two warp-transition inputs without camera callbacks are recorded in the trace.",
+      "firstVideoFrame": 1320,
+      "lastVideoFrame": 1433,
+      "startTime": "00:00:44.000",
+      "endTime": "00:00:47.800"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots",
+      "start": 46,
+      "stop": 47,
+      "repeat": 180,
+      "label": "NORMAL CAMERA | ORDINARY ELEVATOR OUTCOME | paused",
+      "headline": "A gap alone is not enough",
+      "detail": "This supplied below-cap setup makes a smaller gap successfully.\nIts retry does not capture the top, so the useful displacement is absent.",
+      "footer": "Observed finite example; not an exclusion of other positions, phases or mechanisms.",
+      "firstVideoFrame": 1434,
+      "lastVideoFrame": 1613,
+      "startTime": "00:00:47.800",
+      "endTime": "00:00:53.800"
+    },
+    {
+      "source": "build/jp-ink-below-cap-display-20261111-v2/shots",
+      "start": 5,
+      "stop": 6,
+      "repeat": 270,
+      "label": "RENDER-ONLY STARTING-COORDINATE ILLUSTRATION | OPEN PREDECESSOR",
+      "headline": "What still has to be produced through gameplay",
+      "detail": "There is no standing floor at this supplied Y = 1400.\nReach an established high crawl with an available pushing actor,\nthen create enough retained display height at useful warp timing.",
+      "footer": "This test supplies the hover and action. A complete clean no-A route remains open.",
+      "firstVideoFrame": 1614,
+      "lastVideoFrame": 1883,
+      "startTime": "00:00:53.800",
+      "endTime": "00:01:02.800"
+    }
+  ],
+  "uniqueSourceFrames": [
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-006.png",
+      "sha256": "c9f1f461480b259291976ae738799ce2f5613450bee5e11b7d44b6a4969b57d9"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-000.png",
+      "sha256": "00c0611a1f70b6b94e25d989bdeb2b995f8c451587ec3ffc78f19a8647d0f5ae"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-001.png",
+      "sha256": "a88a1ffc48af137c7e90cd76aab36d9ee720d4e824b9d808a8a84018fd0b8bdf"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-002.png",
+      "sha256": "b5c97ea7bda8232a39f0d2af4b92a2071d556b209125ae28eaf03a41827044e8"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-003.png",
+      "sha256": "9c83970206750df6d0e90b5a40a686fbd1e62ef3064491ef96405f5cc0ebfb58"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-004.png",
+      "sha256": "1ca20e09dbefc2b395e6a1b56326fc613e6a85d37654f5d4c2ceed5c8d269f54"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-005.png",
+      "sha256": "7c17ef519c8ddd3dc033d53206cfa5e2cb892e0904f5344420d4c1bdd94a7b1d"
+    },
+    {
+      "source": "build/jp-ink-below-cap-display-20261111-v2/shots/super_mario_64-005.png",
+      "sha256": "298bd8e776cdf296ea40530534d4168b28ec40e476ba2f38dc9df3229d88712a"
+    },
+    {
+      "source": "build/jp-ink-below-cap-display-20261111-v2/shots/super_mario_64-006.png",
+      "sha256": "1e17e0ee645b24e235a24ccaca9fa9db1abd9bf2050aecedc1a84bd125c646c8"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-007.png",
+      "sha256": "5fc18960fe15759cad45e85e18834b64846ecfab28eae43a64e1722710a44122"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-008.png",
+      "sha256": "cd7ea24d2f13f451c88250f9c24ccaf5647fce0f4c77507c420409979e346459"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-009.png",
+      "sha256": "861b135b585f85078cb06557269db90c5858624496866962593c50d80698e819"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-010.png",
+      "sha256": "076cd02ec305b8878a1e3dc8c82fbcaad022aeef8288f44e6f40b95366b9b3ec"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-011.png",
+      "sha256": "a3c988801267537bba7a3c400a0e4a9bd40747d05be3907d8290cf885ec76a79"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-012.png",
+      "sha256": "1492da2bbd41efee4992bddb4b5fe92f7d52633fee825818131d3800399ad182"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-013.png",
+      "sha256": "2e55cd76af0f2fa5b831a410a73e93f44a83c549a5d360d97e67025429f296f3"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-014.png",
+      "sha256": "6fc1a63adec64d89dc061bb7f4617e951fb0b213e2b8d3d47e086c9549e62fbc"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-015.png",
+      "sha256": "95098a57186fd6bb50c9c3cbc41b49f7477fe5ded1aa6e26bdf0e308e2796df3"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-016.png",
+      "sha256": "e08d9660424e48a745e99554bedf1dc5918123ab8dad7b4b1fbb7550ff0ae079"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-017.png",
+      "sha256": "6bd1cdc0bd26c0974ac57d778262cf60329d5dabfb996d5f140b6d3e1a0057a4"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-018.png",
+      "sha256": "4a17defa049274b64a78c756e6bb0fb2eb881facae7b7e134339c60a375d2aa6"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-019.png",
+      "sha256": "50a26e7fb7ec4b408774656d19f8af8a01d7e753907671b20ce2add764726a9a"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-020.png",
+      "sha256": "df352ff7741210f3e9fd694298f9ef413031cf216b23a81edfa1789043b3a2f3"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-021.png",
+      "sha256": "ad24f24112be7ae2bdf36eb03a2ee4d9f1c81f852dd119c8e82554ada32be5ca"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-022.png",
+      "sha256": "236ccda315ee7c14daa8fafbcdc62a2ed18bb853ff324112d0e92bb02a5d2a2e"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-023.png",
+      "sha256": "080f5878625142797be9dfc8c1c98f8ba06771f363608fc594aaffb30ac0b93b"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-024.png",
+      "sha256": "8e9753092401931fded0663bdc8bb5d98b7866a224d044421ad1792a9133020d"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-025.png",
+      "sha256": "1f88e7537eb9831d742277e7f2874bab6d454c5a50af07c4d52d0ad0ecc4ce9b"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-026.png",
+      "sha256": "2870c43f45f6106ba19d8acfd1ec1e6556a1c02a057114ce73473f6cfef2eba5"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-027.png",
+      "sha256": "bc3d6893d2cd43c50978cf2585e5205d23623cf4dea4b80ba79f66e4a52791f2"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-028.png",
+      "sha256": "bc3d6893d2cd43c50978cf2585e5205d23623cf4dea4b80ba79f66e4a52791f2"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-029.png",
+      "sha256": "c4e6b93da7fae192d70389d4128854aab2f706ff81ddbb47de14a9fb8328ebe9"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-030.png",
+      "sha256": "ac17cd579a7c732aad601643be6cb2a987d932142dbc35325d41100d63eb1b29"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-031.png",
+      "sha256": "96caa305432a2392194425de5c642c9309de04ec686f7bb382e471a49749f097"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-032.png",
+      "sha256": "1ff465fdf98028e92cea9518d839e4007b3f9700fd7e853de26ab1c781ba809a"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-033.png",
+      "sha256": "5a5ce9f9248197fdd8194a91c678aac77799a78ee658658ef06aaf431c26a769"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-034.png",
+      "sha256": "feb852b08c61bfb7c38d878d3d660c676b7ed6fcbd752ef6ff74add310bf40b2"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-035.png",
+      "sha256": "e4e78e421488d977cff4ec9ef07cd53123a7a3e2d20fbde9724499a40339d3e5"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-036.png",
+      "sha256": "82e547f9f4a6ce7f24fe89386fef4b50cb50f9d4bae77b7f89b6d7ce06289d7c"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-037.png",
+      "sha256": "c1d23746d9c5326c41be77a7a8e6544e23be0c2af034e5361728fed8bca75a53"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-038.png",
+      "sha256": "dfc3fb1b719426038d8bc957e69d4ef08ca58cc5801221e8b0ac21f3453f5c29"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-039.png",
+      "sha256": "bc9aada0dc70e19b2cc603814de3dcff86dfc473317f21ac422ebf9b54d796ca"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-040.png",
+      "sha256": "8a3bf758731cd98e7e7ce8fedfb72b6f133376eac44994ab21e50d7b6acbae28"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-041.png",
+      "sha256": "2dc5dc66c4e033fa72f292c9531446671af59dc6b4832e1e6e40dc6d20a613fd"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-042.png",
+      "sha256": "f7adaca4bbc29decf079f20660a37e5e5e0f838d9fef12632268a653f88026a6"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-043.png",
+      "sha256": "c8129f1269ce3c93e9e80531f050f1729614896878385aae4310a95bed663a48"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-044.png",
+      "sha256": "eff14ba1d65c3b313da5e6fb03d3c16dac898eeda02021d95c5f008f8fd40c79"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-045.png",
+      "sha256": "d8eb4dbe2b6d962a4879271b5adfc6bbce3c2664fcec22bcc61ee09efe02c08f"
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots/super_mario_64-046.png",
+      "sha256": "e1bacad04ef5ebe9803bf41107ec3f90c524abc4adb0bfb2be67ec1ef9ace5ec"
+    }
+  ],
+  "audio": "silent"
+}

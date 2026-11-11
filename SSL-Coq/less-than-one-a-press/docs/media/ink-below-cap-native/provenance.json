@@ -1,0 +1,172 @@
+{
+  "schema": 1,
+  "scope": "Conditional supplied-crawl and position test; not a clean producer or useful top installation",
+  "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+  "romMd5": "85d61f5525af708c9f1e84dce6dc10e9",
+  "emulator": "Mupen64Plus2.5.9 interpreter; Rice2.5.9; HLE RSP2.5.9; dummy audio; Ubuntu24.04; debug level-select cheat6",
+  "sourceCheckout": "e7f14b8e116b1e07a8cf8fdfd5561a261571dc9f",
+  "sourceCaptureDirectories": [
+    "build\\jp-ink-below-cap-stock-20261111-v2",
+    "build\\jp-ink-below-cap-display-20261111-v2"
+  ],
+  "identicalLoggedFields": [
+    "renderStates",
+    "extraStates",
+    "renderMatrixStates",
+    "writes",
+    "initial",
+    "controllerSummary"
+  ],
+  "matchingLoggedRenderSnapshots": 146,
+  "gameplayClaims": "13 supplied words: action once, then12XYZwords; no floor cache/hitbox/velocity/depth/top/RNG writes; no A",
+  "visualBoundary": "Stock run has no render edits. Illustration replay changes camera plus starting graphics positions and throwMatrix. Restore native post-render NULL, not pre-render matrix; all logged gameplay and matrix records match.",
+  "suppliedStartingPosition": [
+    -2132,
+    1400,
+    -1024
+  ],
+  "suppliedBoxPosition": [
+    -2093,
+    1400,
+    -1024
+  ],
+  "split": {
+    "movement": [
+      -2200,
+      768,
+      -1024
+    ],
+    "collision": [
+      -2200,
+      768,
+      -1024
+    ],
+    "storedDisplay": [
+      -2200,
+      1400,
+      -1024
+    ],
+    "nativeRenderMatrixTranslation": [
+      -2200,
+      768,
+      -1024
+    ]
+  },
+  "outcome": {
+    "nextStaticFloor": 1280,
+    "topCaptured": false,
+    "firstArea2": [
+      0,
+      5500,
+      256
+    ]
+  },
+  "imageMapping": "Previous framebuffer; explicit frameMap joins to logged camera timer. PNG27 transition has no logged prior camera state. PNG28 is first Area2 state.",
+  "poster": {
+    "source": "docs/media/ink-below-cap-demo.mp4",
+    "timeSeconds": 12,
+    "method": "ffmpeg -ss12 -frames:v1; captioned render-only starting-coordinate illustration"
+  },
+  "files": [
+    {
+      "path": "docs/media/ink-below-cap-demo-poster.png",
+      "sha256": "abbc461fbd0392fccf785a8b91bd6c58398be114ac1e7bf1d043389b09242429"
+    },
+    {
+      "path": "docs/media/ink-below-cap-demo-receipt.json",
+      "sha256": "f36c18426720f216792bd7625db34acd2667d393ea1e87269166e2a62e4201da"
+    },
+    {
+      "path": "docs/media/ink-below-cap-demo-transcript.md",
+      "sha256": "08fe3b93c4dfc2053d977bb1194ed7fc6f08a4c2d4a2ba160854fdcdb3b40410"
+    },
+    {
+      "path": "docs/media/ink-below-cap-demo.mp4",
+      "sha256": "2893a6808b57b0e6a62fedd995f7eca5236dc6d373314cdbb229a6e134575efc"
+    },
+    {
+      "path": "docs/media/ink-below-cap-native/.gitattributes",
+      "sha256": "d58199c71d717e5812a6e1da70c1d7f22d321ecb5c4fc4d405dde038c66488f9"
+    },
+    {
+      "path": "docs/media/ink-below-cap-native/display-raw.log",
+      "sha256": "46163c8b981414b03779dfa437e68ac07b8ee7a4e4407bc2c22ad3f9c14090ed"
+    },
+    {
+      "path": "docs/media/ink-below-cap-native/display-receipt.json",
+      "sha256": "1ad42807d331e135f125475836e4f0e5c38cb7f724d168a47d4bb451743a5069"
+    },
+    {
+      "path": "docs/media/ink-below-cap-native/display-trace.txt",
+      "sha256": "6987f383df175b4eeb009eacc606a283ce86259b9d6332edbf8db0d84458a21b"
+    },
+    {
+      "path": "docs/media/ink-below-cap-native/elevator.png",
+      "sha256": "e1bacad04ef5ebe9803bf41107ec3f90c524abc4adb0bfb2be67ec1ef9ace5ec"
+    },
+    {
+      "path": "docs/media/ink-below-cap-native/illustrated-display.png",
+      "sha256": "1e17e0ee645b24e235a24ccaca9fa9db1abd9bf2050aecedc1a84bd125c646c8"
+    },
+    {
+      "path": "docs/media/ink-below-cap-native/illustrated-start.png",
+      "sha256": "298bd8e776cdf296ea40530534d4168b28ec40e476ba2f38dc9df3229d88712a"
+    },
+    {
+      "path": "docs/media/ink-below-cap-native/prefix-source.c",
+      "sha256": "7ebe3672f71bb596610b6b3b3fe2804a451ca74e3a5bcd48a94ff864e2bdc8b5"
+    },
+    {
+      "path": "docs/media/ink-below-cap-native/probe-source.c",
+      "sha256": "8ba357655417cfe87dd28c689e1f2d1cda382438a50df3e98610f94f21eb38cd"
+    },
+    {
+      "path": "docs/media/ink-below-cap-native/run-source.sh",
+      "sha256": "223e08bf69507c78eee4b606ea4b561069c72842e277604b38bfe6ae622da9b9"
+    },
+    {
+      "path": "docs/media/ink-below-cap-native/stock-gap.png",
+      "sha256": "c9f1f461480b259291976ae738799ce2f5613450bee5e11b7d44b6a4969b57d9"
+    },
+    {
+      "path": "docs/media/ink-below-cap-native/stock-raw.log",
+      "sha256": "705422ba7105d9d222085a199163ebe486c0f15cc40faa44c051805ce16ab5bc"
+    },
+    {
+      "path": "docs/media/ink-below-cap-native/stock-receipt.json",
+      "sha256": "ac52986698ba646010d8d10f3e3264968d4b0ed4edd4823c76a515cb968657e4"
+    },
+    {
+      "path": "docs/media/ink-below-cap-native/stock-trace.txt",
+      "sha256": "01f0de260b880f37bd92c21ae0575b7b6eb20d393a38898e40420c0760127178"
+    },
+    {
+      "path": "instrumentation/jp-ink-below-cap-demo/.gitattributes",
+      "sha256": "a79691a93b46e49ce460c26ef22afcc03d6eca1e63bf2edbc20e96159510f6c9"
+    },
+    {
+      "path": "instrumentation/jp-ink-below-cap-demo/check.py",
+      "sha256": "87113b127978c83606687900d53d20d18b9895463f8973364d80fa489317ce35"
+    },
+    {
+      "path": "instrumentation/jp-ink-below-cap-demo/finalize.py",
+      "sha256": "dd98d205599a6dae21c949fdfb4df71617704dda2660a904e8197b5924406a53"
+    },
+    {
+      "path": "instrumentation/jp-ink-below-cap-demo/probe.c",
+      "sha256": "8ba357655417cfe87dd28c689e1f2d1cda382438a50df3e98610f94f21eb38cd"
+    },
+    {
+      "path": "instrumentation/jp-ink-below-cap-demo/render-commentary.py",
+      "sha256": "56f4c6fa74df539f356beff201a29a5b0d6f3a6df55917b376db0720dd18a412"
+    },
+    {
+      "path": "instrumentation/jp-ink-below-cap-demo/run.sh",
+      "sha256": "223e08bf69507c78eee4b606ea4b561069c72842e277604b38bfe6ae622da9b9"
+    },
+    {
+      "path": "instrumentation/jp-ink-below-cap-demo/video-timeline.json",
+      "sha256": "468af79578be8502ae6f78a45370f85471e5528946130d9032addecd6ea444ec"
+    }
+  ]
+}

@@ -719,3 +719,5 @@ proofs/InkCrawlLiveQueries.v
 proofs/InkFreshPushCrawl.v
 proofs/InkLowFixturePush.v
 proofs/InkLowFixtureCrawl.v
+proofs/InkBelowCapPhaseGuard.v
+proofs/InkBelowCapPhaseBounds.v

@@ -2,3 +2,6 @@
 ink_low_fixture_producers.py text eol=lf
 ink_low_fixture_roof.py text eol=lf
 ink_low_fixture_verify.py text eol=lf
+ink_below_cap_phase_search.py text eol=lf
+ink_below_cap_capture_lifetime.py text eol=lf
+ink_below_cap_phase_verify.py text eol=lf

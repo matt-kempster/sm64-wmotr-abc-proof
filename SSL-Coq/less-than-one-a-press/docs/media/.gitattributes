@@ -1,0 +1,3 @@
+# Preserve the text bytes pinned by the below-cap recording provenance.
+ink-below-cap-demo-receipt.json text eol=lf
+ink-below-cap-demo-transcript.md text eol=lf

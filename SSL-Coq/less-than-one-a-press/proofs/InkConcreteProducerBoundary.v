@@ -10,7 +10,7 @@ From LessThanOneAPress.Proofs Require Import InkFloorProducerEffect
   InkObjectPushHandoff InkNearbyFloorGeometry InkTimer130Geometry
   InkCrawlQuarterHandoff InkCrawlQuarterPrefix InkItemDropPlacement
   InkObjectPushQuery InkCrawlLiveQueries InkFreshPushCrawl InkLowFixturePush
-  InkLowFixtureCrawl.
+  InkLowFixtureCrawl InkBelowCapPhaseBounds.
 
 (** Actor placement is not bounded by the old low-spawn example.  A matched
     fresh guard bounds the newly created rise; the completed actual air call
@@ -74,7 +74,7 @@ Definition InkConcreteProducerCheckedBoundary : Prop :=
   InkBounceFreshContactNoDownwardCheckpoint /\
   InkQuicksandProducerSizeBoundary /\ InkStoppedFloorProducerCheckedBoundary /\
   InkBounceAirProducerCheckedBoundary /\ InkLowFixturePushBoundary /\
-  InkLowFixtureCrawlBoundary.
+  InkLowFixtureCrawlBoundary /\ InkBelowCapPhaseBoundary.
 
 Theorem icpb_concrete_producer_boundary_checked : InkConcreteProducerCheckedBoundary.
 Proof.
@@ -87,5 +87,6 @@ Proof.
   split; [exact icpb_stopped_floor_producer_checked|].
   split; [exact icpb_bounce_air_producer_checked|].
   split; [exact ilfp_low_fixture_push_checked|].
-  exact ilfc_low_fixture_crawl_checked.
+  split; [exact ilfc_low_fixture_crawl_checked|].
+  exact ibcp_below_cap_phase_boundary_checked.
 Qed.

@@ -1,0 +1,85 @@
+{
+  "title": "Below the cap: a 632-unit gap",
+  "segments": [
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots",
+      "start": 6, "stop": 7, "repeat": 150,
+      "label": "ORIGINAL JAPANESE ROM | CONDITIONAL TEST | paused",
+      "headline": "A smaller gap works, but does not install the top",
+      "detail": "The game creates a 632-unit position disagreement.\nCrawl and the initial Mario/box positions are supplied.\nThis is a local mechanism demonstration, not a clean gameplay route.",
+      "footer": "Normal gameplay image. Exact coordinates come from the recorded trace."
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots",
+      "start": 0, "stop": 6, "repeat": 20,
+      "label": "NORMAL CAMERA | SUPPLIED CRAWL | slow motion",
+      "headline": "Prepare an established crawl before the position cut",
+      "detail": "The earlier no-A four-pillar controller replay is omitted.\nCrawl action is supplied; a native update makes its hitbox 100 high.\nNext, all three Mario positions and the box position are supplied.",
+      "footer": "No floor cache, velocity, timer, held reference or display gap is written."
+    },
+    {
+      "source": "build/jp-ink-below-cap-display-20261111-v2/shots",
+      "start": 5, "stop": 6, "repeat": 270,
+      "label": "RENDER-ONLY STARTING-COORDINATE ILLUSTRATION | paused",
+      "headline": "Y = 1400 is a supplied hover, 120 above the roof",
+      "detail": "Mario: (-2132, 1400, -1024). Box: (-2093, 1400, -1024).\nRoof Y = 1280. The 100-high body would end at Y = 1500.\nThe loaded cap underside is 1518, then 1523 on the next update.",
+      "footer": "Camera, render positions and render matrices changed for this illustration only."
+    },
+    {
+      "source": "build/jp-ink-below-cap-display-20261111-v2/shots",
+      "start": 5, "stop": 7, "repeat": 45,
+      "label": "RENDER-ONLY COORDINATE ILLUSTRATION | two recorded frames",
+      "headline": "The box pushes Mario 68 units west",
+      "detail": "The actual next input is Z plus stick (0, 64), with no A.\nThe native push takes X from -2132 to -2200.\nThe stopped crawl then retains the earlier display height.",
+      "footer": "Render edits are restored before input; the logged gameplay matches the stock run."
+    },
+    {
+      "source": "build/jp-ink-below-cap-display-20261111-v2/shots",
+      "start": 6, "stop": 7, "repeat": 240,
+      "label": "RENDER-ONLY DISPLAY-COORDINATE VIEW | paused",
+      "headline": "Movement/collision Y = 768; stored display Y = 1400",
+      "detail": "Both now use X/Z = (-2200, -1024). The difference is 632.\nA stopped ground quarter preserves the low floor cache.\nDisplay refresh precedes crawl alignment and the collision copy.",
+      "footer": "Mario is drawn at the stored display coordinates by clearing his render matrix."
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots",
+      "start": 6, "stop": 7, "repeat": 210,
+      "label": "BACK TO NORMAL CAMERA AND NATIVE RENDER MATRIX | paused",
+      "headline": "Stored display coordinates are not the final model transform",
+      "detail": "Crawl also supplies a separate floor-alignment render matrix.\nThe ordinary game image therefore differs from the illustration.\nThe 632-unit disagreement is verified in memory, not measured in pixels.",
+      "footer": "The stock run has no render edits. The illustration is a separate matching replay."
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots",
+      "start": 7, "stop": 8, "repeat": 240,
+      "label": "NORMAL CAMERA | NEXT UPDATE | paused",
+      "headline": "The raised retry reaches the roof, not the top",
+      "detail": "The low floor query misses; the retry uses the raised display.\nIt selects the static roof at Y = 1280.\nMario accepts the upper warp, but remembers no spinning-top platform.",
+      "footer": "The starting hover and box placement remain supplied assumptions."
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots",
+      "start": 8, "stop": 46, "repeat": 3,
+      "label": "NORMAL CAMERA | CONTINUOUS WARP CONTINUATION | slow motion",
+      "headline": "The continuation gives an ordinary Area-2 arrival",
+      "detail": "All later controller inputs are neutral; A-input counters stay zero.\nFirst Area-2 position: (0, 5500, 256).\nMario lands inside the elevator rather than bypassing it.",
+      "footer": "The two warp-transition inputs without camera callbacks are recorded in the trace."
+    },
+    {
+      "source": "build/jp-ink-below-cap-stock-20261111-v2/shots",
+      "start": 46, "stop": 47, "repeat": 180,
+      "label": "NORMAL CAMERA | ORDINARY ELEVATOR OUTCOME | paused",
+      "headline": "A gap alone is not enough",
+      "detail": "This supplied below-cap setup makes a smaller gap successfully.\nIts retry does not capture the top, so the useful displacement is absent.",
+      "footer": "Observed finite example; not an exclusion of other positions, phases or mechanisms."
+    },
+    {
+      "source": "build/jp-ink-below-cap-display-20261111-v2/shots",
+      "start": 5, "stop": 6, "repeat": 270,
+      "label": "RENDER-ONLY STARTING-COORDINATE ILLUSTRATION | OPEN PREDECESSOR",
+      "headline": "What still has to be produced through gameplay",
+      "detail": "There is no standing floor at this supplied Y = 1400.\nReach an established high crawl with an available pushing actor,\nthen create enough retained display height at useful warp timing.",
+      "footer": "This test supplies the hover and action. A complete clean no-A route remains open."
+    }
+  ]
+}
