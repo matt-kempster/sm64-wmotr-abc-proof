@@ -1,5 +1,11 @@
 # Working backward from the 973-unit Ink handoff
 
+The later [jumping-box follow-up](ink-jumping-box-handoff.md) adds clean
+pickup/transport and an elevated live release, locally sufficient timely
+bounce height, and conditional earlier/lower actor releases. It also checks
+the handoff with the native100-unit crawl hitbox. These results narrow the
+remaining joint history; the complete no-A producer remains open.
+
 **No clean no-A producer has been found. There are now controller-produced
 local pieces, and the pushing actor need not be a shell.** From a supplied
 roof position, ordinary Z and stick inputs establish crawling and briefly
