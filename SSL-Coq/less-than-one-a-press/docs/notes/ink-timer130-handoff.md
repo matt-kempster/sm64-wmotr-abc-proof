@@ -1,5 +1,11 @@
 # The 973-unit candidate: timer 130 and the first crawl quarter
 
+The later [gameplay proof follow-up](ink-timer130-gameplay-proof.md) extends
+the stopped-quarter construction backward through the wall store and earlier
+guards, then connects its return and preserved cache to the caller's break.
+It also checks ordinary item-drop placement. The high crawl, live-query
+prefix, actor delivery and joined gameplay timing remain open.
+
 The later [producer search](ink-973-producer-search.md) establishes local
 no-A crawl entry from a supplied roof position and removes unnecessary
 shell/velocity setup, but still leaves the high crawl and actor delivery

@@ -712,3 +712,5 @@ proofs/InkObjectPushHandoff.v
 proofs/InkNearbyFloorGeometry.v
 proofs/InkTimer130Geometry.v
 proofs/InkCrawlQuarterHandoff.v
+proofs/InkItemDropPlacement.v
+proofs/InkCrawlQuarterPrefix.v
