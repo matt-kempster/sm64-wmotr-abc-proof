@@ -1,0 +1,35 @@
+[
+  {
+    "start": 0,
+    "stop": 194,
+    "captions": [
+      {"start": 0, "stop": 63, "headline": "Approaching the fourth pillar", "detail": "Original Japanese ROM · Controller replay from level select"},
+      {"start": 63, "stop": 160, "headline": "Fourth pillar starts the top spinning", "detail": "All four pillars were activated with controller input"},
+      {"start": 160, "stop": 194, "headline": "Waiting for top timer 131", "detail": "Mario is idle on the pillar"}
+    ]
+  },
+  {
+    "start": 194,
+    "stop": 195,
+    "repetitions": 180,
+    "captions": [
+      {"start": 0, "stop": 1, "headline": "One coordinate edit · Frame held", "detail": "Before: all three at (−5883.07373, 1024, 819.564392)\nMovement (9000, 768, −1024) · Outside the collision grid\nRaw collision (−2200, 768, −1024) · Touches the warp\nStored display (−2200, 1938.8648681640625, −1024) · On the top"}
+    ]
+  },
+  {
+    "start": 195,
+    "stop": 243,
+    "repetitions": 3,
+    "captions": [
+      {"start": 0, "stop": 23, "headline": "First floor query misses · Slow motion", "detail": "The retry uses the display position and finds the top.\nThe upper warp accepts contact and the game remembers the top."},
+      {"start": 23, "stop": 48, "headline": "The remembered top moves Mario sideways", "detail": "Normal entrance (0, 5500, 256)\nAfter platform movement (365.59, 5500, −1096.80)"}
+    ]
+  },
+  {
+    "start": 243,
+    "stop": 301,
+    "captions": [
+      {"start": 0, "stop": 58, "headline": "Mario lands outside the elevator", "detail": "Upper walkway at Y = 4429 · Zero A inputs\nThe position split was supplied by the edit."}
+    ]
+  }
+]

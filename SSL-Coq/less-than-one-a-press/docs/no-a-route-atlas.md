@@ -493,6 +493,36 @@ movement before the display refresh is no longer the missing step by itself.
 A negative seed may still be granted while testing that transfer; a complete
 clean route must account for its creation and the real reward collection.
 See the [vertical-installation note](notes/ink-vertical-installation.md).
+The [recorded replay with four controller-driven pillars](notes/ink-installation-demo.md)
+starts the top through play and supplies only Mario’s three position records
+at timer 131. The original JP game accepts the warp, remembers the top and
+applies its sideways displacement on Area-2 entry. Creating the position
+split through controller input remains open.
+
+The [11 November controller search](notes/ink-controller-predecessor.md)
+tests 248 western Crazy Box branches with A released and no gameplay state
+edits. Neither movement nor display rises above collision Y in 62,429
+Area-1 after-update samples. Nine branches start the top after using the box
+before pillar four, with the box already gone from Mario's hands at the
+trigger. Four original-JP replays check 3,323 first geometry queries and
+3,323 final queries, all selecting ownerless static floors. One new branch
+accepts the upper warp after the top is gone, with equal positions. The
+controller producer remains open, and the existing route estimates stand.
+
+The [floorless warp tests](notes/ink-floorless-warp.md) place Mario beyond
+the collision grid on the four-pillar replay. A floorless update before
+the upper warp queues selects death, even after the warp accepts contact.
+With the upper warp already queued, going outside keeps the normal
+Area-2 destination and can remove the retained top. The outside
+movement query can still install Ink when low warp contact and a usable
+top display position are both supplied. The original JP ROM confirms
+that conditional retry. The [annotated four-pillar recording](notes/ink-floorless-warp.md#original-jp-confirmation)
+shows the three edited records and traces both floor returns on the
+original ROM. Controller-only production remains open.
+
+The [703.46-unit split review](notes/ink-703-split-feasibility.md) gives the smallest mixed pose in the saved near-warp Wafel sweep. Movement and raw collision were supplied at `(-1887,818,-929)` and stored display at `(-1645,1465,-796)` at top timer 131. The gap is 647 units up and 276.14 sideways. The sweep also has a 923-unit pure vertical success. The stopped crawl can preserve high display across a downward movement snap to an earlier remembered floor, but its reachable maximum and next-update lifetime are open. The mixed pose needs a further sideways displacement after display refresh. A pre-update platform transform instead moves only movement, which could serve the first-query variant, and the stock yaw-only top supplies zero vertical rise. None of the reviewed stock controller runs created either positive vertical difference from collision at the relevant checks. The 703.46-unit pose is a staged Wafel result, and controller reachability remains open.
+
+The [923-unit backward trace](notes/ink-703-split-feasibility.md#working-backward-from-the-923-unit-vertical-setup) requires a fresh Y818 cache on the producer update because geometry rewrites the cache before actions. Mario must already be crawling when the high movement and low floor coexist, and the first quarter must stop before writing a new floor. At the unshifted target X/Z the authored roof is Y1280, and the saved low pose already misses its retry at timer 130. An object push could preserve a freshly queried low cache while changing X/Z, but a nearby 818 floor and eligible contact have yet to be identified. Earlier phases could pay off with a different capture and retention sequence. The saved timer 128–130 and 132 probes at this point captured initially with a supplied high display and gave no bypass. The timer-131 923-unit result remains staged and the controller route open.
 
 **7 and 8 remain valuable downstream continuations; 9 stays parked until an
 independent no-A elevator escape exists.** They have no independent bypass

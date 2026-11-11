@@ -1,0 +1,369 @@
+{
+  "date": "2026-11-11",
+  "scope": "Finite JP controller search from the accepted level-select start. A released throughout. No gameplay state supplied.",
+  "originalRomSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+  "searchScriptSha256": "177f9d70e1a994f2140e35d1e5fdbc9d9a8ff173b9f556a1f47875d9fb11a643",
+  "batches": {
+    "postPillarBox": {
+      "baselineSha256": "9bcc451964025d9f0bb1344c45957b6bfd095451b44bfb9a01f8584a75db6a72",
+      "checkedPrefixSamples": 2352,
+      "schedules": 194,
+      "distinctScheduleHashes": 194,
+      "updates": 40740,
+      "area1Samples": 39749,
+      "positionSplitSamples": 383,
+      "maxDisplayMinusCollisionY": 0,
+      "maxMovementMinusCollisionY": 0,
+      "negativeDepthSamples": 0,
+      "nullStoredFloorSamples": 0,
+      "liveWarpContactProxySamples": 0,
+      "originalTopPlatformSamples": 0,
+      "branchesWithUpperWarpAction": 28,
+      "branchesWithBoxBounceBeforeFourth": 0,
+      "branchesWithSpinAfterEarlyBounce": 0,
+      "closestSpinningTopSample": {
+        "poll": 2699,
+        "timer": 2699,
+        "topTimer": 150,
+        "collision": [
+          -3850.315185546875,
+          106.57508850097656,
+          1193.3231201171875
+        ],
+        "distance": 2857.4222381473633
+      },
+      "closestScheduleSha256": "b8f511ad38c659efe4670acb8e3c248cbc5d127f7a57364a264134ada7bffb00",
+      "closestSchedule": "branch-014.inputs"
+    },
+    "boxBeforePillarFour": {
+      "baselineSha256": "9bcc451964025d9f0bb1344c45957b6bfd095451b44bfb9a01f8584a75db6a72",
+      "checkedPrefixSamples": 2153,
+      "schedules": 54,
+      "distinctScheduleHashes": 54,
+      "updates": 22680,
+      "area1Samples": 22680,
+      "positionSplitSamples": 0,
+      "maxDisplayMinusCollisionY": 0,
+      "maxMovementMinusCollisionY": 0,
+      "negativeDepthSamples": 0,
+      "nullStoredFloorSamples": 0,
+      "liveWarpContactProxySamples": 0,
+      "originalTopPlatformSamples": 0,
+      "branchesWithUpperWarpAction": 0,
+      "branchesWithBoxBounceBeforeFourth": 53,
+      "branchesWithSpinAfterEarlyBounce": 9,
+      "closestSpinningTopSample": {
+        "poll": 2904,
+        "timer": 2904,
+        "topTimer": 31,
+        "collision": [
+          -5004.1083984375,
+          -28.048824310302734,
+          260.318603515625
+        ],
+        "distance": 3223.049974581382
+      },
+      "closestScheduleSha256": "165ac5cb3718c62dddc6b107f2c7c6611be07fc70e625426ae894194b07f33bc",
+      "closestSchedule": "branch-045.inputs"
+    }
+  },
+  "originalRomReplays": [
+    {
+      "name": "Mode 12",
+      "nativeLogSha256": "5ab67e6f9fba997fa8bfffdddf8cbf826b50e086d06421f43e084e43638d2ec1",
+      "controllerAFrames": 0,
+      "marioAPressedOrDownSamples": 0,
+      "receipt": {
+        "armed": 1,
+        "firstPoll": 349,
+        "endPollExclusive": 2851,
+        "queries": 2480,
+        "misses": 0,
+        "retries": 0,
+        "finalQueries": 2480,
+        "accepted": 1,
+        "samples": 19844,
+        "positionWrites": 60102,
+        "firstArea2Apply": 1,
+        "firstArea2ApplyComplete": 1,
+        "failures": 0
+      },
+      "firstGeometryQueries": 2480,
+      "floorLists": {
+        "staticResults": 4960,
+        "dynamicResults": 0
+      },
+      "maxDisplayMinusCollisionY": 0,
+      "maxMovementMinusCollisionY": 0,
+      "wafelComparison": {},
+      "accepted": [
+        {
+          "timer": 2807,
+          "positions": [
+            -2033.87939453125,
+            768.0,
+            -1037.05859375,
+            -2033.87939453125,
+            768.0,
+            -1037.05859375,
+            -2033.87939453125,
+            768.0,
+            -1037.05859375
+          ],
+          "liveTopCount": 0,
+          "platform": -1
+        }
+      ]
+    },
+    {
+      "name": "Post-pillar 014",
+      "nativeLogSha256": "874c5c770736f57bde1556023fb1fc17c7ee79fd8903001dc257173f73663f10",
+      "controllerAFrames": 0,
+      "marioAPressedOrDownSamples": 0,
+      "receipt": {
+        "armed": 1,
+        "firstPoll": 2549,
+        "endPollExclusive": 2760,
+        "queries": 211,
+        "misses": 0,
+        "retries": 0,
+        "finalQueries": 211,
+        "accepted": 0,
+        "samples": 1688,
+        "positionWrites": 4842,
+        "firstArea2Apply": 0,
+        "firstArea2ApplyComplete": 0,
+        "failures": 0
+      },
+      "firstGeometryQueries": 211,
+      "floorLists": {
+        "staticResults": 422,
+        "dynamicResults": 0
+      },
+      "maxDisplayMinusCollisionY": 0,
+      "maxMovementMinusCollisionY": 0,
+      "wafelComparison": {
+        "passed": true,
+        "checkedRows": 2411,
+        "mismatchFieldCounts": {},
+        "firstMismatches": []
+      },
+      "accepted": [],
+      "controllerScheduleSha256": "b8f511ad38c659efe4670acb8e3c248cbc5d127f7a57364a264134ada7bffb00"
+    },
+    {
+      "name": "Post-pillar 116",
+      "nativeLogSha256": "e8df5ffdf640eedd67794d260de278fc950d5242b26c2d9fa8d9b906dd8ad8a9",
+      "controllerAFrames": 0,
+      "marioAPressedOrDownSamples": 0,
+      "receipt": {
+        "armed": 1,
+        "firstPoll": 2641,
+        "endPollExclusive": 2852,
+        "queries": 211,
+        "misses": 0,
+        "retries": 0,
+        "finalQueries": 211,
+        "accepted": 1,
+        "samples": 1690,
+        "positionWrites": 4914,
+        "firstArea2Apply": 0,
+        "firstArea2ApplyComplete": 0,
+        "failures": 0
+      },
+      "firstGeometryQueries": 211,
+      "floorLists": {
+        "staticResults": 422,
+        "dynamicResults": 0
+      },
+      "maxDisplayMinusCollisionY": 0,
+      "maxMovementMinusCollisionY": 0,
+      "wafelComparison": {
+        "passed": false,
+        "checkedRows": 2503,
+        "mismatchFieldCounts": {
+          "topActive": 1,
+          "topTimer": 18
+        },
+        "firstMismatches": [
+          {
+            "poll": 2753,
+            "timer": 2752,
+            "differences": {
+              "topActive": [
+                273,
+                0
+              ]
+            }
+          },
+          {
+            "poll": 2754,
+            "timer": 2753,
+            "differences": {
+              "topTimer": [
+                9,
+                8
+              ]
+            }
+          },
+          {
+            "poll": 2755,
+            "timer": 2754,
+            "differences": {
+              "topTimer": [
+                9,
+                8
+              ]
+            }
+          },
+          {
+            "poll": 2756,
+            "timer": 2755,
+            "differences": {
+              "topTimer": [
+                9,
+                8
+              ]
+            }
+          },
+          {
+            "poll": 2757,
+            "timer": 2756,
+            "differences": {
+              "topTimer": [
+                9,
+                8
+              ]
+            }
+          },
+          {
+            "poll": 2758,
+            "timer": 2757,
+            "differences": {
+              "topTimer": [
+                9,
+                8
+              ]
+            }
+          },
+          {
+            "poll": 2759,
+            "timer": 2758,
+            "differences": {
+              "topTimer": [
+                9,
+                8
+              ]
+            }
+          },
+          {
+            "poll": 2760,
+            "timer": 2759,
+            "differences": {
+              "topTimer": [
+                9,
+                8
+              ]
+            }
+          },
+          {
+            "poll": 2761,
+            "timer": 2760,
+            "differences": {
+              "topTimer": [
+                9,
+                8
+              ]
+            }
+          },
+          {
+            "poll": 2762,
+            "timer": 2761,
+            "differences": {
+              "topTimer": [
+                9,
+                8
+              ]
+            }
+          },
+          {
+            "poll": 2763,
+            "timer": 2762,
+            "differences": {
+              "topTimer": [
+                9,
+                8
+              ]
+            }
+          },
+          {
+            "poll": 2764,
+            "timer": 2763,
+            "differences": {
+              "topTimer": [
+                9,
+                8
+              ]
+            }
+          }
+        ]
+      },
+      "accepted": [
+        {
+          "timer": 2840,
+          "positions": [
+            -1995.0,
+            816.0,
+            -1001.5966796875,
+            -1995.0,
+            816.0,
+            -1001.5966796875,
+            -1995.0,
+            816.0,
+            -1001.5966796875
+          ],
+          "liveTopCount": 0,
+          "platform": -1
+        }
+      ],
+      "controllerScheduleSha256": "b45c2a944475122a3905eac8d7f721cfe0cdee7fcb2e582106a2d6eac6c0e825"
+    },
+    {
+      "name": "Box-before-fourth 045",
+      "nativeLogSha256": "5e15f1a150ea45834bab427aeb8d7645c8d10283945a6641b1846eae8e9c0678",
+      "controllerAFrames": 0,
+      "marioAPressedOrDownSamples": 0,
+      "receipt": {
+        "armed": 1,
+        "firstPoll": 2501,
+        "endPollExclusive": 2922,
+        "queries": 421,
+        "misses": 0,
+        "retries": 0,
+        "finalQueries": 421,
+        "accepted": 0,
+        "samples": 3368,
+        "positionWrites": 9791,
+        "firstArea2Apply": 0,
+        "firstArea2ApplyComplete": 0,
+        "failures": 0
+      },
+      "firstGeometryQueries": 421,
+      "floorLists": {
+        "staticResults": 842,
+        "dynamicResults": 0
+      },
+      "maxDisplayMinusCollisionY": 0,
+      "maxMovementMinusCollisionY": 0,
+      "wafelComparison": {
+        "passed": true,
+        "checkedRows": 2573,
+        "mismatchFieldCounts": {},
+        "firstMismatches": []
+      },
+      "accepted": [],
+      "controllerScheduleSha256": "165ac5cb3718c62dddc6b107f2c7c6611be07fc70e625426ae894194b07f33bc"
+    }
+  ],
+  "verdict": "No controller-only Ink setup observed. Gameplay reachability remains open."
+}

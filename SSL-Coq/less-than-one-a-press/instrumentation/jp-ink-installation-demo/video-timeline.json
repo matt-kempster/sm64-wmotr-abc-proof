@@ -1,0 +1,51 @@
+[
+  {
+    "start": 0,
+    "stop": 106,
+    "captions": [
+      {"start": 0, "stop": 63, "headline": "Approaching the northeast pillar", "detail": "Controller replay from level select · Travel between pillars is cut"},
+      {"start": 63, "stop": 106, "headline": "Pillar 1 of 4 · Northeast", "detail": "Activated by Mario’s contact"}
+    ]
+  },
+  {
+    "start": 106,
+    "stop": 215,
+    "captions": [
+      {"start": 0, "stop": 63, "headline": "Approaching the southeast pillar", "detail": "Controller input only"},
+      {"start": 63, "stop": 109, "headline": "Pillar 2 of 4 · Southeast", "detail": "Activated by Mario’s contact"}
+    ]
+  },
+  {
+    "start": 215,
+    "stop": 324,
+    "captions": [
+      {"start": 0, "stop": 63, "headline": "Approaching the southwest pillar", "detail": "Controller input only"},
+      {"start": 63, "stop": 109, "headline": "Pillar 3 of 4 · Southwest", "detail": "Activated by Mario’s contact"}
+    ]
+  },
+  {
+    "start": 324,
+    "stop": 519,
+    "captions": [
+      {"start": 0, "stop": 63, "headline": "Approaching the northwest pillar", "detail": "Continuous footage from here through the Area 2 landing"},
+      {"start": 63, "stop": 155, "headline": "Pillar 4 of 4 · Northwest", "detail": "The pyramid top starts spinning"},
+      {"start": 155, "stop": 195, "headline": "Next, a one-time coordinate edit", "detail": "Movement and collision Y = 768 · Stored display Y = 1938.86"}
+    ]
+  },
+  {
+    "start": 519,
+    "stop": 567,
+    "repetitions": 3,
+    "captions": [
+      {"start": 0, "stop": 23, "headline": "Upper warp accepted · Slow motion", "detail": "Staged vertical gap · The game remembers the spinning top"},
+      {"start": 23, "stop": 48, "headline": "Area 2 · Sideways displacement", "detail": "Arrival at (365.59, 5500, −1096.80), outside the elevator"}
+    ]
+  },
+  {
+    "start": 567,
+    "stop": 625,
+    "captions": [
+      {"start": 0, "stop": 58, "headline": "Mario lands on the upper walkway", "detail": "Area 2 · Y = 4429 · Zero A presses"}
+    ]
+  }
+]
