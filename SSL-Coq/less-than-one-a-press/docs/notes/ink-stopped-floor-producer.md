@@ -1,5 +1,12 @@
 # The stopped crawl and remembered floor
 
+The [11 November handoff review](ink-installation-handoff.md) adds a bounded
+nearby-floor certificate and a generated-code object-push commit frame to
+this boundary. "Remembered" means earlier in the **same** producer update:
+ordinary geometry preparation rewrites the cache before interactions and
+action dispatch. The new Y=768-pad/68-unit-push candidate sharpens that
+provenance question without constructing its high crawler, actor or timing.
+
 The source permits a useful direction of change: a stopped crawl can refresh
 display from movement, then snap movement down to its remembered floor. The
 new Coq connection follows the actual generated US/JP ground return, speed

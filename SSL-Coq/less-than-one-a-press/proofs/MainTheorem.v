@@ -1596,6 +1596,9 @@ Proof. exact twg_gap_boundary_checked. Qed.
 Theorem current_ink_concrete_producer_boundary : InkConcreteProducerCheckedBoundary.
 Proof. exact icpb_concrete_producer_boundary_checked. Qed.
 
+(** Also consumes the actual object-push commit frame and the finite nearby
+    static-floor certificate. These sharpen the current-update cache handoff;
+    they do not construct a high crawler/actor or compose the next warp. *)
 Theorem current_ink_stopped_floor_producer_boundary : InkStoppedFloorProducerCheckedBoundary.
 Proof. exact icpb_stopped_floor_producer_checked. Qed.
 

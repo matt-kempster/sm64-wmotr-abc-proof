@@ -293,20 +293,26 @@ open and block a real counterexample:
 
 - reach the timer-131 three-view sample from a clean JP Area-1 entry by normal
   gameplay or a concrete glitch, without debugger position writes;
-- reach the explosion premise without the fixture's counter write, or prove a
-  clean source route to the same top lifecycle;
+- connect a controller-produced explosion prefix to this fixture's linked
+  source boundary. The later [installation recording](ink-installation-demo.md)
+  already reaches all four pillars with zero A input and no pillar-counter
+  write, then supplies a different three-position setup; that observation
+  does not retroactively remove this older fixture's interventions;
 - refine the executable function-boundary trace into linked Clight memory and
   prove the exact binary32 helper execution;
-- overlap and collect the conditionally spawned Act-6 star, and show its
-  initially-clear save bit becomes set rather than the observed `0 -> 0`;
+- connect the later B/Z continuation's recorded Act-6 pickup and `00 -> 20`
+  save-byte change to the linked execution proof; the earlier stick-only
+  theorem quoted above still describes its own `0 -> 0` result;
 - separately reach and collect the Act-3 star if this avenue is meant to
   refute both halves of the ultimate claim.
 
 The evidence changes the search priority: the downstream stale-pointer,
 allocation, first-apply, all-five-trigger, and star-spawn mechanics work.
-Search can now focus on instilling the Area-1 three-view payload and closing
-the final star pickup, whether by ordinary motion, Ink's graphical fallback
-idea, PU/platform displacement, interaction writers, or another schedule.
+The remaining route question is producing the Area-1 three-view payload and
+connecting the observed downstream continuation to the proof. The later B/Z
+trace already records conditional Act-6 pickup; it does not supply clean
+installation by ordinary motion, Ink's graphical fallback, PU/platform
+displacement, interaction writers, or another schedule.
 
 ## Reproduction
 

@@ -241,10 +241,12 @@ early-freed pyramid-top hybrid.  The pre-transition fixture does not:
 - reproduce the resulting free-list burial depth and replacement identity.
 
 An early-freed top can therefore occupy a different free-list depth and be
-reused by a different destination allocation.  The exact top slot, every
-subsequent free-list push/pop, and the payload read at the true first apply are
-still pending.  The pre-transition result refutes only its own repeated
-slot-60 staging schedule.
+reused by a different destination allocation. Those details were pending in
+this earlier slot-60 experiment. The later [timer-131 lifecycle
+trace](jp-lifecycle-trace.md) records top slot61, its intervening free-list
+changes and the payload at the true first apply for that supplied fixture.
+Other timings and clean installation remain open. The pre-transition result
+refutes only its own repeated slot-60 staging schedule.
 
 ## Two-layer installer classification
 

@@ -1,5 +1,13 @@
 # Can controller inputs create the 703.46-unit Ink split?
 
+The later [source-only installation-handoff review](ink-installation-handoff.md)
+sharpens the lower-floor question below: no authored static Y=818 floor plane
+occurs in the checked square within 100 per axis of the 923-unit target, but
+a high query 68 units west has a Y=768 static pad candidate. An eligible push
+could preserve that cache and make a conditional 973-unit snap. The new push
+commit proof does not supply the high crawling state, actor, stopping exit,
+full action tail or useful next-update timing. No new runtime trial was run.
+
 The existing evidence leaves the no-A controller route open. The strongest
 ordinary action lead is a stopped crawl that leaves a high stored display
 after movement snaps to an older floor height. Its reachable size and its
@@ -156,8 +164,10 @@ destination check requires a floor at the high pose. The quarter's own
 wall corrections use local coordinates and a stopped quarter does not
 commit them. The authored static vertices reach at most Y=1408, below
 the wall probes at movement Y=1741, and the stock top mesh supplies
-floors and ceilings. The review did not identify a nearby floor at 818
-or an eligible actor contact. Reaching
+floors and ceilings. This original review did not identify a nearby floor at
+818 or an eligible actor contact. The follow-up above identifies a different
+768-height static candidate and the shell push class, still without a
+reachable contact. Reaching
 1741 in flight alone does not supply an active crawl. The stock yaw-only
 top also supplies no large vertical carry.
 

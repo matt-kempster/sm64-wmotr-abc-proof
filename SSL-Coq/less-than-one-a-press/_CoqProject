@@ -708,3 +708,5 @@ proofs/USInitializerAggregate.v
 proofs/USRepairedInitialMemory.v
 proofs/SelectedClightInitialMemory.v
 proofs/BobombAnimationInitialization.v
+proofs/InkObjectPushHandoff.v
+proofs/InkNearbyFloorGeometry.v

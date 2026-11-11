@@ -1,5 +1,7 @@
 # No-A two-star route atlas
 
+The [11 November installation-handoff review](notes/ink-installation-handoff.md) distinguishes the warp's Y=818 contact ceiling from its Y=768 pad. A new bounded source certificate finds only Y=768/1280 static floor planes in the square within 100 per axis of the 923-unit fixture, and checks a nearby high query at `(-1950,1741,-939)` selecting the Y=768 pad while the high target query selects roof1280 and its low query misses. A possible 68-unit eastward push would give a conditional 973-unit stopped-crawl snap, not the recorded 923-unit fixture. The new generated-code push cut preserves movement Y, current cached floor, action and a separate Object block; its null-destination branch commits nothing. The cache must be obtained in that producer update, with established crawling and an eligible actor; their clean histories, prefix and full action-tail effects, stopped quarter and next warp timing remain open. All 894 non-131 continuations in the existing 895-row phase-capture receipt arrive at ordinary spawn under its six-pose/display2300/neutral screen; it neither optimizes earlier gaps nor records every loss checkpoint. Timer131's 131 frees/84 allocations remain fixture counts. This is source/proof/report work only, with no new gameplay experiments or state searches. Rank1 remains subjectively **1–2%** and Ink Rank2 **<1%**; no clean route or all-history exclusion is claimed.
+
 > Status snapshot: 2026-10-07.  Rankings are intentionally revisable as linked
 > execution evidence or new counterexamples arrive.
 

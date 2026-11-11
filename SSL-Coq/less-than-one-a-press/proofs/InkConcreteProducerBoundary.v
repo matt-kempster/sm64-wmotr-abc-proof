@@ -6,7 +6,8 @@ From LessThanOneAPress.Proofs Require Import InkFloorProducerEffect
   InkStoppedFloorQuery InkGroundReturnFrame InkStoppedCrawlAlignment
   InkFloorAlignmentTailFrame InkAirReturnFrame InkBounceApproachGap
   InkBounceClearAscent InkMarioRawCopyCall InkMarioZeroParticleTail InkFlyGuySizeBoundary
-  InkBounceLiveReadBoundary InkStockBounceHeight InkFlyGuyCycleHeight InkPokeyLiveScale.
+  InkBounceLiveReadBoundary InkStockBounceHeight InkFlyGuyCycleHeight InkPokeyLiveScale
+  InkObjectPushHandoff InkNearbyFloorGeometry.
 
 (** Actor placement is not bounded by the old low-spawn example.  A matched
     fresh guard bounds the newly created rise; the completed actual air call
@@ -38,7 +39,8 @@ Qed.
 Definition InkStoppedFloorProducerCheckedBoundary : Prop :=
   InkStoppedFloorQueryBoundary /\ InkGroundReturnedPositionFrame /\
   InkStoppedCrawlReturnedGap /\ InkStoppedCrawlGroundReturnConnection /\
-  InkStoppedCrawlActualResultAlignment /\ InkAlignmentTailFrameBoundary.
+  InkStoppedCrawlActualResultAlignment /\ InkAlignmentTailFrameBoundary /\
+  InkObjectPushHandoffBoundary /\ InkNearbyFloorGeometryBoundary.
 
 Theorem icpb_stopped_floor_producer_checked : InkStoppedFloorProducerCheckedBoundary.
 Proof.
@@ -47,7 +49,9 @@ Proof.
   split; [exact isca_stopped_crawl_returned_gap_checked|].
   split; [exact isca_actual_ground_call_connects_return_to_switch|].
   split; [exact isca_real_ground_result_two_reaches_alignment|].
-  exact ifat_alignment_tail_frame_boundary_checked.
+  split; [exact ifat_alignment_tail_frame_boundary_checked|].
+  split; [exact iph_object_push_handoff_checked|].
+  exact infg_nearby_floor_geometry_checked.
 Qed.
 
 Definition InkConcreteProducerCheckedBoundary : Prop :=
