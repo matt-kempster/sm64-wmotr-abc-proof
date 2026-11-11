@@ -2,6 +2,12 @@
 pipeline/check-link-hygiene.sh text eol=lf
 # Keep the new replay's recorded script hash stable and its ROM runner usable.
 instrumentation/wafel-jp-pilot/ink_timer130_crawl.py text eol=lf
+instrumentation/wafel-jp-pilot/ink_crawl_predecessors.py text eol=lf
+instrumentation/wafel-jp-pilot/ink_crawl_continuation_beam.py text eol=lf
+instrumentation/wafel-jp-pilot/ink_shell_producer.py text eol=lf
+instrumentation/wafel-jp-pilot/ink_clean_approach_search.py text eol=lf
+instrumentation/wafel-jp-pilot/ink_alternate_push.py text eol=lf
+instrumentation/wafel-jp-pilot/verify_ink_producer_receipts.py text eol=lf
 instrumentation/jp-ink-candidate-views/*.sh text eol=lf
 instrumentation/jp-ink-candidate-views/*.c text eol=lf
 instrumentation/jp-ink-candidate-views/*.py text eol=lf

@@ -1,0 +1,5725 @@
+{
+  "schema": 1,
+  "runtime": "Pinned Wafel 0.8.5 JP",
+  "runtimeSha256": "960fe979068b78e6733b3ddb87741833fbf4eb29b2a21a2bba871977427c2d0f",
+  "baselineSha256": "9bcc451964025d9f0bb1344c45957b6bfd095451b44bfb9a01f8584a75db6a72",
+  "noA": true,
+  "scope": "Finite component investigation; no clean 973-unit producer",
+  "fixturePrefixEdits": [
+    {
+      "path": "gObjectPool[32].oAction",
+      "before": 2,
+      "after": 4
+    }
+  ],
+  "ablations": [
+    {
+      "mode": "old-zero-velocities",
+      "edits": [
+        {
+          "path": "gMarioState.pos",
+          "before": [
+            -5883.07373046875,
+            1024.0,
+            819.5643920898438
+          ],
+          "after": [
+            -1950,
+            1741,
+            -939
+          ]
+        },
+        {
+          "path": "gMarioObject.oPosX",
+          "before": -5883.07373046875,
+          "after": -1950
+        },
+        {
+          "path": "gMarioObject.oPosY",
+          "before": 1024.0,
+          "after": 1741
+        },
+        {
+          "path": "gMarioObject.oPosZ",
+          "before": 819.5643920898438,
+          "after": -939
+        },
+        {
+          "path": "gMarioObject.header.gfx.pos",
+          "before": [
+            -5883.07373046875,
+            1024.0,
+            819.5643920898438
+          ],
+          "after": [
+            -1950,
+            1741,
+            -939
+          ]
+        },
+        {
+          "path": "gMarioState.action",
+          "before": 205521409,
+          "after": 67142728
+        },
+        {
+          "path": "gMarioState.actionState",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "path": "gMarioState.actionTimer",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "path": "gMarioState.forwardVel",
+          "before": 0.0,
+          "after": 5
+        },
+        {
+          "path": "gMarioState.vel",
+          "before": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "after": [
+            4,
+            0,
+            0
+          ]
+        },
+        {
+          "path": "gMarioState.faceAngle",
+          "before": [
+            0,
+            208,
+            0
+          ],
+          "after": [
+            0,
+            16384,
+            0
+          ]
+        },
+        {
+          "path": "gObjectPool[126].oPosX",
+          "before": 5840.11962890625,
+          "after": -1971
+        },
+        {
+          "path": "gObjectPool[126].oPosY",
+          "before": 968.0,
+          "after": 1741
+        },
+        {
+          "path": "gObjectPool[126].oPosZ",
+          "before": 2505.971923828125,
+          "after": -939
+        },
+        {
+          "path": "gObjectPool[126].oForwardVel",
+          "before": 2.9820644855499268,
+          "after": 0
+        },
+        {
+          "path": "gObjectPool[126].oVelX",
+          "before": 0.0596383661031723,
+          "after": 0
+        },
+        {
+          "path": "gObjectPool[126].oVelY",
+          "before": 12.0,
+          "after": 0
+        },
+        {
+          "path": "gObjectPool[126].oVelZ",
+          "before": 2.9814679622650146,
+          "after": 0
+        }
+      ],
+      "before": {
+        "timer": 2680,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67142728,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 1024.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "collision": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "display": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "topTimer": 130,
+        "topAction": 1,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            -1971.0,
+            1741.0,
+            -939.0
+          ],
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": 0.0,
+          "floorY": 614.0,
+          "interact": 0
+        }
+      },
+      "after": {
+        "timer": 2681,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67142728,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 768.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1882.0,
+          768.0,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          768.0,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          1741.0,
+          -939.0
+        ],
+        "topTimer": 131,
+        "topAction": 1,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            -1971.0,
+            1737.0,
+            -939.0
+          ],
+          "velocity": [
+            0.0,
+            -4.0,
+            0.0
+          ],
+          "forward": 0.0,
+          "floorY": 768.0,
+          "interact": 0
+        }
+      },
+      "capturesTop": true,
+      "nextUpdate": {
+        "timer": 2682,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 4864,
+        "actionArg": 262145,
+        "used": 64,
+        "floor": true,
+        "floorY": 1818.9613037109375,
+        "floorOwner": 61,
+        "platform": 61,
+        "marioObject": 67,
+        "movement": [
+          -1882.0,
+          1818.9613037109375,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          1818.9613037109375,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          1818.9613037109375,
+          -939.0
+        ],
+        "topTimer": 132,
+        "topAction": 1,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            -1971.0,
+            1729.0,
+            -939.0
+          ],
+          "velocity": [
+            0.0,
+            -8.0,
+            0.0
+          ],
+          "forward": 0.0,
+          "floorY": 768.0,
+          "interact": 0
+        }
+      },
+      "lastUpdate": {
+        "timer": 2705,
+        "level": 8,
+        "area": 2,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 30,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 8,
+          "areaIdx": 2,
+          "nodeId": 20,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 6450,
+        "actionArg": 0,
+        "used": 138,
+        "floor": true,
+        "floorY": 4429.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 148,
+        "movement": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "collision": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "display": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "topTimer": 1,
+        "topAction": 2,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": true,
+          "active": 0,
+          "action": 0,
+          "position": [
+            -1975.0,
+            768.0,
+            -951.0
+          ],
+          "velocity": [
+            0.0,
+            39.0,
+            -0.0
+          ],
+          "forward": 0.0,
+          "floorY": 768.0,
+          "interact": 0
+        }
+      },
+      "continuationUpdates": 24
+    },
+    {
+      "mode": "retain-native-velocities",
+      "edits": [
+        {
+          "path": "gMarioState.pos",
+          "before": [
+            -5883.07373046875,
+            1024.0,
+            819.5643920898438
+          ],
+          "after": [
+            -1950,
+            1741,
+            -939
+          ]
+        },
+        {
+          "path": "gMarioObject.oPosX",
+          "before": -5883.07373046875,
+          "after": -1950
+        },
+        {
+          "path": "gMarioObject.oPosY",
+          "before": 1024.0,
+          "after": 1741
+        },
+        {
+          "path": "gMarioObject.oPosZ",
+          "before": 819.5643920898438,
+          "after": -939
+        },
+        {
+          "path": "gMarioObject.header.gfx.pos",
+          "before": [
+            -5883.07373046875,
+            1024.0,
+            819.5643920898438
+          ],
+          "after": [
+            -1950,
+            1741,
+            -939
+          ]
+        },
+        {
+          "path": "gMarioState.action",
+          "before": 205521409,
+          "after": 67142728
+        },
+        {
+          "path": "gMarioState.actionState",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "path": "gMarioState.actionTimer",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "path": "gMarioState.forwardVel",
+          "before": 0.0,
+          "after": 5
+        },
+        {
+          "path": "gMarioState.vel",
+          "before": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "after": [
+            4,
+            0,
+            0
+          ]
+        },
+        {
+          "path": "gMarioState.faceAngle",
+          "before": [
+            0,
+            208,
+            0
+          ],
+          "after": [
+            0,
+            16384,
+            0
+          ]
+        },
+        {
+          "path": "gObjectPool[126].oPosX",
+          "before": 5840.11962890625,
+          "after": -1971
+        },
+        {
+          "path": "gObjectPool[126].oPosY",
+          "before": 968.0,
+          "after": 1741
+        },
+        {
+          "path": "gObjectPool[126].oPosZ",
+          "before": 2505.971923828125,
+          "after": -939
+        }
+      ],
+      "before": {
+        "timer": 2680,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67142728,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 1024.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "collision": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "display": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "topTimer": 130,
+        "topAction": 1,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            -1971.0,
+            1741.0,
+            -939.0
+          ],
+          "velocity": [
+            0.0596383661031723,
+            12.0,
+            2.9814679622650146
+          ],
+          "forward": 2.9820644855499268,
+          "floorY": 614.0,
+          "interact": 0
+        }
+      },
+      "after": {
+        "timer": 2681,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67142728,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 768.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1882.0,
+          768.0,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          768.0,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          1741.0,
+          -939.0
+        ],
+        "topTimer": 131,
+        "topAction": 1,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            -1970.9405517578125,
+            1749.0,
+            -936.0274047851562
+          ],
+          "velocity": [
+            0.0594601072371006,
+            8.0,
+            2.9725823402404785
+          ],
+          "forward": 2.973176956176758,
+          "floorY": 768.0,
+          "interact": 0
+        }
+      },
+      "capturesTop": true,
+      "nextUpdate": {
+        "timer": 2682,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 4864,
+        "actionArg": 262145,
+        "used": 64,
+        "floor": true,
+        "floorY": 1818.9613037109375,
+        "floorOwner": 61,
+        "platform": 61,
+        "marioObject": 67,
+        "movement": [
+          -1882.0,
+          1818.9613037109375,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          1818.9613037109375,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          1818.9613037109375,
+          -939.0
+        ],
+        "topTimer": 132,
+        "topAction": 1,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            -1970.8812255859375,
+            1753.0,
+            -933.0636596679688
+          ],
+          "velocity": [
+            0.05928290635347366,
+            4.0,
+            2.963749408721924
+          ],
+          "forward": 2.9643423557281494,
+          "floorY": 768.0,
+          "interact": 0
+        }
+      },
+      "lastUpdate": {
+        "timer": 2705,
+        "level": 8,
+        "area": 2,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 30,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 8,
+          "areaIdx": 2,
+          "nodeId": 20,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 6450,
+        "actionArg": 0,
+        "used": 138,
+        "floor": true,
+        "floorY": 4429.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 148,
+        "movement": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "collision": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "display": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "topTimer": 1,
+        "topAction": 2,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": true,
+          "active": 0,
+          "action": 0,
+          "position": [
+            -1969.7310791015625,
+            1360.0,
+            -875.5662231445312
+          ],
+          "velocity": [
+            0.05594853311777115,
+            14.0,
+            2.7975127696990967
+          ],
+          "forward": 2.798072099685669,
+          "floorY": 1280.0,
+          "interact": 0
+        }
+      },
+      "continuationUpdates": 24
+    },
+    {
+      "mode": "xz-only",
+      "edits": [
+        {
+          "path": "gMarioState.pos",
+          "before": [
+            -5883.07373046875,
+            1024.0,
+            819.5643920898438
+          ],
+          "after": [
+            -1950,
+            1741,
+            -939
+          ]
+        },
+        {
+          "path": "gMarioObject.oPosX",
+          "before": -5883.07373046875,
+          "after": -1950
+        },
+        {
+          "path": "gMarioObject.oPosY",
+          "before": 1024.0,
+          "after": 1741
+        },
+        {
+          "path": "gMarioObject.oPosZ",
+          "before": 819.5643920898438,
+          "after": -939
+        },
+        {
+          "path": "gMarioObject.header.gfx.pos",
+          "before": [
+            -5883.07373046875,
+            1024.0,
+            819.5643920898438
+          ],
+          "after": [
+            -1950,
+            1741,
+            -939
+          ]
+        },
+        {
+          "path": "gMarioState.action",
+          "before": 205521409,
+          "after": 67142728
+        },
+        {
+          "path": "gMarioState.actionState",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "path": "gMarioState.actionTimer",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "path": "gMarioState.forwardVel",
+          "before": 0.0,
+          "after": 5
+        },
+        {
+          "path": "gMarioState.vel",
+          "before": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "after": [
+            4,
+            0,
+            0
+          ]
+        },
+        {
+          "path": "gMarioState.faceAngle",
+          "before": [
+            0,
+            208,
+            0
+          ],
+          "after": [
+            0,
+            16384,
+            0
+          ]
+        },
+        {
+          "path": "gObjectPool[126].oPosX",
+          "before": 5840.11962890625,
+          "after": -1971
+        },
+        {
+          "path": "gObjectPool[126].oPosZ",
+          "before": 2505.971923828125,
+          "after": -939
+        }
+      ],
+      "before": {
+        "timer": 2680,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67142728,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 1024.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "collision": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "display": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "topTimer": 130,
+        "topAction": 1,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            -1971.0,
+            968.0,
+            -939.0
+          ],
+          "velocity": [
+            0.0596383661031723,
+            12.0,
+            2.9814679622650146
+          ],
+          "forward": 2.9820644855499268,
+          "floorY": 614.0,
+          "interact": 0
+        }
+      },
+      "after": {
+        "timer": 2681,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67142728,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 768.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1950.0,
+          768.0,
+          -939.0
+        ],
+        "collision": [
+          -1950.0,
+          768.0,
+          -939.0
+        ],
+        "display": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "topTimer": 131,
+        "topAction": 1,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            -1975.0,
+            976.0,
+            -953.97314453125
+          ],
+          "velocity": [
+            0.0,
+            8.0,
+            -2.9731717109680176
+          ],
+          "forward": 2.9731717109680176,
+          "floorY": 768.0,
+          "interact": 0
+        }
+      },
+      "capturesTop": false,
+      "nextUpdate": {
+        "timer": 2682,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 4864,
+        "actionArg": 262145,
+        "used": 64,
+        "floor": true,
+        "floorY": 768.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1995.0,
+          768.0,
+          -971.0
+        ],
+        "collision": [
+          -1995.0,
+          768.0,
+          -971.0
+        ],
+        "display": [
+          -1995.0,
+          768.0,
+          -971.0
+        ],
+        "topTimer": 132,
+        "topAction": 1,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            -1975.0,
+            980.0,
+            -955.96435546875
+          ],
+          "velocity": [
+            0.0,
+            4.0,
+            -2.964331865310669
+          ],
+          "forward": 2.964331865310669,
+          "floorY": 768.0,
+          "interact": 0
+        }
+      },
+      "lastUpdate": {
+        "timer": 2705,
+        "level": 8,
+        "area": 2,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 30,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 8,
+          "areaIdx": 2,
+          "nodeId": 20,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 6450,
+        "actionArg": 0,
+        "used": 138,
+        "floor": true,
+        "floorY": 4966.0,
+        "floorOwner": 59,
+        "platform": -1,
+        "marioObject": 148,
+        "movement": [
+          0.0,
+          5500.0,
+          256.0
+        ],
+        "collision": [
+          0.0,
+          5500.0,
+          256.0
+        ],
+        "display": [
+          0.0,
+          5500.0,
+          256.0
+        ],
+        "topTimer": 1,
+        "topAction": 2,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": true,
+          "active": 0,
+          "action": 0,
+          "position": [
+            -1975.0,
+            768.0,
+            -995.7979736328125
+          ],
+          "velocity": [
+            0.0,
+            -16.0,
+            -2.7979695796966553
+          ],
+          "forward": 2.7979695796966553,
+          "floorY": 768.0,
+          "interact": 0
+        }
+      },
+      "continuationUpdates": 24
+    }
+  ],
+  "coasts": [
+    {
+      "mode": "native-release-position",
+      "edits": [],
+      "initial": {
+        "slot": 126,
+        "isShell": true,
+        "active": 257,
+        "action": 0,
+        "position": [
+          5840.11962890625,
+          968.0,
+          2505.971923828125
+        ],
+        "velocity": [
+          0.0596383661031723,
+          12.0,
+          2.9814679622650146
+        ],
+        "forward": 2.9820644855499268,
+        "floorY": 614.0,
+        "interact": 0
+      },
+      "maximumY": 980.0,
+      "maximumHorizontalDisplacement": 305.42016231390187,
+      "sampledUpdates": 120,
+      "selectedSamples": [
+        {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            5840.17919921875,
+            976.0,
+            2508.944580078125
+          ],
+          "velocity": [
+            0.0594601072371006,
+            8.0,
+            2.9725823402404785
+          ],
+          "forward": 2.973176956176758,
+          "floorY": 614.0,
+          "interact": 0
+        },
+        {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            5840.23828125,
+            980.0,
+            2511.908447265625
+          ],
+          "velocity": [
+            0.05928290635347366,
+            4.0,
+            2.963749408721924
+          ],
+          "forward": 2.9643423557281494,
+          "floorY": 614.0,
+          "interact": 0
+        },
+        {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            5840.3564453125,
+            976.0,
+            2517.809814453125
+          ],
+          "velocity": [
+            0.05893166363239288,
+            -4.0,
+            2.9462406635284424
+          ],
+          "forward": 2.9468300342559814,
+          "floorY": 614.0,
+          "interact": 0
+        },
+        {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            5840.59033203125,
+            920.0,
+            2529.508544921875
+          ],
+          "velocity": [
+            0.05824153125286102,
+            -20.0,
+            2.911837339401245
+          ],
+          "forward": 2.9124197959899902,
+          "floorY": 614.0,
+          "interact": 0
+        },
+        {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            5841.05078125,
+            616.0,
+            2552.502197265625
+          ],
+          "velocity": [
+            0.05690872669219971,
+            -52.0,
+            2.8453891277313232
+          ],
+          "forward": 2.8459582328796387,
+          "floorY": 614.0,
+          "interact": 0
+        },
+        {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            5841.93994140625,
+            624.0,
+            2596.958740234375
+          ],
+          "velocity": [
+            0.054418325424194336,
+            10.0,
+            2.721205234527588
+          ],
+          "forward": 2.7217493057250977,
+          "floorY": 614.0,
+          "interact": 0
+        },
+        {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            5843.60693359375,
+            614.0,
+            2680.335693359375
+          ],
+          "velocity": [
+            0.05003949999809265,
+            1.3333332538604736,
+            2.5027806758880615
+          ],
+          "forward": 2.5032808780670166,
+          "floorY": 614.0,
+          "interact": 0
+        },
+        {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            5846.22509765625,
+            614.0,
+            2811.3310546875
+          ],
+          "velocity": [
+            0.04386433959007263,
+            1.3333332538604736,
+            2.1945908069610596
+          ],
+          "forward": 2.1950290203094482,
+          "floorY": 614.0,
+          "interact": 0
+        }
+      ]
+    },
+    {
+      "mode": "supplied-high-position",
+      "edits": [
+        {
+          "path": "gObjectPool[126].oPosX",
+          "before": 5840.11962890625,
+          "after": -1971
+        },
+        {
+          "path": "gObjectPool[126].oPosY",
+          "before": 968.0,
+          "after": 1741
+        },
+        {
+          "path": "gObjectPool[126].oPosZ",
+          "before": 2505.971923828125,
+          "after": -939
+        }
+      ],
+      "initial": {
+        "slot": 126,
+        "isShell": true,
+        "active": 257,
+        "action": 0,
+        "position": [
+          -1971.0,
+          1741.0,
+          -939.0
+        ],
+        "velocity": [
+          0.0596383661031723,
+          12.0,
+          2.9814679622650146
+        ],
+        "forward": 2.9820644855499268,
+        "floorY": 614.0,
+        "interact": 0
+      },
+      "maximumY": 1753.0,
+      "maximumHorizontalDisplacement": 298.81826234558685,
+      "sampledUpdates": 120,
+      "selectedSamples": [
+        {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            -1970.9405517578125,
+            1749.0,
+            -936.0274047851562
+          ],
+          "velocity": [
+            0.0594601072371006,
+            8.0,
+            2.9725823402404785
+          ],
+          "forward": 2.973176956176758,
+          "floorY": 768.0,
+          "interact": 0
+        },
+        {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            -1970.8812255859375,
+            1753.0,
+            -933.0636596679688
+          ],
+          "velocity": [
+            0.05928290635347366,
+            4.0,
+            2.963749408721924
+          ],
+          "forward": 2.9643423557281494,
+          "floorY": 768.0,
+          "interact": 0
+        },
+        {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            -1970.76318359375,
+            1749.0,
+            -927.1624755859375
+          ],
+          "velocity": [
+            0.05893166363239288,
+            -4.0,
+            2.9462406635284424
+          ],
+          "forward": 2.9468300342559814,
+          "floorY": 768.0,
+          "interact": 0
+        },
+        {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            -1970.5291748046875,
+            1693.0,
+            -915.4637451171875
+          ],
+          "velocity": [
+            0.05824153125286102,
+            -20.0,
+            2.911837339401245
+          ],
+          "forward": 2.9124197959899902,
+          "floorY": 1280.0,
+          "interact": 0
+        },
+        {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            -1970.0692138671875,
+            1389.0,
+            -892.4700927734375
+          ],
+          "velocity": [
+            0.05690872669219971,
+            -52.0,
+            2.8453891277313232
+          ],
+          "forward": 2.8459582328796387,
+          "floorY": 1280.0,
+          "interact": 0
+        },
+        {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            -1969.18017578125,
+            1280.0,
+            -848.0142822265625
+          ],
+          "velocity": [
+            0.054418325424194336,
+            -26.0,
+            2.721205234527588
+          ],
+          "forward": 2.7217493057250977,
+          "floorY": 1280.0,
+          "interact": 0
+        },
+        {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            -1967.51318359375,
+            1280.0,
+            -764.6372680664062
+          ],
+          "velocity": [
+            0.05003949999809265,
+            1.3333326578140259,
+            2.5027806758880615
+          ],
+          "forward": 2.5032808780670166,
+          "floorY": 1280.0,
+          "interact": 0
+        },
+        {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            -1965.0262451171875,
+            1280.0,
+            -640.241455078125
+          ],
+          "velocity": [
+            0.04386433959007263,
+            1.3333332538604736,
+            2.1945908069610596
+          ],
+          "forward": 2.1950290203094482,
+          "floorY": 1280.0,
+          "interact": 0
+        }
+      ]
+    }
+  ],
+  "suppliedApproachRelease": {
+    "edits": [
+      {
+        "path": "gMarioState.pos",
+        "before": [
+          -5885.23974609375,
+          1024.0,
+          711.0192260742188
+        ],
+        "after": [
+          5840,
+          1250,
+          2500
+        ]
+      },
+      {
+        "path": "gMarioObject.oPosX",
+        "before": -5885.23974609375,
+        "after": 5840
+      },
+      {
+        "path": "gMarioObject.oPosY",
+        "before": 1024.0,
+        "after": 1250
+      },
+      {
+        "path": "gMarioObject.oPosZ",
+        "before": 711.0192260742188,
+        "after": 2500
+      },
+      {
+        "path": "gMarioObject.header.gfx.pos",
+        "before": [
+          -5885.23974609375,
+          1024.0,
+          711.0192260742188
+        ],
+        "after": [
+          5840,
+          1250,
+          2500
+        ]
+      },
+      {
+        "path": "gMarioState.action",
+        "before": 67109952,
+        "after": 16779404
+      },
+      {
+        "path": "gMarioState.actionState",
+        "before": 0,
+        "after": 0
+      },
+      {
+        "path": "gMarioState.actionTimer",
+        "before": 3,
+        "after": 0
+      },
+      {
+        "path": "gMarioState.forwardVel",
+        "before": 31.509538650512695,
+        "after": 0
+      },
+      {
+        "path": "gMarioState.vel",
+        "before": [
+          0.6283137202262878,
+          0.0,
+          31.503273010253906
+        ],
+        "after": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "path": "gMarioState.faceAngle",
+        "before": [
+          0,
+          208,
+          0
+        ],
+        "after": [
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "shellReleasedAfterUpdates": 31,
+    "shellSlot": 154,
+    "selectedSamples": [
+      {
+        "timer": 2550,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 8390825,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5840.0,
+          1270.0,
+          2500.0
+        ],
+        "collision": [
+          5840.0,
+          1270.0,
+          2500.0
+        ],
+        "display": [
+          5840.0,
+          1270.0,
+          2500.0
+        ],
+        "topTimer": 0,
+        "topAction": 1,
+        "ridden": -1,
+        "shell": null,
+        "boxAction": 2
+      },
+      {
+        "timer": 2570,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 8389180,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 1044.0,
+        "floorOwner": 32,
+        "platform": 32,
+        "marioObject": 67,
+        "movement": [
+          5840.0,
+          1044.0,
+          2500.0
+        ],
+        "collision": [
+          5840.0,
+          1044.0,
+          2500.0
+        ],
+        "display": [
+          5840.0,
+          1044.0,
+          2500.0
+        ],
+        "topTimer": 20,
+        "topAction": 1,
+        "ridden": -1,
+        "shell": null,
+        "boxAction": 2
+      },
+      {
+        "timer": 2571,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 8389180,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 1044.0,
+        "floorOwner": 32,
+        "platform": 32,
+        "marioObject": 67,
+        "movement": [
+          5840.0,
+          1044.0,
+          2500.0
+        ],
+        "collision": [
+          5840.0,
+          1044.0,
+          2500.0
+        ],
+        "display": [
+          5840.0,
+          1044.0,
+          2500.0
+        ],
+        "topTimer": 21,
+        "topAction": 1,
+        "ridden": -1,
+        "shell": null,
+        "boxAction": 3
+      },
+      {
+        "timer": 2579,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67110001,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5840.0,
+          614.0,
+          2500.0
+        ],
+        "collision": [
+          5840.0,
+          614.0,
+          2500.0
+        ],
+        "display": [
+          5840.0,
+          614.0,
+          2500.0
+        ],
+        "topTimer": 29,
+        "topAction": 1,
+        "ridden": -1,
+        "shell": null,
+        "boxAction": 4
+      },
+      {
+        "timer": 2580,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67110001,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5840.0,
+          614.0,
+          2500.0
+        ],
+        "collision": [
+          5840.0,
+          614.0,
+          2500.0
+        ],
+        "display": [
+          5840.0,
+          614.0,
+          2500.0
+        ],
+        "topTimer": 30,
+        "topAction": 1,
+        "ridden": -1,
+        "shell": {
+          "slot": 154,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            5840.0,
+            996.0,
+            2502.990966796875
+          ],
+          "velocity": [
+            0.0,
+            16.0,
+            2.990999937057495
+          ],
+          "forward": 2.990999937057495,
+          "floorY": 614.0,
+          "interact": 0
+        },
+        "boxAction": 4
+      },
+      {
+        "timer": 2581,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 201327154,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5840.0,
+          614.0,
+          2500.0
+        ],
+        "collision": [
+          5840.0,
+          614.0,
+          2500.0
+        ],
+        "display": [
+          5840.0,
+          614.0,
+          2500.0
+        ],
+        "topTimer": 31,
+        "topAction": 1,
+        "ridden": -1,
+        "shell": {
+          "slot": 154,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            5840.0,
+            1008.0,
+            2505.972900390625
+          ],
+          "velocity": [
+            0.0,
+            12.0,
+            2.982053756713867
+          ],
+          "forward": 2.982053756713867,
+          "floorY": 614.0,
+          "interact": 0
+        },
+        "boxAction": 4
+      },
+      {
+        "timer": 2590,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 201327154,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5840.0,
+          614.0,
+          2500.0
+        ],
+        "collision": [
+          5840.0,
+          614.0,
+          2500.0
+        ],
+        "display": [
+          5840.0,
+          614.0,
+          2500.0
+        ],
+        "topTimer": 40,
+        "topAction": 1,
+        "ridden": -1,
+        "shell": {
+          "slot": 154,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            5840.0,
+            936.0,
+            2532.41748046875
+          ],
+          "velocity": [
+            0.0,
+            -24.0,
+            2.9038877487182617
+          ],
+          "forward": 2.9038877487182617,
+          "floorY": 614.0,
+          "interact": 0
+        },
+        "boxAction": 0
+      },
+      {
+        "timer": 2610,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 205521409,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5840.0,
+          614.0,
+          2457.811279296875
+        ],
+        "collision": [
+          5840.0,
+          614.0,
+          2457.811279296875
+        ],
+        "display": [
+          5840.0,
+          614.0,
+          2457.811279296875
+        ],
+        "topTimer": 60,
+        "topAction": 1,
+        "ridden": -1,
+        "shell": {
+          "slot": 154,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            5840.0,
+            638.0,
+            2588.787109375
+          ],
+          "velocity": [
+            0.0,
+            -20.0,
+            2.7440667152404785
+          ],
+          "forward": 2.7440667152404785,
+          "floorY": 614.0,
+          "interact": 0
+        },
+        "boxAction": 0
+      },
+      {
+        "timer": 2649,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 205521409,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5840.0,
+          614.0,
+          2457.811279296875
+        ],
+        "collision": [
+          5840.0,
+          614.0,
+          2457.811279296875
+        ],
+        "display": [
+          5840.0,
+          614.0,
+          2457.811279296875
+        ],
+        "topTimer": 99,
+        "topAction": 1,
+        "ridden": -1,
+        "shell": {
+          "slot": 154,
+          "isShell": true,
+          "active": 257,
+          "action": 0,
+          "position": [
+            5840.0,
+            614.0,
+            2690.310791015625
+          ],
+          "velocity": [
+            0.0,
+            1.3333332538604736,
+            2.478163003921509
+          ],
+          "forward": 2.478163003921509,
+          "floorY": 614.0,
+          "interact": 0
+        },
+        "boxAction": 0
+      }
+    ],
+    "maximumShellY": 1020.0
+  },
+  "mountThenZ": {
+    "edits": [
+      {
+        "path": "gMarioState.pos",
+        "before": [
+          -5883.07373046875,
+          1024.0,
+          819.5643920898438
+        ],
+        "after": [
+          5862.1025390625,
+          630.0,
+          2605.078369140625
+        ]
+      },
+      {
+        "path": "gMarioObject.oPosX",
+        "before": -5883.07373046875,
+        "after": 5862.1025390625
+      },
+      {
+        "path": "gMarioObject.oPosY",
+        "before": 1024.0,
+        "after": 630.0
+      },
+      {
+        "path": "gMarioObject.oPosZ",
+        "before": 819.5643920898438,
+        "after": 2605.078369140625
+      },
+      {
+        "path": "gMarioObject.header.gfx.pos",
+        "before": [
+          -5883.07373046875,
+          1024.0,
+          819.5643920898438
+        ],
+        "after": [
+          5862.1025390625,
+          630.0,
+          2605.078369140625
+        ]
+      },
+      {
+        "path": "gMarioState.action",
+        "before": 205521409,
+        "after": 67109952
+      },
+      {
+        "path": "gMarioState.actionState",
+        "before": 1,
+        "after": 0
+      },
+      {
+        "path": "gMarioState.actionTimer",
+        "before": 1,
+        "after": 0
+      },
+      {
+        "path": "gMarioState.forwardVel",
+        "before": 0.0,
+        "after": 0
+      },
+      {
+        "path": "gMarioState.vel",
+        "before": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "after": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "path": "gMarioState.faceAngle",
+        "before": [
+          0,
+          208,
+          0
+        ],
+        "after": [
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "samples": [
+      {
+        "timer": 2716,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 545326150,
+        "actionArg": 0,
+        "used": 126,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5862.1025390625,
+          614.0,
+          2606.177978515625
+        ],
+        "collision": [
+          5862.1025390625,
+          614.0,
+          2606.177978515625
+        ],
+        "display": [
+          5862.1025390625,
+          659.0,
+          2606.177978515625
+        ],
+        "topTimer": 1,
+        "topAction": 2,
+        "ridden": 126,
+        "shell": {
+          "slot": 126,
+          "isShell": true,
+          "active": 257,
+          "action": 1,
+          "position": [
+            5842.15625,
+            624.0,
+            2607.770263671875
+          ],
+          "velocity": [
+            0.053829457610845566,
+            -6.0,
+            2.6918365955352783
+          ],
+          "forward": 2.6923747062683105,
+          "floorY": 614.0,
+          "interact": 0
+        },
+        "buttons": 0
+      },
+      {
+        "timer": 2717,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 75531353,
+        "actionArg": 0,
+        "used": 126,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5862.1025390625,
+          614.0,
+          2628.258056640625
+        ],
+        "collision": [
+          5862.1025390625,
+          614.0,
+          2628.258056640625
+        ],
+        "display": [
+          5862.1025390625,
+          614.0,
+          2628.258056640625
+        ],
+        "topTimer": 1,
+        "topAction": 0,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": true,
+          "active": 0,
+          "action": 0,
+          "position": [
+            5862.1025390625,
+            614.0,
+            2628.258056640625
+          ],
+          "velocity": [
+            0.053829457610845566,
+            -6.0,
+            2.6918365955352783
+          ],
+          "forward": 2.6923747062683105,
+          "floorY": 614.0,
+          "interact": 0
+        },
+        "buttons": 8192
+      },
+      {
+        "timer": 2718,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 75531353,
+        "actionArg": 0,
+        "used": 126,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5862.1025390625,
+          614.0,
+          2648.571533203125
+        ],
+        "collision": [
+          5862.1025390625,
+          614.0,
+          2648.571533203125
+        ],
+        "display": [
+          5862.1025390625,
+          614.0,
+          2648.571533203125
+        ],
+        "topTimer": 2,
+        "topAction": 0,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": false,
+          "active": 273,
+          "action": 0,
+          "position": [
+            5817.22216796875,
+            609.2288818359375,
+            2583.48876953125
+          ],
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": 0.0,
+          "floorY": 0.0,
+          "interact": 0
+        },
+        "buttons": 0
+      },
+      {
+        "timer": 2719,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 75531353,
+        "actionArg": 0,
+        "used": 126,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5862.1025390625,
+          614.0,
+          2667.260009765625
+        ],
+        "collision": [
+          5862.1025390625,
+          614.0,
+          2667.260009765625
+        ],
+        "display": [
+          5862.1025390625,
+          614.0,
+          2667.260009765625
+        ],
+        "topTimer": 3,
+        "topAction": 0,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": false,
+          "active": 273,
+          "action": 0,
+          "position": [
+            5817.22216796875,
+            609.2288818359375,
+            2583.48876953125
+          ],
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": 0.0,
+          "floorY": 0.0,
+          "interact": 0
+        },
+        "buttons": 0
+      },
+      {
+        "timer": 2720,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 75531353,
+        "actionArg": 0,
+        "used": 126,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5862.1025390625,
+          614.0,
+          2684.453369140625
+        ],
+        "collision": [
+          5862.1025390625,
+          614.0,
+          2684.453369140625
+        ],
+        "display": [
+          5862.1025390625,
+          614.0,
+          2684.453369140625
+        ],
+        "topTimer": 4,
+        "topAction": 0,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": false,
+          "active": 273,
+          "action": 0,
+          "position": [
+            5817.22216796875,
+            609.2288818359375,
+            2583.48876953125
+          ],
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": 0.0,
+          "floorY": 0.0,
+          "interact": 0
+        },
+        "buttons": 0
+      },
+      {
+        "timer": 2721,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 75531353,
+        "actionArg": 0,
+        "used": 126,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5862.1025390625,
+          614.0,
+          2700.271728515625
+        ],
+        "collision": [
+          5862.1025390625,
+          614.0,
+          2700.271728515625
+        ],
+        "display": [
+          5862.1025390625,
+          614.0,
+          2700.271728515625
+        ],
+        "topTimer": 5,
+        "topAction": 0,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": false,
+          "active": 273,
+          "action": 0,
+          "position": [
+            5817.22216796875,
+            609.2288818359375,
+            2583.48876953125
+          ],
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": 0.0,
+          "floorY": 0.0,
+          "interact": 0
+        },
+        "buttons": 0
+      },
+      {
+        "timer": 2722,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 75531353,
+        "actionArg": 0,
+        "used": 126,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5862.1025390625,
+          614.0,
+          2714.824462890625
+        ],
+        "collision": [
+          5862.1025390625,
+          614.0,
+          2714.824462890625
+        ],
+        "display": [
+          5862.1025390625,
+          614.0,
+          2714.824462890625
+        ],
+        "topTimer": 6,
+        "topAction": 0,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": false,
+          "active": 273,
+          "action": 0,
+          "position": [
+            5817.22216796875,
+            609.2288818359375,
+            2583.48876953125
+          ],
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": 0.0,
+          "floorY": 0.0,
+          "interact": 0
+        },
+        "buttons": 0
+      },
+      {
+        "timer": 2723,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 75531353,
+        "actionArg": 0,
+        "used": 126,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5862.1025390625,
+          614.0,
+          2728.213134765625
+        ],
+        "collision": [
+          5862.1025390625,
+          614.0,
+          2728.213134765625
+        ],
+        "display": [
+          5862.1025390625,
+          614.0,
+          2728.213134765625
+        ],
+        "topTimer": 7,
+        "topAction": 0,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": false,
+          "active": 273,
+          "action": 0,
+          "position": [
+            5817.22216796875,
+            609.2288818359375,
+            2583.48876953125
+          ],
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": 0.0,
+          "floorY": 0.0,
+          "interact": 0
+        },
+        "buttons": 0
+      },
+      {
+        "timer": 2724,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 75531353,
+        "actionArg": 0,
+        "used": 126,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5862.1025390625,
+          614.0,
+          2740.530517578125
+        ],
+        "collision": [
+          5862.1025390625,
+          614.0,
+          2740.530517578125
+        ],
+        "display": [
+          5862.1025390625,
+          614.0,
+          2740.530517578125
+        ],
+        "topTimer": 8,
+        "topAction": 0,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": false,
+          "active": 273,
+          "action": 0,
+          "position": [
+            5817.22216796875,
+            609.2288818359375,
+            2583.48876953125
+          ],
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": 0.0,
+          "floorY": 0.0,
+          "interact": 0
+        },
+        "buttons": 0
+      },
+      {
+        "timer": 2725,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 75531353,
+        "actionArg": 0,
+        "used": 126,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5862.1025390625,
+          614.0,
+          2751.862548828125
+        ],
+        "collision": [
+          5862.1025390625,
+          614.0,
+          2751.862548828125
+        ],
+        "display": [
+          5862.1025390625,
+          614.0,
+          2751.862548828125
+        ],
+        "topTimer": 9,
+        "topAction": 0,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": false,
+          "active": 273,
+          "action": 0,
+          "position": [
+            5817.22216796875,
+            609.2288818359375,
+            2583.48876953125
+          ],
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": 0.0,
+          "floorY": 0.0,
+          "interact": 0
+        },
+        "buttons": 0
+      },
+      {
+        "timer": 2726,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 75531353,
+        "actionArg": 0,
+        "used": 126,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5862.1025390625,
+          614.0,
+          2762.288330078125
+        ],
+        "collision": [
+          5862.1025390625,
+          614.0,
+          2762.288330078125
+        ],
+        "display": [
+          5862.1025390625,
+          614.0,
+          2762.288330078125
+        ],
+        "topTimer": 10,
+        "topAction": 0,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": false,
+          "active": 273,
+          "action": 0,
+          "position": [
+            5817.22216796875,
+            609.2288818359375,
+            2583.48876953125
+          ],
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": 0.0,
+          "floorY": 0.0,
+          "interact": 0
+        },
+        "buttons": 0
+      },
+      {
+        "timer": 2727,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 75531353,
+        "actionArg": 0,
+        "used": 126,
+        "floor": true,
+        "floorY": 614.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          5862.1025390625,
+          614.0,
+          2771.879150390625
+        ],
+        "collision": [
+          5862.1025390625,
+          614.0,
+          2771.879150390625
+        ],
+        "display": [
+          5862.1025390625,
+          614.0,
+          2771.879150390625
+        ],
+        "topTimer": 1,
+        "topAction": 0,
+        "ridden": -1,
+        "shell": {
+          "slot": 126,
+          "isShell": false,
+          "active": 0,
+          "action": 0,
+          "position": [
+            5817.22216796875,
+            609.2288818359375,
+            2583.48876953125
+          ],
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "forward": 0.0,
+          "floorY": 0.0,
+          "interact": 0
+        },
+        "buttons": 0
+      }
+    ]
+  },
+  "cleanApproachScreen": {
+    "prefixPolls": 650,
+    "initial": {
+      "timer": 651,
+      "level": 8,
+      "area": 1,
+      "debugLevelSelect": 1,
+      "playMode": 0,
+      "specialDestination": 0,
+      "warpOp": 0,
+      "countdown": 0,
+      "sourceNode": 0,
+      "warpDestination": {
+        "type": 0,
+        "levelNum": 0,
+        "areaIdx": 0,
+        "nodeId": 0,
+        "arg": 0
+      },
+      "lives": 4,
+      "action": 67109952,
+      "actionArg": 0,
+      "used": 47,
+      "floor": true,
+      "floorY": 79.72163391113281,
+      "floorOwner": -1,
+      "platform": -1,
+      "marioObject": 67,
+      "movement": [
+        4463.7763671875,
+        79.72163391113281,
+        3766.744873046875
+      ],
+      "collision": [
+        4463.7763671875,
+        79.72163391113281,
+        3766.744873046875
+      ],
+      "display": [
+        4463.7763671875,
+        79.72163391113281,
+        3766.744873046875
+      ],
+      "topTimer": 303,
+      "topAction": 0,
+      "ridden": -1,
+      "shell": null
+    },
+    "nonControllerEdits": [],
+    "testedUpdates": 4800,
+    "trials": [
+      {
+        "via": [],
+        "samples": [
+          {
+            "timer": 652,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 67109952,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 83.57032012939453,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              4456.8076171875,
+              83.57032012939453,
+              3754.572998046875
+            ],
+            "collision": [
+              4456.8076171875,
+              83.57032012939453,
+              3754.572998046875
+            ],
+            "display": [
+              4456.8076171875,
+              83.57032012939453,
+              3754.572998046875
+            ],
+            "topTimer": 304,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 752,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 902,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              6161.40771484375,
+              51.0,
+              2240.6728515625
+            ],
+            "collision": [
+              6161.40771484375,
+              51.0,
+              2240.6728515625
+            ],
+            "display": [
+              6161.40771484375,
+              51.0,
+              2240.6728515625
+            ],
+            "topTimer": 404,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 852,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 67109952,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5871.623046875,
+              51.0,
+              2492.496826171875
+            ],
+            "collision": [
+              5871.623046875,
+              51.0,
+              2492.496826171875
+            ],
+            "display": [
+              5871.623046875,
+              51.0,
+              2492.496826171875
+            ],
+            "topTimer": 504,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 952,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 2,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5745.283203125,
+              51.0,
+              2400.341552734375
+            ],
+            "collision": [
+              5745.283203125,
+              51.0,
+              2400.341552734375
+            ],
+            "display": [
+              5745.283203125,
+              51.0,
+              2400.341552734375
+            ],
+            "topTimer": 604,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 1052,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 1092,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5782.794921875,
+              51.0,
+              2536.938232421875
+            ],
+            "collision": [
+              5782.794921875,
+              51.0,
+              2536.938232421875
+            ],
+            "display": [
+              5782.794921875,
+              51.0,
+              2536.938232421875
+            ],
+            "topTimer": 704,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 1152,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 67109952,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5915.224609375,
+              51.0,
+              2398.626708984375
+            ],
+            "collision": [
+              5915.224609375,
+              51.0,
+              2398.626708984375
+            ],
+            "display": [
+              5915.224609375,
+              51.0,
+              2398.626708984375
+            ],
+            "topTimer": 804,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          }
+        ],
+        "final": {
+          "timer": 1251,
+          "level": 8,
+          "area": 1,
+          "debugLevelSelect": 1,
+          "playMode": 0,
+          "specialDestination": 0,
+          "warpOp": 0,
+          "countdown": 0,
+          "sourceNode": 0,
+          "warpDestination": {
+            "type": 0,
+            "levelNum": 0,
+            "areaIdx": 0,
+            "nodeId": 0,
+            "arg": 0
+          },
+          "lives": 4,
+          "action": 8389719,
+          "actionArg": 2,
+          "used": 47,
+          "floor": true,
+          "floorY": 51.0,
+          "floorOwner": -1,
+          "platform": -1,
+          "marioObject": 67,
+          "movement": [
+            5705.630859375,
+            51.0,
+            2485.681396484375
+          ],
+          "collision": [
+            5705.630859375,
+            51.0,
+            2485.681396484375
+          ],
+          "display": [
+            5705.630859375,
+            51.0,
+            2485.681396484375
+          ],
+          "topTimer": 903,
+          "topAction": 0,
+          "ridden": -1,
+          "shell": null
+        },
+        "boxAction": 2,
+        "activeShells": [],
+        "inputCount": 600,
+        "inputSha256": "1c2f35c74665f819d256db33a148480a0af5b361ca67b2c783ea7e211849e022"
+      },
+      {
+        "via": [
+          [
+            6400,
+            4200
+          ]
+        ],
+        "samples": [
+          {
+            "timer": 652,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 1091,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 83.02034759521484,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              4457.2861328125,
+              83.02034759521484,
+              3759.289794921875
+            ],
+            "collision": [
+              4457.2861328125,
+              83.02034759521484,
+              3759.289794921875
+            ],
+            "display": [
+              4457.2861328125,
+              83.02034759521484,
+              3759.289794921875
+            ],
+            "topTimer": 304,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 752,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 67109952,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              6309.505859375,
+              51.0,
+              3825.48388671875
+            ],
+            "collision": [
+              6309.505859375,
+              51.0,
+              3825.48388671875
+            ],
+            "display": [
+              6309.505859375,
+              51.0,
+              3825.48388671875
+            ],
+            "topTimer": 404,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 852,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 2,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5752.576171875,
+              51.0,
+              2663.384765625
+            ],
+            "collision": [
+              5752.576171875,
+              51.0,
+              2663.384765625
+            ],
+            "display": [
+              5752.576171875,
+              51.0,
+              2663.384765625
+            ],
+            "topTimer": 504,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 952,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 2,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5850.94921875,
+              51.0,
+              2500.9931640625
+            ],
+            "collision": [
+              5850.94921875,
+              51.0,
+              2500.9931640625
+            ],
+            "display": [
+              5850.94921875,
+              51.0,
+              2500.9931640625
+            ],
+            "topTimer": 604,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 1052,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 2,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5704.599609375,
+              51.0,
+              2336.263671875
+            ],
+            "collision": [
+              5704.599609375,
+              51.0,
+              2336.263671875
+            ],
+            "display": [
+              5704.599609375,
+              51.0,
+              2336.263671875
+            ],
+            "topTimer": 704,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 1152,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 2,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5834.77783203125,
+              51.0,
+              2496.533203125
+            ],
+            "collision": [
+              5834.77783203125,
+              51.0,
+              2496.533203125
+            ],
+            "display": [
+              5834.77783203125,
+              51.0,
+              2496.533203125
+            ],
+            "topTimer": 804,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          }
+        ],
+        "final": {
+          "timer": 1251,
+          "level": 8,
+          "area": 1,
+          "debugLevelSelect": 1,
+          "playMode": 0,
+          "specialDestination": 0,
+          "warpOp": 0,
+          "countdown": 0,
+          "sourceNode": 0,
+          "warpDestination": {
+            "type": 0,
+            "levelNum": 0,
+            "areaIdx": 0,
+            "nodeId": 0,
+            "arg": 0
+          },
+          "lives": 4,
+          "action": 8389719,
+          "actionArg": 2,
+          "used": 47,
+          "floor": true,
+          "floorY": 51.0,
+          "floorOwner": -1,
+          "platform": -1,
+          "marioObject": 67,
+          "movement": [
+            5796.97119140625,
+            51.0,
+            2667.5966796875
+          ],
+          "collision": [
+            5796.97119140625,
+            51.0,
+            2667.5966796875
+          ],
+          "display": [
+            5796.97119140625,
+            51.0,
+            2667.5966796875
+          ],
+          "topTimer": 903,
+          "topAction": 0,
+          "ridden": -1,
+          "shell": null
+        },
+        "boxAction": 2,
+        "activeShells": [],
+        "inputCount": 600,
+        "inputSha256": "4b38512b0fd5a898954fd3f65116fcb78ce8b1e3d40159d4f6fd925cfaa419e5"
+      },
+      {
+        "via": [
+          [
+            6400,
+            3200
+          ]
+        ],
+        "samples": [
+          {
+            "timer": 652,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 1091,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 83.02034759521484,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              4457.2861328125,
+              83.02034759521484,
+              3759.289794921875
+            ],
+            "collision": [
+              4457.2861328125,
+              83.02034759521484,
+              3759.289794921875
+            ],
+            "display": [
+              4457.2861328125,
+              83.02034759521484,
+              3759.289794921875
+            ],
+            "topTimer": 304,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 752,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 67109952,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              6206.64111328125,
+              51.0,
+              2924.71142578125
+            ],
+            "collision": [
+              6206.64111328125,
+              51.0,
+              2924.71142578125
+            ],
+            "display": [
+              6206.64111328125,
+              51.0,
+              2924.71142578125
+            ],
+            "topTimer": 404,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 852,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 132197,
+            "actionArg": 1,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5806.47119140625,
+              51.0,
+              2481.380859375
+            ],
+            "collision": [
+              5806.47119140625,
+              51.0,
+              2481.380859375
+            ],
+            "display": [
+              5806.47119140625,
+              51.0,
+              2481.380859375
+            ],
+            "topTimer": 504,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 952,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 2,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5975.90478515625,
+              51.0,
+              2463.365234375
+            ],
+            "collision": [
+              5975.90478515625,
+              51.0,
+              2463.365234375
+            ],
+            "display": [
+              5975.90478515625,
+              51.0,
+              2463.365234375
+            ],
+            "topTimer": 604,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 1052,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 1,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5787.10791015625,
+              51.0,
+              2526.8232421875
+            ],
+            "collision": [
+              5787.10791015625,
+              51.0,
+              2526.8232421875
+            ],
+            "display": [
+              5787.10791015625,
+              51.0,
+              2526.8232421875
+            ],
+            "topTimer": 704,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 1152,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 1,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5861.84423828125,
+              51.0,
+              2323.15234375
+            ],
+            "collision": [
+              5861.84423828125,
+              51.0,
+              2323.15234375
+            ],
+            "display": [
+              5861.84423828125,
+              51.0,
+              2323.15234375
+            ],
+            "topTimer": 804,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          }
+        ],
+        "final": {
+          "timer": 1251,
+          "level": 8,
+          "area": 1,
+          "debugLevelSelect": 1,
+          "playMode": 0,
+          "specialDestination": 0,
+          "warpOp": 0,
+          "countdown": 0,
+          "sourceNode": 0,
+          "warpDestination": {
+            "type": 0,
+            "levelNum": 0,
+            "areaIdx": 0,
+            "nodeId": 0,
+            "arg": 0
+          },
+          "lives": 4,
+          "action": 8389719,
+          "actionArg": 1,
+          "used": 47,
+          "floor": true,
+          "floorY": 51.0,
+          "floorOwner": -1,
+          "platform": -1,
+          "marioObject": 67,
+          "movement": [
+            5947.45361328125,
+            51.0,
+            2526.6015625
+          ],
+          "collision": [
+            5947.45361328125,
+            51.0,
+            2526.6015625
+          ],
+          "display": [
+            5947.45361328125,
+            51.0,
+            2526.6015625
+          ],
+          "topTimer": 903,
+          "topAction": 0,
+          "ridden": -1,
+          "shell": null
+        },
+        "boxAction": 2,
+        "activeShells": [],
+        "inputCount": 600,
+        "inputSha256": "6870fd761df6f9ae8250af48e21af4ff0c0a9a77324072b417b8cabcdcd3363b"
+      },
+      {
+        "via": [
+          [
+            6200,
+            1900
+          ]
+        ],
+        "samples": [
+          {
+            "timer": 652,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 67109952,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 83.57032012939453,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              4456.8076171875,
+              83.57032012939453,
+              3754.572998046875
+            ],
+            "collision": [
+              4456.8076171875,
+              83.57032012939453,
+              3754.572998046875
+            ],
+            "display": [
+              4456.8076171875,
+              83.57032012939453,
+              3754.572998046875
+            ],
+            "topTimer": 304,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 752,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8914006,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 1.9426594972610474,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              6333.73779296875,
+              1.9426594972610474,
+              2039.53564453125
+            ],
+            "collision": [
+              6333.73779296875,
+              1.9426594972610474,
+              2039.53564453125
+            ],
+            "display": [
+              6333.73779296875,
+              1.9426594972610474,
+              2039.53564453125
+            ],
+            "topTimer": 404,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 852,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 2,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5978.32666015625,
+              51.0,
+              2468.81884765625
+            ],
+            "collision": [
+              5978.32666015625,
+              51.0,
+              2468.81884765625
+            ],
+            "display": [
+              5978.32666015625,
+              51.0,
+              2468.81884765625
+            ],
+            "topTimer": 504,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 952,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 2,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5733.17578125,
+              51.0,
+              2384.76318359375
+            ],
+            "collision": [
+              5733.17578125,
+              51.0,
+              2384.76318359375
+            ],
+            "display": [
+              5733.17578125,
+              51.0,
+              2384.76318359375
+            ],
+            "topTimer": 604,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 1052,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 2,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5803.900390625,
+              51.0,
+              2683.47509765625
+            ],
+            "collision": [
+              5803.900390625,
+              51.0,
+              2683.47509765625
+            ],
+            "display": [
+              5803.900390625,
+              51.0,
+              2683.47509765625
+            ],
+            "topTimer": 704,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 1152,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 1,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5895.537109375,
+              51.0,
+              2486.84423828125
+            ],
+            "collision": [
+              5895.537109375,
+              51.0,
+              2486.84423828125
+            ],
+            "display": [
+              5895.537109375,
+              51.0,
+              2486.84423828125
+            ],
+            "topTimer": 804,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          }
+        ],
+        "final": {
+          "timer": 1251,
+          "level": 8,
+          "area": 1,
+          "debugLevelSelect": 1,
+          "playMode": 0,
+          "specialDestination": 0,
+          "warpOp": 0,
+          "countdown": 0,
+          "sourceNode": 0,
+          "warpDestination": {
+            "type": 0,
+            "levelNum": 0,
+            "areaIdx": 0,
+            "nodeId": 0,
+            "arg": 0
+          },
+          "lives": 4,
+          "action": 8389719,
+          "actionArg": 1,
+          "used": 47,
+          "floor": true,
+          "floorY": 51.0,
+          "floorOwner": -1,
+          "platform": -1,
+          "marioObject": 67,
+          "movement": [
+            5680.8046875,
+            51.0,
+            2537.95849609375
+          ],
+          "collision": [
+            5680.8046875,
+            51.0,
+            2537.95849609375
+          ],
+          "display": [
+            5680.8046875,
+            51.0,
+            2537.95849609375
+          ],
+          "topTimer": 903,
+          "topAction": 0,
+          "ridden": -1,
+          "shell": null
+        },
+        "boxAction": 2,
+        "activeShells": [],
+        "inputCount": 600,
+        "inputSha256": "ba3f7295a3025e01763f7fd8604123be18cab59a4d84a04347509ab472c03177"
+      },
+      {
+        "via": [
+          [
+            5600,
+            1800
+          ]
+        ],
+        "samples": [
+          {
+            "timer": 652,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 67109952,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 83.57032012939453,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              4456.8076171875,
+              83.57032012939453,
+              3754.572998046875
+            ],
+            "collision": [
+              4456.8076171875,
+              83.57032012939453,
+              3754.572998046875
+            ],
+            "display": [
+              4456.8076171875,
+              83.57032012939453,
+              3754.572998046875
+            ],
+            "topTimer": 304,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 752,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 67109952,
+            "actionArg": 32768,
+            "used": 47,
+            "floor": true,
+            "floorY": 34.11038589477539,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5447.42138671875,
+              34.11038589477539,
+              2151.3505859375
+            ],
+            "collision": [
+              5447.42138671875,
+              34.11038589477539,
+              2151.3505859375
+            ],
+            "display": [
+              5447.42138671875,
+              34.11038589477539,
+              2151.3505859375
+            ],
+            "topTimer": 404,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 852,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 1,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              6014.314453125,
+              51.0,
+              2551.60791015625
+            ],
+            "collision": [
+              6014.314453125,
+              51.0,
+              2551.60791015625
+            ],
+            "display": [
+              6014.314453125,
+              51.0,
+              2551.60791015625
+            ],
+            "topTimer": 504,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 952,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 1,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5864.994140625,
+              51.0,
+              2696.1748046875
+            ],
+            "collision": [
+              5864.994140625,
+              51.0,
+              2696.1748046875
+            ],
+            "display": [
+              5864.994140625,
+              51.0,
+              2696.1748046875
+            ],
+            "topTimer": 604,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 1052,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 67109952,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5764.240234375,
+              51.0,
+              2510.1552734375
+            ],
+            "collision": [
+              5764.240234375,
+              51.0,
+              2510.1552734375
+            ],
+            "display": [
+              5764.240234375,
+              51.0,
+              2510.1552734375
+            ],
+            "topTimer": 704,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 1152,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 67109952,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5964.013671875,
+              51.0,
+              2529.1875
+            ],
+            "collision": [
+              5964.013671875,
+              51.0,
+              2529.1875
+            ],
+            "display": [
+              5964.013671875,
+              51.0,
+              2529.1875
+            ],
+            "topTimer": 804,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          }
+        ],
+        "final": {
+          "timer": 1251,
+          "level": 8,
+          "area": 1,
+          "debugLevelSelect": 1,
+          "playMode": 0,
+          "specialDestination": 0,
+          "warpOp": 0,
+          "countdown": 0,
+          "sourceNode": 0,
+          "warpDestination": {
+            "type": 0,
+            "levelNum": 0,
+            "areaIdx": 0,
+            "nodeId": 0,
+            "arg": 0
+          },
+          "lives": 4,
+          "action": 67109952,
+          "actionArg": 0,
+          "used": 47,
+          "floor": true,
+          "floorY": 51.0,
+          "floorOwner": -1,
+          "platform": -1,
+          "marioObject": 67,
+          "movement": [
+            5832.7421875,
+            51.0,
+            2489.87890625
+          ],
+          "collision": [
+            5832.7421875,
+            51.0,
+            2489.87890625
+          ],
+          "display": [
+            5832.7421875,
+            51.0,
+            2489.87890625
+          ],
+          "topTimer": 903,
+          "topAction": 0,
+          "ridden": -1,
+          "shell": null
+        },
+        "boxAction": 2,
+        "activeShells": [],
+        "inputCount": 600,
+        "inputSha256": "e73e0c5aa683b82c91ad7141767c1cbec8dad018ab95ca7d6a3f548e0226e5bd"
+      },
+      {
+        "via": [
+          [
+            5200,
+            2500
+          ]
+        ],
+        "samples": [
+          {
+            "timer": 652,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 67109952,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 83.57032012939453,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              4456.8076171875,
+              83.57032012939453,
+              3754.572998046875
+            ],
+            "collision": [
+              4456.8076171875,
+              83.57032012939453,
+              3754.572998046875
+            ],
+            "display": [
+              4456.8076171875,
+              83.57032012939453,
+              3754.572998046875
+            ],
+            "topTimer": 304,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 752,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 902,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              6324.89599609375,
+              51.0,
+              2501.157958984375
+            ],
+            "collision": [
+              6324.89599609375,
+              51.0,
+              2501.157958984375
+            ],
+            "display": [
+              6324.89599609375,
+              51.0,
+              2501.157958984375
+            ],
+            "topTimer": 404,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 852,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 2,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5719.38037109375,
+              51.0,
+              2362.432373046875
+            ],
+            "collision": [
+              5719.38037109375,
+              51.0,
+              2362.432373046875
+            ],
+            "display": [
+              5719.38037109375,
+              51.0,
+              2362.432373046875
+            ],
+            "topTimer": 504,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 952,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 2,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5944.36328125,
+              51.0,
+              2536.951904296875
+            ],
+            "collision": [
+              5944.36328125,
+              51.0,
+              2536.951904296875
+            ],
+            "display": [
+              5944.36328125,
+              51.0,
+              2536.951904296875
+            ],
+            "topTimer": 604,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 1052,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 2,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5764.423828125,
+              51.0,
+              2489.303466796875
+            ],
+            "collision": [
+              5764.423828125,
+              51.0,
+              2489.303466796875
+            ],
+            "display": [
+              5764.423828125,
+              51.0,
+              2489.303466796875
+            ],
+            "topTimer": 704,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 1152,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 2,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5924.33203125,
+              51.0,
+              2334.191162109375
+            ],
+            "collision": [
+              5924.33203125,
+              51.0,
+              2334.191162109375
+            ],
+            "display": [
+              5924.33203125,
+              51.0,
+              2334.191162109375
+            ],
+            "topTimer": 804,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          }
+        ],
+        "final": {
+          "timer": 1251,
+          "level": 8,
+          "area": 1,
+          "debugLevelSelect": 1,
+          "playMode": 0,
+          "specialDestination": 0,
+          "warpOp": 0,
+          "countdown": 0,
+          "sourceNode": 0,
+          "warpDestination": {
+            "type": 0,
+            "levelNum": 0,
+            "areaIdx": 0,
+            "nodeId": 0,
+            "arg": 0
+          },
+          "lives": 4,
+          "action": 8389719,
+          "actionArg": 2,
+          "used": 47,
+          "floor": true,
+          "floorY": 51.0,
+          "floorOwner": -1,
+          "platform": -1,
+          "marioObject": 67,
+          "movement": [
+            5920.326171875,
+            51.0,
+            2557.033935546875
+          ],
+          "collision": [
+            5920.326171875,
+            51.0,
+            2557.033935546875
+          ],
+          "display": [
+            5920.326171875,
+            51.0,
+            2557.033935546875
+          ],
+          "topTimer": 903,
+          "topAction": 0,
+          "ridden": -1,
+          "shell": null
+        },
+        "boxAction": 2,
+        "activeShells": [],
+        "inputCount": 600,
+        "inputSha256": "f78cdf44eb7be9f2278719c9c224b8960a481d33af80df7f3eb34e603c1f49da"
+      },
+      {
+        "via": [
+          [
+            5800,
+            4200
+          ]
+        ],
+        "samples": [
+          {
+            "timer": 652,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 1091,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 83.02034759521484,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              4457.2861328125,
+              83.02034759521484,
+              3759.289794921875
+            ],
+            "collision": [
+              4457.2861328125,
+              83.02034759521484,
+              3759.289794921875
+            ],
+            "display": [
+              4457.2861328125,
+              83.02034759521484,
+              3759.289794921875
+            ],
+            "topTimer": 304,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 752,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 67109952,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5808.10791015625,
+              51.0,
+              3332.428466796875
+            ],
+            "collision": [
+              5808.10791015625,
+              51.0,
+              3332.428466796875
+            ],
+            "display": [
+              5808.10791015625,
+              51.0,
+              3332.428466796875
+            ],
+            "topTimer": 404,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 852,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 2,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5842.15478515625,
+              51.0,
+              2598.8251953125
+            ],
+            "collision": [
+              5842.15478515625,
+              51.0,
+              2598.8251953125
+            ],
+            "display": [
+              5842.15478515625,
+              51.0,
+              2598.8251953125
+            ],
+            "topTimer": 504,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 952,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 1,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5800.92626953125,
+              51.0,
+              2653.703125
+            ],
+            "collision": [
+              5800.92626953125,
+              51.0,
+              2653.703125
+            ],
+            "display": [
+              5800.92626953125,
+              51.0,
+              2653.703125
+            ],
+            "topTimer": 604,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 1052,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 1,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5813.79736328125,
+              51.0,
+              2456.48046875
+            ],
+            "collision": [
+              5813.79736328125,
+              51.0,
+              2456.48046875
+            ],
+            "display": [
+              5813.79736328125,
+              51.0,
+              2456.48046875
+            ],
+            "topTimer": 704,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 1152,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 67109952,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5944.74658203125,
+              51.0,
+              2587.103515625
+            ],
+            "collision": [
+              5944.74658203125,
+              51.0,
+              2587.103515625
+            ],
+            "display": [
+              5944.74658203125,
+              51.0,
+              2587.103515625
+            ],
+            "topTimer": 804,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          }
+        ],
+        "final": {
+          "timer": 1251,
+          "level": 8,
+          "area": 1,
+          "debugLevelSelect": 1,
+          "playMode": 0,
+          "specialDestination": 0,
+          "warpOp": 0,
+          "countdown": 0,
+          "sourceNode": 0,
+          "warpDestination": {
+            "type": 0,
+            "levelNum": 0,
+            "areaIdx": 0,
+            "nodeId": 0,
+            "arg": 0
+          },
+          "lives": 4,
+          "action": 67109952,
+          "actionArg": 0,
+          "used": 47,
+          "floor": true,
+          "floorY": 51.0,
+          "floorOwner": -1,
+          "platform": -1,
+          "marioObject": 67,
+          "movement": [
+            5936.61572265625,
+            51.0,
+            2360.1845703125
+          ],
+          "collision": [
+            5936.61572265625,
+            51.0,
+            2360.1845703125
+          ],
+          "display": [
+            5936.61572265625,
+            51.0,
+            2360.1845703125
+          ],
+          "topTimer": 903,
+          "topAction": 0,
+          "ridden": -1,
+          "shell": null
+        },
+        "boxAction": 2,
+        "activeShells": [],
+        "inputCount": 600,
+        "inputSha256": "3cf2cdaa376fe9eb93d6df9654aac7bc35137b783abc48b83d7dc50bdc559827"
+      },
+      {
+        "via": [
+          [
+            6800,
+            1000
+          ]
+        ],
+        "samples": [
+          {
+            "timer": 652,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 67109952,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 83.57032012939453,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              4456.8076171875,
+              83.57032012939453,
+              3754.572998046875
+            ],
+            "collision": [
+              4456.8076171875,
+              83.57032012939453,
+              3754.572998046875
+            ],
+            "display": [
+              4456.8076171875,
+              83.57032012939453,
+              3754.572998046875
+            ],
+            "topTimer": 304,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 752,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 67109952,
+            "actionArg": 0,
+            "used": 47,
+            "floor": true,
+            "floorY": 88.73704528808594,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              6370.2900390625,
+              88.73704528808594,
+              1499.78857421875
+            ],
+            "collision": [
+              6370.2900390625,
+              88.73704528808594,
+              1499.78857421875
+            ],
+            "display": [
+              6370.2900390625,
+              88.73704528808594,
+              1499.78857421875
+            ],
+            "topTimer": 404,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 852,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 67109952,
+            "actionArg": 49152,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              6050.0,
+              51.0,
+              2302.86474609375
+            ],
+            "collision": [
+              6050.0,
+              51.0,
+              2302.86474609375
+            ],
+            "display": [
+              6050.0,
+              51.0,
+              2302.86474609375
+            ],
+            "topTimer": 504,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 952,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 2,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5731.06640625,
+              51.0,
+              2464.7841796875
+            ],
+            "collision": [
+              5731.06640625,
+              51.0,
+              2464.7841796875
+            ],
+            "display": [
+              5731.06640625,
+              51.0,
+              2464.7841796875
+            ],
+            "topTimer": 604,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 1052,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 2,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5855.65234375,
+              51.0,
+              2520.123046875
+            ],
+            "collision": [
+              5855.65234375,
+              51.0,
+              2520.123046875
+            ],
+            "display": [
+              5855.65234375,
+              51.0,
+              2520.123046875
+            ],
+            "topTimer": 704,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          },
+          {
+            "timer": 1152,
+            "level": 8,
+            "area": 1,
+            "debugLevelSelect": 1,
+            "playMode": 0,
+            "specialDestination": 0,
+            "warpOp": 0,
+            "countdown": 0,
+            "sourceNode": 0,
+            "warpDestination": {
+              "type": 0,
+              "levelNum": 0,
+              "areaIdx": 0,
+              "nodeId": 0,
+              "arg": 0
+            },
+            "lives": 4,
+            "action": 8389719,
+            "actionArg": 2,
+            "used": 47,
+            "floor": true,
+            "floorY": 51.0,
+            "floorOwner": -1,
+            "platform": -1,
+            "marioObject": 67,
+            "movement": [
+              5759.533203125,
+              51.0,
+              2404.8408203125
+            ],
+            "collision": [
+              5759.533203125,
+              51.0,
+              2404.8408203125
+            ],
+            "display": [
+              5759.533203125,
+              51.0,
+              2404.8408203125
+            ],
+            "topTimer": 804,
+            "topAction": 0,
+            "ridden": -1,
+            "shell": null
+          }
+        ],
+        "final": {
+          "timer": 1251,
+          "level": 8,
+          "area": 1,
+          "debugLevelSelect": 1,
+          "playMode": 0,
+          "specialDestination": 0,
+          "warpOp": 0,
+          "countdown": 0,
+          "sourceNode": 0,
+          "warpDestination": {
+            "type": 0,
+            "levelNum": 0,
+            "areaIdx": 0,
+            "nodeId": 0,
+            "arg": 0
+          },
+          "lives": 4,
+          "action": 8389719,
+          "actionArg": 2,
+          "used": 47,
+          "floor": true,
+          "floorY": 51.0,
+          "floorOwner": -1,
+          "platform": -1,
+          "marioObject": 67,
+          "movement": [
+            5712.587890625,
+            51.0,
+            2622.166015625
+          ],
+          "collision": [
+            5712.587890625,
+            51.0,
+            2622.166015625
+          ],
+          "display": [
+            5712.587890625,
+            51.0,
+            2622.166015625
+          ],
+          "topTimer": 903,
+          "topAction": 0,
+          "ridden": -1,
+          "shell": null
+        },
+        "boxAction": 2,
+        "activeShells": [],
+        "inputCount": 600,
+        "inputSha256": "81ab770c6b3f56b622b60faf95d8a164948f66ea161234602afaeccc1239034d"
+      }
+    ]
+  },
+  "scriptSha256": "49c098b36a1deff258fc1a84105ac7e9dd78c9559cf7a697aedf80896ef3db34",
+  "rawReportSha256": "208de44808f50d93b5feaa563f4343436604780be3e3b236e9480e2bc174cae4"
+}

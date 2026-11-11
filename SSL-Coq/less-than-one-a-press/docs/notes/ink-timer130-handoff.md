@@ -1,5 +1,10 @@
 # The 973-unit candidate: timer 130 and the first crawl quarter
 
+The later [producer search](ink-973-producer-search.md) establishes local
+no-A crawl entry from a supplied roof position and removes unnecessary
+shell/velocity setup, but still leaves the high crawl and actor delivery
+unproduced. It does not change the conditional Coq results below.
+
 This follow-up starts from `fc5a2c0db663d7f5ec81b3efde4782485d7062a5`, a
 descendant of `ee8ba92`, on `codex/ssl-pyramid-item-proof`. It extends the
 [installation-handoff review](ink-installation-handoff.md). The user initially
