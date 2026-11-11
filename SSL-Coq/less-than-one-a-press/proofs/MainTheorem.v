@@ -1601,8 +1601,13 @@ Proof. exact icpb_concrete_producer_boundary_checked. Qed.
     placement boundary. The drop reads movement Y, not remembered hand Y;
     later released-actor callbacks are separate. The quarter's wall store is
     accounted for rather than assuming unchanged memory. These sharpen the
-    current-update handoff but do not construct a high crawler/item history,
-    derive the live query prefix, or compose the subsequent useful warp. *)
+    current-update handoff. The live-query boundary constructs the five-call
+    prefix from actual chained calls, with explicit wall/ceiling cell frames.
+    Fresh-query, push-query/commit and crawl cuts now compose along one actual
+    small-step path, with two explicit four-cell interval frames. Proving that
+    its continuations belong to one Mario-action activation, supplying the live
+    geometry returns, and constructing a high crawler/item history and useful
+    warp remain open. *)
 Theorem current_ink_stopped_floor_producer_boundary : InkStoppedFloorProducerCheckedBoundary.
 Proof. exact icpb_stopped_floor_producer_checked. Qed.
 

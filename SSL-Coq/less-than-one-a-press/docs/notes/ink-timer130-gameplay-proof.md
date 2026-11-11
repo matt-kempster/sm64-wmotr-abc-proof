@@ -1,5 +1,11 @@
 # Coq and the remaining timer-130 gameplay connection
 
+The [next backward follow-up](ink-handoff-reverse-scattershot.md) connects the
+fresh primary query, push query/commit and live crawl-query chain conditionally,
+and reports the new bounded reverse scattershot search. The results below
+remain valid; the later note identifies which query-prefix assumptions have
+since been refined and which same-update obligations remain.
+
 Neither a clean no-A route to the timer-130 handoff nor its impossibility is
 established. The successful supplied-state installation shows why simply
 comparing Mario's height with the warp height cannot exclude the route.

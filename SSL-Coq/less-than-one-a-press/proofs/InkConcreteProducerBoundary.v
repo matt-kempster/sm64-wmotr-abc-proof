@@ -8,7 +8,8 @@ From LessThanOneAPress.Proofs Require Import InkFloorProducerEffect
   InkBounceClearAscent InkMarioRawCopyCall InkMarioZeroParticleTail InkFlyGuySizeBoundary
   InkBounceLiveReadBoundary InkStockBounceHeight InkFlyGuyCycleHeight InkPokeyLiveScale
   InkObjectPushHandoff InkNearbyFloorGeometry InkTimer130Geometry
-  InkCrawlQuarterHandoff InkCrawlQuarterPrefix InkItemDropPlacement.
+  InkCrawlQuarterHandoff InkCrawlQuarterPrefix InkItemDropPlacement
+  InkObjectPushQuery InkCrawlLiveQueries InkFreshPushCrawl.
 
 (** Actor placement is not bounded by the old low-spawn example.  A matched
     fresh guard bounds the newly created rise; the completed actual air call
@@ -43,7 +44,9 @@ Definition InkStoppedFloorProducerCheckedBoundary : Prop :=
   InkStoppedCrawlActualResultAlignment /\ InkAlignmentTailFrameBoundary /\
   InkObjectPushHandoffBoundary /\ InkNearbyFloorGeometryBoundary /\
   InkTimer130GeometryBoundary /\ InkCrawlQuarterHandoffBoundary /\
-  InkCrawlQuarterPrefixBoundary /\ InkItemDropPlacementBoundary.
+  InkCrawlQuarterPrefixBoundary /\ InkItemDropPlacementBoundary /\
+  InkObjectPushQueryBoundary /\ InkCrawlLiveQueriesBoundary /\
+  InkFreshPushCrawlBoundary.
 
 Theorem icpb_stopped_floor_producer_checked : InkStoppedFloorProducerCheckedBoundary.
 Proof.
@@ -58,7 +61,10 @@ Proof.
   split; [exact i130_geometry_checked|].
   split; [exact icqh_crawl_quarter_handoff_checked|].
   split; [exact icqp_crawl_quarter_prefix_checked|].
-  exact ink_item_drop_placement_checked.
+  split; [exact ink_item_drop_placement_checked|].
+  split; [exact ipq_object_push_query_checked|].
+  split; [exact icl_crawl_live_queries_checked|].
+  exact ifpc_fresh_push_crawl_checked.
 Qed.
 
 Definition InkConcreteProducerCheckedBoundary : Prop :=

@@ -714,3 +714,6 @@ proofs/InkTimer130Geometry.v
 proofs/InkCrawlQuarterHandoff.v
 proofs/InkItemDropPlacement.v
 proofs/InkCrawlQuarterPrefix.v
+proofs/InkObjectPushQuery.v
+proofs/InkCrawlLiveQueries.v
+proofs/InkFreshPushCrawl.v
