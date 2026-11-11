@@ -7,7 +7,8 @@ From LessThanOneAPress.Proofs Require Import InkFloorProducerEffect
   InkFloorAlignmentTailFrame InkAirReturnFrame InkBounceApproachGap
   InkBounceClearAscent InkMarioRawCopyCall InkMarioZeroParticleTail InkFlyGuySizeBoundary
   InkBounceLiveReadBoundary InkStockBounceHeight InkFlyGuyCycleHeight InkPokeyLiveScale
-  InkObjectPushHandoff InkNearbyFloorGeometry.
+  InkObjectPushHandoff InkNearbyFloorGeometry InkTimer130Geometry
+  InkCrawlQuarterHandoff.
 
 (** Actor placement is not bounded by the old low-spawn example.  A matched
     fresh guard bounds the newly created rise; the completed actual air call
@@ -40,7 +41,8 @@ Definition InkStoppedFloorProducerCheckedBoundary : Prop :=
   InkStoppedFloorQueryBoundary /\ InkGroundReturnedPositionFrame /\
   InkStoppedCrawlReturnedGap /\ InkStoppedCrawlGroundReturnConnection /\
   InkStoppedCrawlActualResultAlignment /\ InkAlignmentTailFrameBoundary /\
-  InkObjectPushHandoffBoundary /\ InkNearbyFloorGeometryBoundary.
+  InkObjectPushHandoffBoundary /\ InkNearbyFloorGeometryBoundary /\
+  InkTimer130GeometryBoundary /\ InkCrawlQuarterHandoffBoundary.
 
 Theorem icpb_stopped_floor_producer_checked : InkStoppedFloorProducerCheckedBoundary.
 Proof.
@@ -51,7 +53,9 @@ Proof.
   split; [exact isca_real_ground_result_two_reaches_alignment|].
   split; [exact ifat_alignment_tail_frame_boundary_checked|].
   split; [exact iph_object_push_handoff_checked|].
-  exact infg_nearby_floor_geometry_checked.
+  split; [exact infg_nearby_floor_geometry_checked|].
+  split; [exact i130_geometry_checked|].
+  exact icqh_crawl_quarter_handoff_checked.
 Qed.
 
 Definition InkConcreteProducerCheckedBoundary : Prop :=

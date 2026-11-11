@@ -1,0 +1,210 @@
+{
+  "scope": "Original-JP ROM render-only visualization; not the Wafel handoff replay",
+  "views": [
+    {
+      "file": "normal-high-pad-130.png",
+      "sha256": "c78bb2b3218866b612b41864308bcf545e109892ec6d01535308e13e2bb7397c",
+      "render_position": [
+        -1950,
+        1741,
+        -939
+      ],
+      "top_behavior_phase": 130,
+      "request_frame": 2683,
+      "previous_completed_frame": 2682,
+      "top_render_hidden": false,
+      "source_file": "super_mario_64-000.png",
+      "mode": "normal"
+    },
+    {
+      "file": "normal-high-pad-131.png",
+      "sha256": "ef6b07ce98896377a8f2b75260eaddf90d1fa62521f62906f7554047cfcb480f",
+      "render_position": [
+        -1950,
+        1741,
+        -939
+      ],
+      "top_behavior_phase": 131,
+      "request_frame": 2686,
+      "previous_completed_frame": 2685,
+      "top_render_hidden": false,
+      "source_file": "super_mario_64-001.png",
+      "mode": "normal"
+    },
+    {
+      "file": "normal-pushed-high-130.png",
+      "sha256": "f36ad7e2d35f8f7fb6fe4543c2765b5bfc4ef87a4854344219b2a824f4c18b02",
+      "render_position": [
+        -1882,
+        1741,
+        -939
+      ],
+      "top_behavior_phase": 130,
+      "request_frame": 2689,
+      "previous_completed_frame": 2688,
+      "top_render_hidden": false,
+      "source_file": "super_mario_64-002.png",
+      "mode": "normal"
+    },
+    {
+      "file": "normal-pushed-high-131.png",
+      "sha256": "fc7b9656b2965ccd05c974b5665d1d37f7bb68a8fbb2b82bade3c232b4c656f0",
+      "render_position": [
+        -1882,
+        1741,
+        -939
+      ],
+      "top_behavior_phase": 131,
+      "request_frame": 2692,
+      "previous_completed_frame": 2691,
+      "top_render_hidden": false,
+      "source_file": "super_mario_64-003.png",
+      "mode": "normal"
+    },
+    {
+      "file": "normal-low-target-130.png",
+      "sha256": "59778b1b00e0b6d7af54533596f34f01f34aad0768d797cc0a92fce2787af383",
+      "render_position": [
+        -1882,
+        768,
+        -939
+      ],
+      "top_behavior_phase": 130,
+      "request_frame": 2695,
+      "previous_completed_frame": 2694,
+      "top_render_hidden": false,
+      "source_file": "super_mario_64-004.png",
+      "mode": "normal"
+    },
+    {
+      "file": "normal-low-target-131.png",
+      "sha256": "8f1bbc86b4d5bb510d4a9d86eb0db1fa897aa87240b017973324c73cd2a01918",
+      "render_position": [
+        -1882,
+        768,
+        -939
+      ],
+      "top_behavior_phase": 131,
+      "request_frame": 2698,
+      "previous_completed_frame": 2697,
+      "top_render_hidden": false,
+      "source_file": "super_mario_64-005.png",
+      "mode": "normal"
+    },
+    {
+      "file": "cutaway-high-pad-130.png",
+      "sha256": "5dd944b5a0c00c30b19df9eadb683a6d0713a9e812bf836f6fda0be6a4ab4cb6",
+      "render_position": [
+        -1950,
+        1741,
+        -939
+      ],
+      "top_behavior_phase": 130,
+      "request_frame": 2683,
+      "previous_completed_frame": 2682,
+      "top_render_hidden": true,
+      "source_file": "super_mario_64-000.png",
+      "mode": "cutaway"
+    },
+    {
+      "file": "cutaway-high-pad-131.png",
+      "sha256": "57b4cec80c0e3fbb37bfb7587f950934b402617eddf82da3d4c48305f800118e",
+      "render_position": [
+        -1950,
+        1741,
+        -939
+      ],
+      "top_behavior_phase": 131,
+      "request_frame": 2686,
+      "previous_completed_frame": 2685,
+      "top_render_hidden": true,
+      "source_file": "super_mario_64-001.png",
+      "mode": "cutaway"
+    },
+    {
+      "file": "cutaway-pushed-high-130.png",
+      "sha256": "d910e05aa9d194e3332ad0f4b5ad0264dabb21ef5b39a610dfc5fdf297cb3b56",
+      "render_position": [
+        -1882,
+        1741,
+        -939
+      ],
+      "top_behavior_phase": 130,
+      "request_frame": 2689,
+      "previous_completed_frame": 2688,
+      "top_render_hidden": true,
+      "source_file": "super_mario_64-002.png",
+      "mode": "cutaway"
+    },
+    {
+      "file": "cutaway-pushed-high-131.png",
+      "sha256": "eef3ec8100498bd362248fbd9a050309dafef6e1bfbb862132efa296484dd07a",
+      "render_position": [
+        -1882,
+        1741,
+        -939
+      ],
+      "top_behavior_phase": 131,
+      "request_frame": 2692,
+      "previous_completed_frame": 2691,
+      "top_render_hidden": true,
+      "source_file": "super_mario_64-003.png",
+      "mode": "cutaway"
+    },
+    {
+      "file": "cutaway-low-target-130.png",
+      "sha256": "f077cf334d5237bd8d86845e235d29c9186819a3d383ab474b837670d1b4bc40",
+      "render_position": [
+        -1882,
+        768,
+        -939
+      ],
+      "top_behavior_phase": 130,
+      "request_frame": 2695,
+      "previous_completed_frame": 2694,
+      "top_render_hidden": true,
+      "source_file": "super_mario_64-004.png",
+      "mode": "cutaway"
+    },
+    {
+      "file": "cutaway-low-target-131.png",
+      "sha256": "6cf71a54cbf4fbb0b73de73290d8321428bf6a0d62b4acce3222f2f6eee2a082",
+      "render_position": [
+        -1882,
+        768,
+        -939
+      ],
+      "top_behavior_phase": 131,
+      "request_frame": 2698,
+      "previous_completed_frame": 2697,
+      "top_render_hidden": true,
+      "source_file": "super_mario_64-005.png",
+      "mode": "cutaway"
+    }
+  ],
+  "runs": [
+    {
+      "mode": "normal",
+      "workspace_capture": "build/ink-candidate-views-20261111-held",
+      "claim": "Native original-JP render-only visualization; not a gameplay or reachability experiment",
+      "rom_sha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+      "capture_latency": "Request on third held render; preceding completed framebuffer has same pose and phase",
+      "raw_log_sha256": "1328e95976ff7057382edb21e00341cd00ab509626dbfea73da11d87ca146a60",
+      "probe_binary_sha256": "2b50c50d4fdb68cff4c20be69171e1a08b9e795c3b1c44278c2e7b31ca769780"
+    },
+    {
+      "mode": "cutaway",
+      "workspace_capture": "build/ink-candidate-cutaway-20261111-held",
+      "claim": "Native original-JP render-only visualization; not a gameplay or reachability experiment",
+      "rom_sha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+      "capture_latency": "Request on third held render; preceding completed framebuffer has same pose and phase",
+      "raw_log_sha256": "0c630b10502ee56c239845400487cf0198026f463403b610b8158a78b961c12c",
+      "probe_binary_sha256": "5be92f4036ea7f99c861a5f23397eb746673d685f32b9b5b6262e1077d74f4cf"
+    }
+  ],
+  "source_sha256": {
+    "probe.c": "a0d46e2a134a7034ea262ebd3eaf7f22290f818cd53611921409e79a5ecf696a",
+    "run.sh": "9b2e952c4b60056e6f42254324cc3cf0550d01c4ca7de0045023e57af409bd7a",
+    "check.py": "e6f8def10ed9a5b0f305de17318384f74b20d38636451dff2582e02d94d76522"
+  }
+}

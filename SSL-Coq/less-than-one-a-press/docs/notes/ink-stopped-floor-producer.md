@@ -1,5 +1,13 @@
 # The stopped crawl and remembered floor
 
+The [timer130 follow-up](ink-timer130-handoff.md) now supplies a concrete
+ceiling-stop mechanism for the 973-unit candidate: local roof1280, ceiling1523
+and intendedY1741 return2 before installing a new floor. The new checked
+generated-code tail preserves the entire memory at its entry, including a
+cached768 if present. A separately supplied high-crawl/shell runtime fixture
+realizes the handoff; a controller-produced high crawler and actor history,
+and the complete formal composition, remain open.
+
 The [11 November handoff review](ink-installation-handoff.md) adds a bounded
 nearby-floor certificate and a generated-code object-push commit frame to
 this boundary. "Remembered" means earlier in the **same** producer update:

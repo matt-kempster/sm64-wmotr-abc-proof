@@ -1,5 +1,12 @@
 # Ink installation: lower floors, object pushes and earlier top phases
 
+The later [timer130 follow-up](ink-timer130-handoff.md) checks the proposed
+973-unit candidate's fresh mesh and first-quarter ceiling stop. Following
+new authorization for experiments, it also adds a supplied high-crawl/shell
+replay. The source-only scope and open questions below describe this earlier
+review; the follow-up gives the current status without turning the supplied
+fixture into a clean controller route.
+
 This review starts at `ee8ba92b509179699b15860538c69f66b7eb674a` on
 `codex/ssl-pyramid-item-proof`. It uses existing source and saved records only.
 No new gameplay experiment or state search was run. The user subsequently

@@ -710,3 +710,5 @@ proofs/SelectedClightInitialMemory.v
 proofs/BobombAnimationInitialization.v
 proofs/InkObjectPushHandoff.v
 proofs/InkNearbyFloorGeometry.v
+proofs/InkTimer130Geometry.v
+proofs/InkCrawlQuarterHandoff.v

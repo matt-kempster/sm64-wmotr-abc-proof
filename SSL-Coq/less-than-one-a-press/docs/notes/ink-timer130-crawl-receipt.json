@@ -1,0 +1,3305 @@
+{
+  "schema": 1,
+  "runtime": "Pinned Wafel 0.8.5 JP DLL (hash checked by create_game)",
+  "runtimeSha256": "960fe979068b78e6733b3ddb87741833fbf4eb29b2a21a2bba871977427c2d0f",
+  "baselineSha256": "9bcc451964025d9f0bb1344c45957b6bfd095451b44bfb9a01f8584a75db6a72",
+  "scope": "Supplied high crawl and supplied real-shell release/placement; no clean producer",
+  "observationLimit": "Frame log plus after-update samples; no new floor/ceiling or first-apply call hook",
+  "beforeRelease": {
+    "timer": 2678,
+    "level": 8,
+    "area": 1,
+    "debugLevelSelect": 1,
+    "playMode": 0,
+    "specialDestination": 0,
+    "warpOp": 0,
+    "countdown": 0,
+    "sourceNode": 0,
+    "warpDestination": {
+      "type": 0,
+      "levelNum": 0,
+      "areaIdx": 0,
+      "nodeId": 0,
+      "arg": 0
+    },
+    "lives": 4,
+    "action": 205521409,
+    "actionArg": 0,
+    "used": 55,
+    "floor": true,
+    "floorY": 1024.0,
+    "floorOwner": -1,
+    "platform": -1,
+    "marioObject": 67,
+    "movement": [
+      -5883.07373046875,
+      1024.0,
+      819.5643920898438
+    ],
+    "collision": [
+      -5883.07373046875,
+      1024.0,
+      819.5643920898438
+    ],
+    "display": [
+      -5883.07373046875,
+      1024.0,
+      819.5643920898438
+    ],
+    "topTimer": 128,
+    "topAction": 1,
+    "topActive": 257,
+    "velocity": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "forwardVelocity": 0.0,
+    "faceAngle": [
+      0,
+      208,
+      0
+    ],
+    "input": 32,
+    "ceilingY": 20000.0,
+    "floorVertices": [
+      [
+        -5743,
+        1024,
+        624
+      ],
+      [
+        -6031,
+        1024,
+        912
+      ],
+      [
+        -5743,
+        1024,
+        912
+      ]
+    ]
+  },
+  "prefixEdits": [
+    {
+      "path": "gObjectPool[32].oAction",
+      "before": 2,
+      "after": 4
+    }
+  ],
+  "shellSlot": 126,
+  "scriptSha256": "7be9986ae0c3d6183c4dd34607222f216d90c1994c98786589a37b6455cfb34d",
+  "rawReportSha256": "8fde325f082a0e88881a7091774ff37bebd27092016c54f99a9ddeced440626f",
+  "trials": [
+    {
+      "name": "shell-up",
+      "edits": [
+        {
+          "path": "gMarioState.pos",
+          "before": [
+            -5883.07373046875,
+            1024.0,
+            819.5643920898438
+          ],
+          "after": [
+            -1950,
+            1741,
+            -939
+          ]
+        },
+        {
+          "path": "gMarioObject.oPosX",
+          "before": -5883.07373046875,
+          "after": -1950
+        },
+        {
+          "path": "gMarioObject.oPosY",
+          "before": 1024.0,
+          "after": 1741
+        },
+        {
+          "path": "gMarioObject.oPosZ",
+          "before": 819.5643920898438,
+          "after": -939
+        },
+        {
+          "path": "gMarioObject.header.gfx.pos",
+          "before": [
+            -5883.07373046875,
+            1024.0,
+            819.5643920898438
+          ],
+          "after": [
+            -1950,
+            1741,
+            -939
+          ]
+        },
+        {
+          "path": "gMarioState.action",
+          "before": 205521409,
+          "after": 67142728
+        },
+        {
+          "path": "gMarioState.actionState",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "path": "gMarioState.actionTimer",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "path": "gMarioState.forwardVel",
+          "before": 0.0,
+          "after": 5
+        },
+        {
+          "path": "gMarioState.vel",
+          "before": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "after": [
+            4,
+            0,
+            0
+          ]
+        },
+        {
+          "path": "gMarioState.faceAngle",
+          "before": [
+            0,
+            208,
+            0
+          ],
+          "after": [
+            0,
+            16384,
+            0
+          ]
+        },
+        {
+          "path": "gObjectPool[126].oPosX",
+          "before": 5840.11962890625,
+          "after": -1971
+        },
+        {
+          "path": "gObjectPool[126].oPosY",
+          "before": 968.0,
+          "after": 1741
+        },
+        {
+          "path": "gObjectPool[126].oPosZ",
+          "before": 2505.971923828125,
+          "after": -939
+        },
+        {
+          "path": "gObjectPool[126].oForwardVel",
+          "before": 2.9820644855499268,
+          "after": 0
+        },
+        {
+          "path": "gObjectPool[126].oVelX",
+          "before": 0.0596383661031723,
+          "after": 0
+        },
+        {
+          "path": "gObjectPool[126].oVelY",
+          "before": 12.0,
+          "after": 0
+        },
+        {
+          "path": "gObjectPool[126].oVelZ",
+          "before": 2.9814679622650146,
+          "after": 0
+        }
+      ],
+      "controller": {
+        "buttons": 8192,
+        "stick": [
+          0,
+          64
+        ]
+      },
+      "before": {
+        "timer": 2680,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67142728,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 1024.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "collision": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "display": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "topTimer": 130,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          4.0,
+          0.0,
+          0.0
+        ],
+        "forwardVelocity": 5.0,
+        "faceAngle": [
+          0,
+          16384,
+          0
+        ],
+        "input": 32,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -5743,
+            1024,
+            624
+          ],
+          [
+            -6031,
+            1024,
+            912
+          ],
+          [
+            -5743,
+            1024,
+            912
+          ]
+        ]
+      },
+      "after": {
+        "timer": 2681,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67142728,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 768.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1882.0,
+          768.0,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          768.0,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          1741.0,
+          -939.0
+        ],
+        "topTimer": 131,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          3.9231410026550293,
+          0.0,
+          -0.7803612947463989
+        ],
+        "forwardVelocity": 4.0,
+        "faceAngle": [
+          0,
+          18432,
+          0
+        ],
+        "input": 49157,
+        "ceilingY": 1523.0,
+        "floorVertices": [
+          [
+            -1945,
+            768,
+            -921
+          ],
+          [
+            -1945,
+            768,
+            -1125
+          ],
+          [
+            -2149,
+            768,
+            -1125
+          ]
+        ]
+      },
+      "events": [
+        {
+          "forwardVel": 5.0,
+          "vel": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "action": 67142728,
+          "pos": [
+            -1882.0,
+            1741.0,
+            -939.0
+          ],
+          "faceAngle": [
+            0,
+            16384,
+            0
+          ],
+          "type": "FLT_EXECUTE_ACTION"
+        },
+        {
+          "from": 5.0,
+          "type": "FLT_CHANGE_FORWARD_VEL",
+          "to": 4.0
+        },
+        {
+          "type": "FLT_BEGIN_MOVEMENT_STEP",
+          "stepType": 2,
+          "stepNum": 1
+        },
+        {
+          "_placeholder": 201327165,
+          "type": "FLT_END_MOVEMENT_STEP"
+        }
+      ],
+      "calculatedFirstQuarterIntended": [
+        -1881.0191650390625,
+        1741.0,
+        -939.195068359375
+      ],
+      "calculatedQueryIntegers": [
+        -1881,
+        1741,
+        -939
+      ],
+      "handoff": true,
+      "nextUpdateTopCapture": true,
+      "arrivalOutsideElevator": true,
+      "nextUpdate": {
+        "timer": 2682,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 4864,
+        "actionArg": 262145,
+        "used": 64,
+        "floor": true,
+        "floorY": 1818.9613037109375,
+        "floorOwner": 61,
+        "platform": 61,
+        "marioObject": 67,
+        "movement": [
+          -1882.0,
+          1818.9613037109375,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          1818.9613037109375,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          1818.9613037109375,
+          -939.0
+        ],
+        "topTimer": 132,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          0.0,
+          0.0,
+          -0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          18432,
+          0
+        ],
+        "input": 40,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -1877,
+            1528,
+            -330
+          ],
+          [
+            -1395,
+            1528,
+            -1232
+          ],
+          [
+            -2087,
+            2039,
+            -1023
+          ]
+        ]
+      },
+      "firstInactiveTopSample": {
+        "timer": 2702,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 3,
+        "specialDestination": 0,
+        "warpOp": 4,
+        "countdown": 0,
+        "sourceNode": 30,
+        "warpDestination": {
+          "type": 2,
+          "levelNum": 8,
+          "areaIdx": 2,
+          "nodeId": 20,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 4864,
+        "actionArg": 262125,
+        "used": 64,
+        "floor": true,
+        "floorY": 1966.6990966796875,
+        "floorOwner": 61,
+        "platform": 61,
+        "marioObject": 67,
+        "movement": [
+          -1991.2451171875,
+          1966.6990966796875,
+          -831.4880981445312
+        ],
+        "collision": [
+          -1991.2451171875,
+          1966.6990966796875,
+          -831.4880981445312
+        ],
+        "display": [
+          -1991.2451171875,
+          1966.6990966796875,
+          -831.4880981445312
+        ],
+        "topTimer": 1,
+        "topAction": 2,
+        "topActive": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          10240,
+          0
+        ],
+        "input": 40,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -2685,
+            1623,
+            -682
+          ],
+          [
+            -1706,
+            1623,
+            -385
+          ],
+          [
+            -2047,
+            2134,
+            -1023
+          ]
+        ]
+      },
+      "firstArea2Sample": {
+        "timer": 2705,
+        "level": 8,
+        "area": 2,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 30,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 8,
+          "areaIdx": 2,
+          "nodeId": 20,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 6450,
+        "actionArg": 0,
+        "used": 138,
+        "floor": true,
+        "floorY": 4429.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 148,
+        "movement": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "collision": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "display": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "topTimer": 1,
+        "topAction": 2,
+        "topActive": 0,
+        "velocity": [
+          -0.0,
+          -4.0,
+          -0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          -26624,
+          0
+        ],
+        "input": 36,
+        "ceilingY": 5222.0,
+        "floorVertices": [
+          [
+            512,
+            4429,
+            -767
+          ],
+          [
+            512,
+            4429,
+            -1125
+          ],
+          [
+            -204,
+            4429,
+            -1125
+          ]
+        ]
+      },
+      "continuationUpdates": 24
+    },
+    {
+      "name": "shell-right",
+      "edits": [
+        {
+          "path": "gMarioState.pos",
+          "before": [
+            -5883.07373046875,
+            1024.0,
+            819.5643920898438
+          ],
+          "after": [
+            -1950,
+            1741,
+            -939
+          ]
+        },
+        {
+          "path": "gMarioObject.oPosX",
+          "before": -5883.07373046875,
+          "after": -1950
+        },
+        {
+          "path": "gMarioObject.oPosY",
+          "before": 1024.0,
+          "after": 1741
+        },
+        {
+          "path": "gMarioObject.oPosZ",
+          "before": 819.5643920898438,
+          "after": -939
+        },
+        {
+          "path": "gMarioObject.header.gfx.pos",
+          "before": [
+            -5883.07373046875,
+            1024.0,
+            819.5643920898438
+          ],
+          "after": [
+            -1950,
+            1741,
+            -939
+          ]
+        },
+        {
+          "path": "gMarioState.action",
+          "before": 205521409,
+          "after": 67142728
+        },
+        {
+          "path": "gMarioState.actionState",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "path": "gMarioState.actionTimer",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "path": "gMarioState.forwardVel",
+          "before": 0.0,
+          "after": 5
+        },
+        {
+          "path": "gMarioState.vel",
+          "before": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "after": [
+            4,
+            0,
+            0
+          ]
+        },
+        {
+          "path": "gMarioState.faceAngle",
+          "before": [
+            0,
+            208,
+            0
+          ],
+          "after": [
+            0,
+            16384,
+            0
+          ]
+        },
+        {
+          "path": "gObjectPool[126].oPosX",
+          "before": 5840.11962890625,
+          "after": -1971
+        },
+        {
+          "path": "gObjectPool[126].oPosY",
+          "before": 968.0,
+          "after": 1741
+        },
+        {
+          "path": "gObjectPool[126].oPosZ",
+          "before": 2505.971923828125,
+          "after": -939
+        },
+        {
+          "path": "gObjectPool[126].oForwardVel",
+          "before": 2.9820644855499268,
+          "after": 0
+        },
+        {
+          "path": "gObjectPool[126].oVelX",
+          "before": 0.0596383661031723,
+          "after": 0
+        },
+        {
+          "path": "gObjectPool[126].oVelY",
+          "before": 12.0,
+          "after": 0
+        },
+        {
+          "path": "gObjectPool[126].oVelZ",
+          "before": 2.9814679622650146,
+          "after": 0
+        }
+      ],
+      "controller": {
+        "buttons": 8192,
+        "stick": [
+          64,
+          0
+        ]
+      },
+      "before": {
+        "timer": 2680,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67142728,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 1024.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "collision": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "display": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "topTimer": 130,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          4.0,
+          0.0,
+          0.0
+        ],
+        "forwardVelocity": 5.0,
+        "faceAngle": [
+          0,
+          16384,
+          0
+        ],
+        "input": 32,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -5743,
+            1024,
+            624
+          ],
+          [
+            -6031,
+            1024,
+            912
+          ],
+          [
+            -5743,
+            1024,
+            912
+          ]
+        ]
+      },
+      "after": {
+        "timer": 2681,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67142728,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 768.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1882.0,
+          768.0,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          768.0,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          1741.0,
+          -939.0
+        ],
+        "topTimer": 131,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          3.9231410026550293,
+          0.0,
+          0.7803612947463989
+        ],
+        "forwardVelocity": 4.0,
+        "faceAngle": [
+          0,
+          14336,
+          0
+        ],
+        "input": 49157,
+        "ceilingY": 1523.0,
+        "floorVertices": [
+          [
+            -1945,
+            768,
+            -921
+          ],
+          [
+            -1945,
+            768,
+            -1125
+          ],
+          [
+            -2149,
+            768,
+            -1125
+          ]
+        ]
+      },
+      "events": [
+        {
+          "faceAngle": [
+            0,
+            16384,
+            0
+          ],
+          "pos": [
+            -1882.0,
+            1741.0,
+            -939.0
+          ],
+          "forwardVel": 5.0,
+          "vel": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "action": 67142728,
+          "type": "FLT_EXECUTE_ACTION"
+        },
+        {
+          "to": 4.0,
+          "type": "FLT_CHANGE_FORWARD_VEL",
+          "from": 5.0
+        },
+        {
+          "type": "FLT_BEGIN_MOVEMENT_STEP",
+          "stepType": 2,
+          "stepNum": 1
+        },
+        {
+          "type": "FLT_END_MOVEMENT_STEP",
+          "_placeholder": 201327165
+        }
+      ],
+      "calculatedFirstQuarterIntended": [
+        -1881.0191650390625,
+        1741.0,
+        -938.804931640625
+      ],
+      "calculatedQueryIntegers": [
+        -1881,
+        1741,
+        -938
+      ],
+      "handoff": true,
+      "nextUpdateTopCapture": true,
+      "arrivalOutsideElevator": true,
+      "nextUpdate": {
+        "timer": 2682,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 4864,
+        "actionArg": 262145,
+        "used": 64,
+        "floor": true,
+        "floorY": 1818.9613037109375,
+        "floorOwner": 61,
+        "platform": 61,
+        "marioObject": 67,
+        "movement": [
+          -1882.0,
+          1818.9613037109375,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          1818.9613037109375,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          1818.9613037109375,
+          -939.0
+        ],
+        "topTimer": 132,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          14336,
+          0
+        ],
+        "input": 40,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -1877,
+            1528,
+            -330
+          ],
+          [
+            -1395,
+            1528,
+            -1232
+          ],
+          [
+            -2087,
+            2039,
+            -1023
+          ]
+        ]
+      },
+      "firstInactiveTopSample": {
+        "timer": 2702,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 3,
+        "specialDestination": 0,
+        "warpOp": 4,
+        "countdown": 0,
+        "sourceNode": 30,
+        "warpDestination": {
+          "type": 2,
+          "levelNum": 8,
+          "areaIdx": 2,
+          "nodeId": 20,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 4864,
+        "actionArg": 262125,
+        "used": 64,
+        "floor": true,
+        "floorY": 1966.6990966796875,
+        "floorOwner": 61,
+        "platform": 61,
+        "marioObject": 67,
+        "movement": [
+          -1991.2451171875,
+          1966.6990966796875,
+          -831.4880981445312
+        ],
+        "collision": [
+          -1991.2451171875,
+          1966.6990966796875,
+          -831.4880981445312
+        ],
+        "display": [
+          -1991.2451171875,
+          1966.6990966796875,
+          -831.4880981445312
+        ],
+        "topTimer": 1,
+        "topAction": 2,
+        "topActive": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          6144,
+          0
+        ],
+        "input": 40,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -2685,
+            1623,
+            -682
+          ],
+          [
+            -1706,
+            1623,
+            -385
+          ],
+          [
+            -2047,
+            2134,
+            -1023
+          ]
+        ]
+      },
+      "firstArea2Sample": {
+        "timer": 2705,
+        "level": 8,
+        "area": 2,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 30,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 8,
+          "areaIdx": 2,
+          "nodeId": 20,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 6450,
+        "actionArg": 0,
+        "used": 138,
+        "floor": true,
+        "floorY": 4429.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 148,
+        "movement": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "collision": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "display": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "topTimer": 1,
+        "topAction": 2,
+        "topActive": 0,
+        "velocity": [
+          -0.0,
+          -4.0,
+          -0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          -26624,
+          0
+        ],
+        "input": 36,
+        "ceilingY": 5222.0,
+        "floorVertices": [
+          [
+            512,
+            4429,
+            -767
+          ],
+          [
+            512,
+            4429,
+            -1125
+          ],
+          [
+            -204,
+            4429,
+            -1125
+          ]
+        ]
+      },
+      "continuationUpdates": 24
+    },
+    {
+      "name": "shell-left",
+      "edits": [
+        {
+          "path": "gMarioState.pos",
+          "before": [
+            -5883.07373046875,
+            1024.0,
+            819.5643920898438
+          ],
+          "after": [
+            -1950,
+            1741,
+            -939
+          ]
+        },
+        {
+          "path": "gMarioObject.oPosX",
+          "before": -5883.07373046875,
+          "after": -1950
+        },
+        {
+          "path": "gMarioObject.oPosY",
+          "before": 1024.0,
+          "after": 1741
+        },
+        {
+          "path": "gMarioObject.oPosZ",
+          "before": 819.5643920898438,
+          "after": -939
+        },
+        {
+          "path": "gMarioObject.header.gfx.pos",
+          "before": [
+            -5883.07373046875,
+            1024.0,
+            819.5643920898438
+          ],
+          "after": [
+            -1950,
+            1741,
+            -939
+          ]
+        },
+        {
+          "path": "gMarioState.action",
+          "before": 205521409,
+          "after": 67142728
+        },
+        {
+          "path": "gMarioState.actionState",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "path": "gMarioState.actionTimer",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "path": "gMarioState.forwardVel",
+          "before": 0.0,
+          "after": 5
+        },
+        {
+          "path": "gMarioState.vel",
+          "before": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "after": [
+            4,
+            0,
+            0
+          ]
+        },
+        {
+          "path": "gMarioState.faceAngle",
+          "before": [
+            0,
+            208,
+            0
+          ],
+          "after": [
+            0,
+            16384,
+            0
+          ]
+        },
+        {
+          "path": "gObjectPool[126].oPosX",
+          "before": 5840.11962890625,
+          "after": -1971
+        },
+        {
+          "path": "gObjectPool[126].oPosY",
+          "before": 968.0,
+          "after": 1741
+        },
+        {
+          "path": "gObjectPool[126].oPosZ",
+          "before": 2505.971923828125,
+          "after": -939
+        },
+        {
+          "path": "gObjectPool[126].oForwardVel",
+          "before": 2.9820644855499268,
+          "after": 0
+        },
+        {
+          "path": "gObjectPool[126].oVelX",
+          "before": 0.0596383661031723,
+          "after": 0
+        },
+        {
+          "path": "gObjectPool[126].oVelY",
+          "before": 12.0,
+          "after": 0
+        },
+        {
+          "path": "gObjectPool[126].oVelZ",
+          "before": 2.9814679622650146,
+          "after": 0
+        }
+      ],
+      "controller": {
+        "buttons": 8192,
+        "stick": [
+          -64,
+          0
+        ]
+      },
+      "before": {
+        "timer": 2680,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67142728,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 1024.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "collision": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "display": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "topTimer": 130,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          4.0,
+          0.0,
+          0.0
+        ],
+        "forwardVelocity": 5.0,
+        "faceAngle": [
+          0,
+          16384,
+          0
+        ],
+        "input": 32,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -5743,
+            1024,
+            624
+          ],
+          [
+            -6031,
+            1024,
+            912
+          ],
+          [
+            -5743,
+            1024,
+            912
+          ]
+        ]
+      },
+      "after": {
+        "timer": 2681,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67142728,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 768.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1882.0,
+          768.0,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          768.0,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          1741.0,
+          -939.0
+        ],
+        "topTimer": 131,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          3.9231410026550293,
+          0.0,
+          -0.7803612947463989
+        ],
+        "forwardVelocity": 4.0,
+        "faceAngle": [
+          0,
+          18432,
+          0
+        ],
+        "input": 49157,
+        "ceilingY": 1523.0,
+        "floorVertices": [
+          [
+            -1945,
+            768,
+            -921
+          ],
+          [
+            -1945,
+            768,
+            -1125
+          ],
+          [
+            -2149,
+            768,
+            -1125
+          ]
+        ]
+      },
+      "events": [
+        {
+          "type": "FLT_EXECUTE_ACTION",
+          "action": 67142728,
+          "faceAngle": [
+            0,
+            16384,
+            0
+          ],
+          "pos": [
+            -1882.0,
+            1741.0,
+            -939.0
+          ],
+          "forwardVel": 5.0,
+          "vel": [
+            4.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "to": 4.0,
+          "type": "FLT_CHANGE_FORWARD_VEL",
+          "from": 5.0
+        },
+        {
+          "stepType": 2,
+          "stepNum": 1,
+          "type": "FLT_BEGIN_MOVEMENT_STEP"
+        },
+        {
+          "_placeholder": 201327165,
+          "type": "FLT_END_MOVEMENT_STEP"
+        }
+      ],
+      "calculatedFirstQuarterIntended": [
+        -1881.0191650390625,
+        1741.0,
+        -939.195068359375
+      ],
+      "calculatedQueryIntegers": [
+        -1881,
+        1741,
+        -939
+      ],
+      "handoff": true,
+      "nextUpdateTopCapture": true,
+      "arrivalOutsideElevator": true,
+      "nextUpdate": {
+        "timer": 2682,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 4864,
+        "actionArg": 262145,
+        "used": 64,
+        "floor": true,
+        "floorY": 1818.9613037109375,
+        "floorOwner": 61,
+        "platform": 61,
+        "marioObject": 67,
+        "movement": [
+          -1882.0,
+          1818.9613037109375,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          1818.9613037109375,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          1818.9613037109375,
+          -939.0
+        ],
+        "topTimer": 132,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          0.0,
+          0.0,
+          -0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          18432,
+          0
+        ],
+        "input": 40,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -1877,
+            1528,
+            -330
+          ],
+          [
+            -1395,
+            1528,
+            -1232
+          ],
+          [
+            -2087,
+            2039,
+            -1023
+          ]
+        ]
+      },
+      "firstInactiveTopSample": {
+        "timer": 2702,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 3,
+        "specialDestination": 0,
+        "warpOp": 4,
+        "countdown": 0,
+        "sourceNode": 30,
+        "warpDestination": {
+          "type": 2,
+          "levelNum": 8,
+          "areaIdx": 2,
+          "nodeId": 20,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 4864,
+        "actionArg": 262125,
+        "used": 64,
+        "floor": true,
+        "floorY": 1966.6990966796875,
+        "floorOwner": 61,
+        "platform": 61,
+        "marioObject": 67,
+        "movement": [
+          -1991.2451171875,
+          1966.6990966796875,
+          -831.4880981445312
+        ],
+        "collision": [
+          -1991.2451171875,
+          1966.6990966796875,
+          -831.4880981445312
+        ],
+        "display": [
+          -1991.2451171875,
+          1966.6990966796875,
+          -831.4880981445312
+        ],
+        "topTimer": 1,
+        "topAction": 2,
+        "topActive": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          10240,
+          0
+        ],
+        "input": 40,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -2685,
+            1623,
+            -682
+          ],
+          [
+            -1706,
+            1623,
+            -385
+          ],
+          [
+            -2047,
+            2134,
+            -1023
+          ]
+        ]
+      },
+      "firstArea2Sample": {
+        "timer": 2705,
+        "level": 8,
+        "area": 2,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 30,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 8,
+          "areaIdx": 2,
+          "nodeId": 20,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 6450,
+        "actionArg": 0,
+        "used": 138,
+        "floor": true,
+        "floorY": 4429.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 148,
+        "movement": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "collision": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "display": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "topTimer": 1,
+        "topAction": 2,
+        "topActive": 0,
+        "velocity": [
+          -0.0,
+          -4.0,
+          -0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          -26624,
+          0
+        ],
+        "input": 36,
+        "ceilingY": 5222.0,
+        "floorVertices": [
+          [
+            512,
+            4429,
+            -767
+          ],
+          [
+            512,
+            4429,
+            -1125
+          ],
+          [
+            -204,
+            4429,
+            -1125
+          ]
+        ]
+      },
+      "continuationUpdates": 24
+    },
+    {
+      "name": "shell-down",
+      "edits": [
+        {
+          "path": "gMarioState.pos",
+          "before": [
+            -5883.07373046875,
+            1024.0,
+            819.5643920898438
+          ],
+          "after": [
+            -1950,
+            1741,
+            -939
+          ]
+        },
+        {
+          "path": "gMarioObject.oPosX",
+          "before": -5883.07373046875,
+          "after": -1950
+        },
+        {
+          "path": "gMarioObject.oPosY",
+          "before": 1024.0,
+          "after": 1741
+        },
+        {
+          "path": "gMarioObject.oPosZ",
+          "before": 819.5643920898438,
+          "after": -939
+        },
+        {
+          "path": "gMarioObject.header.gfx.pos",
+          "before": [
+            -5883.07373046875,
+            1024.0,
+            819.5643920898438
+          ],
+          "after": [
+            -1950,
+            1741,
+            -939
+          ]
+        },
+        {
+          "path": "gMarioState.action",
+          "before": 205521409,
+          "after": 67142728
+        },
+        {
+          "path": "gMarioState.actionState",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "path": "gMarioState.actionTimer",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "path": "gMarioState.forwardVel",
+          "before": 0.0,
+          "after": 5
+        },
+        {
+          "path": "gMarioState.vel",
+          "before": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "after": [
+            4,
+            0,
+            0
+          ]
+        },
+        {
+          "path": "gMarioState.faceAngle",
+          "before": [
+            0,
+            208,
+            0
+          ],
+          "after": [
+            0,
+            16384,
+            0
+          ]
+        },
+        {
+          "path": "gObjectPool[126].oPosX",
+          "before": 5840.11962890625,
+          "after": -1971
+        },
+        {
+          "path": "gObjectPool[126].oPosY",
+          "before": 968.0,
+          "after": 1741
+        },
+        {
+          "path": "gObjectPool[126].oPosZ",
+          "before": 2505.971923828125,
+          "after": -939
+        },
+        {
+          "path": "gObjectPool[126].oForwardVel",
+          "before": 2.9820644855499268,
+          "after": 0
+        },
+        {
+          "path": "gObjectPool[126].oVelX",
+          "before": 0.0596383661031723,
+          "after": 0
+        },
+        {
+          "path": "gObjectPool[126].oVelY",
+          "before": 12.0,
+          "after": 0
+        },
+        {
+          "path": "gObjectPool[126].oVelZ",
+          "before": 2.9814679622650146,
+          "after": 0
+        }
+      ],
+      "controller": {
+        "buttons": 8192,
+        "stick": [
+          0,
+          -64
+        ]
+      },
+      "before": {
+        "timer": 2680,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67142728,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 1024.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "collision": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "display": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "topTimer": 130,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          4.0,
+          0.0,
+          0.0
+        ],
+        "forwardVelocity": 5.0,
+        "faceAngle": [
+          0,
+          16384,
+          0
+        ],
+        "input": 32,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -5743,
+            1024,
+            624
+          ],
+          [
+            -6031,
+            1024,
+            912
+          ],
+          [
+            -5743,
+            1024,
+            912
+          ]
+        ]
+      },
+      "after": {
+        "timer": 2681,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67142728,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 768.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1882.0,
+          768.0,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          768.0,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          1741.0,
+          -939.0
+        ],
+        "topTimer": 131,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          3.9231410026550293,
+          0.0,
+          0.7803612947463989
+        ],
+        "forwardVelocity": 4.0,
+        "faceAngle": [
+          0,
+          14336,
+          0
+        ],
+        "input": 49157,
+        "ceilingY": 1523.0,
+        "floorVertices": [
+          [
+            -1945,
+            768,
+            -921
+          ],
+          [
+            -1945,
+            768,
+            -1125
+          ],
+          [
+            -2149,
+            768,
+            -1125
+          ]
+        ]
+      },
+      "events": [
+        {
+          "vel": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "action": 67142728,
+          "pos": [
+            -1882.0,
+            1741.0,
+            -939.0
+          ],
+          "faceAngle": [
+            0,
+            16384,
+            0
+          ],
+          "forwardVel": 5.0,
+          "type": "FLT_EXECUTE_ACTION"
+        },
+        {
+          "type": "FLT_CHANGE_FORWARD_VEL",
+          "to": 4.0,
+          "from": 5.0
+        },
+        {
+          "type": "FLT_BEGIN_MOVEMENT_STEP",
+          "stepType": 2,
+          "stepNum": 1
+        },
+        {
+          "type": "FLT_END_MOVEMENT_STEP",
+          "_placeholder": 201327165
+        }
+      ],
+      "calculatedFirstQuarterIntended": [
+        -1881.0191650390625,
+        1741.0,
+        -938.804931640625
+      ],
+      "calculatedQueryIntegers": [
+        -1881,
+        1741,
+        -938
+      ],
+      "handoff": true,
+      "nextUpdateTopCapture": true,
+      "arrivalOutsideElevator": true,
+      "nextUpdate": {
+        "timer": 2682,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 4864,
+        "actionArg": 262145,
+        "used": 64,
+        "floor": true,
+        "floorY": 1818.9613037109375,
+        "floorOwner": 61,
+        "platform": 61,
+        "marioObject": 67,
+        "movement": [
+          -1882.0,
+          1818.9613037109375,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          1818.9613037109375,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          1818.9613037109375,
+          -939.0
+        ],
+        "topTimer": 132,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          14336,
+          0
+        ],
+        "input": 40,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -1877,
+            1528,
+            -330
+          ],
+          [
+            -1395,
+            1528,
+            -1232
+          ],
+          [
+            -2087,
+            2039,
+            -1023
+          ]
+        ]
+      },
+      "firstInactiveTopSample": {
+        "timer": 2702,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 3,
+        "specialDestination": 0,
+        "warpOp": 4,
+        "countdown": 0,
+        "sourceNode": 30,
+        "warpDestination": {
+          "type": 2,
+          "levelNum": 8,
+          "areaIdx": 2,
+          "nodeId": 20,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 4864,
+        "actionArg": 262125,
+        "used": 64,
+        "floor": true,
+        "floorY": 1966.6990966796875,
+        "floorOwner": 61,
+        "platform": 61,
+        "marioObject": 67,
+        "movement": [
+          -1991.2451171875,
+          1966.6990966796875,
+          -831.4880981445312
+        ],
+        "collision": [
+          -1991.2451171875,
+          1966.6990966796875,
+          -831.4880981445312
+        ],
+        "display": [
+          -1991.2451171875,
+          1966.6990966796875,
+          -831.4880981445312
+        ],
+        "topTimer": 1,
+        "topAction": 2,
+        "topActive": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          6144,
+          0
+        ],
+        "input": 40,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -2685,
+            1623,
+            -682
+          ],
+          [
+            -1706,
+            1623,
+            -385
+          ],
+          [
+            -2047,
+            2134,
+            -1023
+          ]
+        ]
+      },
+      "firstArea2Sample": {
+        "timer": 2705,
+        "level": 8,
+        "area": 2,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 30,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 8,
+          "areaIdx": 2,
+          "nodeId": 20,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 6450,
+        "actionArg": 0,
+        "used": 138,
+        "floor": true,
+        "floorY": 4429.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 148,
+        "movement": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "collision": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "display": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "topTimer": 1,
+        "topAction": 2,
+        "topActive": 0,
+        "velocity": [
+          -0.0,
+          -4.0,
+          -0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          -26624,
+          0
+        ],
+        "input": 36,
+        "ceilingY": 5222.0,
+        "floorVertices": [
+          [
+            512,
+            4429,
+            -767
+          ],
+          [
+            512,
+            4429,
+            -1125
+          ],
+          [
+            -204,
+            4429,
+            -1125
+          ]
+        ]
+      },
+      "continuationUpdates": 24
+    },
+    {
+      "name": "no-nearby-shell",
+      "edits": [
+        {
+          "path": "gMarioState.pos",
+          "before": [
+            -5883.07373046875,
+            1024.0,
+            819.5643920898438
+          ],
+          "after": [
+            -1950,
+            1741,
+            -939
+          ]
+        },
+        {
+          "path": "gMarioObject.oPosX",
+          "before": -5883.07373046875,
+          "after": -1950
+        },
+        {
+          "path": "gMarioObject.oPosY",
+          "before": 1024.0,
+          "after": 1741
+        },
+        {
+          "path": "gMarioObject.oPosZ",
+          "before": 819.5643920898438,
+          "after": -939
+        },
+        {
+          "path": "gMarioObject.header.gfx.pos",
+          "before": [
+            -5883.07373046875,
+            1024.0,
+            819.5643920898438
+          ],
+          "after": [
+            -1950,
+            1741,
+            -939
+          ]
+        },
+        {
+          "path": "gMarioState.action",
+          "before": 205521409,
+          "after": 67142728
+        },
+        {
+          "path": "gMarioState.actionState",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "path": "gMarioState.actionTimer",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "path": "gMarioState.forwardVel",
+          "before": 0.0,
+          "after": 5
+        },
+        {
+          "path": "gMarioState.vel",
+          "before": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "after": [
+            4,
+            0,
+            0
+          ]
+        },
+        {
+          "path": "gMarioState.faceAngle",
+          "before": [
+            0,
+            208,
+            0
+          ],
+          "after": [
+            0,
+            16384,
+            0
+          ]
+        }
+      ],
+      "controller": {
+        "buttons": 8192,
+        "stick": [
+          0,
+          64
+        ]
+      },
+      "before": {
+        "timer": 2680,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67142728,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 1024.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "collision": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "display": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "topTimer": 130,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          4.0,
+          0.0,
+          0.0
+        ],
+        "forwardVelocity": 5.0,
+        "faceAngle": [
+          0,
+          16384,
+          0
+        ],
+        "input": 32,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -5743,
+            1024,
+            624
+          ],
+          [
+            -6031,
+            1024,
+            912
+          ],
+          [
+            -5743,
+            1024,
+            912
+          ]
+        ]
+      },
+      "after": {
+        "timer": 2681,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67142728,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 768.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1950.0,
+          768.0,
+          -939.0
+        ],
+        "collision": [
+          -1950.0,
+          768.0,
+          -939.0
+        ],
+        "display": [
+          -1950.0,
+          1741.0,
+          -939.0
+        ],
+        "topTimer": 131,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          3.9231410026550293,
+          0.0,
+          -0.7803612947463989
+        ],
+        "forwardVelocity": 4.0,
+        "faceAngle": [
+          0,
+          18432,
+          0
+        ],
+        "input": 49157,
+        "ceilingY": 1523.0,
+        "floorVertices": [
+          [
+            -1945,
+            768,
+            -921
+          ],
+          [
+            -1945,
+            768,
+            -1125
+          ],
+          [
+            -2149,
+            768,
+            -1125
+          ]
+        ]
+      },
+      "events": [
+        {
+          "forwardVel": 5.0,
+          "faceAngle": [
+            0,
+            16384,
+            0
+          ],
+          "pos": [
+            -1950.0,
+            1741.0,
+            -939.0
+          ],
+          "action": 67142728,
+          "type": "FLT_EXECUTE_ACTION",
+          "vel": [
+            4.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "to": 4.0,
+          "type": "FLT_CHANGE_FORWARD_VEL",
+          "from": 5.0
+        },
+        {
+          "stepType": 2,
+          "type": "FLT_BEGIN_MOVEMENT_STEP",
+          "stepNum": 1
+        },
+        {
+          "type": "FLT_END_MOVEMENT_STEP",
+          "_placeholder": 201327165
+        }
+      ],
+      "calculatedFirstQuarterIntended": [
+        -1949.0191650390625,
+        1741.0,
+        -939.195068359375
+      ],
+      "calculatedQueryIntegers": [
+        -1949,
+        1741,
+        -939
+      ],
+      "handoff": false,
+      "nextUpdateTopCapture": false,
+      "arrivalOutsideElevator": false,
+      "nextUpdate": {
+        "timer": 2682,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 4864,
+        "actionArg": 262145,
+        "used": 64,
+        "floor": true,
+        "floorY": 768.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1995.0,
+          768.0,
+          -971.0
+        ],
+        "collision": [
+          -1995.0,
+          768.0,
+          -971.0
+        ],
+        "display": [
+          -1995.0,
+          768.0,
+          -971.0
+        ],
+        "topTimer": 132,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          0.0,
+          0.0,
+          -0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          18432,
+          0
+        ],
+        "input": 32,
+        "ceilingY": 1528.0,
+        "floorVertices": [
+          [
+            -1945,
+            768,
+            -921
+          ],
+          [
+            -1945,
+            768,
+            -1125
+          ],
+          [
+            -2149,
+            768,
+            -1125
+          ]
+        ]
+      },
+      "firstInactiveTopSample": {
+        "timer": 2702,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 3,
+        "specialDestination": 0,
+        "warpOp": 4,
+        "countdown": 0,
+        "sourceNode": 30,
+        "warpDestination": {
+          "type": 2,
+          "levelNum": 8,
+          "areaIdx": 2,
+          "nodeId": 20,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 4864,
+        "actionArg": 262125,
+        "used": 64,
+        "floor": true,
+        "floorY": 768.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1995.0,
+          768.0,
+          -971.0
+        ],
+        "collision": [
+          -1995.0,
+          768.0,
+          -971.0
+        ],
+        "display": [
+          -1995.0,
+          768.0,
+          -971.0
+        ],
+        "topTimer": 1,
+        "topAction": 2,
+        "topActive": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          -0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          18432,
+          0
+        ],
+        "input": 32,
+        "ceilingY": 1623.0,
+        "floorVertices": [
+          [
+            -1945,
+            768,
+            -921
+          ],
+          [
+            -1945,
+            768,
+            -1125
+          ],
+          [
+            -2149,
+            768,
+            -1125
+          ]
+        ]
+      },
+      "firstArea2Sample": {
+        "timer": 2705,
+        "level": 8,
+        "area": 2,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 30,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 8,
+          "areaIdx": 2,
+          "nodeId": 20,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 6450,
+        "actionArg": 0,
+        "used": 138,
+        "floor": true,
+        "floorY": 4966.0,
+        "floorOwner": 59,
+        "platform": -1,
+        "marioObject": 148,
+        "movement": [
+          0.0,
+          5500.0,
+          256.0
+        ],
+        "collision": [
+          0.0,
+          5500.0,
+          256.0
+        ],
+        "display": [
+          0.0,
+          5500.0,
+          256.0
+        ],
+        "topTimer": 1,
+        "topAction": 2,
+        "topActive": 0,
+        "velocity": [
+          0.0,
+          -4.0,
+          -0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          -32768,
+          0
+        ],
+        "input": 36,
+        "ceilingY": 6144.0,
+        "floorVertices": [
+          [
+            -511,
+            4966,
+            768
+          ],
+          [
+            512,
+            4966,
+            -255
+          ],
+          [
+            -511,
+            4966,
+            -255
+          ]
+        ]
+      },
+      "continuationUpdates": 24
+    },
+    {
+      "name": "direct-high-target",
+      "edits": [
+        {
+          "path": "gMarioState.pos",
+          "before": [
+            -5883.07373046875,
+            1024.0,
+            819.5643920898438
+          ],
+          "after": [
+            -1882,
+            1741,
+            -939
+          ]
+        },
+        {
+          "path": "gMarioObject.oPosX",
+          "before": -5883.07373046875,
+          "after": -1882
+        },
+        {
+          "path": "gMarioObject.oPosY",
+          "before": 1024.0,
+          "after": 1741
+        },
+        {
+          "path": "gMarioObject.oPosZ",
+          "before": 819.5643920898438,
+          "after": -939
+        },
+        {
+          "path": "gMarioObject.header.gfx.pos",
+          "before": [
+            -5883.07373046875,
+            1024.0,
+            819.5643920898438
+          ],
+          "after": [
+            -1882,
+            1741,
+            -939
+          ]
+        },
+        {
+          "path": "gMarioState.action",
+          "before": 205521409,
+          "after": 67142728
+        },
+        {
+          "path": "gMarioState.actionState",
+          "before": 0,
+          "after": 0
+        },
+        {
+          "path": "gMarioState.actionTimer",
+          "before": 1,
+          "after": 0
+        },
+        {
+          "path": "gMarioState.forwardVel",
+          "before": 0.0,
+          "after": 5
+        },
+        {
+          "path": "gMarioState.vel",
+          "before": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "after": [
+            4,
+            0,
+            0
+          ]
+        },
+        {
+          "path": "gMarioState.faceAngle",
+          "before": [
+            0,
+            208,
+            0
+          ],
+          "after": [
+            0,
+            16384,
+            0
+          ]
+        }
+      ],
+      "controller": {
+        "buttons": 8192,
+        "stick": [
+          0,
+          64
+        ]
+      },
+      "before": {
+        "timer": 2680,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67142728,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 1024.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1882.0,
+          1741.0,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          1741.0,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          1741.0,
+          -939.0
+        ],
+        "topTimer": 130,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          4.0,
+          0.0,
+          0.0
+        ],
+        "forwardVelocity": 5.0,
+        "faceAngle": [
+          0,
+          16384,
+          0
+        ],
+        "input": 32,
+        "ceilingY": 20000.0,
+        "floorVertices": [
+          [
+            -5743,
+            1024,
+            624
+          ],
+          [
+            -6031,
+            1024,
+            912
+          ],
+          [
+            -5743,
+            1024,
+            912
+          ]
+        ]
+      },
+      "after": {
+        "timer": 2681,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 67142728,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 1280.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1882.0,
+          1280.0,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          1280.0,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          1741.0,
+          -939.0
+        ],
+        "topTimer": 131,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          3.9231410026550293,
+          0.0,
+          -0.7803612947463989
+        ],
+        "forwardVelocity": 4.0,
+        "faceAngle": [
+          0,
+          18432,
+          0
+        ],
+        "input": 49157,
+        "ceilingY": 1523.0,
+        "floorVertices": [
+          [
+            -1535,
+            1280,
+            -1535
+          ],
+          [
+            -1945,
+            1280,
+            -921
+          ],
+          [
+            -1535,
+            1280,
+            -511
+          ]
+        ]
+      },
+      "events": [
+        {
+          "pos": [
+            -1882.0,
+            1741.0,
+            -939.0
+          ],
+          "forwardVel": 5.0,
+          "action": 67142728,
+          "type": "FLT_EXECUTE_ACTION",
+          "vel": [
+            4.0,
+            0.0,
+            0.0
+          ],
+          "faceAngle": [
+            0,
+            16384,
+            0
+          ]
+        },
+        {
+          "to": 4.0,
+          "from": 5.0,
+          "type": "FLT_CHANGE_FORWARD_VEL"
+        },
+        {
+          "stepNum": 1,
+          "stepType": 2,
+          "type": "FLT_BEGIN_MOVEMENT_STEP"
+        },
+        {
+          "type": "FLT_END_MOVEMENT_STEP",
+          "_placeholder": 201327165
+        }
+      ],
+      "calculatedFirstQuarterIntended": [
+        -1881.0191650390625,
+        1741.0,
+        -939.195068359375
+      ],
+      "calculatedQueryIntegers": [
+        -1881,
+        1741,
+        -939
+      ],
+      "handoff": false,
+      "nextUpdateTopCapture": false,
+      "arrivalOutsideElevator": null,
+      "nextUpdate": {
+        "timer": 2682,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 201359908,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 1280.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1882.0,
+          1280.0,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          1280.0,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          1280.0,
+          -939.0
+        ],
+        "topTimer": 132,
+        "topAction": 1,
+        "topActive": 257,
+        "velocity": [
+          0.0,
+          0.0,
+          -0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          18432,
+          0
+        ],
+        "input": 32,
+        "ceilingY": 1528.0,
+        "floorVertices": [
+          [
+            -1535,
+            1280,
+            -1535
+          ],
+          [
+            -1945,
+            1280,
+            -921
+          ],
+          [
+            -1535,
+            1280,
+            -511
+          ]
+        ]
+      },
+      "firstInactiveTopSample": {
+        "timer": 2702,
+        "level": 8,
+        "area": 1,
+        "debugLevelSelect": 1,
+        "playMode": 0,
+        "specialDestination": 0,
+        "warpOp": 0,
+        "countdown": 0,
+        "sourceNode": 0,
+        "warpDestination": {
+          "type": 0,
+          "levelNum": 0,
+          "areaIdx": 0,
+          "nodeId": 0,
+          "arg": 0
+        },
+        "lives": 4,
+        "action": 205521409,
+        "actionArg": 0,
+        "used": 55,
+        "floor": true,
+        "floorY": 1280.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "marioObject": 67,
+        "movement": [
+          -1882.0,
+          1280.0,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          1280.0,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          1280.0,
+          -939.0
+        ],
+        "topTimer": 1,
+        "topAction": 2,
+        "topActive": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          -0.0
+        ],
+        "forwardVelocity": 0.0,
+        "faceAngle": [
+          0,
+          18432,
+          0
+        ],
+        "input": 32,
+        "ceilingY": 1623.0,
+        "floorVertices": [
+          [
+            -1535,
+            1280,
+            -1535
+          ],
+          [
+            -1945,
+            1280,
+            -921
+          ],
+          [
+            -1535,
+            1280,
+            -511
+          ]
+        ]
+      },
+      "firstArea2Sample": null,
+      "continuationUpdates": 28
+    }
+  ]
+}
