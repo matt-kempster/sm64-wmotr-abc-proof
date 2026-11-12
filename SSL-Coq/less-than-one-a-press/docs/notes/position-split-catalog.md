@@ -904,6 +904,8 @@ Related atlas ranks: 6, 18.
 
 ### 27 — A different floor answer is not itself a position write
 
+The [12 November PU/VPU follow-up](ink-pu-vpu.md) tests a concrete composition of this helper with stopped crawl. From supplied established crawl at Y67277, the query sees1741, a fresh pad cache supplies768, and an eligible sideways push precedes a ceiling-default stop. The ordinary display refresh and later alignment then create a66509-unit gap; after top collision reloads, the retry and timer131 continuation give useful Area2 displacement. High-HOLP actor throws also connect conditionally to this supplied crawler. Query conversion itself still writes no position. Neither high crawl nor the high HOLP is controller-produced, and the horizontal-PU controls are only bounded failures. Actual US/JP query conversion and stopped-tail claims are checked in `InkPuVpu.v`; live reachability, loader/geometry composition and full timing history remain separate obligations.
+
 **Role in this review.** Coordinate conversion changes the query input, not the three stored positions. A resulting snap or retry is counted under its actual writer.
 
 **Gap sizing: 0 new position gap.** Changes what a query sees, not where the records are

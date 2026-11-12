@@ -10,7 +10,7 @@ From LessThanOneAPress.Proofs Require Import InkFloorProducerEffect
   InkObjectPushHandoff InkNearbyFloorGeometry InkTimer130Geometry
   InkCrawlQuarterHandoff InkCrawlQuarterPrefix InkItemDropPlacement
   InkObjectPushQuery InkCrawlLiveQueries InkFreshPushCrawl InkLowFixturePush
-  InkLowFixtureCrawl InkBelowCapPhaseBounds.
+  InkLowFixtureCrawl InkBelowCapPhaseBounds InkPuVpu.
 
 (** Actor placement is not bounded by the old low-spawn example.  A matched
     fresh guard bounds the newly created rise; the completed actual air call
@@ -47,7 +47,7 @@ Definition InkStoppedFloorProducerCheckedBoundary : Prop :=
   InkTimer130GeometryBoundary /\ InkCrawlQuarterHandoffBoundary /\
   InkCrawlQuarterPrefixBoundary /\ InkItemDropPlacementBoundary /\
   InkObjectPushQueryBoundary /\ InkCrawlLiveQueriesBoundary /\
-  InkFreshPushCrawlBoundary.
+  InkFreshPushCrawlBoundary /\ InkPuVpuBoundary.
 
 Theorem icpb_stopped_floor_producer_checked : InkStoppedFloorProducerCheckedBoundary.
 Proof.
@@ -65,7 +65,7 @@ Proof.
   split; [exact ink_item_drop_placement_checked|].
   split; [exact ipq_object_push_query_checked|].
   split; [exact icl_crawl_live_queries_checked|].
-  exact ifpc_fresh_push_crawl_checked.
+  split; [exact ifpc_fresh_push_crawl_checked|exact ipv_pu_vpu_boundary_checked].
 Qed.
 
 Definition InkConcreteProducerCheckedBoundary : Prop :=

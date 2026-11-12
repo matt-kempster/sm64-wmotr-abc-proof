@@ -1,0 +1,17 @@
+Activated proof toolchain 'sm64-item-proof'.
+  coqc:      The Coq Proof Assistant, version 8.16.1
+  clightgen: The CompCert CompCert AST generator, version 3.15
+SSL proof audit. Logs: build/audit/20261112-100741-lgwlgqtb
+PASS: source inventory: 716 source files; 0 inventory problems
+Running build (MainTheorem and requested module dependencies)...
+PASS: build: exit 0; see build.log
+PASS: proof holes: exit 0; includes untracked source files
+PASS: link hygiene: exit 0; includes untracked source files
+Checking assumptions 1/2: LessThanOneAPress.Proofs.MainTheorem.current_ink_concrete_producer_boundary...
+PASS: assumptions LessThanOneAPress.Proofs.MainTheorem.current_ink_concrete_producer_boundary: 7 allowed foundations; see assumptions-1.log
+Checking assumptions 2/2: LessThanOneAPress.Proofs.InkPuVpu.ipv_pu_vpu_boundary_checked...
+PASS: assumptions LessThanOneAPress.Proofs.InkPuVpu.ipv_pu_vpu_boundary_checked: 7 allowed foundations; see assumptions-2.log
+PASS: integration: 550/636 modules in MainTheorem's import closure; 86 standalone-only; 0 problems
+VERDICT: PASS (mechanical checks only; not a completed game proof)
+Mechanical hygiene only. Explicit hypotheses, live reachability, and statement fidelity require review.
+Source interface index: build/audit/20261112-100741-lgwlgqtb/interfaces.txt
