@@ -1,0 +1,196 @@
+(** Delaying a captured top by controller input is not a free timing choice.
+    This file executes the actual US/JP delayed-warp countdown for counters
+    1..20.  It neither supplies a scheduler history nor says every object
+    update calls this function: painting's basic_update is an exception.
+    The pending-operation latch is reused from InkFailedRetryGuard. *)
+From Coq Require Import Bool List Lia ZArith.
+From compcert Require Import AST Clight ClightBigstep Clightdefs Cop Ctypes
+  Events Globalenvs Integers Maps Memory Values.
+From LessThanOneAPress.Generated Require Import us_level_update jp_level_update.
+From LessThanOneAPress.Proofs Require Import GameTypes InkBackwardSource
+  InkBackwardExecution ObjectContactNecessity ContactConsumerExecution
+  SecretContactExecution Area2Rank12BContact InkFailedRetryGuard.
+Import ListNotations.
+Import Clightdefs.ClightNotations.
+Local Open Scope Z_scope.
+Module IWD := us_level_update.
+
+Definition iwd_body version := match version with
+| VersionUS => us_level_update.f_initiate_delayed_warp
+| VersionJP => jp_level_update.f_initiate_delayed_warp end.
+Definition iwd_prefix version := ibk_head (fn_body (iwd_body version)).
+Definition iwd_tail version := rank12b_drop_sequences 1 (fn_body (iwd_body version)).
+Definition iwd_transition version := match iwd_tail version with
+| Sifthenelse _ yes _ => yes | _ => Sskip end.
+Definition iwd_counter_expr := Ecast
+  (Ebinop Osub (Etempvar IWD._t'30 tshort) (Econst_int Int.one tint) tint) tshort.
+Definition iwd_zero_expr := Ecast
+  (Ebinop Oeq (Etempvar IWD._t'4 tshort) (Econst_int Int.zero tint) tint) tbool.
+Definition iwd_pending_expr := Ebinop One (Etempvar IWD._t'29 tshort)
+  (Econst_int Int.zero tint) tint.
+Definition iwd_decrement := Ssequence
+  (Ssequence
+    (Ssequence (Sset IWD._t'30 (Evar IWD._sDelayedWarpTimer tshort))
+      (Sset IWD._t'4 iwd_counter_expr))
+    (Sassign (Evar IWD._sDelayedWarpTimer tshort) (Etempvar IWD._t'4 tshort)))
+  (Sset IWD._t'3 iwd_zero_expr).
+
+Lemma iwd_actual_source : forall version,
+  fn_vars (iwd_body version) = [] /\ fn_params (iwd_body version) = [] /\
+  fn_return (iwd_body version) = tvoid /\
+  fn_body (iwd_body version) = Ssequence (iwd_prefix version) (iwd_tail version) /\
+  iwd_prefix version = Ssequence
+    (Sset IWD._t'29 (Evar IWD._sDelayedWarpOp tshort))
+    (Sifthenelse iwd_pending_expr iwd_decrement
+      (Sset IWD._t'3 (Econst_int Int.zero tint))) /\
+  iwd_tail version = Sifthenelse (Etempvar IWD._t'3 tint)
+    (iwd_transition version) Sskip.
+Proof. intros []; repeat split; reflexivity. Qed.
+
+Definition iwd_word n := Int.repr (Z.of_nat n).
+Definition iwd_zero n := Val.of_bool (Nat.eqb n 1).
+Definition iwd_after_temps le pending n :=
+  PTree.set IWD._t'3 (iwd_zero n)
+    (PTree.set IWD._t'4 (Vint (iwd_word (Nat.pred n)))
+      (PTree.set IWD._t'30 (Vint (iwd_word n))
+        (PTree.set IWD._t'29 (Vint pending) le))).
+
+(** This small finite word check contains no generated-program reduction. *)
+Lemma iwd_bounded_words : forall n, (1 <= n <= 20)%nat ->
+  Int.sign_ext 16 (Int.sub (iwd_word n) Int.one) = iwd_word (Nat.pred n) /\
+  Int.sign_ext 16 (iwd_word (Nat.pred n)) = iwd_word (Nat.pred n) /\
+  Int.eq (iwd_word (Nat.pred n)) Int.zero = Nat.eqb n 1 /\
+  Val.load_result Mint16signed (Vint (iwd_word (Nat.pred n))) =
+    Vint (iwd_word (Nat.pred n)).
+Proof.
+  intros n Hn.
+  do 21 (destruct n as [|n]; [try lia; vm_compute; repeat split; reflexivity|]).
+  lia.
+Qed.
+
+Lemma iwd_read_short : forall (ge : genv) le m id b word,
+  Genv.find_symbol ge id = Some b ->
+  Mem.load Mint16signed m b 0 = Some (Vint word) ->
+  eval_expr ge empty_env le m (Evar id tshort) (Vint word).
+Proof.
+  intros ge le m id b word Hsymbol Hload. eapply eval_Elvalue with (loc := b) (ofs := Ptrofs.zero) (bf := Full).
+  - apply eval_Evar_global; [reflexivity|exact Hsymbol].
+  - eapply deref_loc_value with (chunk := Mint16signed); [reflexivity|exact Hload].
+Qed.
+
+Theorem iwd_construct_actual_countdown_prefix :
+  forall version (ge : genv) le m op timer pending n,
+  Genv.find_symbol ge IWD._sDelayedWarpOp = Some op ->
+  Genv.find_symbol ge IWD._sDelayedWarpTimer = Some timer ->
+  Mem.load Mint16signed m op 0 = Some (Vint pending) ->
+  pending <> Int.zero ->
+  Mem.load Mint16signed m timer 0 = Some (Vint (iwd_word n)) ->
+  Mem.valid_access m Mint16signed timer 0 Writable ->
+  (1 <= n <= 20)%nat ->
+  exists after,
+    Mem.store Mint16signed m timer 0 (Vint (iwd_word (Nat.pred n))) = Some after /\
+    ocn_exec ge empty_env le m (iwd_prefix version) E0
+      (iwd_after_temps le pending n) after Out_normal /\
+    Mem.load Mint16signed after timer 0 = Some (Vint (iwd_word (Nat.pred n))).
+Proof.
+  intros version ge le m op timer pending n Hop Htimer Hpending Hnonzero
+    Hcounter Haccess Hn.
+  destruct (iwd_bounded_words n Hn) as (Hsub & Hcast & Heq & Hload).
+  destruct (Mem.valid_access_store m Mint16signed timer 0
+    (Vint (iwd_word (Nat.pred n))) Haccess) as (after & Hstore).
+  exists after. split; [exact Hstore|]. split.
+  - rewrite (proj1 (proj2 (proj2 (proj2 (proj2 (iwd_actual_source version)))))).
+    unfold iwd_after_temps.
+    eapply exec_Sseq_1 with (t1 := E0) (t2 := E0).
+    + apply exec_Sset. eapply iwd_read_short; eauto.
+    + eapply exec_Sifthenelse with (v1 := Vint Int.one) (b := true).
+      * unfold iwd_pending_expr. eapply eval_Ebinop.
+        -- apply eval_Etempvar. apply PTree.gss.
+        -- constructor.
+        -- change (Some (Val.of_bool (negb (Int.eq pending Int.zero))) = Some (Vint Int.one)).
+           rewrite (Int.eq_false _ _ Hnonzero). reflexivity.
+      * reflexivity.
+      * cbn. unfold iwd_decrement.
+        eapply exec_Sseq_1 with (t1 := E0) (t2 := E0).
+        -- eapply exec_Sseq_1 with (t1 := E0) (t2 := E0).
+           ++ eapply exec_Sseq_1 with (t1 := E0) (t2 := E0).
+              ** apply exec_Sset. eapply iwd_read_short; eauto.
+              ** apply exec_Sset. unfold iwd_counter_expr. eapply eval_Ecast.
+                 --- eapply eval_Ebinop; [apply eval_Etempvar; apply PTree.gss|constructor|reflexivity].
+                 --- change (Some (Vint (Int.sign_ext 16
+                       (Int.sub (iwd_word n) Int.one))) = Some (Vint (iwd_word (Nat.pred n)))).
+                     rewrite Hsub. reflexivity.
+           ++ eapply exec_Sassign with (v2 := Vint (iwd_word (Nat.pred n)))
+                (v := Vint (iwd_word (Nat.pred n))) (bf := Full).
+              ** apply eval_Evar_global; [reflexivity|exact Htimer].
+              ** apply eval_Etempvar. apply PTree.gss.
+              ** change (Some (Vint (Int.sign_ext 16 (iwd_word (Nat.pred n)))) =
+                   Some (Vint (iwd_word (Nat.pred n)))). rewrite Hcast. reflexivity.
+              ** eapply assign_loc_value with (chunk := Mint16signed); [reflexivity|exact Hstore].
+        -- apply exec_Sset. unfold iwd_zero_expr, iwd_zero. eapply eval_Ecast.
+           ++ eapply eval_Ebinop; [apply eval_Etempvar; apply PTree.gss|constructor|].
+              change (Some (Val.of_bool (Int.eq (iwd_word (Nat.pred n)) Int.zero)) =
+                Some (Val.of_bool (Nat.eqb n 1))). rewrite Heq. reflexivity.
+           ++ destruct (Nat.eqb n 1); reflexivity.
+  - rewrite (Mem.load_store_same _ _ _ _ _ _ Hstore). rewrite Hload. reflexivity.
+Qed.
+
+(** No controller, Mario, camera or object storage is assumed here.  For
+    counters 2..20 this is an entire real function call, with exactly the
+    displayed store as its memory effect.  It supplies no extra update. *)
+Definition InkActualWarpCountdownCall : Prop :=
+  forall version (ge : genv) m op timer pending n,
+  Genv.find_symbol ge IWD._sDelayedWarpOp = Some op ->
+  Genv.find_symbol ge IWD._sDelayedWarpTimer = Some timer ->
+  Mem.load Mint16signed m op 0 = Some (Vint pending) -> pending <> Int.zero ->
+  Mem.load Mint16signed m timer 0 = Some (Vint (iwd_word n)) ->
+  Mem.valid_access m Mint16signed timer 0 Writable -> (2 <= n <= 20)%nat ->
+  exists after,
+    ClightBigstep.Clight2.eval_funcall ge m (Internal (iwd_body version)) [] E0 after Vundef /\
+    Mem.store Mint16signed m timer 0 (Vint (iwd_word (Nat.pred n))) = Some after /\
+    Mem.load Mint16signed after timer 0 = Some (Vint (iwd_word (Nat.pred n))).
+
+Theorem iwd_actual_countdown_call_checked : InkActualWarpCountdownCall.
+Proof.
+  intros version ge m op timer pending n Hop Htimer Hpending Hnonzero Hcounter Haccess Hn.
+  set (le := create_undef_temps (fn_temps (iwd_body version))).
+  destruct (iwd_construct_actual_countdown_prefix version ge le m op timer pending n
+    Hop Htimer Hpending Hnonzero Hcounter Haccess ltac:(lia)) as (after & Hstore & Hprefix & Hload).
+  exists after. split; [|auto].
+  eapply eval_funcall_internal with (e := empty_env) (le := le).
+  - constructor.
+    + destruct version; constructor.
+    + destruct version; repeat constructor; cbn; tauto.
+    + destruct version; vm_compute; intuition congruence.
+    + destruct version; apply alloc_variables_nil.
+    + destruct version; reflexivity.
+  - rewrite (proj1 (proj2 (proj2 (proj2 (iwd_actual_source version))))).
+    eapply exec_Sseq_1 with (t1 := E0) (t2 := E0); [exact Hprefix|].
+    rewrite (proj2 (proj2 (proj2 (proj2 (proj2 (iwd_actual_source version)))))).
+    assert (Nat.eqb n 1 = false) as Hz by (apply Nat.eqb_neq; lia).
+    eapply exec_Sifthenelse with (v1 := Vint Int.zero) (b := false).
+    + apply eval_Etempvar. unfold iwd_after_temps, iwd_zero. rewrite PTree.gss, Hz. reflexivity.
+    + reflexivity.
+    + apply exec_Sskip.
+  - destruct version; reflexivity.
+  - reflexivity.
+Qed.
+
+(** At one the same actual prefix stores zero and makes the real transition
+    guard true.  Completing the transition's callees is a separate obligation. *)
+Theorem iwd_one_reaches_transition : forall version (ge : genv) le m op timer pending,
+  Genv.find_symbol ge IWD._sDelayedWarpOp = Some op ->
+  Genv.find_symbol ge IWD._sDelayedWarpTimer = Some timer ->
+  Mem.load Mint16signed m op 0 = Some (Vint pending) -> pending <> Int.zero ->
+  Mem.load Mint16signed m timer 0 = Some (Vint Int.one) ->
+  Mem.valid_access m Mint16signed timer 0 Writable ->
+  exists after,
+    Mem.store Mint16signed m timer 0 (Vint Int.zero) = Some after /\
+    ocn_exec ge empty_env le m (iwd_prefix version) E0
+      (iwd_after_temps le pending 1) after Out_normal /\
+    (iwd_after_temps le pending 1) ! IWD._t'3 = Some (Vint Int.one).
+Proof.
+  intros. destruct (iwd_construct_actual_countdown_prefix version ge le m op timer pending 1
+    H H0 H1 H2 H3 H4 ltac:(lia)) as (after & Hstore & Hrun & _).
+  exists after. repeat split; try assumption. apply PTree.gss.
+Qed.
