@@ -1111,7 +1111,7 @@ Section STEP.
        has no class for it (ObjWorld.ccls 56) *)
     assert (H14 : v_s st0 = OW.CANS -> v_i st0 <> 14%nat).
     { intros Ec E14. pose proof HV0 as ((b0 & Hb0 & L0) & _). rewrite Ec in Hb0. rewrite E14 in L0.
-      destruct (OW.ow_pin _ _ _ _ _ _ _ _ _ _ _ _ C k Hkc) as (_ & _ & _ & T).
+      destruct (OW.ow_pin _ _ _ _ _ _ _ _ _ _ _ _ C k Hkc) as (_ & _ & _ & T & _).
       exact (T b0 _ Hb0 (eq_trans (ld32_load _ _ _) L0)). }
     pose proof (ObjInv.inv_entry lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc st0 (Mem.nextblock m) (XF hd pool k) m
                   eq_refl HP HV0 Hc HF H14) as HI.

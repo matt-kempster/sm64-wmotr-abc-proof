@@ -1104,6 +1104,22 @@ all in `Unwired/`, and the theorem moved nowhere. See
        guard on a global / Mario's phase (coin #2, cannon-unlocked bit).
        box_pos_ok cannot simply be dropped: CannonKeep.lid_not_box is its one
        reader and oBehavior is not tied to the script (cur_obj_set_behavior).
+       SLOT TABLE 2026-11-13 (window STILL OPEN, no row discharged, no premise):
+       pin_at's 5th conjunct ObjWorld.tab_at = forallb over slot_tab (script,
+       cells, bool check), keyed by `runs` (cmd block).  Boot: ow_chk runs it.
+       Keepers: ONE lemma tab_at_scr, called at PollKeep.obj_w_slots_h,
+       ObjVmSwap (tab_v), UnloadOw (pin_at_eq'); ObjFamily class bits come from
+       tab_scripts (Qfam_tab).  New FLAT row = slot_tab + tab_scripts +
+       tab_cells (+ pin_offs if a new cell); no keeper work.
+       - REPAIRED: hidden-star loop at oAction 1 (row 1: HSTARS slot has
+         oAction = 0, counter < 8).  Closure of the loop under the row by
+         reading only; transfer proof still inside native_res.
+       - Still FOUND, now also against row 1: red coin 7 -> 8, hidden-star init
+         counter := 8 (8 coins may be real play: needs the coin #2 guard).
+         Mario's usedObj->oAction = 2 store (stale-pointer item) must keep row 1.
+       - Still FOUND, flat rows cannot express: lid oHome, box pos by action,
+         box byte (pin moves at a script word).  NEXT: move can_traj into the
+         table as an offset-class row; generalize ObjAnchor's re-anchor once.
        Probe tools: playground/Sweep2.v, Sweep3.v, decode_ident.py, native_scan.py.
        TRAP: `tauto` in a section with a Qfam hypothesis hangs (ObjInv / ObjVmSwap);
        prove `In CANS [POLES; CANS]` by `right; left; reflexivity`.

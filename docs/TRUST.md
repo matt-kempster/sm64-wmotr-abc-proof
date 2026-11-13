@@ -1051,6 +1051,28 @@ without pressing A".*
   The repairs need new invariant content of three kinds (a per-slot field
   pin, a cross-slot count, a guard on a global or on Mario's phase); none
   needs a new premise as far as read.
+  **SLOT TABLE 2026-11-13 (no new premise, no row discharged, window still
+  OPEN).** `obj_w`'s per-slot pin gained one generic clause,
+  `ObjWorld.tab_at`: a table `slot_tab` of rows (script, cells, boolean
+  check), keyed by the script the slot runs. The clause is its own checker,
+  so the boot check (`ow_chk`, StartTerrain) decides it at the real boot
+  state. Every proved `obj_w` keeper keeps the whole table through one lemma
+  (`tab_at_scr`); a further flat row costs a table entry, no keeper work.
+  - Hidden-star loop at oAction 1: REPAIRED. Row 1 pins a slot running
+    bhvHiddenRedCoinStar to oAction = 0 and trigger counter < 8, so the
+    falsifying state is no longer an invariant state. The loop's closure
+    under the row (act 0 leaves oAction 0 while the counter is < 8) is by
+    reading; its transfer proof stays inside `native_res`.
+  - The row makes two open cases bite on one more clause, with the same
+    falsifying states: red coin 7 -> 8 and hidden-star init (counter := 8).
+    Both stay FOUND. Collecting 8 red coins may be real play; excluding it
+    needs the height guard (coin #2), not a pin.
+  - The open stale-pointer item (Mario's `usedObj->oAction = 2` store) must
+    now also respect the row.
+  - Not covered by flat rows, still FOUND: lid oHome, box position by
+    action, box byte (each moves at a script word: needs an offset-class row
+    and a re-anchor, as the cannon trajectory has), the cross-slot count,
+    the cannon-unlocked bit.
 - **Objects (2026-10-26): one real call.** `HeightFrame.play_frame_step` is now poll ; PRE ;
   `seg_objects_spec` ; POST ; render walk, and `seg_objects_spec` is `ObjPhase.objects_call`:
   the generated `area_update_objects` as one `eval_funcall`. The old `seg_platform` / action /

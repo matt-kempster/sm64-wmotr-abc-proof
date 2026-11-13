@@ -475,5 +475,5 @@ Proof.
     assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).
     unfold OW.pin_offs, OW.O_BPARAMS in Hoff. cbn [In] in Hoff.
     apply (SK pool k m m' Ku j Nj); try rewrite Hs;
-      destruct Hoff as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]; ks.
+      destruct Hoff as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]; ks.
 Qed.

@@ -725,7 +725,11 @@ Section OWK.
         * exact (sp_vm_eq ge pool Kp k Sk).
     - (* PINS (2026-11-09): the command pointer and slot fields past 96 *)
       intros k Hk.
-      apply (OW.pin_at_eq ge pool m m' k (fun id _ => runs_eq ge pool Kp k id)); [ | | exact (KT pool k S1) | exact (Cpin k Hk) ].
+      apply (OW.pin_at_eq ge pool m m' k (fun id _ => runs_eq ge pool Kp k id)); [ | | exact (KT pool k S1) | | exact (Cpin k Hk) ].
+      3: { (* the slot table (2026-11-13): cells off the VM cells and the homes *)
+           apply (OW.tab_at_scr ge pool m m' k (fun id _ => runs_eq ge pool Kp k id)).
+           intros c Hc. unfold OW.tab_cells in Hc. cbn [In] in Hc.
+           repeat (destruct Hc as [<- | Hc]; [ cbn [fst snd]; apply Kp; sk_side | ]). destruct Hc. }
       + intros ch off Hoff Hch.
         assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).
         unfold OW.pin_offs0, OW.O_BPARAMS in Hoff. cbn [In] in Hoff.

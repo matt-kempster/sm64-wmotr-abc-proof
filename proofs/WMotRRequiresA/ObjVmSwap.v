@@ -292,6 +292,28 @@ Section VS.
     - exfalso. apply N1. symmetry. apply E. symmetry. exact E2.
   Qed.
 
+  (* 2026-11-13: the slot table (OW.tab_at): its scripts are class bits,
+     its cells are off the VM cells, oPosY and the home *)
+  Lemma runs_k0t : forall id, In id OW.tab_scripts ->
+    OW.runs ge pool m' k0 id = OW.runs ge pool m k0 id.
+  Proof.
+    intros id Hid. rewrite (runs_vm_at ge pool m' k0 st' id V1), (runs_vm_at ge pool m k0 st0 id V0).
+    pose proof (OF.Qfam_tab (v_s st0) st' id Hid HQ) as E.
+    destruct (Pos.eqb_spec id (v_s st')) as [E1 | N1]; destruct (Pos.eqb_spec id (v_s st0)) as [E2 | N2];
+      try reflexivity.
+    - exfalso. apply N2. symmetry. apply E. symmetry. exact E1.
+    - exfalso. apply N1. symmetry. apply E. symmetry. exact E2.
+  Qed.
+
+  Lemma tab_v : forall k, OW.tab_at ge pool m k -> OW.tab_at ge pool m' k.
+  Proof.
+    intros k. apply (OW.tab_at_scr ge pool m m' k).
+    - intros id Hid. destruct (Z.eq_dec k k0) as [-> | Ne]; [ exact (runs_k0t id Hid) | exact (runs_ne k Ne id) ].
+    - intros c Hc. unfold OW.tab_cells in Hc. cbn [In] in Hc.
+      destruct (Z.eq_dec k k0) as [-> | Ne];
+        repeat (destruct Hc as [<- | Hc]; [ cbn [fst snd]; apply Kv; sv | ]); destruct Hc.
+  Qed.
+
   (* 2026-11-09: the cannon pin D at k0 -- a cannon that is reached past
      its home-to-lid prologue (index >= 7) is pinned by its offset *)
   Lemma can_k0 : (v_s st' = OW.CANS -> (7 <= v_i st' /\ v_i st' < 1000)%nat) ->
@@ -584,7 +606,7 @@ Section VS.
       destruct (Z.eq_dec k k0) as [-> | Ne].
       + (* k0 *)
         destruct Hy0 as [E | (_ & Np & _ & Hx)].
-        * apply (OW.pin_at_eq ge pool m m' k0 R); [ | | exact (fun _ => HCt (proj2 (proj2 (proj2 (Cpin k0 Hk))))) | exact (Cpin k0 Hk) ].
+        * apply (OW.pin_at_eq ge pool m m' k0 R); [ | | exact (fun _ => HCt (proj1 (proj2 (proj2 (proj2 (Cpin k0 Hk)))))) | exact (tab_v k0) | exact (Cpin k0 Hk) ].
           -- intros ch off Hoff Hch.
              assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).
              unfold OW.pin_offs0, OW.O_BPARAMS in Hoff. cbn [In] in Hoff.
@@ -594,12 +616,12 @@ Section VS.
              exact (E ch).
           -- intros _. exact (can_k0 HCn).
         * destruct (Cpin k0 Hk) as (T0 & _ & _).
-          split; [ | split; [ | split; [ exact (can_k0 HCn) | exact (HCt (proj2 (proj2 (proj2 (Cpin k0 Hk))))) ] ] ].
+          split; [ | split; [ | split; [ exact (can_k0 HCn) | split; [ exact (HCt (proj1 (proj2 (proj2 (proj2 (Cpin k0 Hk)))))) | exact (tab_v k0 (proj2 (proj2 (proj2 (proj2 (Cpin k0 Hk)))))) ] ] ] ].
           -- intros t Lt. rewrite Kv in Lt by sv. destruct (T0 t Lt) as (T1 & T2 & _).
              rewrite (R OW.POLES ltac:(left; reflexivity)), (R OW.CANS ltac:(right; left; reflexivity)). split; [ exact T1 | split; [ exact T2 | ] ].
              intros Hc Ht. exact (Hx t Lt Hc Ht).
           -- rewrite (R OW.POLES ltac:(left; reflexivity)), Np. intros F; discriminate F.
-      + apply (OW.pin_at_eq ge pool m m' k R); [ | | | exact (Cpin k Hk) ].
+      + apply (OW.pin_at_eq ge pool m m' k R); [ | | | exact (tab_v k) | exact (Cpin k Hk) ].
         * intros ch off Hoff Hch.
           assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).
           unfold OW.pin_offs0, OW.O_BPARAMS in Hoff. cbn [In] in Hoff.

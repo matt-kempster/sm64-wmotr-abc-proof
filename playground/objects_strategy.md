@@ -80,3 +80,38 @@ close the window by itself.
 Rejected this round: starting the generic table before the sweep (would have built
 kind (a) only); weakening box_pos_ok (its one consumer, CannonKeep.lid_not_box, has no
 other way to tell a lid from a box: oBehavior is not tied to the script).
+
+## 2026-11-13 (third round): the slot table -- choice, written before executing
+
+**Chosen: ONE boolean table inside `pin_at`, flat rows first.**
+
+- `ObjWorld.slot_tab : list trow`, a row = (script, cell list, boolean check over the
+  command offset and the loaded cells). `tab_at k := forallb (row_b k) slot_tab = true`
+  is a new conjunct of `pin_at`. The clause IS its checker, so the boot check
+  (`ow_chk`) costs one `&&` and no soundness proof per row.
+- Keyed by the SCRIPT a slot runs (command-pointer block), not by oBehavior: the
+  native_res sites are (script, word, native), and nothing ties script -> behavior.
+- One generic keeper, `tab_at_scr`: cells of `tab_cells` equal + `runs` equal for
+  `tab_scripts` => kept. Every proved obj_w keeper (PollKeep.obj_w_slots_h,
+  ObjVmSwap.obj_w_vm_swap, UnloadOw) already has both facts for any cell off the VM
+  cells / oPosY / home, so a FLAT row (check independent of the command offset, cells
+  off those three) costs: the row, `tab_scripts` / `tab_cells` entries, one bit in
+  ObjFamily's class (so a VM step keeps "runs this script"), and nothing per keeper.
+- First row: bhvHiddenRedCoinStar -> oAction = 0 and oHiddenStarTriggerCounter < 8
+  (the hidden-star loop FOUND: oAction = 1 was not excluded; the counter is restated
+  by script because red_ok's is keyed by oBehavior).
+
+Measured against the cannon trajectory (~2,000 lines, 28 files): the flat-row route
+touches the 4 keeper sites once, for the table.
+
+Not covered by flat rows, so NOT attempted this round (each needs the carrier shape
+can_traj has, i.e. a re-anchored ghost at the script word that moves the pin):
+lid oHome (pos pinned before SET_HOME, home after), box position by action, box
+byte (field 47 is a FieldWin script window). Next step for those: migrate can_traj
+into the table as an offset-class row and generalize ObjAnchor's re-anchor once.
+Cross-slot (red coins 7 -> 8, star init with no coin) and global guards stay open.
+
+Rejected: a new ow_core field (breaks every constructor); narrowing `live_bhvs` first
+(removes no FOUND case: the box's cut contents are already dead sites, the rest are
+field pins); keying by oBehavior (the loop site would stay false at a slot that runs
+the script under another behavior).

@@ -44,7 +44,9 @@ Definition clsw (sp l12 lv pbc : list ident) (s : ident) : list bool :=
   [memi s sp; memi s l12; memi s lv; memi s pbc;
    Pos.eqb s OW.BOXS; Pos.eqb s OW.LIDS; Pos.eqb s OW.COINF;
    (* 2026-11-09: the pole and the cannon base (ObjWorld.pin_ok reads them) *)
-   Pos.eqb s OW.POLES; Pos.eqb s OW.CANS].
+   Pos.eqb s OW.POLES; Pos.eqb s OW.CANS]
+  (* 2026-11-13: the slot table's scripts (ObjWorld.slot_tab) *)
+  ++ map (Pos.eqb s) OW.tab_scripts.
 
 Definition cls (s : ident) : list bool :=
   clsw OW.sp_scripts ObjCensus.live12 OW.live_bhvs OW.pbc_ids s.
@@ -144,6 +146,21 @@ Proof.
   intros s s' x Hx. destruct Hx as [<- | [<- | []]];
     [ apply (g_eqb s s' 7) | apply (g_eqb s s' 8) ]; reflexivity.
 Qed.
+(* the slot table's scripts: the class's tail is one bit per script *)
+Lemma map_eqb_id : forall (l : list ident) s s' x, map (Pos.eqb s) l = map (Pos.eqb s') l -> In x l ->
+  (s = x <-> s' = x).
+Proof.
+  induction l as [| y l IH]; intros s s' x E Hx; [ destruct Hx | ].
+  cbn [map] in E. injection E as E1 E2. destruct Hx as [-> | Hx]; [ | exact (IH s s' x E2 Hx) ].
+  split; intros Ex; subst; rewrite Pos.eqb_refl in E1; apply Pos.eqb_eq; [ exact (eq_sym E1) | exact E1 ].
+Qed.
+
+Lemma g_tab : forall s s' x, In x OW.tab_scripts ->
+  clsw sp l12 lv pbc s = clsw sp l12 lv pbc s' -> (s = x <-> s' = x).
+Proof.
+  intros s s' x Hx E. unfold clsw in E. apply (f_equal (skipn 9)) in E. cbn [app skipn] in E.
+  exact (map_eqb_id _ s s' x E Hx).
+Qed.
 End Generic.
 
 Notation CL s := (clsw OW.sp_scripts ObjCensus.live12 OW.live_bhvs OW.pbc_ids s).
@@ -232,6 +249,9 @@ Proof. intros s0 st x Hx (E & _). exact (g_id _ _ _ _ _ _ _ Hx E). Qed.
 Lemma Qfam_id2 : forall s0 st x, In x [OW.POLES; OW.CANS] -> Qfam s0 st ->
   (v_s st = x <-> s0 = x).
 Proof. intros s0 st x Hx (E & _). exact (g_id2 _ _ _ _ _ _ _ Hx E). Qed.
+
+Lemma Qfam_tab : forall s0 st x, In x OW.tab_scripts -> Qfam s0 st -> (v_s st = x <-> s0 = x).
+Proof. intros s0 st x Hx (E & _). exact (g_tab _ _ _ _ _ _ _ Hx E). Qed.
 
 Lemma Qfam_start : forall s0 st, v_s st = s0 -> In s0 OW.live_bhvs -> Qfam s0 st.
 Proof. intros s0 st <- H. split; [ reflexivity | split; [ exact H | intros E; exact E ] ]. Qed.
