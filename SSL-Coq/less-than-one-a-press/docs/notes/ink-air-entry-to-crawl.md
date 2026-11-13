@@ -8,6 +8,11 @@ inside for 20 frames, but in ground pound and then backward air knockback.
 This is a bounded result for this exact supplied start, not a proof that
 every high-crawl entry is impossible.
 
+The [earlier-entry follow-up](ink-early-air-entry-crawl.md) separately tests
+the time before behavior 130. It demonstrates earlier interior residence
+and earlier roof crawl, but no tested history combines interior position
+with crawl before the handoff.
+
 ## Updates are game frames; the exact handoff timing is already missed
 
 In these native-runtime experiments, one call to `Game.advance()` advances

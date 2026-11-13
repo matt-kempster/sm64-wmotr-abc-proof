@@ -18,6 +18,13 @@ state, and no chapter completes the missing approach. A
 
 ## Getting Mario inside the top is still an open approach problem
 
+The [earlier-entry test](ink-early-air-entry-crawl.md) now checks the missing
+time window. From supplied exterior freefall, a native witness stays inside
+from behaviors 114 through 129, but in ground pound. Another control reaches
+crawl at 126 on roof 1280, below the top. The tested histories do not combine
+interior position with crawl before behavior 130. All post-setup inputs have
+A off, and the final starts are checked above the actual collision triangle.
+
 The [air-entry conversion follow-up](ink-air-entry-to-crawl.md) tests the
 successful supplied airborne entry using only subsequent no-A inputs.
 It finds no interior crouch or crawl in6,174 continuations or the bounded
