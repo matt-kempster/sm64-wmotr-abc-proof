@@ -1017,11 +1017,14 @@ without pressing A".*
   `kind_ok` between SET_INT(oInteractType, POLE) and bhv_pole_init; INV_k is
   now state-indexed with a pole window (see "FOUND FALSE ... set42_keep"
   below). (2) Cannon, REPAIRED 2026-11-09 by RE-ANCHORING the ghost (see
-  "cannon REPAIRED" below). **The vacuity window is NOT closed.** The cannon
-  x-jitter FOUND (below) is restated so `obj_w` holds in the real game, but
-  `native_res` is still FALSE at phantom INV states for the cannon's native
-  (below, "native_res phantom at bhv_cannon_base_loop"), so the capstones
-  stay vacuous (OPEN).
+  "cannon REPAIRED" below). **The vacuity window is NOT known closed.** The
+  two known `native_res` counterexamples at the cannon's native are excluded
+  since 2026-11-13 by the cannon trajectory pin (below, "native_res phantom
+  at bhv_cannon_base_loop", REPAIRED), with no new premise. Still unchecked
+  phantom candidates (OPEN, so treat the capstones as possibly vacuous):
+  red coin's parent counter++, hidden-star init, cannon lid init, exclamation
+  box act 2 / 3, jumping box; the case list is `BhvStep.cn_census` (13
+  special natives + 59 residual generic).
 - **Objects (2026-10-26): one real call.** `HeightFrame.play_frame_step` is now poll ; PRE ;
   `seg_objects_spec` ; POST ; render walk, and `seg_objects_spec` is `ObjPhase.objects_call`:
   the generated `area_update_objects` as one `eval_funcall`. The old `seg_platform` / action /
@@ -1686,7 +1689,20 @@ without pressing A".*
   cannon's x / z (`cannon_xz_seat` has no user; `used_ok` / `coll_obj_ok`
   read only `cannon_obj_ok`'s y). The other users are keeps (ObjWorld pin C,
   CannonKeep.xz1, ObjVmSwap, UnloadOw), and they carry d through.
-  **FOUND 2026-11-09 (OPEN): native_res phantom at bhv_cannon_base_loop.**
+  **FOUND 2026-11-09, REPAIRED 2026-11-13 (no new premise): native_res
+  phantom at bhv_cannon_base_loop.** `obj_w`'s pin now carries
+  `ObjWorld.can_traj`: by command-offset class, a cannon is the spawned base
+  (word 0), the dropped one (word 7), or on the trajectory `traj_b` (word 8
+  on): (oAction, oPrevAction, oTimer, jitter d, rise k) with oPos = oHome +
+  (d, 5k, d) and oHome = lid - (0, 340, 0). Both cases below are outside
+  `traj_b`. Boot and the first objects phase satisfy it (ow_chk's
+  `can_traj_b`, vm). Keeps PROVED: re-anchor at words 6 / 7
+  (`ObjAnchor.anchor`, `home8`).
+  NOT proved: that `traj_b` is closed under the native, under
+  cur_obj_update's timer / action-reset stores and under Mario's
+  `oAction = 2` store; that is read from cannon.inc.c and object_list
+  processing, and still asked through `native_res`, `pre_keep` /
+  `post_keep` and the act rows. The original finding:
   `native_res` is asked at EVERY INV state at a special CALL_NATIVE.
   `obj_w` does not tie a cannon's oPosX / Y / Z to its oAction / oTimer /
   oHome* (act_ok bounds oAction only to [0, 7)). Two cases make it false:

@@ -1072,10 +1072,18 @@ all in `Unwired/`, and the theorem moved nowhere. See
        RenderKeep k_all_wc's new re-pinned class Qy; ObjVmSwap Hy0).  addf_keep now
        asked outside the prologue only (GPc); keeps at GPL = same rows at st0 := sL
        (ObjRows.gk_L).  x/z jitter RESTATED (cannon_xz_ok: entry + d, d in
-       cannon_jit, same d for x and z).  STILL VACUOUS: FOUND native_res phantom at
-       bhv_cannon_base_loop -- obj_w does not tie a cannon's pos to oAction /
-       oTimer / oHome, so act_4 at k = 69 (y) or act_6 at d = -7 (x) leaves the
-       pins.  Next: a cannon trajectory invariant (TRUST 0.7).  Other native
+       cannon_jit, same d for x and z).  FOUND native_res phantom at
+       bhv_cannon_base_loop -- obj_w did not tie a cannon's pos to oAction /
+       oTimer / oHome, so act_4 at k = 69 (y) or act_6 at d = -7 (x) left the
+       pins.  REPAIRED 2026-11-13 (no new premise): obj_w pin carries
+       ObjWorld.can_traj (by command-offset class ccls: can0 / can7 / can8 =
+       traj_b tuples, oHome pinned; cells traj_offs; keepers call can_traj_eq;
+       boot via ow_chk's can_traj_b; ObjAnchor.anchor / home8 re-anchor at words
+       6 / 7).  traj_b's closure under the native + Mario's act-2 store is NOT
+       proved (still inside native_res / act rows).  VACUITY NOT KNOWN CLOSED:
+       sweep list = BhvStep.cn_census (13 special + 59 residual).  Next shape
+       (playground/objects_strategy.md): ONE table of per-script slot classes,
+       not a bespoke clause per script.  Other native
        writes to pinned fields to check (phantom): red coin's parent counter++
        (red_ok < 8), hidden-star init counter := 8 - count, lid init spawning a
        cannon at the lid's unpinned oHome, exclamation box act_2 oPosY := oHomeY

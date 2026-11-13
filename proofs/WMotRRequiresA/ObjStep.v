@@ -907,8 +907,8 @@ Section STEP.
       intros ch' off Hoff Hch. assert (Hs : size_chunk ch' = 4) by (destruct Hch as [-> | ->]; reflexivity).
       apply Lo; [ | | left; exact Nk ]; unfold OW.traj_offs in Hoff; cbn [In] in Hoff; try rewrite Hs;
         destruct Hoff as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]];
-        unfold O_POSX, O_POSY, O_POSZ, OW.O_ACTION, OW.O_PREVACT, OW.O_TIMER, OW.O_HOMEX, OW.O_HOMEY, OW.O_HOMEZ,
-          RAW_OFF, OW.OSZ; lia.
+        unfold WMotRWorld.O_POSX, WMotRWorld.O_POSY, WMotRWorld.O_POSZ, OW.O_ACTION, OW.O_PREVACT, OW.O_TIMER,
+          OW.O_HOMEX, OW.O_HOMEY, OW.O_HOMEZ, WMotRWorld.RAW_OFF, OW.OSZ; lia.
   Qed.
 
   (* SET_HOME outside the cannon (the cannon's: ObjAnchor.home8) *)
@@ -1099,12 +1099,12 @@ Section STEP.
                   (scale_g XF Hxs pool hd k ObjInv.s8 Hp Hk ObjInv.s8_tab) GKr8) as GK8.
     (* the re-anchors (ObjAnchor, PROVED): at the cannon's word 6 (to sL),
        and at its SET_HOME (to s8) *)
-    pose proof (ObjAnchor.anchor lp bm Hbm_sym bc oc0 SafeB Hbc_sym pool bcc k Hp Hbcc HSafeB_scr Hk st0 (Mem.nextblock m)
+    pose proof (ObjAnchor.anchor lp bm Hbm_sym bc oc0 SafeB Hbc_sym pool bcc k Hp HSafeB_scr Hk st0 (Mem.nextblock m)
                   (XF hd pool k) Hst0
                   (fun s0 s1 m0 m1 HQ HP0 HP1 V0 V1 R C T HX0 => Hxm pool hd k s0 s1 m0 m1 Hp Hk HQ HP0 HP1 V0 V1 R C T HX0)
                   (fun g HXg => Hxr pool hd k g Hp Hk HXg)) as ANC.
-    pose proof (ObjAnchor.home8 lp bm Hbm_sym bc oc0 SafeB Hbc_sym pool bcc k Hp Hbcc HSafeB_scr Hk st0 (Mem.nextblock m)
-                  (XF hd pool k) Hst0
+    pose proof (ObjAnchor.home8 lp bm Hbm_sym bc oc0 SafeB Hbc_sym pool bcc k Hp Hbcc HSafeB_scr (Mem.nextblock m)
+                  (XF hd pool k)
                   (fun s0 s1 m0 m1 HQ HP0 HP1 V0 V1 R C T HX0 => Hxm pool hd k s0 s1 m0 m1 Hp Hk HQ HP0 HP1 V0 V1 R C T HX0)
                   (fun g HXg => Hxr pool hd k g Hp Hk HXg)) as HOME.
     (* a cannon's update never starts at word 14: obj_w's trajectory pin
