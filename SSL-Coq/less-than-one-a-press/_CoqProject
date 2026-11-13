@@ -720,5 +720,6 @@ proofs/InkFreshPushCrawl.v
 proofs/InkLowFixturePush.v
 proofs/InkLowFixtureCrawl.v
 proofs/InkPuVpu.v
+proofs/InkSlideHandoff.v
 proofs/InkBelowCapPhaseGuard.v
 proofs/InkBelowCapPhaseBounds.v

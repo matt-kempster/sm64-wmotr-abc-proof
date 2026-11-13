@@ -1,5 +1,7 @@
 # Where a useful position split could come from
 
+The [13 November sliding and height follow-up](ink-slide-height-investigation.md) extends this record: common ground slides also complete supplied handoffs, with action-specific actor requirements, disjoint working-height bands and a lower Y1740 example. A continuous allowed route remains open; older crawl-specific prerequisites are not necessities for every installer.
+
 Gameplay catalog updated 4 October 2026; source-unit census refreshed 29 October 2026 after adding the real Bob-omb animation data. The full catalog is also on the private [Fine Print site](https://pyramid-proof-fine-print.tra38.chatgpt.site/#split-catalog).
 
 Mario has three position records. Usually, the game keeps them together. We want to know which tricks can pull them apart, and whether SSL can supply the ingredients before the next copy puts them back together. If an enemy's stock spawn path is impossible, cross off that path. A different actor using the same helper still needs its own check.

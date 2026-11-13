@@ -1,5 +1,7 @@
 # Parallel universes and the Ink handoff
 
+The [13 November sliding and height follow-up](ink-slide-height-investigation.md) extends this record: common ground slides also complete supplied handoffs, with action-specific actor requirements, disjoint working-height bands and a lower Y1740 example. A continuous allowed route remains open; older crawl-specific prerequisites are not necessities for every installer.
+
 Investigated 12 November 2026. **A vertical-PU version of the supplied
 handoff works, including useful Area-2 displacement. A continuous no-new-A
 route to its starting state has not been found.** This is a new conditional

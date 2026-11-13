@@ -53,7 +53,7 @@ From LessThanOneAPress.Proofs Require Import
   SecretContactExecution
   InkBackwardSource InkBackwardExecution InkCopyCaller InkFloorResetCopy InkRawCopyHeight
   InkQuicksandBackward InkMovingBackward InkControllerBackward InkBackwardHistory
-  PositionSplitCatalog TweesterGap InkConcreteProducerBoundary InkMarioRawCopyCall InkMarioZeroParticleTail InkFlyGuySizeBoundary
+  PositionSplitCatalog TweesterGap InkConcreteProducerBoundary InkSlideHandoff InkMarioRawCopyCall InkMarioZeroParticleTail InkFlyGuySizeBoundary
   InkBounceLiveReadBoundary InkStockBounceHeight InkFlyGuyCycleHeight InkPokeyLiveScale
   CompCertRouteScope TeleporterWrongWarpBoundary TeleporterShindouReset
   TeleporterDestinationReset TeleporterPlatformResetExecution
@@ -1595,6 +1595,15 @@ Proof. exact twg_gap_boundary_checked. Qed.
     dialog/update histories are not silently covered by these results. *)
 Theorem current_ink_concrete_producer_boundary : InkConcreteProducerCheckedBoundary.
 Proof. exact icpb_concrete_producer_boundary_checked. Qed.
+
+(** The shared ground-slide result comes from the actual resolved ground
+    call; result two reaches real floor alignment after the actual bonk or
+    reflection branch. Its effects are retained. The cached floor and saved
+    display at that later cut, whole update, clean entry and useful warp
+    continuation are not proved here. Sample VPU floor/ceiling conversions
+    execute the real signed-short statements without translating floors. *)
+Theorem current_ink_slide_handoff_boundary : InkSlideHandoffBoundary.
+Proof. exact isl_slide_handoff_boundary_checked. Qed.
 
 (** Also consumes the actual object-push commit frame, nearby static-floor
     certificate, post-query crawl-quarter execution and non-null item-drop

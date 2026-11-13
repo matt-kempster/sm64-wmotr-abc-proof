@@ -1,0 +1,12 @@
+PASS: source inventory: 717 source files; 0 inventory problems
+PASS: build: exit 0; see build.log
+PASS: proof holes: exit 0; includes untracked source files
+PASS: link hygiene: exit 0; includes untracked source files
+PASS: assumptions LessThanOneAPress.Proofs.MainTheorem.current_ink_backward_execution_boundary: 9 allowed foundations; see assumptions-1.log
+PASS: assumptions LessThanOneAPress.Proofs.InkRetryQuery.irq_retry_connects_display_to_real_floor_call: 7 allowed foundations; see assumptions-2.log
+PASS: assumptions LessThanOneAPress.Proofs.InkVerticalRetryGeometry.ivr_vertical_retry_geometry_checked: 4 allowed foundations; see assumptions-3.log
+PASS: assumptions LessThanOneAPress.Proofs.MainTheorem.current_ink_slide_handoff_boundary: 7 allowed foundations; see assumptions-4.log
+PASS: assumptions LessThanOneAPress.Proofs.InkSlideHandoff.isl_actual_vpu_sample_y_conversions: 6 allowed foundations; see assumptions-5.log
+PASS: integration: 551/637 modules in MainTheorem's import closure; 86 standalone-only; 0 problems
+VERDICT: PASS (mechanical checks only; not a completed game proof)
+Mechanical hygiene only. Explicit hypotheses, live reachability, and statement fidelity require review.
