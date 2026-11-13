@@ -1,0 +1,575 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "case": "crawl",
+      "receipt": "build/jp-ink-vpu-actions-crawl-20261113/receipt.json",
+      "receiptSha256": "304679b9b1a1004d1f442ec1b28c5aac887055b5e576017ce1e23b6dc4b86efc",
+      "rawLogSha256": "a17c96e3c62962234002f069ea031431dec5ede69f0e893ee96e4da146f9f394",
+      "setupWrites": 22,
+      "write32": 17,
+      "write16": 5,
+      "renderStates": 146,
+      "inputRecords": 148,
+      "lastRenderInput": 148,
+      "lastLoggedInput": 148,
+      "milestones": {
+        "producerInput": 6,
+        "captureInput": 7,
+        "split": 66509.0,
+        "firstArea2Input": 30,
+        "area2Position": [
+          365.592773,
+          5500.0,
+          -1096.80261
+        ],
+        "usefulArrival": true
+      },
+      "producerExactFloat32": {
+        "state": [
+          -1882.0,
+          768.0,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          768.0,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          67277.0,
+          -939.0
+        ],
+        "action": "04008448"
+      },
+      "capture": {
+        "mode": "1",
+        "step": "7",
+        "timer": "2680",
+        "poll": "2681",
+        "area": "1",
+        "topTimer": "132",
+        "topAction": "1",
+        "topActive": "257",
+        "topBehavior": "800ebeb4",
+        "action": "00001300",
+        "actionArg": "00040001",
+        "actionState": "0",
+        "actionTimer": "0",
+        "held": "00000000",
+        "used": "80345918",
+        "boxHeld": "0",
+        "boxActive": "259",
+        "input": "44",
+        "platform": "803451f8",
+        "floorOwner": "803451f8",
+        "floor": "8019bb10",
+        "floorY": "1818.9613",
+        "ceilingY": "20000",
+        "forward": "0",
+        "yaw": "18432",
+        "slideYaw": "18432",
+        "slideVel": "(0,-0)",
+        "velocity": "(0,0,-0)",
+        "state": "(-1882,1818.9613,-939)",
+        "collision": "(-1882,1818.9613,-939)",
+        "display": "(-1882,1818.9613,-939)",
+        "boxXYZ": "(-1989,67277.4531,-939)",
+        "boxVelocity": "(0,0.454086304,0)",
+        "hitbox": "160"
+      },
+      "firstArea2": {
+        "mode": "1",
+        "step": "30",
+        "timer": "2703",
+        "poll": "2704",
+        "area": "2",
+        "topTimer": "1",
+        "topAction": "0",
+        "topActive": "257",
+        "topBehavior": "800e8c3c",
+        "action": "00001932",
+        "actionArg": "00000000",
+        "actionState": "0",
+        "actionTimer": "0",
+        "held": "00000000",
+        "used": "80347338",
+        "boxHeld": "0",
+        "boxActive": "0",
+        "input": "36",
+        "platform": "00000000",
+        "floorOwner": "00000000",
+        "floor": "801a0eb0",
+        "floorY": "4429",
+        "ceilingY": "5222",
+        "forward": "0",
+        "yaw": "-26624",
+        "slideYaw": "18432",
+        "slideVel": "(-0,-0)",
+        "velocity": "(-0,-4,-0)",
+        "state": "(365.592773,5500,-1096.80261)",
+        "collision": "(365.592773,5500,-1096.80261)",
+        "display": "(365.592773,5500,-1096.80261)",
+        "boxXYZ": "(-1989,67277.4531,-939)",
+        "boxVelocity": "(0,0.454086304,0)",
+        "hitbox": "160"
+      },
+      "unjoinedShots": [
+        "super_mario_64-000.png",
+        "super_mario_64-027.png"
+      ],
+      "mappedShotKeyframes": {
+        "5": "super_mario_64-005.png",
+        "6": "super_mario_64-006.png",
+        "7": "super_mario_64-007.png",
+        "8": "super_mario_64-008.png",
+        "26": "super_mario_64-026.png",
+        "30": "super_mario_64-028.png",
+        "31": "super_mario_64-029.png",
+        "60": "super_mario_64-058.png"
+      },
+      "archivedReceipt": "instrumentation/jp-ink-vpu-actions-demo/records/crawl/receipt.json",
+      "archivedReceiptSha256": "9cd63c73d07c1555b7b18d8da941ea67e3a2bcc035806f2697e7389d110510e8"
+    },
+    {
+      "case": "slide",
+      "receipt": "build/jp-ink-vpu-actions-slide-20261113/receipt.json",
+      "receiptSha256": "67da8c2cdb993bbd7d95fbcc99d1d9b4c3e569a57bb796168a2680f34518092c",
+      "rawLogSha256": "ad50c62174fffff1a6acdd84134da0878f84def64d11e82bd1d722ed6410203a",
+      "setupWrites": 25,
+      "write32": 19,
+      "write16": 6,
+      "renderStates": 146,
+      "inputRecords": 148,
+      "lastRenderInput": 148,
+      "lastLoggedInput": 148,
+      "milestones": {
+        "producerInput": 6,
+        "captureInput": 7,
+        "split": 66509.0,
+        "firstArea2Input": 30,
+        "area2Position": [
+          365.592773,
+          5500.0,
+          -1096.80261
+        ],
+        "usefulArrival": true
+      },
+      "producerExactFloat32": {
+        "state": [
+          -1882.0,
+          768.0,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          768.0,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          67277.0,
+          -939.0
+        ],
+        "action": "00020466"
+      },
+      "capture": {
+        "mode": "2",
+        "step": "7",
+        "timer": "2680",
+        "poll": "2681",
+        "area": "1",
+        "topTimer": "132",
+        "topAction": "1",
+        "topActive": "257",
+        "topBehavior": "800ebeb4",
+        "action": "00001300",
+        "actionArg": "00040001",
+        "actionState": "0",
+        "actionTimer": "0",
+        "held": "00000000",
+        "used": "80345918",
+        "boxHeld": "0",
+        "boxActive": "259",
+        "input": "44",
+        "platform": "803451f8",
+        "floorOwner": "803451f8",
+        "floor": "8019bb10",
+        "floorY": "1818.9613",
+        "ceilingY": "20000",
+        "forward": "0",
+        "yaw": "16384",
+        "slideYaw": "16384",
+        "slideVel": "(0,0)",
+        "velocity": "(0,0,0)",
+        "state": "(-1882,1818.9613,-939)",
+        "collision": "(-1882,1818.9613,-939)",
+        "display": "(-1882,1818.9613,-939)",
+        "boxXYZ": "(-1989,67277.4531,-939)",
+        "boxVelocity": "(0,0.454086304,0)",
+        "hitbox": "160"
+      },
+      "firstArea2": {
+        "mode": "2",
+        "step": "30",
+        "timer": "2703",
+        "poll": "2704",
+        "area": "2",
+        "topTimer": "1",
+        "topAction": "0",
+        "topActive": "257",
+        "topBehavior": "800e8c3c",
+        "action": "00001932",
+        "actionArg": "00000000",
+        "actionState": "0",
+        "actionTimer": "0",
+        "held": "00000000",
+        "used": "80347338",
+        "boxHeld": "0",
+        "boxActive": "0",
+        "input": "36",
+        "platform": "00000000",
+        "floorOwner": "00000000",
+        "floor": "801a0eb0",
+        "floorY": "4429",
+        "ceilingY": "5222",
+        "forward": "0",
+        "yaw": "-26624",
+        "slideYaw": "16384",
+        "slideVel": "(-0,-0)",
+        "velocity": "(-0,-4,-0)",
+        "state": "(365.592773,5500,-1096.80261)",
+        "collision": "(365.592773,5500,-1096.80261)",
+        "display": "(365.592773,5500,-1096.80261)",
+        "boxXYZ": "(-1989,67277.4531,-939)",
+        "boxVelocity": "(0,0.454086304,0)",
+        "hitbox": "160"
+      },
+      "unjoinedShots": [
+        "super_mario_64-000.png",
+        "super_mario_64-027.png"
+      ],
+      "mappedShotKeyframes": {
+        "5": "super_mario_64-005.png",
+        "6": "super_mario_64-006.png",
+        "7": "super_mario_64-007.png",
+        "8": "super_mario_64-008.png",
+        "26": "super_mario_64-026.png",
+        "30": "super_mario_64-028.png",
+        "31": "super_mario_64-029.png",
+        "60": "super_mario_64-058.png"
+      },
+      "archivedReceipt": "instrumentation/jp-ink-vpu-actions-demo/records/slide/receipt.json",
+      "archivedReceiptSha256": "3b4e7af93528acb7bf569c6954065d106b355a873cbc3e294eeed584e252ed0b"
+    },
+    {
+      "case": "walk",
+      "receipt": "build/jp-ink-vpu-actions-walk-20261113/receipt.json",
+      "receiptSha256": "6d22e84424a510eaa3dd0697177a684d0335800187448d8e46fe46a77ce1c89a",
+      "rawLogSha256": "c3b06d03d1445022f94de91f3978066a7384e40de2bb819dab014372df3b2388",
+      "setupWrites": 31,
+      "write32": 26,
+      "write16": 5,
+      "renderStates": 146,
+      "inputRecords": 148,
+      "lastRenderInput": 148,
+      "lastLoggedInput": 148,
+      "milestones": {
+        "producerInput": 6,
+        "captureInput": 7,
+        "split": 66509.0,
+        "firstArea2Input": 30,
+        "area2Position": [
+          365.592773,
+          5500.0,
+          -1096.80261
+        ],
+        "usefulArrival": true
+      },
+      "producerExactFloat32": {
+        "state": [
+          -1882.0,
+          768.0,
+          -939.0
+        ],
+        "collision": [
+          -1882.0,
+          768.0,
+          -939.0
+        ],
+        "display": [
+          -1882.0,
+          67277.0,
+          -939.0
+        ],
+        "action": "00020466"
+      },
+      "capture": {
+        "mode": "3",
+        "step": "7",
+        "timer": "2680",
+        "poll": "2681",
+        "area": "1",
+        "topTimer": "132",
+        "topAction": "1",
+        "topActive": "257",
+        "topBehavior": "800ebeb4",
+        "action": "00001300",
+        "actionArg": "00040001",
+        "actionState": "0",
+        "actionTimer": "0",
+        "held": "00000000",
+        "used": "80345918",
+        "boxHeld": "0",
+        "boxActive": "259",
+        "input": "44",
+        "platform": "803451f8",
+        "floorOwner": "803451f8",
+        "floor": "8019bb10",
+        "floorY": "1818.9613",
+        "ceilingY": "20000",
+        "forward": "0",
+        "yaw": "16873",
+        "slideYaw": "16873",
+        "slideVel": "(0,-0)",
+        "velocity": "(0,0,-0)",
+        "state": "(-1882,1818.9613,-939)",
+        "collision": "(-1882,1818.9613,-939)",
+        "display": "(-1882,1818.9613,-939)",
+        "boxXYZ": "(-1989,67277,-939)",
+        "boxVelocity": "(0,4.4540863,0)",
+        "hitbox": "160"
+      },
+      "firstArea2": {
+        "mode": "3",
+        "step": "30",
+        "timer": "2703",
+        "poll": "2704",
+        "area": "2",
+        "topTimer": "1",
+        "topAction": "0",
+        "topActive": "257",
+        "topBehavior": "800e8c3c",
+        "action": "00001932",
+        "actionArg": "00000000",
+        "actionState": "0",
+        "actionTimer": "0",
+        "held": "00000000",
+        "used": "80347338",
+        "boxHeld": "0",
+        "boxActive": "0",
+        "input": "36",
+        "platform": "00000000",
+        "floorOwner": "00000000",
+        "floor": "801a0eb0",
+        "floorY": "4429",
+        "ceilingY": "5222",
+        "forward": "0",
+        "yaw": "-26624",
+        "slideYaw": "16873",
+        "slideVel": "(-0,-0)",
+        "velocity": "(-0,-4,-0)",
+        "state": "(365.592773,5500,-1096.80261)",
+        "collision": "(365.592773,5500,-1096.80261)",
+        "display": "(365.592773,5500,-1096.80261)",
+        "boxXYZ": "(-1989,67277,-939)",
+        "boxVelocity": "(0,4.4540863,0)",
+        "hitbox": "160"
+      },
+      "unjoinedShots": [
+        "super_mario_64-000.png",
+        "super_mario_64-027.png"
+      ],
+      "mappedShotKeyframes": {
+        "5": "super_mario_64-005.png",
+        "6": "super_mario_64-006.png",
+        "7": "super_mario_64-007.png",
+        "8": "super_mario_64-008.png",
+        "26": "super_mario_64-026.png",
+        "30": "super_mario_64-028.png",
+        "31": "super_mario_64-029.png",
+        "60": "super_mario_64-058.png"
+      },
+      "archivedReceipt": "instrumentation/jp-ink-vpu-actions-demo/records/walk/receipt.json",
+      "archivedReceiptSha256": "4db82812cb7d4c714869d5b0ec3ceeb51d063cb3499410f5b99658b286d05c54"
+    },
+    {
+      "case": "x-slide",
+      "receipt": "build/jp-ink-vpu-actions-x-slide-20261113/receipt.json",
+      "receiptSha256": "7cbb95ee34d1ffde146db72b722d102a93608528202f1a6c9989d6e57b24b3c7",
+      "rawLogSha256": "7c9d114f09abc11627eb2bbaf0f5bea395fc6b5b5193371c8f3f29ff3f88b248",
+      "setupWrites": 25,
+      "write32": 19,
+      "write16": 6,
+      "renderStates": 148,
+      "inputRecords": 148,
+      "lastRenderInput": 148,
+      "lastLoggedInput": 148,
+      "milestones": {
+        "producerInput": 6,
+        "captureInput": null,
+        "split": 0.0,
+        "firstArea2Input": null,
+        "area2Position": null,
+        "usefulArrival": false
+      },
+      "producerExactFloat32": {
+        "state": [
+          63658.6015625,
+          1741.0,
+          -939.0
+        ],
+        "collision": [
+          63658.6015625,
+          1741.0,
+          -939.0
+        ],
+        "display": [
+          63658.6015625,
+          1741.0,
+          -939.0
+        ],
+        "action": "0300088e"
+      },
+      "capture": null,
+      "firstArea2": null,
+      "unjoinedShots": [
+        "super_mario_64-000.png"
+      ],
+      "mappedShotKeyframes": {
+        "5": "super_mario_64-005.png",
+        "6": "super_mario_64-006.png",
+        "7": "super_mario_64-007.png",
+        "8": "super_mario_64-008.png",
+        "26": "super_mario_64-026.png",
+        "27": "super_mario_64-027.png",
+        "30": "super_mario_64-030.png",
+        "31": "super_mario_64-031.png",
+        "60": "super_mario_64-060.png"
+      },
+      "archivedReceipt": "instrumentation/jp-ink-vpu-actions-demo/records/x-slide/receipt.json",
+      "archivedReceiptSha256": "37917c2e2ec69ef709065957e64f1d8f747e4de018832e7e8c603d14893fc953"
+    },
+    {
+      "case": "x-walk",
+      "receipt": "build/jp-ink-vpu-actions-x-walk-20261113/receipt.json",
+      "receiptSha256": "6552a6e3516fc4745baa4d3cef6aadd7070ccf1ae755bbfb5eadfdaa21173207",
+      "rawLogSha256": "3a9ba4a654137dfff517af2ef8aaf49bd28649e10ce42108d64e3be165297f01",
+      "setupWrites": 31,
+      "write32": 26,
+      "write16": 5,
+      "renderStates": 148,
+      "inputRecords": 148,
+      "lastRenderInput": 148,
+      "lastLoggedInput": 148,
+      "milestones": {
+        "producerInput": 6,
+        "captureInput": null,
+        "split": 0.0,
+        "firstArea2Input": null,
+        "area2Position": null,
+        "usefulArrival": false
+      },
+      "producerExactFloat32": {
+        "state": [
+          63658.8203125,
+          1741.0,
+          -939.2282104492188
+        ],
+        "collision": [
+          63658.8203125,
+          1741.0,
+          -939.2282104492188
+        ],
+        "display": [
+          63658.8203125,
+          1741.0,
+          -939.2282104492188
+        ],
+        "action": "0100088c"
+      },
+      "capture": null,
+      "firstArea2": null,
+      "unjoinedShots": [
+        "super_mario_64-000.png"
+      ],
+      "mappedShotKeyframes": {
+        "5": "super_mario_64-005.png",
+        "6": "super_mario_64-006.png",
+        "7": "super_mario_64-007.png",
+        "8": "super_mario_64-008.png",
+        "26": "super_mario_64-026.png",
+        "27": "super_mario_64-027.png",
+        "30": "super_mario_64-030.png",
+        "31": "super_mario_64-031.png",
+        "60": "super_mario_64-060.png"
+      },
+      "archivedReceipt": "instrumentation/jp-ink-vpu-actions-demo/records/x-walk/receipt.json",
+      "archivedReceiptSha256": "2ce5f3b2f6e00f205ab5f571f7e966a1c75f29e39a7184f231c3ccd2c1028b59"
+    },
+    {
+      "case": "xy-slide",
+      "receipt": "build/jp-ink-vpu-actions-xy-slide-20261113/receipt.json",
+      "receiptSha256": "89440974736b936f846c64328c43066076d74b11aef281ca580bf635ba726232",
+      "rawLogSha256": "555e442dcc7667a8f9813ba939050611f1706fd20ccb5e06e9f4bb6e8cffd6e4",
+      "setupWrites": 25,
+      "write32": 19,
+      "write16": 6,
+      "renderStates": 112,
+      "inputRecords": 148,
+      "lastRenderInput": 112,
+      "lastLoggedInput": 148,
+      "milestones": {
+        "producerInput": 6,
+        "captureInput": null,
+        "split": 66509.0,
+        "firstArea2Input": null,
+        "area2Position": null,
+        "usefulArrival": false
+      },
+      "producerExactFloat32": {
+        "state": [
+          63654.0,
+          768.0,
+          -939.0
+        ],
+        "collision": [
+          63654.0,
+          768.0,
+          -939.0
+        ],
+        "display": [
+          63654.0,
+          67277.0,
+          -939.0
+        ],
+        "action": "00020466"
+      },
+      "capture": null,
+      "firstArea2": null,
+      "unjoinedShots": [
+        "super_mario_64-000.png",
+        "super_mario_64-112.png"
+      ],
+      "mappedShotKeyframes": {
+        "5": "super_mario_64-005.png",
+        "6": "super_mario_64-006.png",
+        "7": "super_mario_64-007.png",
+        "8": "super_mario_64-008.png",
+        "26": "super_mario_64-026.png",
+        "27": "super_mario_64-027.png",
+        "30": "super_mario_64-030.png",
+        "31": "super_mario_64-031.png",
+        "60": "super_mario_64-060.png"
+      },
+      "archivedReceipt": "instrumentation/jp-ink-vpu-actions-demo/records/xy-slide/receipt.json",
+      "archivedReceiptSha256": "35dfbd7901ff17733d8e9027387b6c7bc55f23101ddd19a73518b7a4182d7194"
+    }
+  ],
+  "timelineReview": {
+    "sha256": "ee4c0b36dc732de805523705f770c2d68c1b6f1435b5ca01ac7031ea7601ab03",
+    "allSelectedImagesMapped": true,
+    "durationSeconds": 246.6
+  }
+}

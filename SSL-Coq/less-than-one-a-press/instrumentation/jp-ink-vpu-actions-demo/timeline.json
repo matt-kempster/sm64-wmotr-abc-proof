@@ -1,0 +1,687 @@
+{
+  "schema": 1,
+  "scope": "Silent visual commentary matching the earlier crawl demo. Six independent original JP ROM supplied-state replays: three vertical handoffs and three horizontal comparisons. Source/Wafel diagrams expand within-update ordering; native logs observe end-update states. No continuous controller-reachable high entry or box delivery is claimed. The stock camera is unmodified.",
+  "posterSegment": 7,
+  "runs": {
+    "crawl": {
+      "shots": "build/jp-ink-vpu-actions-crawl-20261113/shots",
+      "receipt": "build/jp-ink-vpu-actions-crawl-20261113/receipt.json",
+      "receiptSha256": "304679b9b1a1004d1f442ec1b28c5aac887055b5e576017ce1e23b6dc4b86efc",
+      "scope": "Original-JP ROM with explicitly supplied initial action/pose/speed/actor cuts; stock camera; not controller-reachable route",
+      "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+      "emulator": "Mupen64Plus2.5.9 interpreter, Rice2.5.9, HLE-RSP2.5.9, dummy audio, Ubuntu24.04; debug level-select cheat6",
+      "milestones": {
+        "producerInput": 6,
+        "captureInput": 7,
+        "split": 66509.0,
+        "firstArea2Input": 30,
+        "area2Position": [
+          365.592773,
+          5500.0,
+          -1096.80261
+        ],
+        "usefulArrival": true
+      },
+      "observationLimit": "End-update positions/action/cache/owner/platform/actor fields; no per-quarter or local query hook."
+    },
+    "slide": {
+      "shots": "build/jp-ink-vpu-actions-slide-20261113/shots",
+      "receipt": "build/jp-ink-vpu-actions-slide-20261113/receipt.json",
+      "receiptSha256": "67da8c2cdb993bbd7d95fbcc99d1d9b4c3e569a57bb796168a2680f34518092c",
+      "scope": "Original-JP ROM with explicitly supplied initial action/pose/speed/actor cuts; stock camera; not controller-reachable route",
+      "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+      "emulator": "Mupen64Plus2.5.9 interpreter, Rice2.5.9, HLE-RSP2.5.9, dummy audio, Ubuntu24.04; debug level-select cheat6",
+      "milestones": {
+        "producerInput": 6,
+        "captureInput": 7,
+        "split": 66509.0,
+        "firstArea2Input": 30,
+        "area2Position": [
+          365.592773,
+          5500.0,
+          -1096.80261
+        ],
+        "usefulArrival": true
+      },
+      "observationLimit": "End-update positions/action/cache/owner/platform/actor fields; no per-quarter or local query hook."
+    },
+    "walk": {
+      "shots": "build/jp-ink-vpu-actions-walk-20261113/shots",
+      "receipt": "build/jp-ink-vpu-actions-walk-20261113/receipt.json",
+      "receiptSha256": "6d22e84424a510eaa3dd0697177a684d0335800187448d8e46fe46a77ce1c89a",
+      "scope": "Original-JP ROM with explicitly supplied initial action/pose/speed/actor cuts; stock camera; not controller-reachable route",
+      "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+      "emulator": "Mupen64Plus2.5.9 interpreter, Rice2.5.9, HLE-RSP2.5.9, dummy audio, Ubuntu24.04; debug level-select cheat6",
+      "milestones": {
+        "producerInput": 6,
+        "captureInput": 7,
+        "split": 66509.0,
+        "firstArea2Input": 30,
+        "area2Position": [
+          365.592773,
+          5500.0,
+          -1096.80261
+        ],
+        "usefulArrival": true
+      },
+      "observationLimit": "End-update positions/action/cache/owner/platform/actor fields; no per-quarter or local query hook."
+    },
+    "x-slide": {
+      "shots": "build/jp-ink-vpu-actions-x-slide-20261113/shots",
+      "receipt": "build/jp-ink-vpu-actions-x-slide-20261113/receipt.json",
+      "receiptSha256": "7cbb95ee34d1ffde146db72b722d102a93608528202f1a6c9989d6e57b24b3c7",
+      "scope": "Original-JP ROM with explicitly supplied initial action/pose/speed/actor cuts; stock camera; not controller-reachable route",
+      "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+      "emulator": "Mupen64Plus2.5.9 interpreter, Rice2.5.9, HLE-RSP2.5.9, dummy audio, Ubuntu24.04; debug level-select cheat6",
+      "milestones": {
+        "producerInput": 6,
+        "captureInput": null,
+        "split": 0.0,
+        "firstArea2Input": null,
+        "area2Position": null,
+        "usefulArrival": false
+      },
+      "observationLimit": "End-update positions/action/cache/owner/platform/actor fields; no per-quarter or local query hook."
+    },
+    "x-walk": {
+      "shots": "build/jp-ink-vpu-actions-x-walk-20261113/shots",
+      "receipt": "build/jp-ink-vpu-actions-x-walk-20261113/receipt.json",
+      "receiptSha256": "6552a6e3516fc4745baa4d3cef6aadd7070ccf1ae755bbfb5eadfdaa21173207",
+      "scope": "Original-JP ROM with explicitly supplied initial action/pose/speed/actor cuts; stock camera; not controller-reachable route",
+      "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+      "emulator": "Mupen64Plus2.5.9 interpreter, Rice2.5.9, HLE-RSP2.5.9, dummy audio, Ubuntu24.04; debug level-select cheat6",
+      "milestones": {
+        "producerInput": 6,
+        "captureInput": null,
+        "split": 0.0,
+        "firstArea2Input": null,
+        "area2Position": null,
+        "usefulArrival": false
+      },
+      "observationLimit": "End-update positions/action/cache/owner/platform/actor fields; no per-quarter or local query hook."
+    },
+    "xy-slide": {
+      "shots": "build/jp-ink-vpu-actions-xy-slide-20261113/shots",
+      "receipt": "build/jp-ink-vpu-actions-xy-slide-20261113/receipt.json",
+      "receiptSha256": "89440974736b936f846c64328c43066076d74b11aef281ca580bf635ba726232",
+      "scope": "Original-JP ROM with explicitly supplied initial action/pose/speed/actor cuts; stock camera; not controller-reachable route",
+      "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+      "emulator": "Mupen64Plus2.5.9 interpreter, Rice2.5.9, HLE-RSP2.5.9, dummy audio, Ubuntu24.04; debug level-select cheat6",
+      "milestones": {
+        "producerInput": 6,
+        "captureInput": null,
+        "split": 66509.0,
+        "firstArea2Input": null,
+        "area2Position": null,
+        "usefulArrival": false
+      },
+      "observationLimit": "End-update positions/action/cache/owner/platform/actor fields; no per-quarter or local query hook."
+    }
+  },
+  "segments": [
+    {
+      "run": "crawl",
+      "shot": 85,
+      "seconds": 8,
+      "diagram": "summary",
+      "title": "VPU crawl, slides and walking",
+      "tag": "INK HANDOFF / SIX INDEPENDENT JP ROM TESTS",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "Three supplied vertical tests reach a useful Area 2 entry.",
+        "Horizontal tests show why repeating terrain queries are not enough."
+      ],
+      "footer": "Original JP ROM footage with explicit setup edits; explanatory diagrams are not game footage. No complete route is claimed.",
+      "badge": "Silent visual commentary / pauses and slow motion"
+    },
+    {
+      "run": "crawl",
+      "shot": 5,
+      "seconds": 8,
+      "diagram": "query",
+      "title": "A VPU repeats queries, not the whole world",
+      "tag": "READING THE DIAGRAM / M, C AND D ARE DIFFERENT STORES",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "Here, VPU means +65536 in Y: actual height 67277 queries as 1741.",
+        "The floor still returns a local height. The real warp and top stay below."
+      ],
+      "footer": "D means stored graphics position; the floor-alignment matrix can draw Mario elsewhere. Broken axis, not to scale.",
+      "badge": "Native frame before the supplied high cut"
+    },
+    {
+      "run": "crawl",
+      "shot": 5,
+      "seconds": 7,
+      "diagram": "start",
+      "title": "Start with a high crawler and a high box",
+      "tag": "1 / 4  VPU CRAWL / INDEPENDENT SUPPLIED TEST",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "Supply Mario at (-1950, 67277, -939), already crawling, speed 5.",
+        "Supply the Crazy Box at (-1989, 67277, -939), beside him; top phase 130."
+      ],
+      "footer": "Supplied-state original-ROM replay. High entry and Crazy Box delivery are not controller-reachable demonstrations.",
+      "badge": "Diagram shows the supplied pose before input 6"
+    },
+    {
+      "run": "crawl",
+      "shot": 6,
+      "seconds": 7,
+      "diagram": "query",
+      "title": "The first lookup remembers the low pad",
+      "tag": "1 / 4  VPU CRAWL / INDEPENDENT SUPPLIED TEST",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "At Mario's initial X/Z, the high floor query aliases to Y 1741.",
+        "It refreshes the cached floor to the actual low pad at Y 768."
+      ],
+      "footer": "Right: JP source + Wafel within-update explanation. Left: recorded ROM end state.",
+      "badge": "Input 6 end state / diagram expands that update"
+    },
+    {
+      "run": "crawl",
+      "shot": 6,
+      "seconds": 7,
+      "diagram": "push",
+      "title": "The box moves M sideways while M stays high",
+      "tag": "1 / 4  VPU CRAWL / INDEPENDENT SUPPLIED TEST",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "The box interaction pushes movement X from -1950 to -1882.",
+        "Movement Y remains 67277. The cached floor still remembers 768."
+      ],
+      "footer": "Right: JP source + Wafel within-update explanation. Left: recorded ROM end state.",
+      "badge": "No new input between these explanatory stages"
+    },
+    {
+      "run": "crawl",
+      "shot": 6,
+      "seconds": 8,
+      "diagram": "stop",
+      "title": "The high quarter-step stops before installing a floor",
+      "tag": "1 / 4  VPU CRAWL / INDEPENDENT SUPPLIED TEST",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "The proposed step finds roof 1280, but the no-ceiling value is 20000.",
+        "Raw Y 67277 + 160 reaches that value, so the old floor cache survives."
+      ],
+      "footer": "Right: JP source + Wafel within-update explanation. Left: recorded ROM end state.",
+      "badge": "Top collision is unloaded here / zero top faces"
+    },
+    {
+      "run": "crawl",
+      "shot": 6,
+      "seconds": 7,
+      "diagram": "copy",
+      "title": "Save high graphics, then snap movement low",
+      "tag": "1 / 4  VPU CRAWL / INDEPENDENT SUPPLIED TEST",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "The ground step copies high movement into stored graphics D.",
+        "Floor alignment sets M to cached Y 768; collision C then copies low M."
+      ],
+      "footer": "Right: JP source + Wafel within-update explanation. Left: recorded ROM end state.",
+      "badge": "Instantaneous assignments / not a fall through space"
+    },
+    {
+      "run": "crawl",
+      "shot": 6,
+      "seconds": 7,
+      "diagram": "gap",
+      "title": "The end of input 6 contains the 66509-unit split",
+      "tag": "1 / 4  VPU CRAWL / INDEPENDENT SUPPLIED TEST",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "M and C are (-1882, 768, -939). Stored graphics D is still at Y 67277.",
+        "Low C is near the real warp; high D is available for the next floor retry."
+      ],
+      "footer": "Native end-update coordinates are measured. Stock camera may not show the high stored pose; use the M/C/D diagram.",
+      "badge": "Native receipt: crawl / floor 768 / no platform"
+    },
+    {
+      "run": "crawl",
+      "shot": 7,
+      "seconds": 8,
+      "diagram": "retry",
+      "title": "Next update: low contact, high retry",
+      "tag": "1 / 4  VPU CRAWL / INDEPENDENT SUPPLIED TEST",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "Low C reaches the warp and permits the real top collision to load again.",
+        "The low floor lookup fails; retrying from D aliases 67277 to 1741."
+      ],
+      "footer": "Right: JP source + Wafel within-update explanation. Left: recorded ROM end state.",
+      "badge": "Top collision: zero to six faces in Wafel trace"
+    },
+    {
+      "run": "crawl",
+      "shot": 7,
+      "seconds": 8,
+      "diagram": "capture",
+      "title": "Warp accepted; the spinning top is captured",
+      "tag": "1 / 4  VPU CRAWL / INDEPENDENT SUPPLIED TEST",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "Mario disappears for the warp. Floor owner and platform both name the top.",
+        "The new floor is local Y 1818.9613, with no +65536 added."
+      ],
+      "footer": "Native input 7 records disappearance + top floor/platform. Local top height is not shifted by 65536.",
+      "badge": "Native input 7: disappeared action + top platform"
+    },
+    {
+      "run": "crawl",
+      "diagram": "capture",
+      "title": "The top stays captured during the warp",
+      "tag": "1 / 4  VPU CRAWL / INDEPENDENT SUPPLIED TEST",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "The native recording advances while the disappearance action runs.",
+        "The right panel keeps the input 7 capture snapshot for reference."
+      ],
+      "footer": "Left: consecutive native inputs 7-26 at quarter speed. Right: input 7 snapshot, not current moving coordinates.",
+      "badge": "",
+      "range": [
+        7,
+        26
+      ],
+      "repeat": 4
+    },
+    {
+      "run": "crawl",
+      "shot": 26,
+      "seconds": 7,
+      "diagram": "retention",
+      "title": "An inactive top is still remembered",
+      "tag": "1 / 4  VPU CRAWL / INDEPENDENT SUPPLIED TEST",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "At input 27, the top is inactive but Mario still retains it as platform.",
+        "This stored reference survives the disappearance before Area 2 loads."
+      ],
+      "footer": "Native input 27 telemetry records topActive=0 and retained platform. No exactly joined screenshot exists for that input.",
+      "badge": "Paused at input 26 / next-update telemetry on right"
+    },
+    {
+      "run": "crawl",
+      "diagram": "arrival",
+      "title": "Follow the warp into Area 2",
+      "tag": "1 / 4  VPU CRAWL / INDEPENDENT SUPPLIED TEST",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "The transition fades, then the stock camera reaches the pyramid interior.",
+        "First Area 2 position: (365.593, 5500, -1096.803), away from normal entry."
+      ],
+      "footer": "Left: consecutive native inputs 30-147 at half speed. Unmapped transition frame 27 is omitted. Right: first arrival.",
+      "badge": "",
+      "range": [
+        28,
+        145
+      ],
+      "repeat": 2
+    },
+    {
+      "run": "crawl",
+      "shot": 85,
+      "seconds": 7,
+      "diagram": "arrival",
+      "title": "Crawling reaches the useful interior side",
+      "tag": "1 / 4  VPU CRAWL / INDEPENDENT SUPPLIED TEST",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "The first Area 2 state is outside the usual elevator entry footprint.",
+        "Later native frames show Mario beside the upper interior walkway."
+      ],
+      "footer": "Coordinates describe first Area 2 input 30. Visible footage is later in the same independent supplied-state replay.",
+      "badge": "Later visible footage / coordinates at first arrival"
+    },
+    {
+      "run": "slide",
+      "shot": 5,
+      "seconds": 7,
+      "diagram": "slide",
+      "title": "Replace the crawler with a ground butt slide",
+      "tag": "2 / 4  VPU BUTT SLIDE / NEW INDEPENDENT REPLAY",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "Supply the same high position and box, but ACT_BUTT_SLIDE at speed 20.",
+        "This is an established ground slide, not an airborne slide animation."
+      ],
+      "footer": "Supplied-state original-ROM replay. High entry and Crazy Box delivery are not controller-reachable demonstrations.",
+      "badge": "Native frame before the supplied high cut"
+    },
+    {
+      "run": "slide",
+      "shot": 6,
+      "seconds": 8,
+      "diagram": "slide",
+      "title": "A ground bonk does not prevent this alignment",
+      "tag": "2 / 4  VPU BUTT SLIDE / NEW INDEPENDENT REPLAY",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "The stopped ground step changes the action to GROUND_BONK.",
+        "The common slide helper still aligns with the old floor after that change."
+      ],
+      "footer": "Right: JP source + Wafel within-update explanation. Left: recorded ROM end state.",
+      "badge": "Within one input / bonk then floor alignment"
+    },
+    {
+      "run": "slide",
+      "shot": 6,
+      "seconds": 7,
+      "diagram": "gap",
+      "title": "The slide makes the same recorded split",
+      "tag": "2 / 4  VPU BUTT SLIDE / NEW INDEPENDENT REPLAY",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "Input 6 ends with M/C at 768 and D at 67277: a gap of 66509.",
+        "The end action is GROUND_BONK; that alone does not defeat the handoff."
+      ],
+      "footer": "Supplied-state original-ROM replay. High entry and Crazy Box delivery are not controller-reachable demonstrations.",
+      "badge": "Native receipt: ground bonk / floor 768"
+    },
+    {
+      "run": "slide",
+      "shot": 7,
+      "seconds": 7,
+      "diagram": "capture",
+      "title": "The separate slide run captures the top too",
+      "tag": "2 / 4  VPU BUTT SLIDE / NEW INDEPENDENT REPLAY",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "Input 7 accepts the warp and records the spinning top as platform.",
+        "We keep following this slide replay through the actual Area 2 transition."
+      ],
+      "footer": "Native input 7 records disappearance + top floor/platform. Local top height is not shifted by 65536.",
+      "badge": "Same capture coordinates; independently recorded run"
+    },
+    {
+      "run": "slide",
+      "diagram": "capture",
+      "title": "The top stays captured during the warp",
+      "tag": "2 / 4  VPU BUTT SLIDE / NEW INDEPENDENT REPLAY",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "The native recording advances while the disappearance action runs.",
+        "The right panel keeps the input 7 capture snapshot for reference."
+      ],
+      "footer": "Left: consecutive native inputs 7-26 at quarter speed. Right: input 7 snapshot, not current moving coordinates.",
+      "badge": "",
+      "range": [
+        7,
+        26
+      ],
+      "repeat": 4
+    },
+    {
+      "run": "slide",
+      "diagram": "arrival",
+      "title": "Follow the warp into Area 2",
+      "tag": "2 / 4  VPU BUTT SLIDE / NEW INDEPENDENT REPLAY",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "The transition fades, then the stock camera reaches the pyramid interior.",
+        "First Area 2 position: (365.593, 5500, -1096.803), away from normal entry."
+      ],
+      "footer": "Left: consecutive native inputs 30-147 at half speed. Unmapped transition frame 27 is omitted. Right: first arrival.",
+      "badge": "",
+      "range": [
+        28,
+        145
+      ],
+      "repeat": 2
+    },
+    {
+      "run": "slide",
+      "shot": 85,
+      "seconds": 6,
+      "diagram": "arrival",
+      "title": "Butt sliding also reaches the useful arrival",
+      "tag": "2 / 4  VPU BUTT SLIDE / NEW INDEPENDENT REPLAY",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "The independently recorded slide reaches the same first Area 2 position.",
+        "High slide entry and box delivery were supplied, so route reachability stays open."
+      ],
+      "footer": "Coordinates describe first Area 2 input 30. Visible footage is later in the same independent supplied-state replay.",
+      "badge": "Later visible slide-run footage"
+    },
+    {
+      "run": "walk",
+      "shot": 5,
+      "seconds": 8,
+      "diagram": "walkprep",
+      "title": "Walking supplies the slide speed locally",
+      "tag": "3 / 4  VPU WALKING TO CROUCH SLIDE / TWO SUPPLIED CUTS",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "First supply walking on the low roof at Y 1280 and speed 20.",
+        "One native walking update initializes slide velocity, still on that low roof."
+      ],
+      "footer": "Preparation starts from a supplied low walking state. No climb or transport to the VPU is demonstrated.",
+      "badge": "Input 5 / native walking on the low roof"
+    },
+    {
+      "run": "walk",
+      "shot": 6,
+      "seconds": 9,
+      "diagram": "walkcut",
+      "title": "A second cut moves the prepared walker high",
+      "tag": "3 / 4  VPU WALKING TO CROUCH SLIDE / TWO SUPPLIED CUTS",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "Supply high synchronized M/C/D and the high box; retain native walking speeds.",
+        "Z selects CROUCH_SLIDE; its stopped step bonks and still aligns with the floor."
+      ],
+      "footer": "This is walking-to-crouch-slide after a supplied high cut. Ordinary walking does not itself make the split.",
+      "badge": "Input 6 / second supplied relocation, then Z"
+    },
+    {
+      "run": "walk",
+      "shot": 6,
+      "seconds": 7,
+      "diagram": "gap",
+      "title": "The walking-to-slide update produces the gap",
+      "tag": "3 / 4  VPU WALKING TO CROUCH SLIDE / TWO SUPPLIED CUTS",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "M/C again end at 768 while D remains at 67277; the gap is 66509.",
+        "The native end action is GROUND_BONK, just as in the butt-slide replay."
+      ],
+      "footer": "Supplied-state original-ROM replay. High entry and Crazy Box delivery are not controller-reachable demonstrations.",
+      "badge": "Native record after the Z transition"
+    },
+    {
+      "run": "walk",
+      "shot": 7,
+      "seconds": 7,
+      "diagram": "capture",
+      "title": "The next update completes the same local handoff",
+      "tag": "3 / 4  VPU WALKING TO CROUCH SLIDE / TWO SUPPLIED CUTS",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "The warp is accepted and the actual spinning top becomes Mario's platform.",
+        "The run continues without another setup write after the high cut."
+      ],
+      "footer": "Native input 7 records disappearance + top floor/platform. Local top height is not shifted by 65536.",
+      "badge": "Native input 7 / top captured"
+    },
+    {
+      "run": "walk",
+      "diagram": "capture",
+      "title": "The top stays captured during the warp",
+      "tag": "3 / 4  VPU WALKING TO CROUCH SLIDE / TWO SUPPLIED CUTS",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "The native recording advances while the disappearance action runs.",
+        "The right panel keeps the input 7 capture snapshot for reference."
+      ],
+      "footer": "Left: consecutive native inputs 7-26 at quarter speed. Right: input 7 snapshot, not current moving coordinates.",
+      "badge": "",
+      "range": [
+        7,
+        26
+      ],
+      "repeat": 4
+    },
+    {
+      "run": "walk",
+      "diagram": "arrival",
+      "title": "Follow the warp into Area 2",
+      "tag": "3 / 4  VPU WALKING TO CROUCH SLIDE / TWO SUPPLIED CUTS",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "The transition fades, then the stock camera reaches the pyramid interior.",
+        "First Area 2 position: (365.593, 5500, -1096.803), away from normal entry."
+      ],
+      "footer": "Left: consecutive native inputs 30-147 at half speed. Unmapped transition frame 27 is omitted. Right: first arrival.",
+      "badge": "",
+      "range": [
+        28,
+        145
+      ],
+      "repeat": 2
+    },
+    {
+      "run": "walk",
+      "shot": 85,
+      "seconds": 7,
+      "diagram": "arrival",
+      "title": "Walking-to-slide reaches Area 2, conditionally",
+      "tag": "3 / 4  VPU WALKING TO CROUCH SLIDE / TWO SUPPLIED CUTS",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "This third replay also reaches (365.593, 5500, -1096.803) at first arrival.",
+        "The missing route is how to obtain the supplied high pose and high box legally."
+      ],
+      "footer": "Coordinates describe first Area 2 input 30. Visible footage is later in the same independent supplied-state replay.",
+      "badge": "Later visible walking-to-slide replay footage"
+    },
+    {
+      "run": "x-slide",
+      "shot": 6,
+      "seconds": 7,
+      "diagram": "horizontal",
+      "title": "Now move X by 65536 instead of Y",
+      "tag": "4 / 4  HORIZONTAL PU COMPARISONS / SEPARATE FAILING TESTS",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "The X-only tests start at (63586, 1741, -939), with the box beside Mario.",
+        "Terrain queries alias back, but Mario is far from the actual warp and top."
+      ],
+      "footer": "Horizontal PU means an X offset here. This finite comparison does not establish impossibility for every horizontal route.",
+      "badge": "Original JP ROM / X-only supplied slide"
+    },
+    {
+      "run": "x-slide",
+      "shot": 6,
+      "seconds": 7,
+      "diagram": "horizontal",
+      "title": "Horizontal slide: no gap and no handoff",
+      "tag": "4 / 4  HORIZONTAL PU COMPARISONS / SEPARATE FAILING TESTS",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "The ground slide leaves the floor: M = C = D at Y 1741 after input 6.",
+        "Its floor cache is 1280; raw X remains about 63659, far from the real warp."
+      ],
+      "footer": "Native X-only butt-slide replay: no accepted warp, no top capture, no Area 2 handoff in the observed run.",
+      "badge": "Input 6 / gap 0 / no top platform"
+    },
+    {
+      "run": "x-slide",
+      "diagram": "horizontal",
+      "title": "Watch the X-only slide continue",
+      "tag": "4 / 4  HORIZONTAL PU COMPARISONS / SEPARATE FAILING TESTS",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "The remote state keeps evolving without entering the real warp.",
+        "An aliased terrain query has not returned Mario's actual X coordinate."
+      ],
+      "footer": "Consecutive native inputs 7-66 at half speed. Right panel explains the spatial separation, not exact changing Y.",
+      "badge": "",
+      "range": [
+        7,
+        66
+      ],
+      "repeat": 2
+    },
+    {
+      "run": "x-walk",
+      "shot": 6,
+      "seconds": 7,
+      "diagram": "horizontal",
+      "title": "Horizontal walking-to-slide fails here too",
+      "tag": "4 / 4  HORIZONTAL PU COMPARISONS / SEPARATE FAILING TESTS",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "The prepared walker receives Z at the X-offset cut and becomes airborne.",
+        "Input 6 has no split: all three stores remain at Y 1741, with no top platform."
+      ],
+      "footer": "Native X-only walking-to-slide replay: no accepted warp, no top capture, no Area 2 handoff in the observed run.",
+      "badge": "Separate X-only walking-to-slide replay"
+    },
+    {
+      "run": "x-walk",
+      "diagram": "horizontal",
+      "title": "Watch the X-only walking case continue",
+      "tag": "4 / 4  HORIZONTAL PU COMPARISONS / SEPARATE FAILING TESTS",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "This separate remote run also stays away from the real warp and top.",
+        "The repeated floor coordinates are not a repeated set of interactive objects."
+      ],
+      "footer": "Consecutive native inputs 7-66 at half speed. Right panel is a location diagram, not an additional game camera.",
+      "badge": "",
+      "range": [
+        7,
+        66
+      ],
+      "repeat": 2
+    },
+    {
+      "run": "xy-slide",
+      "shot": 6,
+      "seconds": 8,
+      "diagram": "horizontal_gap",
+      "title": "Both offsets: a huge gap can still fail",
+      "tag": "4 / 4  HORIZONTAL PU COMPARISONS / SEPARATE FAILING TESTS",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "At X +65536 and Y +65536, the slide makes the same 66509-unit Y split.",
+        "But low C is still at X 63654. Snapping Y does not move X back to the warp."
+      ],
+      "footer": "Supplied XY butt-slide test: M/C=(63654,768,-939), D=(63654,67277,-939) after input 6.",
+      "badge": "Native XY slide / gap 66509 / no warp"
+    },
+    {
+      "run": "xy-slide",
+      "shot": 7,
+      "seconds": 7,
+      "diagram": "horizontal",
+      "title": "On the next update, the failed split disappears",
+      "tag": "4 / 4  HORIZONTAL PU COMPARISONS / SEPARATE FAILING TESTS",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "The retry restores M/C/D to Y 67277; the new floor cache is 1280.",
+        "The real top is not captured, and no useful Area 2 arrival follows."
+      ],
+      "footer": "This XY failure separates a position gap from a completed handoff. Terrain aliasing alone is insufficient.",
+      "badge": "Native input 7 / X 63654 / no platform"
+    },
+    {
+      "run": "walk",
+      "shot": 85,
+      "seconds": 9,
+      "diagram": "summary",
+      "title": "Local handoffs demonstrated; route still open",
+      "tag": "RESULT / CONDITIONAL SUCCESSES, NOT A COMPLETE NO-A ROUTE",
+      "sourceLabel": "Original JP ROM",
+      "lines": [
+        "All three vertical supplied tests complete the handoff in original JP ROM runs.",
+        "The horizontal comparisons fail; reaching the high setup without a new A remains open."
+      ],
+      "footer": "Footage and end states: original JP ROM. Within-update ordering and collision-face counts: source + Wafel evidence.",
+      "badge": "Six replays / no A input in the recorded continuations"
+    }
+  ]
+}

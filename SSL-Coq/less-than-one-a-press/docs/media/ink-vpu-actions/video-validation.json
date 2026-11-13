@@ -1,0 +1,27 @@
+{
+  "video": "ink-vpu-actions.mp4",
+  "sha256": "87f033654c3e8bb81dacf570f7405c0a9c01d571bf8424919b699b3165c80d9b",
+  "ffmpegVersion": "7.0.2-full_build-www.gyan.dev",
+  "powershellVersion": "7.6.9",
+  "fullDecodeExitCode": 0,
+  "ffprobeCountFramesExitCode": 0,
+  "ffprobe": {
+    "codec_name": "h264",
+    "width": 1600,
+    "height": 900,
+    "pix_fmt": "yuv420p",
+    "r_frame_rate": "30/1",
+    "duration": "246.600000",
+    "nb_frames": "7398",
+    "nb_read_frames": "7398",
+    "size": "10560826"
+  },
+  "uniqueOriginalFrames": 544,
+  "composedPanels": 562,
+  "storySegments": 36,
+  "textFitChecks": 11530,
+  "sourceReceiptsVerified": 6,
+  "sourceFrameHashesVerified": 544,
+  "selectedUnjoinedFrames": 0,
+  "visualReview": ["crawl split", "walking second supplied cut", "horizontal XY failure", "inactive retained platform telemetry"]
+}

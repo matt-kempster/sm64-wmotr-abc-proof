@@ -1,0 +1,621 @@
+VPU_START,mode=4,step=0,timer=2674,poll=2675,area=1,topTimer=125,topAction=1,topActive=257,topBehavior=800ebeb4,action=0c400201,actionArg=00000000,actionState=0,actionTimer=1,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=32,platform=00000000,floorOwner=00000000,floor=8019b960,floorY=1024,ceilingY=20000,forward=0,yaw=208,slideYaw=208,slideVel=(0,0),velocity=(0,0,0),state=(-5883.07373,1024,819.564392),collision=(-5883.07373,1024,819.564392),display=(-5883.07373,1024,819.564392),boxXYZ=(-5200,-0,1700),boxVelocity=(0,2.37280655,0),hitbox=160
+VPU_INPUT,step=1,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=1,timer=2674,poll=2675,area=1,topTimer=126,topAction=1,topActive=257,topBehavior=800ebeb4,action=0c400201,actionArg=00000000,actionState=0,actionTimer=1,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=32,platform=00000000,floorOwner=00000000,floor=8019b960,floorY=1024,ceilingY=20000,forward=0,yaw=208,slideYaw=208,slideVel=(0,0),velocity=(0,0,0),state=(-5883.07373,1024,819.564392),collision=(-5883.07373,1024,819.564392),display=(-5883.07373,1024,819.564392),boxXYZ=(-5200,-0,1700),boxVelocity=(0,0.813596725,0),hitbox=160
+VPU_SCREENSHOT,index=0,requestTimer=2674,previousFramebuffer=1
+Core: Captured screenshot for frame 2674.
+VPU_INPUT,step=2,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=2,timer=2675,poll=2676,area=1,topTimer=127,topAction=1,topActive=257,topBehavior=800ebeb4,action=0c400201,actionArg=00000000,actionState=0,actionTimer=1,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=32,platform=00000000,floorOwner=00000000,floor=8019b960,floorY=1024,ceilingY=20000,forward=0,yaw=208,slideYaw=208,slideVel=(0,0),velocity=(0,0,0),state=(-5883.07373,1024,819.564392),collision=(-5883.07373,1024,819.564392),display=(-5883.07373,1024,819.564392),boxXYZ=(-5200,-0,1700),boxVelocity=(0,16.4540863,0),hitbox=160
+VPU_SCREENSHOT,index=1,requestTimer=2675,previousFramebuffer=1
+Core: Captured screenshot for frame 2675.
+VPU_INPUT,step=3,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=3,timer=2676,poll=2677,area=1,topTimer=128,topAction=1,topActive=257,topBehavior=800ebeb4,action=0c400201,actionArg=00000000,actionState=0,actionTimer=1,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=32,platform=00000000,floorOwner=00000000,floor=8019b960,floorY=1024,ceilingY=20000,forward=0,yaw=208,slideYaw=208,slideVel=(0,0),velocity=(0,0,0),state=(-5883.07373,1024,819.564392),collision=(-5883.07373,1024,819.564392),display=(-5883.07373,1024,819.564392),boxXYZ=(-5200,12.4540863,1700),boxVelocity=(0,12.4540863,0),hitbox=160
+VPU_SCREENSHOT,index=2,requestTimer=2676,previousFramebuffer=1
+Core: Captured screenshot for frame 2676.
+VPU_INPUT,step=4,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=4,timer=2677,poll=2678,area=1,topTimer=129,topAction=1,topActive=257,topBehavior=800ebeb4,action=0c400201,actionArg=00000000,actionState=0,actionTimer=1,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=32,platform=00000000,floorOwner=00000000,floor=8019b960,floorY=1024,ceilingY=20000,forward=0,yaw=208,slideYaw=208,slideVel=(0,0),velocity=(0,0,0),state=(-5883.07373,1024,819.564392),collision=(-5883.07373,1024,819.564392),display=(-5883.07373,1024,819.564392),boxXYZ=(-5200,20.9081726,1700),boxVelocity=(0,8.4540863,0),hitbox=160
+VPU_SCREENSHOT,index=3,requestTimer=2677,previousFramebuffer=1
+Core: Captured screenshot for frame 2677.
+VPU_INPUT,step=5,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=5,timer=2678,poll=2679,area=1,topTimer=130,topAction=1,topActive=257,topBehavior=800ebeb4,action=0c400201,actionArg=00000000,actionState=0,actionTimer=1,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=32,platform=00000000,floorOwner=00000000,floor=8019b960,floorY=1024,ceilingY=20000,forward=0,yaw=208,slideYaw=208,slideVel=(0,0),velocity=(0,0,0),state=(-5883.07373,1024,819.564392),collision=(-5883.07373,1024,819.564392),display=(-5883.07373,1024,819.564392),boxXYZ=(-5200,25.3622589,1700),boxVelocity=(0,4.4540863,0),hitbox=160
+VPU_SCREENSHOT,index=4,requestTimer=2678,previousFramebuffer=1
+Core: Captured screenshot for frame 2678.
+VPU_BEFORE_CUT,mode=4,step=5,timer=2679,poll=2680,area=1,topTimer=130,topAction=1,topActive=257,topBehavior=800ebeb4,action=0c400201,actionArg=00000000,actionState=0,actionTimer=1,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=32,platform=00000000,floorOwner=00000000,floor=8019b960,floorY=1024,ceilingY=20000,forward=0,yaw=208,slideYaw=208,slideVel=(0,0),velocity=(0,0,0),state=(-5883.07373,1024,819.564392),collision=(-5883.07373,1024,819.564392),display=(-5883.07373,1024,819.564392),boxXYZ=(-5200,25.3622589,1700),boxVelocity=(0,4.4540863,0),hitbox=160
+VPU_WRITE,step=5,width=32,address=80339e3c,before=c5b7d897,after=47786200,field=movement
+VPU_WRITE,step=5,width=32,address=80339e40,before=44800000,after=44d9a000,field=movement
+VPU_WRITE,step=5,width=32,address=80339e44,before=444ce41f,after=c46ac000,field=movement
+VPU_WRITE,step=5,width=32,address=803460d8,before=c5b7d897,after=47786200,field=collision
+VPU_WRITE,step=5,width=32,address=803460dc,before=44800000,after=44d9a000,field=collision
+VPU_WRITE,step=5,width=32,address=803460e0,before=444ce41f,after=c46ac000,field=collision
+VPU_WRITE,step=5,width=32,address=80346058,before=c5b7d897,after=47786200,field=display
+VPU_WRITE,step=5,width=32,address=8034605c,before=44800000,after=44d9a000,field=display
+VPU_WRITE,step=5,width=32,address=80346060,before=444ce41f,after=c46ac000,field=display
+VPU_WRITE,step=5,width=32,address=80343618,before=c5a28000,after=47783b00,field=boxPosition
+VPU_WRITE,step=5,width=32,address=8034361c,before=41cae5e8,after=44d9a000,field=boxPosition
+VPU_WRITE,step=5,width=32,address=80343620,before=44d48000,after=c46ac000,field=boxPosition
+VPU_WRITE,step=5,width=32,address=80339e0c,before=0c400201,after=00840452,field=action
+VPU_WRITE,step=5,width=16,address=80339e18,before=0000,after=0000,field=actionState
+VPU_WRITE,step=5,width=16,address=80339e1a,before=0001,after=0000,field=actionTimer
+VPU_WRITE,step=5,width=32,address=80339e54,before=00000000,after=41a00000,field=forwardVel
+VPU_WRITE,step=5,width=32,address=80339e48,before=00000000,after=41a00000,field=velocity
+VPU_WRITE,step=5,width=32,address=80339e4c,before=00000000,after=00000000,field=velocity
+VPU_WRITE,step=5,width=32,address=80339e50,before=00000000,after=00000000,field=velocity
+VPU_WRITE,step=5,width=16,address=80339e2c,before=0000,after=0000,field=facePitch
+VPU_WRITE,step=5,width=16,address=80339e2e,before=00d0,after=4000,field=faceYaw
+VPU_WRITE,step=5,width=16,address=80339e30,before=0000,after=0000,field=faceRoll
+VPU_WRITE,step=5,width=32,address=80339e58,before=00000000,after=41a00000,field=slideVelX
+VPU_WRITE,step=5,width=32,address=80339e5c,before=00000000,after=00000000,field=slideVelZ
+VPU_WRITE,step=5,width=16,address=80339e38,before=00d0,after=4000,field=slideYaw
+VPU_AFTER_CUT,mode=4,step=5,timer=2679,poll=2680,area=1,topTimer=130,topAction=1,topActive=257,topBehavior=800ebeb4,action=00840452,actionArg=00000000,actionState=0,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=32,platform=00000000,floorOwner=00000000,floor=8019b960,floorY=1024,ceilingY=20000,forward=20,yaw=16384,slideYaw=16384,slideVel=(20,0),velocity=(20,0,0),state=(63586,1741,-939),collision=(63586,1741,-939),display=(63586,1741,-939),boxXYZ=(63547,1741,-939),boxVelocity=(0,4.4540863,0),hitbox=160
+VPU_INPUT,step=6,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=6,timer=2679,poll=2680,area=1,topTimer=131,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=0,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=36,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=18.3999996,yaw=16384,slideYaw=16384,slideVel=(18.3999996,0),velocity=(18.3999996,0,0),state=(63658.6016,1741,-939),collision=(63658.6016,1741,-939),display=(63658.6016,1741,-939),boxXYZ=(63547,1741.4541,-939),boxVelocity=(0,0.454086304,0),hitbox=160
+VPU_SCREENSHOT,index=5,requestTimer=2679,previousFramebuffer=1
+Core: Captured screenshot for frame 2679.
+VPU_INPUT,step=7,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=7,timer=2680,poll=2681,area=1,topTimer=132,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=0,actionTimer=1,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=36,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=18.0499992,yaw=16384,slideYaw=16384,slideVel=(18.0499992,0),velocity=(18.0499992,-4,0),state=(63676.6484,1741,-939),collision=(63676.6484,1741,-939),display=(63676.6484,1741,-939),boxXYZ=(63547,1737.9082,-939),boxVelocity=(0,-3.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=6,requestTimer=2680,previousFramebuffer=1
+Core: Captured screenshot for frame 2680.
+VPU_INPUT,step=8,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=8,timer=2681,poll=2682,area=1,topTimer=133,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=0,actionTimer=2,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=36,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=17.6999989,yaw=16384,slideYaw=16384,slideVel=(17.6999989,0),velocity=(17.6999989,-8,0),state=(63694.3516,1737,-939),collision=(63694.3516,1737,-939),display=(63694.3516,1737,-939),boxXYZ=(63547,1730.3623,-939),boxVelocity=(0,-7.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=7,requestTimer=2681,previousFramebuffer=1
+Core: Captured screenshot for frame 2681.
+VPU_INPUT,step=9,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=9,timer=2682,poll=2683,area=1,topTimer=134,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=0,actionTimer=3,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=36,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=17.3499985,yaw=16384,slideYaw=16384,slideVel=(17.3499985,0),velocity=(17.3499985,-12,0),state=(63711.6953,1729,-939),collision=(63711.6953,1729,-939),display=(63711.6953,1729,-939),boxXYZ=(63547,1718.81641,-939),boxVelocity=(0,-11.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=8,requestTimer=2682,previousFramebuffer=1
+Core: Captured screenshot for frame 2682.
+VPU_INPUT,step=10,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=10,timer=2683,poll=2684,area=1,topTimer=135,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=0,actionTimer=4,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=36,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=16.9999981,yaw=16384,slideYaw=16384,slideVel=(16.9999981,0),velocity=(16.9999981,-16,0),state=(63728.6953,1717,-939),collision=(63728.6953,1717,-939),display=(63728.6953,1717,-939),boxXYZ=(63547,1703.27051,-939),boxVelocity=(0,-15.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=9,requestTimer=2683,previousFramebuffer=1
+Core: Captured screenshot for frame 2683.
+VPU_INPUT,step=11,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=11,timer=2684,poll=2685,area=1,topTimer=136,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=36,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=16.6499977,yaw=16384,slideYaw=16384,slideVel=(16.6499977,0),velocity=(16.6499977,-20,0),state=(63745.3516,1701,-939),collision=(63745.3516,1701,-939),display=(63745.3516,1701,-939),boxXYZ=(63547,1683.72461,-939),boxVelocity=(0,-19.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=10,requestTimer=2684,previousFramebuffer=1
+Core: Captured screenshot for frame 2684.
+VPU_INPUT,step=12,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=12,timer=2685,poll=2686,area=1,topTimer=137,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=0,actionTimer=6,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=36,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=16.2999973,yaw=16384,slideYaw=16384,slideVel=(16.2999973,0),velocity=(16.2999973,-24,0),state=(63761.6484,1681,-939),collision=(63761.6484,1681,-939),display=(63761.6484,1681,-939),boxXYZ=(63547,1660.17871,-939),boxVelocity=(0,-23.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=11,requestTimer=2685,previousFramebuffer=1
+Core: Captured screenshot for frame 2685.
+VPU_INPUT,step=13,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=13,timer=2686,poll=2687,area=1,topTimer=138,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=0,actionTimer=7,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=36,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=15.9499969,yaw=16384,slideYaw=16384,slideVel=(15.9499969,0),velocity=(15.9499969,-28,0),state=(63777.6016,1657,-939),collision=(63777.6016,1657,-939),display=(63777.6016,1657,-939),boxXYZ=(63547,1632.63281,-939),boxVelocity=(0,-27.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=12,requestTimer=2686,previousFramebuffer=1
+Core: Captured screenshot for frame 2686.
+VPU_INPUT,step=14,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=14,timer=2687,poll=2688,area=1,topTimer=139,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=0,actionTimer=8,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=36,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=15.5999966,yaw=16384,slideYaw=16384,slideVel=(15.5999966,0),velocity=(15.5999966,-32,0),state=(63793.1953,1629,-939),collision=(63793.1953,1629,-939),display=(63793.1953,1629,-939),boxXYZ=(63547,1601.08691,-939),boxVelocity=(0,-31.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=13,requestTimer=2687,previousFramebuffer=1
+Core: Captured screenshot for frame 2687.
+VPU_INPUT,step=15,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=15,timer=2688,poll=2689,area=1,topTimer=140,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=0,actionTimer=9,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=36,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=15.2499962,yaw=16384,slideYaw=16384,slideVel=(15.2499962,0),velocity=(15.2499962,-36,0),state=(63808.4453,1597,-939),collision=(63808.4453,1597,-939),display=(63808.4453,1597,-939),boxXYZ=(63547,1565.54102,-939),boxVelocity=(0,-35.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=14,requestTimer=2688,previousFramebuffer=1
+Core: Captured screenshot for frame 2688.
+VPU_INPUT,step=16,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=16,timer=2689,poll=2690,area=1,topTimer=141,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=0,actionTimer=10,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=36,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=14.8999958,yaw=16384,slideYaw=16384,slideVel=(14.8999958,0),velocity=(14.8999958,-40,0),state=(63823.3516,1561,-939),collision=(63823.3516,1561,-939),display=(63823.3516,1561,-939),boxXYZ=(63547,1525.99512,-939),boxVelocity=(0,-39.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=15,requestTimer=2689,previousFramebuffer=1
+Core: Captured screenshot for frame 2689.
+VPU_INPUT,step=17,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=17,timer=2690,poll=2691,area=1,topTimer=142,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=0,actionTimer=11,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=36,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=14.5499954,yaw=16384,slideYaw=16384,slideVel=(14.5499954,0),velocity=(14.5499954,-44,0),state=(63837.8984,1521,-939),collision=(63837.8984,1521,-939),display=(63837.8984,1521,-939),boxXYZ=(63547,1482.44922,-939),boxVelocity=(0,-43.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=16,requestTimer=2690,previousFramebuffer=1
+Core: Captured screenshot for frame 2690.
+VPU_INPUT,step=18,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=18,timer=2691,poll=2692,area=1,topTimer=143,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=0,actionTimer=12,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=36,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=14.199995,yaw=16384,slideYaw=16384,slideVel=(14.199995,0),velocity=(14.199995,-48,0),state=(63852.1016,1477,-939),collision=(63852.1016,1477,-939),display=(63852.1016,1477,-939),boxXYZ=(63547,1434.90332,-939),boxVelocity=(0,-47.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=17,requestTimer=2691,previousFramebuffer=1
+Core: Captured screenshot for frame 2691.
+VPU_INPUT,step=19,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=19,timer=2692,poll=2693,area=1,topTimer=144,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=0,actionTimer=13,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=36,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=13.8499947,yaw=16384,slideYaw=16384,slideVel=(13.8499947,0),velocity=(13.8499947,-52,0),state=(63865.9453,1429,-939),collision=(63865.9453,1429,-939),display=(63865.9453,1429,-939),boxXYZ=(63547,1383.35742,-939),boxVelocity=(0,-51.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=18,requestTimer=2692,previousFramebuffer=1
+Core: Captured screenshot for frame 2692.
+VPU_INPUT,step=20,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=20,timer=2693,poll=2694,area=1,topTimer=145,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=0,actionTimer=14,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=36,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=13.4999943,yaw=16384,slideYaw=16384,slideVel=(13.4999943,0),velocity=(13.4999943,-56,0),state=(63879.4453,1377,-939),collision=(63879.4453,1377,-939),display=(63879.4453,1377,-939),boxXYZ=(63547,1327.81152,-939),boxVelocity=(0,-55.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=19,requestTimer=2693,previousFramebuffer=1
+Core: Captured screenshot for frame 2693.
+VPU_INPUT,step=21,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=21,timer=2694,poll=2695,area=1,topTimer=146,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=0,actionTimer=15,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=32,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=13.1499939,yaw=16384,slideYaw=16384,slideVel=(13.1499939,0),velocity=(13.1499939,-60,0),state=(63892.6016,1321,-939),collision=(63892.6016,1321,-939),display=(63892.6016,1321,-939),boxXYZ=(63547,1268.26562,-939),boxVelocity=(0,-59.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=20,requestTimer=2694,previousFramebuffer=1
+Core: Captured screenshot for frame 2694.
+VPU_INPUT,step=22,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=22,timer=2695,poll=2696,area=1,topTimer=147,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=1,actionTimer=16,held=00000000,used=803443b8,boxHeld=0,boxActive=257,input=32,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=12.7999935,yaw=16384,slideYaw=16384,slideVel=(12.7999935,0),velocity=(12.7999935,32,0),state=(63902.1992,1280,-939),collision=(63902.1992,1280,-939),display=(63902.1992,1280,-939),boxXYZ=(-1989,1204.4541,-951),boxVelocity=(0,-63.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=21,requestTimer=2695,previousFramebuffer=1
+Core: Captured screenshot for frame 2695.
+VPU_INPUT,step=23,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=23,timer=2696,poll=2697,area=1,topTimer=148,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=1,actionTimer=17,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=12.4499931,yaw=16384,slideYaw=16384,slideVel=(12.4499931,0),velocity=(12.4499931,8,0),state=(63914.6523,1312,-939),collision=(63914.6523,1312,-939),display=(63914.6523,1312,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=22,requestTimer=2696,previousFramebuffer=1
+Core: Captured screenshot for frame 2696.
+VPU_INPUT,step=24,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=24,timer=2697,poll=2698,area=1,topTimer=149,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=1,actionTimer=18,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=12.0999928,yaw=16384,slideYaw=16384,slideVel=(12.0999928,0),velocity=(12.0999928,4,0),state=(63926.7461,1320,-939),collision=(63926.7461,1320,-939),display=(63926.7461,1320,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=23,requestTimer=2697,previousFramebuffer=1
+Core: Captured screenshot for frame 2697.
+VPU_INPUT,step=25,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=25,timer=2698,poll=2699,area=1,topTimer=150,topAction=1,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=1,actionTimer=19,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=11.7499924,yaw=16384,slideYaw=16384,slideVel=(11.7499924,0),velocity=(11.7499924,0,0),state=(63938.4961,1324,-939),collision=(63938.4961,1324,-939),display=(63938.4961,1324,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=24,requestTimer=2698,previousFramebuffer=1
+Core: Captured screenshot for frame 2698.
+VPU_INPUT,step=26,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=26,timer=2699,poll=2700,area=1,topTimer=0,topAction=2,topActive=257,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=1,actionTimer=20,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=11.399992,yaw=16384,slideYaw=16384,slideVel=(11.399992,0),velocity=(11.399992,-4,0),state=(63949.9023,1324,-939),collision=(63949.9023,1324,-939),display=(63949.9023,1324,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=25,requestTimer=2699,previousFramebuffer=1
+Core: Captured screenshot for frame 2699.
+VPU_INPUT,step=27,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=27,timer=2700,poll=2701,area=1,topTimer=1,topAction=2,topActive=0,topBehavior=800ebeb4,action=0300088e,actionArg=00000000,actionState=1,actionTimer=21,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=11.0499916,yaw=16384,slideYaw=16384,slideVel=(11.0499916,0),velocity=(11.0499916,-8,0),state=(63960.9492,1320,-939),collision=(63960.9492,1320,-939),display=(63960.9492,1320,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=26,requestTimer=2700,previousFramebuffer=1
+Core: Captured screenshot for frame 2700.
+VPU_INPUT,step=28,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=28,timer=2701,poll=2702,area=1,topTimer=2,topAction=0,topActive=273,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=1,actionTimer=22,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=10.6999912,yaw=16384,slideYaw=16384,slideVel=(10.6999912,0),velocity=(10.6999912,-12,0),state=(63971.6523,1312,-939),collision=(63971.6523,1312,-939),display=(63971.6523,1312,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=27,requestTimer=2701,previousFramebuffer=1
+Core: Captured screenshot for frame 2701.
+VPU_INPUT,step=29,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=29,timer=2702,poll=2703,area=1,topTimer=3,topAction=0,topActive=273,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=1,actionTimer=23,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=10.3499908,yaw=16384,slideYaw=16384,slideVel=(10.3499908,0),velocity=(10.3499908,-16,0),state=(63981.9961,1300,-939),collision=(63981.9961,1300,-939),display=(63981.9961,1300,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=28,requestTimer=2702,previousFramebuffer=1
+Core: Captured screenshot for frame 2702.
+VPU_INPUT,step=30,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=30,timer=2703,poll=2704,area=1,topTimer=4,topAction=0,topActive=273,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=1,actionTimer=24,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=9.99999046,yaw=16384,slideYaw=16384,slideVel=(9.99999046,0),velocity=(9.99999046,-20,0),state=(63991.9961,1284,-939),collision=(63991.9961,1284,-939),display=(63991.9961,1284,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=29,requestTimer=2703,previousFramebuffer=1
+Core: Captured screenshot for frame 2703.
+VPU_INPUT,step=31,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=31,timer=2704,poll=2705,area=1,topTimer=5,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80197490,floorY=1280,ceilingY=20000,forward=9.64999008,yaw=16384,slideYaw=16384,slideVel=(9.64999008,0),velocity=(9.64999008,-24,0),state=(63994.4102,1280,-939),collision=(63994.4102,1280,-939),display=(63994.4102,1280,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=30,requestTimer=2704,previousFramebuffer=1
+Core: Captured screenshot for frame 2704.
+VPU_INPUT,step=32,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=32,timer=2705,poll=2706,area=1,topTimer=6,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=1,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=8019a460,floorY=1278,ceilingY=20000,forward=8.87799072,yaw=16384,slideYaw=16384,slideVel=(8.87799072,0),velocity=(8.87799072,0,0),state=(64003.2852,1278,-939),collision=(64003.2852,1278,-939),display=(64003.2852,1278,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=31,requestTimer=2705,previousFramebuffer=1
+Core: Captured screenshot for frame 2705.
+VPU_INPUT,step=33,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=33,timer=2706,poll=2707,area=1,topTimer=7,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=2,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a460,floorY=1268,ceilingY=20000,forward=13.9534512,yaw=16384,slideYaw=16384,slideVel=(13.9534512,0),velocity=(13.9534512,0,0),state=(64013.1445,1268,-939),collision=(64013.1445,1268,-939),display=(64013.1445,1268,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=32,requestTimer=2706,previousFramebuffer=1
+Core: Captured screenshot for frame 2706.
+VPU_INPUT,step=34,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=34,timer=2707,poll=2708,area=1,topTimer=8,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=3,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a460,floorY=1255,ceilingY=20000,forward=18.8258934,yaw=16384,slideYaw=16384,slideVel=(18.8258934,0),velocity=(18.8258934,0,0),state=(64026.457,1255,-939),collision=(64026.457,1255,-939),display=(64026.457,1255,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=33,requestTimer=2707,previousFramebuffer=1
+Core: Captured screenshot for frame 2707.
+VPU_INPUT,step=35,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=35,timer=2708,poll=2709,area=1,topTimer=9,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=4,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a460,floorY=1237.99988,ceilingY=20000,forward=23.503437,yaw=16384,slideYaw=16384,slideVel=(23.503437,0),velocity=(23.503437,0,0),state=(64043.082,1237.99988,-939),collision=(64043.082,1237.99988,-939),display=(64043.082,1237.99988,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=34,requestTimer=2708,previousFramebuffer=1
+Core: Captured screenshot for frame 2708.
+VPU_INPUT,step=36,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=36,timer=2709,poll=2710,area=1,topTimer=10,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a460,floorY=1219,ceilingY=20000,forward=27.9938793,yaw=16384,slideYaw=16384,slideVel=(27.9938793,0),velocity=(27.9938793,0,0),state=(64062.8789,1219,-939),collision=(64062.8789,1219,-939),display=(64062.8789,1219,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=35,requestTimer=2709,previousFramebuffer=1
+Core: Captured screenshot for frame 2709.
+VPU_INPUT,step=37,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=37,timer=2710,poll=2711,area=1,topTimer=11,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a460,floorY=1195.99988,ceilingY=20000,forward=32.3047028,yaw=16384,slideYaw=16384,slideVel=(32.3047028,0),velocity=(32.3047028,0,0),state=(64085.7227,1195.99988,-939),collision=(64085.7227,1195.99988,-939),display=(64085.7227,1195.99988,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=36,requestTimer=2710,previousFramebuffer=1
+Core: Captured screenshot for frame 2710.
+VPU_INPUT,step=38,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=38,timer=2711,poll=2712,area=1,topTimer=12,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a460,floorY=1170,ceilingY=20000,forward=36.4430923,yaw=16384,slideYaw=16384,slideVel=(36.4430923,0),velocity=(36.4430923,0,0),state=(64111.4883,1170,-939),collision=(64111.4883,1170,-939),display=(64111.4883,1170,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=37,requestTimer=2711,previousFramebuffer=1
+Core: Captured screenshot for frame 2711.
+VPU_INPUT,step=39,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=39,timer=2712,poll=2713,area=1,topTimer=13,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a460,floorY=1141,ceilingY=20000,forward=40.415947,yaw=16384,slideYaw=16384,slideVel=(40.415947,0),velocity=(40.415947,0,0),state=(64140.0664,1141,-939),collision=(64140.0664,1141,-939),display=(64140.0664,1141,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=38,requestTimer=2712,previousFramebuffer=1
+Core: Captured screenshot for frame 2712.
+VPU_INPUT,step=40,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=40,timer=2713,poll=2714,area=1,topTimer=14,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a460,floorY=1110,ceilingY=20000,forward=44.2298851,yaw=16384,slideYaw=16384,slideVel=(44.2298851,0),velocity=(44.2298851,0,0),state=(64171.3477,1110,-939),collision=(64171.3477,1110,-939),display=(64171.3477,1110,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=39,requestTimer=2713,previousFramebuffer=1
+Core: Captured screenshot for frame 2713.
+VPU_INPUT,step=41,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=41,timer=2714,poll=2715,area=1,topTimer=15,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a580,floorY=1076,ceilingY=20000,forward=47.8912697,yaw=16384,slideYaw=16384,slideVel=(47.8912697,0),velocity=(47.8912697,0,0),state=(64205.207,1076,-939),collision=(64205.207,1076,-939),display=(64205.207,1076,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=40,requestTimer=2714,previousFramebuffer=1
+Core: Captured screenshot for frame 2714.
+VPU_INPUT,step=42,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=42,timer=2715,poll=2716,area=1,topTimer=16,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a580,floorY=1039.99988,ceilingY=20000,forward=51.4061966,yaw=16384,slideYaw=16384,slideVel=(51.4061966,0),velocity=(51.4061966,0,0),state=(64241.5508,1039.99988,-939),collision=(64241.5508,1039.99988,-939),display=(64241.5508,1039.99988,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=41,requestTimer=2715,previousFramebuffer=1
+Core: Captured screenshot for frame 2715.
+VPU_INPUT,step=43,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=43,timer=2716,poll=2717,area=1,topTimer=17,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a580,floorY=1000.99994,ceilingY=20000,forward=54.780529,yaw=16384,slideYaw=16384,slideVel=(54.780529,0),velocity=(54.780529,0,0),state=(64280.2852,1000.99994,-939),collision=(64280.2852,1000.99994,-939),display=(64280.2852,1000.99994,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=42,requestTimer=2716,previousFramebuffer=1
+Core: Captured screenshot for frame 2716.
+VPU_INPUT,step=44,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=44,timer=2717,poll=2718,area=1,topTimer=18,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a580,floorY=960,ceilingY=20000,forward=58.0198822,yaw=16384,slideYaw=16384,slideVel=(58.0198822,0),velocity=(58.0198822,0,0),state=(64321.3164,960,-939),collision=(64321.3164,960,-939),display=(64321.3164,960,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=43,requestTimer=2717,previousFramebuffer=1
+Core: Captured screenshot for frame 2717.
+VPU_INPUT,step=45,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=45,timer=2718,poll=2719,area=1,topTimer=19,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a580,floorY=916.999939,ceilingY=20000,forward=61.1296654,yaw=16384,slideYaw=16384,slideVel=(61.1296654,0),velocity=(61.1296654,0,0),state=(64364.5352,916.999939,-939),collision=(64364.5352,916.999939,-939),display=(64364.5352,916.999939,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=44,requestTimer=2718,previousFramebuffer=1
+Core: Captured screenshot for frame 2718.
+VPU_INPUT,step=46,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=46,timer=2719,poll=2720,area=1,topTimer=20,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a580,floorY=871.999939,ceilingY=20000,forward=64.1150589,yaw=16384,slideYaw=16384,slideVel=(64.1150589,0),velocity=(64.1150589,0,0),state=(64409.8789,871.999939,-939),collision=(64409.8789,871.999939,-939),display=(64409.8789,871.999939,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=45,requestTimer=2719,previousFramebuffer=1
+Core: Captured screenshot for frame 2719.
+VPU_INPUT,step=47,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=47,timer=2720,poll=2721,area=1,topTimer=21,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a580,floorY=824.000061,ceilingY=20000,forward=66.9810333,yaw=16384,slideYaw=16384,slideVel=(66.9810333,0),velocity=(66.9810333,0,0),state=(64457.2383,824.000061,-939),collision=(64457.2383,824.000061,-939),display=(64457.2383,824.000061,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=46,requestTimer=2720,previousFramebuffer=1
+Core: Captured screenshot for frame 2720.
+VPU_INPUT,step=48,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=48,timer=2721,poll=2722,area=1,topTimer=22,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a580,floorY=774.999939,ceilingY=20000,forward=69.7323685,yaw=16384,slideYaw=16384,slideVel=(69.7323685,0),velocity=(69.7323685,0,0),state=(64506.5508,774.999939,-939),collision=(64506.5508,774.999939,-939),display=(64506.5508,774.999939,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=47,requestTimer=2721,previousFramebuffer=1
+Core: Captured screenshot for frame 2721.
+VPU_INPUT,step=49,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=49,timer=2722,poll=2723,area=1,topTimer=23,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a580,floorY=724,ceilingY=20000,forward=72.3736496,yaw=16384,slideYaw=16384,slideVel=(72.3736496,0),velocity=(72.3736496,0,0),state=(64557.7227,724,-939),collision=(64557.7227,724,-939),display=(64557.7227,724,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=48,requestTimer=2722,previousFramebuffer=1
+Core: Captured screenshot for frame 2722.
+VPU_INPUT,step=50,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=50,timer=2723,poll=2724,area=1,topTimer=24,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a580,floorY=671,ceilingY=20000,forward=74.9092789,yaw=16384,slideYaw=16384,slideVel=(74.9092789,0),velocity=(74.9092789,0,0),state=(64610.6914,671,-939),collision=(64610.6914,671,-939),display=(64610.6914,671,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=49,requestTimer=2723,previousFramebuffer=1
+Core: Captured screenshot for frame 2723.
+VPU_INPUT,step=51,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=51,timer=2724,poll=2725,area=1,topTimer=25,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a580,floorY=616,ceilingY=20000,forward=77.343483,yaw=16384,slideYaw=16384,slideVel=(77.343483,0),velocity=(77.343483,0,0),state=(64665.3789,616,-939),collision=(64665.3789,616,-939),display=(64665.3789,616,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=50,requestTimer=2724,previousFramebuffer=1
+Core: Captured screenshot for frame 2724.
+VPU_INPUT,step=52,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=52,timer=2725,poll=2726,area=1,topTimer=26,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a580,floorY=559.999939,ceilingY=20000,forward=79.6803207,yaw=16384,slideYaw=16384,slideVel=(79.6803207,0),velocity=(79.6803207,0,0),state=(64721.7227,559.999939,-939),collision=(64721.7227,559.999939,-939),display=(64721.7227,559.999939,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=51,requestTimer=2725,previousFramebuffer=1
+Core: Captured screenshot for frame 2725.
+VPU_INPUT,step=53,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=53,timer=2726,poll=2727,area=1,topTimer=27,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=80196ce0,floorY=512,ceilingY=20000,forward=81.9236832,yaw=16384,slideYaw=16384,slideVel=(81.9236832,0),velocity=(81.9236832,0,0),state=(64779.6445,512,-939),collision=(64779.6445,512,-939),display=(64779.6445,512,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=52,requestTimer=2726,previousFramebuffer=1
+Core: Captured screenshot for frame 2726.
+VPU_INPUT,step=54,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=54,timer=2727,poll=2728,area=1,topTimer=28,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196ce0,floorY=512,ceilingY=20000,forward=75.3697891,yaw=16384,slideYaw=16384,slideVel=(75.3697891,0),velocity=(75.3697891,0,0),state=(64855.0195,512,-939),collision=(64855.0195,512,-939),display=(64855.0195,512,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=53,requestTimer=2727,previousFramebuffer=1
+Core: Captured screenshot for frame 2727.
+VPU_INPUT,step=55,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=55,timer=2728,poll=2729,area=1,topTimer=29,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196ce0,floorY=512,ceilingY=20000,forward=69.34021,yaw=16384,slideYaw=16384,slideVel=(69.34021,0),velocity=(69.34021,0,0),state=(64924.3633,512,-939),collision=(64924.3633,512,-939),display=(64924.3633,512,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=54,requestTimer=2728,previousFramebuffer=1
+Core: Captured screenshot for frame 2728.
+VPU_INPUT,step=56,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=56,timer=2729,poll=2730,area=1,topTimer=30,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196c50,floorY=512,ceilingY=20000,forward=63.7929955,yaw=16384,slideYaw=16384,slideVel=(63.7929955,0),velocity=(63.7929955,0,0),state=(64988.1602,512,-939),collision=(64988.1602,512,-939),display=(64988.1602,512,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=55,requestTimer=2729,previousFramebuffer=1
+Core: Captured screenshot for frame 2729.
+VPU_INPUT,step=57,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=57,timer=2730,poll=2731,area=1,topTimer=31,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196c50,floorY=512,ceilingY=20000,forward=58.6895561,yaw=16384,slideYaw=16384,slideVel=(58.6895561,0),velocity=(58.6895561,0,0),state=(65046.8477,512,-939),collision=(65046.8477,512,-939),display=(65046.8477,512,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=56,requestTimer=2730,previousFramebuffer=1
+Core: Captured screenshot for frame 2730.
+VPU_INPUT,step=58,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=58,timer=2731,poll=2732,area=1,topTimer=32,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196c50,floorY=512,ceilingY=20000,forward=53.9943962,yaw=16384,slideYaw=16384,slideVel=(53.9943962,0),velocity=(53.9943962,0,0),state=(65100.8477,512,-939),collision=(65100.8477,512,-939),display=(65100.8477,512,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=57,requestTimer=2731,previousFramebuffer=1
+Core: Captured screenshot for frame 2731.
+VPU_INPUT,step=59,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=59,timer=2732,poll=2733,area=1,topTimer=33,topAction=0,topActive=273,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196c50,floorY=512,ceilingY=20000,forward=49.6748466,yaw=16384,slideYaw=16384,slideVel=(49.6748466,0),velocity=(49.6748466,0,0),state=(65150.5195,512,-939),collision=(65150.5195,512,-939),display=(65150.5195,512,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=58,requestTimer=2732,previousFramebuffer=1
+Core: Captured screenshot for frame 2732.
+VPU_INPUT,step=60,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=60,timer=2733,poll=2734,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=8019a6a0,floorY=120.000015,ceilingY=20000,forward=45.7008591,yaw=16384,slideYaw=16384,slideVel=(45.7008591,0),velocity=(45.7008591,0,0),state=(65161.9453,512,-939),collision=(65161.9453,512,-939),display=(65161.9453,512,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=59,requestTimer=2733,previousFramebuffer=1
+Core: Captured screenshot for frame 2733.
+VPU_INPUT,step=61,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=61,timer=2734,poll=2735,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=1,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=44,platform=00000000,floorOwner=00000000,floor=8019a6a0,floorY=75.0000076,ceilingY=20000,forward=44.3508606,yaw=16384,slideYaw=16384,slideVel=(44.3508606,0),velocity=(44.3508606,-4,0),state=(65206.2891,512,-939),collision=(65206.2891,512,-939),display=(65206.2891,512,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=60,requestTimer=2734,previousFramebuffer=1
+Core: Captured screenshot for frame 2734.
+VPU_INPUT,step=62,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=62,timer=2735,poll=2736,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=2,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=44,platform=00000000,floorOwner=00000000,floor=8019a6a0,floorY=32.0000114,ceilingY=20000,forward=43.0008621,yaw=16384,slideYaw=16384,slideVel=(43.0008621,0),velocity=(43.0008621,-8,0),state=(65249.2891,508,-939),collision=(65249.2891,508,-939),display=(65249.2891,508,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=61,requestTimer=2735,previousFramebuffer=1
+Core: Captured screenshot for frame 2735.
+VPU_INPUT,step=63,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=63,timer=2736,poll=2737,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=3,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=44,platform=00000000,floorOwner=00000000,floor=8019a6a0,floorY=-9.00000954,ceilingY=20000,forward=41.6508636,yaw=16384,slideYaw=16384,slideVel=(41.6508636,0),velocity=(41.6508636,-12,0),state=(65290.9453,500,-939),collision=(65290.9453,500,-939),display=(65290.9453,500,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=62,requestTimer=2736,previousFramebuffer=1
+Core: Captured screenshot for frame 2736.
+VPU_INPUT,step=64,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=64,timer=2737,poll=2738,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=4,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=44,platform=00000000,floorOwner=00000000,floor=8019a6a0,floorY=-50.0000076,ceilingY=20000,forward=40.3008652,yaw=16384,slideYaw=16384,slideVel=(40.3008652,0),velocity=(40.3008652,-16,0),state=(65331.2422,488,-939),collision=(65331.2422,488,-939),display=(65331.2422,488,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=63,requestTimer=2737,previousFramebuffer=1
+Core: Captured screenshot for frame 2737.
+VPU_INPUT,step=65,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=65,timer=2738,poll=2739,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=5,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=44,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-89,ceilingY=20000,forward=38.9508667,yaw=16384,slideYaw=16384,slideVel=(38.9508667,0),velocity=(38.9508667,-20,0),state=(65370.1953,472,-939),collision=(65370.1953,472,-939),display=(65370.1953,472,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=64,requestTimer=2738,previousFramebuffer=1
+Core: Captured screenshot for frame 2738.
+VPU_INPUT,step=66,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=66,timer=2739,poll=2740,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=6,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=44,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-126,ceilingY=20000,forward=37.6008682,yaw=16384,slideYaw=16384,slideVel=(37.6008682,0),velocity=(37.6008682,-24,0),state=(65407.7891,452,-939),collision=(65407.7891,452,-939),display=(65407.7891,452,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=65,requestTimer=2739,previousFramebuffer=1
+Core: Captured screenshot for frame 2739.
+VPU_INPUT,step=67,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=67,timer=2740,poll=2741,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=7,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=44,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-163,ceilingY=20000,forward=36.2508698,yaw=16384,slideYaw=16384,slideVel=(36.2508698,0),velocity=(36.2508698,-28,0),state=(65444.0391,428,-939),collision=(65444.0391,428,-939),display=(65444.0391,428,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=66,requestTimer=2740,previousFramebuffer=1
+Core: Captured screenshot for frame 2740.
+VPU_INPUT,step=68,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=68,timer=2741,poll=2742,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=8,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=44,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-197,ceilingY=20000,forward=34.9008713,yaw=16384,slideYaw=16384,slideVel=(34.9008713,0),velocity=(34.9008713,-32,0),state=(65478.9453,400,-939),collision=(65478.9453,400,-939),display=(65478.9453,400,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=67,requestTimer=2741,previousFramebuffer=1
+Core: Captured screenshot for frame 2741.
+VPU_INPUT,step=69,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=69,timer=2742,poll=2743,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=9,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=44,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-230.999985,ceilingY=20000,forward=33.5508728,yaw=16384,slideYaw=16384,slideVel=(33.5508728,0),velocity=(33.5508728,-36,0),state=(65512.4922,368,-939),collision=(65512.4922,368,-939),display=(65512.4922,368,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=68,requestTimer=2742,previousFramebuffer=1
+Core: Captured screenshot for frame 2742.
+VPU_INPUT,step=70,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=70,timer=2743,poll=2744,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=10,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=44,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-252.997543,ceilingY=20000,forward=32.2008743,yaw=16384,slideYaw=16384,slideVel=(32.2008743,0),velocity=(32.2008743,-40,0),state=(65544.6875,332,-939),collision=(65544.6875,332,-939),display=(65544.6875,332,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=69,requestTimer=2743,previousFramebuffer=1
+Core: Captured screenshot for frame 2743.
+VPU_INPUT,step=71,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=71,timer=2744,poll=2745,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=11,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=36,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-244.987793,ceilingY=20000,forward=31.8508739,yaw=16384,slideYaw=16384,slideVel=(31.8508739,0),velocity=(31.8508739,-44,0),state=(65576.5312,292,-939),collision=(65576.5312,292,-939),display=(65576.5312,292,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=70,requestTimer=2744,previousFramebuffer=1
+Core: Captured screenshot for frame 2744.
+VPU_INPUT,step=72,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=72,timer=2745,poll=2746,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=12,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=36,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-236.978012,ceilingY=20000,forward=31.5008736,yaw=16384,slideYaw=16384,slideVel=(31.5008736,0),velocity=(31.5008736,-48,0),state=(65608.0312,248,-939),collision=(65608.0312,248,-939),display=(65608.0312,248,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=71,requestTimer=2745,previousFramebuffer=1
+Core: Captured screenshot for frame 2745.
+VPU_INPUT,step=73,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=73,timer=2746,poll=2747,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=13,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=36,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-229.218552,ceilingY=20000,forward=31.1508732,yaw=16384,slideYaw=16384,slideVel=(31.1508732,0),velocity=(31.1508732,-52,0),state=(65639.1875,200,-939),collision=(65639.1875,200,-939),display=(65639.1875,200,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=72,requestTimer=2746,previousFramebuffer=1
+Core: Captured screenshot for frame 2746.
+VPU_INPUT,step=74,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=74,timer=2747,poll=2748,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=14,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=36,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-221.459106,ceilingY=20000,forward=30.8008728,yaw=16384,slideYaw=16384,slideVel=(30.8008728,0),velocity=(30.8008728,-56,0),state=(65670,148,-939),collision=(65670,148,-939),display=(65670,148,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=73,requestTimer=2747,previousFramebuffer=1
+Core: Captured screenshot for frame 2747.
+VPU_INPUT,step=75,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=75,timer=2748,poll=2749,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=15,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=36,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-213.949936,ceilingY=20000,forward=30.4508724,yaw=16384,slideYaw=16384,slideVel=(30.4508724,0),velocity=(30.4508724,-60,0),state=(65700.4375,92,-939),collision=(65700.4375,92,-939),display=(65700.4375,92,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=74,requestTimer=2748,previousFramebuffer=1
+Core: Captured screenshot for frame 2748.
+VPU_INPUT,step=76,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=76,timer=2749,poll=2750,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=16,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=36,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-206.440781,ceilingY=20000,forward=30.100872,yaw=16384,slideYaw=16384,slideVel=(30.100872,0),velocity=(30.100872,-64,0),state=(65730.5312,32,-939),collision=(65730.5312,32,-939),display=(65730.5312,32,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=75,requestTimer=2749,previousFramebuffer=1
+Core: Captured screenshot for frame 2749.
+VPU_INPUT,step=77,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=77,timer=2750,poll=2751,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=17,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=36,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-198.93161,ceilingY=20000,forward=29.7508717,yaw=16384,slideYaw=16384,slideVel=(29.7508717,0),velocity=(29.7508717,-68,0),state=(65760.2812,-32,-939),collision=(65760.2812,-32,-939),display=(65760.2812,-32,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=76,requestTimer=2750,previousFramebuffer=1
+Core: Captured screenshot for frame 2750.
+VPU_INPUT,step=78,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=78,timer=2751,poll=2752,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=18,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=36,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-191.67276,ceilingY=20000,forward=29.4008713,yaw=16384,slideYaw=16384,slideVel=(29.4008713,0),velocity=(29.4008713,-72,0),state=(65789.6875,-100,-939),collision=(65789.6875,-100,-939),display=(65789.6875,-100,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=77,requestTimer=2751,previousFramebuffer=1
+Core: Captured screenshot for frame 2751.
+VPU_INPUT,step=79,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=79,timer=2752,poll=2753,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=0300088e,actionArg=00000000,actionState=0,actionTimer=19,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-184.413925,ceilingY=20000,forward=29.0508709,yaw=16384,slideYaw=16384,slideVel=(29.0508709,0),velocity=(29.0508709,-75,0),state=(65818.75,-172,-939),collision=(65818.75,-172,-939),display=(65818.75,-172,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=78,requestTimer=2752,previousFramebuffer=1
+Core: Captured screenshot for frame 2752.
+VPU_INPUT,step=80,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=80,timer=2753,poll=2754,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00840452,actionArg=00000000,actionState=0,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-182.661774,ceilingY=20000,forward=28.7008705,yaw=16384,slideYaw=16384,slideVel=(28.7008705,0),velocity=(28.7008705,-75,0),state=(65825.9219,-182.661774,-939),collision=(65825.9219,-182.661774,-939),display=(65825.9219,-182.661774,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=79,requestTimer=2753,previousFramebuffer=1
+Core: Captured screenshot for frame 2753.
+VPU_INPUT,step=81,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=81,timer=2754,poll=2755,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-185.415131,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65814.2656,-185.415131,-939),collision=(65814.2656,-185.415131,-939),display=(65814.2656,-191.515137,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=80,requestTimer=2754,previousFramebuffer=1
+Core: Captured screenshot for frame 2754.
+VPU_INPUT,step=82,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=82,timer=2755,poll=2756,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-188.418793,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65802.6094,-188.418793,-939),collision=(65802.6094,-188.418793,-939),display=(65802.6094,-199.518799,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=81,requestTimer=2755,previousFramebuffer=1
+Core: Captured screenshot for frame 2755.
+VPU_INPUT,step=83,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=83,timer=2756,poll=2757,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-191.42247,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65790.9531,-191.42247,-939),collision=(65790.9531,-191.42247,-939),display=(65790.9531,-207.522476,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=82,requestTimer=2756,previousFramebuffer=1
+Core: Captured screenshot for frame 2756.
+VPU_INPUT,step=84,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=84,timer=2757,poll=2758,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-194.175827,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65779.2969,-194.175827,-939),collision=(65779.2969,-194.175827,-939),display=(65779.2969,-215.275833,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=83,requestTimer=2757,previousFramebuffer=1
+Core: Captured screenshot for frame 2757.
+VPU_INPUT,step=85,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=85,timer=2758,poll=2759,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-197.179489,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65767.6406,-197.179489,-939),collision=(65767.6406,-197.179489,-939),display=(65767.6406,-223.279495,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=84,requestTimer=2758,previousFramebuffer=1
+Core: Captured screenshot for frame 2758.
+VPU_INPUT,step=86,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=86,timer=2759,poll=2760,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-200.183151,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65755.9844,-200.183151,-939),collision=(65755.9844,-200.183151,-939),display=(65755.9844,-231.283157,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=85,requestTimer=2759,previousFramebuffer=1
+Core: Captured screenshot for frame 2759.
+VPU_INPUT,step=87,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=87,timer=2760,poll=2761,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-202.936508,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65744.3281,-202.936508,-939),collision=(65744.3281,-202.936508,-939),display=(65744.3281,-239.036499,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=86,requestTimer=2760,previousFramebuffer=1
+Core: Captured screenshot for frame 2760.
+VPU_INPUT,step=88,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=88,timer=2761,poll=2762,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-205.940155,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65732.6719,-205.940155,-939),collision=(65732.6719,-205.940155,-939),display=(65732.6719,-247.040161,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=87,requestTimer=2761,previousFramebuffer=1
+Core: Captured screenshot for frame 2761.
+VPU_INPUT,step=89,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=89,timer=2762,poll=2763,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-208.693512,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65721.0156,-208.693512,-939),collision=(65721.0156,-208.693512,-939),display=(65721.0156,-254.793518,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=88,requestTimer=2762,previousFramebuffer=1
+Core: Captured screenshot for frame 2762.
+VPU_INPUT,step=90,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=90,timer=2763,poll=2764,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-211.697189,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65709.3594,-211.697189,-939),collision=(65709.3594,-211.697189,-939),display=(65709.3594,-262.79718,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=89,requestTimer=2763,previousFramebuffer=1
+Core: Captured screenshot for frame 2763.
+VPU_INPUT,step=91,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=91,timer=2764,poll=2765,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-214.700851,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65697.7031,-214.700851,-939),collision=(65697.7031,-214.700851,-939),display=(65697.7031,-270.800842,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=90,requestTimer=2764,previousFramebuffer=1
+Core: Captured screenshot for frame 2764.
+VPU_INPUT,step=92,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=92,timer=2765,poll=2766,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-217.454208,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65686.0469,-217.454208,-939),collision=(65686.0469,-217.454208,-939),display=(65686.0469,-278.554199,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=91,requestTimer=2765,previousFramebuffer=1
+Core: Captured screenshot for frame 2765.
+VPU_INPUT,step=93,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=93,timer=2766,poll=2767,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-220.45787,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65674.3906,-220.45787,-939),collision=(65674.3906,-220.45787,-939),display=(65674.3906,-286.557861,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=92,requestTimer=2766,previousFramebuffer=1
+Core: Captured screenshot for frame 2766.
+VPU_INPUT,step=94,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=94,timer=2767,poll=2768,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-223.461533,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65662.7344,-223.461533,-939),collision=(65662.7344,-223.461533,-939),display=(65662.7344,-294.561523,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=93,requestTimer=2767,previousFramebuffer=1
+Core: Captured screenshot for frame 2767.
+VPU_INPUT,step=95,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=95,timer=2768,poll=2769,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-226.21489,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65651.0781,-226.21489,-939),collision=(65651.0781,-226.21489,-939),display=(65651.0781,-302.31488,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=94,requestTimer=2768,previousFramebuffer=1
+Core: Captured screenshot for frame 2768.
+VPU_INPUT,step=96,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=96,timer=2769,poll=2770,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-229.218552,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65639.4219,-229.218552,-939),collision=(65639.4219,-229.218552,-939),display=(65639.4219,-310.318542,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=95,requestTimer=2769,previousFramebuffer=1
+Core: Captured screenshot for frame 2769.
+VPU_INPUT,step=97,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=97,timer=2770,poll=2771,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-232.222214,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65627.7656,-232.222214,-939),collision=(65627.7656,-232.222214,-939),display=(65627.7656,-318.322205,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=96,requestTimer=2770,previousFramebuffer=1
+Core: Captured screenshot for frame 2770.
+VPU_INPUT,step=98,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=98,timer=2771,poll=2772,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-234.975586,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65616.1094,-234.975586,-939),collision=(65616.1094,-234.975586,-939),display=(65616.1094,-326.075592,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=97,requestTimer=2771,previousFramebuffer=1
+Core: Captured screenshot for frame 2771.
+VPU_INPUT,step=99,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=99,timer=2772,poll=2773,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-237.979248,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65604.4531,-237.979248,-939),collision=(65604.4531,-237.979248,-939),display=(65604.4531,-334.079254,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=98,requestTimer=2772,previousFramebuffer=1
+Core: Captured screenshot for frame 2772.
+VPU_INPUT,step=100,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=100,timer=2773,poll=2774,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-240.98291,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65592.7969,-240.98291,-939),collision=(65592.7969,-240.98291,-939),display=(65592.7969,-342.082916,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=99,requestTimer=2773,previousFramebuffer=1
+Core: Captured screenshot for frame 2773.
+VPU_INPUT,step=101,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=101,timer=2774,poll=2775,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-243.736252,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65581.1406,-243.736252,-939),collision=(65581.1406,-243.736252,-939),display=(65581.1406,-349.836243,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=100,requestTimer=2774,previousFramebuffer=1
+Core: Captured screenshot for frame 2774.
+VPU_INPUT,step=102,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=102,timer=2775,poll=2776,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-246.739914,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65569.4844,-246.739914,-939),collision=(65569.4844,-246.739914,-939),display=(65569.4844,-357.839905,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=101,requestTimer=2775,previousFramebuffer=1
+Core: Captured screenshot for frame 2775.
+VPU_INPUT,step=103,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=103,timer=2776,poll=2777,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-249.743576,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65557.8281,-249.743576,-939),collision=(65557.8281,-249.743576,-939),display=(65557.8281,-365.843567,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=102,requestTimer=2776,previousFramebuffer=1
+Core: Captured screenshot for frame 2776.
+VPU_INPUT,step=104,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=104,timer=2777,poll=2778,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=80196a40,floorY=-252.496933,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65546.1719,-252.496933,-939),collision=(65546.1719,-252.496933,-939),display=(65546.1719,-373.596924,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=103,requestTimer=2777,previousFramebuffer=1
+Core: Captured screenshot for frame 2777.
+VPU_INPUT,step=105,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=105,timer=2778,poll=2779,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=32,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(-12,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-379.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=104,requestTimer=2778,previousFramebuffer=1
+Core: Captured screenshot for frame 2778.
+VPU_INPUT,step=106,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=106,timer=2779,poll=2780,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-384.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=105,requestTimer=2779,previousFramebuffer=1
+Core: Captured screenshot for frame 2779.
+VPU_INPUT,step=107,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=107,timer=2780,poll=2781,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-389.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=106,requestTimer=2780,previousFramebuffer=1
+Core: Captured screenshot for frame 2780.
+VPU_INPUT,step=108,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=108,timer=2781,poll=2782,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-394.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=107,requestTimer=2781,previousFramebuffer=1
+Core: Captured screenshot for frame 2781.
+VPU_INPUT,step=109,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=109,timer=2782,poll=2783,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-399.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=108,requestTimer=2782,previousFramebuffer=1
+Core: Captured screenshot for frame 2782.
+VPU_INPUT,step=110,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=110,timer=2783,poll=2784,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-404.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=109,requestTimer=2783,previousFramebuffer=1
+Core: Captured screenshot for frame 2783.
+VPU_INPUT,step=111,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=111,timer=2784,poll=2785,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-409.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=110,requestTimer=2784,previousFramebuffer=1
+Core: Captured screenshot for frame 2784.
+VPU_INPUT,step=112,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=112,timer=2785,poll=2786,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-414.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=111,requestTimer=2785,previousFramebuffer=1
+Core: Captured screenshot for frame 2785.
+VPU_INPUT,step=113,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=113,timer=2786,poll=2787,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-419.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=112,requestTimer=2786,previousFramebuffer=1
+Core: Captured screenshot for frame 2786.
+VPU_INPUT,step=114,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=114,timer=2787,poll=2788,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-424.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=113,requestTimer=2787,previousFramebuffer=1
+Core: Captured screenshot for frame 2787.
+VPU_INPUT,step=115,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=115,timer=2788,poll=2789,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=1,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-429.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=114,requestTimer=2788,previousFramebuffer=1
+Core: Captured screenshot for frame 2788.
+VPU_INPUT,step=116,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=116,timer=2789,poll=2790,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=115,requestTimer=2789,previousFramebuffer=1
+Core: Captured screenshot for frame 2789.
+VPU_INPUT,step=117,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=117,timer=2790,poll=2791,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=116,requestTimer=2790,previousFramebuffer=1
+Core: Captured screenshot for frame 2790.
+VPU_INPUT,step=118,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=118,timer=2791,poll=2792,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=117,requestTimer=2791,previousFramebuffer=1
+Core: Captured screenshot for frame 2791.
+VPU_INPUT,step=119,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=119,timer=2792,poll=2793,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=118,requestTimer=2792,previousFramebuffer=1
+Core: Captured screenshot for frame 2792.
+VPU_INPUT,step=120,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=120,timer=2793,poll=2794,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=119,requestTimer=2793,previousFramebuffer=1
+Core: Captured screenshot for frame 2793.
+VPU_INPUT,step=121,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=121,timer=2794,poll=2795,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=120,requestTimer=2794,previousFramebuffer=1
+Core: Captured screenshot for frame 2794.
+VPU_INPUT,step=122,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=122,timer=2795,poll=2796,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=121,requestTimer=2795,previousFramebuffer=1
+Core: Captured screenshot for frame 2795.
+VPU_INPUT,step=123,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=123,timer=2796,poll=2797,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=122,requestTimer=2796,previousFramebuffer=1
+Core: Captured screenshot for frame 2796.
+VPU_INPUT,step=124,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=124,timer=2797,poll=2798,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=123,requestTimer=2797,previousFramebuffer=1
+Core: Captured screenshot for frame 2797.
+VPU_INPUT,step=125,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=125,timer=2798,poll=2799,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=124,requestTimer=2798,previousFramebuffer=1
+Core: Captured screenshot for frame 2798.
+VPU_INPUT,step=126,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=126,timer=2799,poll=2800,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=125,requestTimer=2799,previousFramebuffer=1
+Core: Captured screenshot for frame 2799.
+VPU_INPUT,step=127,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=127,timer=2800,poll=2801,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=126,requestTimer=2800,previousFramebuffer=1
+Core: Captured screenshot for frame 2800.
+VPU_INPUT,step=128,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=128,timer=2801,poll=2802,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=127,requestTimer=2801,previousFramebuffer=1
+Core: Captured screenshot for frame 2801.
+VPU_INPUT,step=129,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=129,timer=2802,poll=2803,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=128,requestTimer=2802,previousFramebuffer=1
+Core: Captured screenshot for frame 2802.
+VPU_INPUT,step=130,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=130,timer=2803,poll=2804,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=129,requestTimer=2803,previousFramebuffer=1
+Core: Captured screenshot for frame 2803.
+VPU_INPUT,step=131,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=131,timer=2804,poll=2805,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=130,requestTimer=2804,previousFramebuffer=1
+Core: Captured screenshot for frame 2804.
+VPU_INPUT,step=132,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=132,timer=2805,poll=2806,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=131,requestTimer=2805,previousFramebuffer=1
+Core: Captured screenshot for frame 2805.
+VPU_INPUT,step=133,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=133,timer=2806,poll=2807,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=132,requestTimer=2806,previousFramebuffer=1
+Core: Captured screenshot for frame 2806.
+VPU_INPUT,step=134,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=134,timer=2807,poll=2808,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=133,requestTimer=2807,previousFramebuffer=1
+Core: Captured screenshot for frame 2807.
+VPU_INPUT,step=135,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=135,timer=2808,poll=2809,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=134,requestTimer=2808,previousFramebuffer=1
+Core: Captured screenshot for frame 2808.
+VPU_INPUT,step=136,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=136,timer=2809,poll=2810,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=135,requestTimer=2809,previousFramebuffer=1
+Core: Captured screenshot for frame 2809.
+VPU_INPUT,step=137,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=137,timer=2810,poll=2811,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=136,requestTimer=2810,previousFramebuffer=1
+Core: Captured screenshot for frame 2810.
+VPU_INPUT,step=138,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=138,timer=2811,poll=2812,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=137,requestTimer=2811,previousFramebuffer=1
+Core: Captured screenshot for frame 2811.
+VPU_INPUT,step=139,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=139,timer=2812,poll=2813,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=138,requestTimer=2812,previousFramebuffer=1
+Core: Captured screenshot for frame 2812.
+VPU_INPUT,step=140,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=140,timer=2813,poll=2814,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=139,requestTimer=2813,previousFramebuffer=1
+Core: Captured screenshot for frame 2813.
+VPU_INPUT,step=141,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=141,timer=2814,poll=2815,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=140,requestTimer=2814,previousFramebuffer=1
+Core: Captured screenshot for frame 2814.
+VPU_INPUT,step=142,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=142,timer=2815,poll=2816,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=141,requestTimer=2815,previousFramebuffer=1
+Core: Captured screenshot for frame 2815.
+VPU_INPUT,step=143,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=143,timer=2816,poll=2817,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=142,requestTimer=2816,previousFramebuffer=1
+Core: Captured screenshot for frame 2816.
+VPU_INPUT,step=144,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=144,timer=2817,poll=2818,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=143,requestTimer=2817,previousFramebuffer=1
+Core: Captured screenshot for frame 2817.
+VPU_INPUT,step=145,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=145,timer=2818,poll=2819,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=144,requestTimer=2818,previousFramebuffer=1
+Core: Captured screenshot for frame 2818.
+VPU_INPUT,step=146,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=146,timer=2819,poll=2820,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=145,requestTimer=2819,previousFramebuffer=1
+Core: Captured screenshot for frame 2819.
+VPU_INPUT,step=147,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=147,timer=2820,poll=2821,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=146,requestTimer=2820,previousFramebuffer=1
+Core: Captured screenshot for frame 2820.
+VPU_INPUT,step=148,buttons=0,x=0,y=0,A=0
+VPU_RENDER,mode=4,step=148,timer=2821,poll=2822,area=1,topTimer=34,topAction=0,topActive=0,topBehavior=800ea5bc,action=00021312,actionArg=00000000,actionState=2,actionTimer=0,held=00000000,used=803443b8,boxHeld=0,boxActive=259,input=40,platform=00000000,floorOwner=00000000,floor=8019a520,floorY=-253,ceilingY=20000,forward=0,yaw=16384,slideYaw=16384,slideVel=(0,0),velocity=(0,-75,0),state=(65534.5195,-253,-939),collision=(65534.5195,-253,-939),display=(65534.5195,-434.100006,-939),boxXYZ=(-1989,1136.4541,-951),boxVelocity=(0,-67.5459137,0),hitbox=160
+VPU_SCREENSHOT,index=147,requestTimer=2821,previousFramebuffer=1
+Core: Captured screenshot for frame 2821.
+RESULT,area1Frames=2474,gapSamples=2474,gap45=0,gap960=0,maxGfxMinusObjectY=0,minGfxMinusObjectY=-181.100006,maxStateMinusObjectY=0,maxGfxMinusStateY=0,maxGapTimer=348,maxGapAction=0c400201,maxGapStateY=38,maxGapObjectY=38,maxGapGraphicsY=38,maxCleanStateY=1741,maxStateYTimer=2680,maxStateYAction=0300088e,maxStateYX=63658.6016,maxStateYZ=-939,maxMarioGraphYOffset=0,fireFrames=0,sawFirePrevObj=0,sawFireParticle=0,usedTornado=1,tornadoCaptures=1,mode9Stage=0,mode9WestRimStage=0,mode9DetectorDiveInputs=0,mode9RolloutInputs=0,mode9SurvivalBInputs=0,mode9WestBoxContact=0,mode9WestDetectorReached=0,mode9NorthwestDetectorReached=0,mode9SourceTweesterCaptured=0,mode9EastNorthTweesterCaptured=0,mode9WestTweesterCaptured=0,mode10NorthAvoidanceReached=0,mode11DetourStage=0,mode11TopApproach=0,mode12Stage=8,mode12RolloutInputs=1,mode12DiveInputs=2,mode12PillarsComplete=1,mode9WestmostX=inf,pillars=-2125664127,topAction=0,topTimer=33,sawShell=0,rodeShell=0,bPressedFrames=4,warpDisappeared=0,warpUsedObj=0,platformTop=0,aPressedFrames=0,aDownFrames=0,controllerAFrames=0

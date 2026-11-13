@@ -1,0 +1,7 @@
+*.c text eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.json -text whitespace=cr-at-eol
+*.md text eol=lf
+*.ps1 text eol=lf
+*.txt text eol=lf

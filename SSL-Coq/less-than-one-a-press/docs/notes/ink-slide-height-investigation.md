@@ -217,6 +217,7 @@ existing authenticated **Wafel 0.8.5 JP DLL**, SHA-256
 and the recorded 2548-input four-pillar prefix with its documented pre-entry
 level-select setup. They are supplied-state native execution, not new
 original-ROM replays, whole-memory equivalence proofs, or completed routes.
+A later [three-action video](ink-vpu-three-actions-video-evidence.md) independently replays selected +65536 crawl, butt-slide and walking-to-slide cases in the original Japanese ROM, with horizontal failure comparisons. That follow-up does not convert these height scans into original-ROM scans or remove the supplied-state prerequisites.
 The detailed records preserve source/runtime/input/script hashes and setup
 ledgers. Nothing in this investigation changes the Pedro or Demo projects.
 

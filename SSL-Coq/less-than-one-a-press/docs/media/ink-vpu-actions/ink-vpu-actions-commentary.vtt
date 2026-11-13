@@ -1,0 +1,146 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:08.000
+Three supplied vertical tests reach a useful Area 2 entry.
+Horizontal tests show why repeating terrain queries are not enough.
+
+00:00:08.000 --> 00:00:16.000
+Here, VPU means +65536 in Y: actual height 67277 queries as 1741.
+The floor still returns a local height. The real warp and top stay below.
+
+00:00:16.000 --> 00:00:23.000
+Supply Mario at (-1950, 67277, -939), already crawling, speed 5.
+Supply the Crazy Box at (-1989, 67277, -939), beside him; top phase 130.
+
+00:00:23.000 --> 00:00:30.000
+At Mario's initial X/Z, the high floor query aliases to Y 1741.
+It refreshes the cached floor to the actual low pad at Y 768.
+
+00:00:30.000 --> 00:00:37.000
+The box interaction pushes movement X from -1950 to -1882.
+Movement Y remains 67277. The cached floor still remembers 768.
+
+00:00:37.000 --> 00:00:45.000
+The proposed step finds roof 1280, but the no-ceiling value is 20000.
+Raw Y 67277 + 160 reaches that value, so the old floor cache survives.
+
+00:00:45.000 --> 00:00:52.000
+The ground step copies high movement into stored graphics D.
+Floor alignment sets M to cached Y 768; collision C then copies low M.
+
+00:00:52.000 --> 00:00:59.000
+M and C are (-1882, 768, -939). Stored graphics D is still at Y 67277.
+Low C is near the real warp; high D is available for the next floor retry.
+
+00:00:59.000 --> 00:01:07.000
+Low C reaches the warp and permits the real top collision to load again.
+The low floor lookup fails; retrying from D aliases 67277 to 1741.
+
+00:01:07.000 --> 00:01:15.000
+Mario disappears for the warp. Floor owner and platform both name the top.
+The new floor is local Y 1818.9613, with no +65536 added.
+
+00:01:15.000 --> 00:01:17.666
+The native recording advances while the disappearance action runs.
+The right panel keeps the input 7 capture snapshot for reference.
+
+00:01:17.666 --> 00:01:24.666
+At input 27, the top is inactive but Mario still retains it as platform.
+This stored reference survives the disappearance before Area 2 loads.
+
+00:01:24.666 --> 00:01:32.533
+The transition fades, then the stock camera reaches the pyramid interior.
+First Area 2 position: (365.593, 5500, -1096.803), away from normal entry.
+
+00:01:32.533 --> 00:01:39.533
+The first Area 2 state is outside the usual elevator entry footprint.
+Later native frames show Mario beside the upper interior walkway.
+
+00:01:39.533 --> 00:01:46.533
+Supply the same high position and box, but ACT_BUTT_SLIDE at speed 20.
+This is an established ground slide, not an airborne slide animation.
+
+00:01:46.533 --> 00:01:54.533
+The stopped ground step changes the action to GROUND_BONK.
+The common slide helper still aligns with the old floor after that change.
+
+00:01:54.533 --> 00:02:01.533
+Input 6 ends with M/C at 768 and D at 67277: a gap of 66509.
+The end action is GROUND_BONK; that alone does not defeat the handoff.
+
+00:02:01.533 --> 00:02:08.533
+Input 7 accepts the warp and records the spinning top as platform.
+We keep following this slide replay through the actual Area 2 transition.
+
+00:02:08.533 --> 00:02:11.200
+The native recording advances while the disappearance action runs.
+The right panel keeps the input 7 capture snapshot for reference.
+
+00:02:11.200 --> 00:02:19.066
+The transition fades, then the stock camera reaches the pyramid interior.
+First Area 2 position: (365.593, 5500, -1096.803), away from normal entry.
+
+00:02:19.066 --> 00:02:25.066
+The independently recorded slide reaches the same first Area 2 position.
+High slide entry and box delivery were supplied, so route reachability stays open.
+
+00:02:25.066 --> 00:02:33.066
+First supply walking on the low roof at Y 1280 and speed 20.
+One native walking update initializes slide velocity, still on that low roof.
+
+00:02:33.066 --> 00:02:42.066
+Supply high synchronized M/C/D and the high box; retain native walking speeds.
+Z selects CROUCH_SLIDE; its stopped step bonks and still aligns with the floor.
+
+00:02:42.066 --> 00:02:49.066
+M/C again end at 768 while D remains at 67277; the gap is 66509.
+The native end action is GROUND_BONK, just as in the butt-slide replay.
+
+00:02:49.066 --> 00:02:56.066
+The warp is accepted and the actual spinning top becomes Mario's platform.
+The run continues without another setup write after the high cut.
+
+00:02:56.066 --> 00:02:58.733
+The native recording advances while the disappearance action runs.
+The right panel keeps the input 7 capture snapshot for reference.
+
+00:02:58.733 --> 00:03:06.600
+The transition fades, then the stock camera reaches the pyramid interior.
+First Area 2 position: (365.593, 5500, -1096.803), away from normal entry.
+
+00:03:06.600 --> 00:03:13.600
+This third replay also reaches (365.593, 5500, -1096.803) at first arrival.
+The missing route is how to obtain the supplied high pose and high box legally.
+
+00:03:13.600 --> 00:03:20.600
+The X-only tests start at (63586, 1741, -939), with the box beside Mario.
+Terrain queries alias back, but Mario is far from the actual warp and top.
+
+00:03:20.600 --> 00:03:27.600
+The ground slide leaves the floor: M = C = D at Y 1741 after input 6.
+Its floor cache is 1280; raw X remains about 63659, far from the real warp.
+
+00:03:27.600 --> 00:03:31.600
+The remote state keeps evolving without entering the real warp.
+An aliased terrain query has not returned Mario's actual X coordinate.
+
+00:03:31.600 --> 00:03:38.600
+The prepared walker receives Z at the X-offset cut and becomes airborne.
+Input 6 has no split: all three stores remain at Y 1741, with no top platform.
+
+00:03:38.600 --> 00:03:42.600
+This separate remote run also stays away from the real warp and top.
+The repeated floor coordinates are not a repeated set of interactive objects.
+
+00:03:42.600 --> 00:03:50.600
+At X +65536 and Y +65536, the slide makes the same 66509-unit Y split.
+But low C is still at X 63654. Snapping Y does not move X back to the warp.
+
+00:03:50.600 --> 00:03:57.600
+The retry restores M/C/D to Y 67277; the new floor cache is 1280.
+The real top is not captured, and no useful Area 2 arrival follows.
+
+00:03:57.600 --> 00:04:06.600
+All three vertical supplied tests complete the handoff in original JP ROM runs.
+The horizontal comparisons fail; reaching the high setup without a new A remains open.
+

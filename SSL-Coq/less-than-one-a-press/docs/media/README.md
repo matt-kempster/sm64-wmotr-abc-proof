@@ -1,5 +1,14 @@
 # Proof project videos
 
+[VPU crawling, sliding and walking](ink-vpu-actions/ink-vpu-actions.mp4)
+is a 4:06.6 captioned explanation with six fresh original-Japanese-ROM
+recordings: three vertical supplied-state handoffs and three horizontal
+failure comparisons. Original gameplay appears beside position diagrams.
+The walking chapter separates its two supplied cuts, and no complete
+controller-reachable route is claimed. The [evidence note](../notes/ink-vpu-three-actions-video-evidence.md)
+and [rendering instructions](../../instrumentation/jp-ink-vpu-actions-demo/VIDEO-README.md)
+preserve setup, trace, frame-mapping and regeneration details.
+
 `ink-arrival-conditional.mp4` is the half-speed highlight from the
 [conditional Ink arrival test](../notes/ink-area2-arrival-video.md).
 It contains actual emulator-rendered frames with explanatory caption margins.

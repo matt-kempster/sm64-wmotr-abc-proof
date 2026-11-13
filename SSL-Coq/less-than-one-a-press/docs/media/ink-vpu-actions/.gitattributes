@@ -1,0 +1,4 @@
+# Preserve exact generated artifact bytes, including emitted line endings.
+*.json -text whitespace=cr-at-eol
+*.md -text whitespace=cr-at-eol,-blank-at-eof
+*.vtt -text whitespace=cr-at-eol,-blank-at-eof
