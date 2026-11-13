@@ -1,0 +1,2 @@
+# Preserve emitted provenance bytes.
+*.json -text whitespace=cr-at-eol

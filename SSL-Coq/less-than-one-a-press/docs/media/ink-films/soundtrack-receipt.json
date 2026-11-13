@@ -1,0 +1,158 @@
+{
+  "schema": 1,
+  "title": "Stored in the Dark",
+  "composer": "Original procedural composition authored for the Ink films",
+  "sourcePolicy": "No downloaded music, samples, existing melody or generated voice.",
+  "scope": "Presentation-only soundtrack editions. No gameplay run, proof, coordinate, input or video-frame changes.",
+  "tempoBPM": 84,
+  "meter": "4/4",
+  "tonalCenter": "D minor",
+  "progression": [
+    {
+      "name": "Dm(add9)",
+      "bass": 38,
+      "notes": [
+        50,
+        57,
+        60,
+        64,
+        65
+      ]
+    },
+    {
+      "name": "Bbmaj7",
+      "bass": 34,
+      "notes": [
+        46,
+        53,
+        57,
+        62,
+        65
+      ]
+    },
+    {
+      "name": "Gm(add9)",
+      "bass": 31,
+      "notes": [
+        43,
+        50,
+        57,
+        58,
+        62
+      ]
+    },
+    {
+      "name": "A7sus(b9)",
+      "bass": 33,
+      "notes": [
+        45,
+        52,
+        55,
+        58,
+        62
+      ]
+    }
+  ],
+  "soundPalette": [
+    "soft detuned bowed pads",
+    "rounded bass pulse",
+    "warm delayed plucks",
+    "quiet brushed metallic ticks",
+    "airy transition swells"
+  ],
+  "sampleRate": 44100,
+  "outputSampleRate": 48000,
+  "targetIntegratedLUFS": -19,
+  "targetTruePeakDBTP": -2,
+  "implementationSha256": "7a482e533c3d707575bc5b936dab5fbf6cfe8c89d6eef0a96b5b81e42f21ed79",
+  "numpyVersion": "1.26.4",
+  "ffmpegVersion": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+  "ffprobeVersion": "ffprobe version 6.1.1-3ubuntu5 Copyright (c) 2007-2023 the FFmpeg developers",
+  "review": "Objective loudness, true-peak, decode, duration and video-bitstream checks. No human listening review claimed.",
+  "films": [
+    {
+      "name": "crawl",
+      "original": "build/crazy-box-explainer/crazy-box-handoff.mp4",
+      "originalSha256": "da85feb2f1bd89dee9d5a78b0faba04b8ba6e8649d807820d7c372b0958e8eb9",
+      "output": "crawl-with-music.mp4",
+      "outputSha256": "a841b5fd34c414d861b10f85ea354463a8ec60893e300c9edb44c6d901e67dc9",
+      "scoreSourceSha256": "7ea01b666eab25c9d9af4cdaae3c5da79b096e90fd5a78591d9f980fe90d6c67",
+      "scoreMasterSha256": "dda9504d01f3a113333d79d043037f5f0ac6bc61a41f9f40e45ec0ac378b708b",
+      "seed": 20261113,
+      "durationSeconds": 124.733333,
+      "frameCount": 3742,
+      "videoCodec": "h264",
+      "width": 1600,
+      "height": 900,
+      "fps": "30/1",
+      "videoElementarySha256": "SHA256=380f28bd8fbae3d189647675a083f353df9f2e411284b318335f2af301022cfd",
+      "videoStreamIdentical": true,
+      "fullDecodePassed": true,
+      "audioCodec": "aac",
+      "audioSampleRate": "48000",
+      "audioDurationSeconds": 124.733,
+      "audioBitRate": 198431,
+      "integratedLUFS": -19.01,
+      "truePeakDBTP": -3.03,
+      "loudnessRangeLU": 6.0,
+      "cueTimesSeconds": [
+        31,
+        63,
+        84,
+        99,
+        114
+      ],
+      "events": {
+        "padVoices": 55,
+        "bassPulses": 175,
+        "plucks": 240,
+        "ticks": 287,
+        "swells": 5
+      },
+      "bytes": 7087396
+    },
+    {
+      "name": "vpu",
+      "original": "reference-sm64-wmotr-abc-proof/SSL-Coq/less-than-one-a-press/docs/media/ink-vpu-actions/ink-vpu-actions.mp4",
+      "originalSha256": "87f033654c3e8bb81dacf570f7405c0a9c01d571bf8424919b699b3165c80d9b",
+      "output": "vpu-with-music.mp4",
+      "outputSha256": "e9ad1add20d2b4736385470dca919944aeaabc5ba2ab3fbd81dcc4fa09afdd12",
+      "scoreSourceSha256": "776691fcde8827b9b8f29d801c439f6ce19b85309b986926ddfce2de70635d6f",
+      "scoreMasterSha256": "006d9257044a502a542dfd88a42ecaadaa3f78d04b0c07d3b6b002e66c173baa",
+      "seed": 20261114,
+      "durationSeconds": 246.6,
+      "frameCount": 7398,
+      "videoCodec": "h264",
+      "width": 1600,
+      "height": 900,
+      "fps": "30/1",
+      "videoElementarySha256": "SHA256=034b3b511a1ec6b27dc6727112ff672dc2b9ab649fd4d2c18783bebd4e55d564",
+      "videoStreamIdentical": true,
+      "fullDecodePassed": true,
+      "audioCodec": "aac",
+      "audioSampleRate": "48000",
+      "audioDurationSeconds": 246.6,
+      "audioBitRate": 198635,
+      "integratedLUFS": -19.01,
+      "truePeakDBTP": -3.68,
+      "loudnessRangeLU": 5.0,
+      "cueTimesSeconds": [
+        54,
+        84,
+        110,
+        148,
+        189,
+        213,
+        237
+      ],
+      "events": {
+        "padVoices": 110,
+        "bassPulses": 346,
+        "plucks": 499,
+        "ticks": 586,
+        "swells": 7
+      },
+      "bytes": 16867877
+    }
+  ]
+}
