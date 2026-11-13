@@ -1080,14 +1080,31 @@ all in `Unwired/`, and the theorem moved nowhere. See
        traj_b tuples, oHome pinned; cells traj_offs; keepers call can_traj_eq;
        boot via ow_chk's can_traj_b; ObjAnchor.anchor / home8 re-anchor at words
        6 / 7).  traj_b's closure under the native + Mario's act-2 store is NOT
-       proved (still inside native_res / act rows).  VACUITY NOT KNOWN CLOSED:
-       sweep list = BhvStep.cn_census (13 special + 59 residual).  Next shape
-       (playground/objects_strategy.md): ONE table of per-script slot classes,
-       not a bespoke clause per script.  Other native
-       writes to pinned fields to check (phantom): red coin's parent counter++
-       (red_ok < 8), hidden-star init counter := 8 - count, lid init spawning a
-       cannon at the lid's unpinned oHome, exclamation box act_2 oPosY := oHomeY
-       and act_3's rise (box_pos_ok).
+       proved (still inside native_res / act rows).  VACUITY WINDOW OPEN (sweep below):
+       sweep list = BhvStep.cn_census (13 special + 59 residual).
+       SWEEP 2026-11-13 (NativeSweep.v, spine census; NOTHING repaired): 79
+       (script, word, native) sites.  CAPSTONES VACUOUS until these are repaired:
+       - TRUE, premise false (11 sites): script not in live_bhvs, Qs = Qfam has
+         it (dead_site_no_Q): jumping box + 10 cut box-content sites.
+       - Computed: only bhv_exclamation_box_loop and the gated debug spawner
+         reference a non-live behavior (unlive_reach_value); only the hidden-star
+         loop and bhv_mario_update reach bhvStarSpawnCoordinates.
+       - FOUND (census): box act 4 spawns by oBehParams2ndByte, unpinned in obj_w.
+       - FOUND (reading, not machine-checked): box act 2 oPosY := oHomeY and act
+         3's move (box_pos_ok); red coin loop counter 7 -> 8 and hidden-star init
+         with no red coin slot (counter := 8) (red_ok); hidden-star loop at
+         oAction 1 (spawns bhvStarSpawnCoordinates; oAction unpinned); lid init,
+         also from the lid loop at timer 80 (cannon at the lid's unpinned oHome).
+       - NOT DECIDED: lid's load_object_collision_model, bhv_pole_base_loop,
+         Mario's three natives, 55 generic live sites beyond the script clause.
+       - bhv_pole_init true by reading (pin P); cannon loop closure unproved.
+       Repair shape (playground/objects_strategy.md): a table with THREE row
+       kinds -- per-slot field pin by offset class (box byte / pos by action,
+       hidden-star oAction, lid oHome), cross-slot count (red coins + counter),
+       guard on a global / Mario's phase (coin #2, cannon-unlocked bit).
+       box_pos_ok cannot simply be dropped: CannonKeep.lid_not_box is its one
+       reader and oBehavior is not tied to the script (cur_obj_set_behavior).
+       Probe tools: playground/Sweep2.v, Sweep3.v, decode_ident.py, native_scan.py.
        TRAP: `tauto` in a section with a Qfam hypothesis hangs (ObjInv / ObjVmSwap);
        prove `In CANS [POLES; CANS]` by `right; left; reflexivity`.
        TRAP: a generic eapply/eassumption combinator over the keep rows hung

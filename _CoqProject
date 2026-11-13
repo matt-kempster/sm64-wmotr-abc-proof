@@ -436,6 +436,7 @@ proofs/WMotRRequiresA/ObjFldLo.v
 proofs/WMotRRequiresA/ObjStep.v
 proofs/WMotRRequiresA/TerCtrCensus.v
 proofs/WMotRRequiresA/NativeVmCensus.v
+proofs/WMotRRequiresA/NativeSweep.v
 proofs/WMotRRequiresA/FloorList.v
 proofs/WMotRRequiresA/FloorHeight.v
 proofs/WMotRRequiresA/FloorComplete.v

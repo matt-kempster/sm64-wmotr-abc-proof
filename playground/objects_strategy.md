@@ -47,3 +47,36 @@ fast instead of one multi-hour round per phantom.
 
 Single-file `pipeline/check.sh` until the frontier is clean; ONE full build per
 milestone (vo cache, flock /tmp/sm64-build.lock).
+
+## 2026-11-13 (second round): the sweep -- choice, written before executing
+
+**Chosen: decide every case first, by computation where a computation can decide,
+and only then spend proof lines.** The table-driven slot-class design is kept as the
+repair shape, but it is NOT started this round: the sweep shows the open cases need
+three different kinds of new invariant content (a per-slot field pin, a cross-slot
+count, a coupling to Mario's phase), so one table of per-slot cell checks would not
+close the window by itself.
+
+1. One spine census (`proofs/WMotRRequiresA/NativeSweep.v`, vm) lists native_res's
+   exact case set as (script, word, native) sites and splits it:
+   - DEAD sites: the script is not in `ObjWorld.live_bhvs`. The row asks native_res
+     at `Qs := ObjFamily.Qfam`, which contains `In (v_s st) live_bhvs`, so the row is
+     true there with a false premise that no INV-state at such a site exists to
+     contradict. Closed, no proof work (this is the jumping box).
+   - LIVE sites: the real surface.
+2. A computed detector for the SCRIPT clause: for each live residual native, the
+   non-live behaviors in its reference closure (`BehaviorScripts.closure_of`, over
+   the generated ASTs). Empty = no spawn out of that native can break script_ok.
+   Non-empty = phantom candidate unless a guard is pinned.
+3. For the pinned-field clauses (red_ok, box_pos_ok, the cannon pins) the verdict is
+   by reading the native against the clause; each FOUND is logged with the falsifying
+   INV-state. No repair is attempted unless it needs no new premise and stays local.
+4. Improvement proposed for the table design: the table must have three row kinds --
+   (a) per-slot field pin keyed by offset class (as can_traj), (b) a cross-slot count
+   (red coins alive + counter = 8; a red coin exists while the star is at its init
+   word), (c) a guard on a global (cannon-unlocked save bit, Mario's phase). (a) alone
+   is what the note above described.
+
+Rejected this round: starting the generic table before the sweep (would have built
+kind (a) only); weakening box_pos_ok (its one consumer, CannonKeep.lid_not_box, has no
+other way to tell a lid from a box: oBehavior is not tied to the script).

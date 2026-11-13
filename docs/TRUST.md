@@ -1017,14 +1017,40 @@ without pressing A".*
   `kind_ok` between SET_INT(oInteractType, POLE) and bhv_pole_init; INV_k is
   now state-indexed with a pole window (see "FOUND FALSE ... set42_keep"
   below). (2) Cannon, REPAIRED 2026-11-09 by RE-ANCHORING the ghost (see
-  "cannon REPAIRED" below). **The vacuity window is NOT known closed.** The
+  "cannon REPAIRED" below). **The vacuity window is OPEN (sweep below).** The
   two known `native_res` counterexamples at the cannon's native are excluded
   since 2026-11-13 by the cannon trajectory pin (below, "native_res phantom
-  at bhv_cannon_base_loop", REPAIRED), with no new premise. Still unchecked
-  phantom candidates (OPEN, so treat the capstones as possibly vacuous):
-  red coin's parent counter++, hidden-star init, cannon lid init, exclamation
-  box act 2 / 3, jumping box; the case list is `BhvStep.cn_census` (13
-  special natives + 59 residual generic).
+  at bhv_cannon_base_loop", REPAIRED), with no new premise.
+  **SWEEP 2026-11-13 (`NativeSweep.v`, a vm census on the spine; nothing
+  repaired, no row discharged): by reading, the capstones ARE vacuous until the
+  FOUND cases below are repaired.** `native_res` has 79 (script, word,
+  native) sites.
+  - 11 sites TRUE (premise false): the script is not in `live_bhvs` and the
+    row's `Qs` is `Qfam`, which has it (`NativeSweep.dead_site_no_Q`). This
+    is the jumping box and the 10 sites of cut box contents.
+  - Computed (generated ASTs): of the 62 natives at the 68 live sites only
+    the exclamation box and the gated debug spawner reference a non-live
+    behavior, so no other native can spawn a slot outside `live_bhvs`.
+  - FOUND by that census: exclamation box act 4 spawns the content chosen by
+    the box's oBehParams2ndByte, which `obj_w` does not pin (byte 3 = koopa
+    shell, not live).
+  - FOUND by reading the code against `obj_w` (not machine-checked):
+    exclamation box act 2 (oPosY := oHomeY, home unpinned) and act 3 (the box
+    moves) against `box_pos_ok`; red coin loop (parent counter 7 -> 8) and
+    hidden-star init (no red coin slot: counter := 8) against `red_ok`;
+    hidden-star loop (oAction 1 is not excluded, it spawns
+    bhvStarSpawnCoordinates); cannon lid init, also reached from the lid loop
+    at timer 80 (spawns a cannon at the lid's unpinned oHome).
+  - Not decided: lid `load_object_collision_model`, `bhv_pole_base_loop`
+    (pushes Mario), Mario's three natives (`bhv_mario_update` also reaches
+    bhvStarSpawnCoordinates), and the other 55 generic live sites beyond the
+    script clause (no transfer proof; cross-slot writes to parent / Mario
+    particle flags and spawned children).
+  - `bhv_pole_init`: true by reading (pin P); cannon base loop: the two known
+    cases repaired, closure not proved.
+  The repairs need new invariant content of three kinds (a per-slot field
+  pin, a cross-slot count, a guard on a global or on Mario's phase); none
+  needs a new premise as far as read.
 - **Objects (2026-10-26): one real call.** `HeightFrame.play_frame_step` is now poll ; PRE ;
   `seg_objects_spec` ; POST ; render walk, and `seg_objects_spec` is `ObjPhase.objects_call`:
   the generated `area_update_objects` as one `eval_funcall`. The old `seg_platform` / action /
