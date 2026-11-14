@@ -1,0 +1,65 @@
+{
+  "passed": true,
+  "date": "2026-11-14",
+  "scope": "Original JP supplied high FREEFALL/live-solid landing then nonmounting shell shove; no ground action supplied, no later Mario edits, no delivery route.",
+  "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+  "romMd5": "85d61f5525af708c9f1e84dce6dc10e9",
+  "proofRevisionAtStart": "08df00c605127a172d3a28049e31d6f50f7bff98",
+  "decompileRevision": "36fbf8d693a9fc2bdec0c77402f8e96d07d2f461",
+  "stockRevision": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "emulator": "Ubuntu-24.04 WSL / Mupen64Plus2.5.9 interpreter / Rice2.5.9 / HLE RSP2.5.9",
+  "cameraObservations": 53,
+  "checkedWrapperWrites": 27,
+  "suffixUpdatesToArrival": 26,
+  "suffixAOff": true,
+  "prefixAOff": true,
+  "nativeGroundActionCreated": true,
+  "groundActionSupplied": false,
+  "laterMarioEdits": false,
+  "supportRemoval": false,
+  "ridingObserved": false,
+  "usefulArrival": [
+    365.5927734375,
+    5500,
+    -1096.8026123046875
+  ],
+  "comparedBoundaries": 24,
+  "comparisons": 1080,
+  "matches": 1035,
+  "mismatches": 45,
+  "mismatchFields": [
+    "support.oInteractionSubtype",
+    "shell.oInteractionSubtype"
+  ],
+  "mismatchValues": {
+    "native": 2,
+    "wafel": 0
+  },
+  "strictObservedFieldsMatch": false,
+  "missingCameraSteps": [
+    28,
+    29
+  ],
+  "outcomeCheckPassed": true,
+  "archivedRecheckPassed": true,
+  "sourceExpectationRecheckPassed": true,
+  "filesSha256": {
+    ".gitattributes": "abeba78466be388a1c5f3cb4ad595b915a0aa9402d1d87e37dfe42762e5b91c5",
+    "archive.py": "a03db5ddf81038a3e530fafa3823b319713ecffbd9c5f79374bde320bc2affd1",
+    "check.py": "9776326cfa813b2689c5e900cf583cafb3ce2a5a57dac61c50990d405f3daa0e",
+    "expected.json.gz": "6a2ea6184be242ce398db3afc8999003eb3179fa9954fd404006f4186af95902",
+    "prepare_expected.py": "33823c72e1b4f8b98b5617b2e310b5ff9fba756bc75b3cbeb8612530ec324de3",
+    "probe.c": "1a3d9ab9bde04565296bff15cbc62c69ba2f1fb4ddbd0f55fbbeeba2589611b1",
+    "README.md": "32c94bae42c5b7ee406a3130f0db13195f30b984a5bd7918feba755734ed1cab",
+    "records/large-box-shell-25000/checker-source.py": "9776326cfa813b2689c5e900cf583cafb3ce2a5a57dac61c50990d405f3daa0e",
+    "records/large-box-shell-25000/manifest.json": "c42f4f8912228a6fecde43e88c57fcdc0cc902587e25b3833723ed16ee135c38",
+    "records/large-box-shell-25000/prefix-source.c": "7ebe3672f71bb596610b6b3b3fe2804a451ca74e3a5bcd48a94ff864e2bdc8b5",
+    "records/large-box-shell-25000/probe-source.c": "1a3d9ab9bde04565296bff15cbc62c69ba2f1fb4ddbd0f55fbbeeba2589611b1",
+    "records/large-box-shell-25000/raw.log.gz": "6de2f4415840783a75b3c3a2897ca332c2ccd6724075fa646bd8efda78089ac3",
+    "records/large-box-shell-25000/receipt.json": "84e9f1a4c3d96fe6b05645af4c24e997b84861c51f91738bdc25ffdfd9e72cfa",
+    "records/large-box-shell-25000/run-source.sh": "8203dc0eec132c2c240653ce1f885ff8ff703d4616e7085a9b3f5069fa4aa891",
+    "records/large-box-shell-25000/trace.txt": "6c48f8d165d864b9cc70b4910c808da1256240f6ddb73304b47a156512d2225b",
+    "run.sh": "8203dc0eec132c2c240653ce1f885ff8ff703d4616e7085a9b3f5069fa4aa891"
+  },
+  "noteSha256": "bcdca05bead430f975ce9f8d97bb0be510d3c856cf425ffd3e124892b9f13a90"
+}

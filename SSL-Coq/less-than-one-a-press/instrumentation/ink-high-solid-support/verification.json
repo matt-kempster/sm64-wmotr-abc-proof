@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "date": "2026-11-14",
+  "proofRevisionAtStart": "08df00c605127a172d3a28049e31d6f50f7bff98",
+  "decompileRevision": "36fbf8d693a9fc2bdec0c77402f8e96d07d2f461",
+  "stockRevision": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "runtime": "Wafel0.8.5 JP / Python3.9.13",
+  "runtimeSha256": "960fe979068b78e6733b3ddb87741833fbf4eb29b2a21a2bba871977427c2d0f",
+  "prefixCompressedSha256": "92fe78f908354ca3c47afad0e31e8d34fef6f3bef6981761add363b3e7e61c01",
+  "prefixUncompressedSha256": "9bcc451964025d9f0bb1344c45957b6bfd095451b44bfb9a01f8584a75db6a72",
+  "recipes": 13,
+  "freshMatchedBoundaries": 374,
+  "usefulCaptures": 3,
+  "usefulArrival": [
+    365.5927734375,
+    5500.0,
+    -1096.8026123046875
+  ],
+  "positiveTotalUpdates": 26,
+  "positiveRiddenAlwaysNull": true,
+  "positiveShellNeverUsed": true,
+  "positiveSupportRemainsLiveAndUnmovedInArea1": true,
+  "positiveTopRetentionChecked": true,
+  "suffixAOff": true,
+  "verificationCommand": "build/wafel-pilot/python/python.exe instrumentation/ink-high-solid-support/test.py --verify instrumentation/ink-high-solid-support/results.json.gz",
+  "verificationResult": "VERIFIED complete artifact; two fresh roots compared exactly",
+  "noteSha256": "7e1189b4086ac526d134cac336ef103342d7fff1e8c67c19106ccf72c3798b11",
+  "helpersSha256": {
+    "instrumentation/ink-high-action-entry/prelude.py": "1b5d30c06ac9f8721770ef23ab0980cd645d9f592ff8dfd80b208505d20f818d",
+    "instrumentation/ink-item-clone-controls/fixtures.py": "62a380c440360bfae642288c558f5e6aae6ac3987dca7c37d2bd66e821a373a8",
+    "instrumentation/wafel-jp-pilot/ink_slide_handoff.py": "8561f5ddc223c0954c56c7b0e7f16efd040360f67f52ef6c95ec38591dcb5bb2",
+    "instrumentation/wafel-jp-pilot/ink_crawl_predecessors.py": "c4f64df454ebb845788788dfa25eabebe96e1f7221b2bba66f441ed387576a0b",
+    "instrumentation/wafel-jp-pilot/ink_floorless_warp.py": "d9d4422dad8e8bfa146b4dad8b81a9aed00ab113b913451cf6f96f8431a3ad16",
+    "instrumentation/wafel-jp-pilot/ink_timer130_crawl.py": "7be9986ae0c3d6183c4dd34607222f216d90c1994c98786589a37b6455cfb34d",
+    "instrumentation/wafel-jp-pilot/ink_pu_vpu.py": "035e6a771f0a7e5d54dea1333cfd55b1d05dd7d1c9d133934360107e7b437e8e"
+  },
+  "sourceSha256": {
+    "src/game/mario_actions_airborne.c": "49a1df4e42e169a745e7c91c592bb6139ca1aa43ad27d6e7f1fb3d9cdc6f812f",
+    "src/game/mario_actions_moving.c": "63364abba7cd12cb89e47614f901c933334a26654183896448f309fa2d847cfb",
+    "src/game/mario_step.c": "6bbec9d8b20fd7b7fbce0f864b9f311be008a95d2881f024140140f1a9430222",
+    "src/game/interaction.c": "a327202d33612821f884f01b5e4692aa5cfe2003f3b9a2eeb1452ad72725ea00",
+    "src/game/behaviors/tox_box.inc.c": "063729af05d0fc54095d2fc27505298481a3c3b38b85d6bfc59246d3428b0cf4",
+    "src/game/behaviors/breakable_box.inc.c": "78ffc1fab3971cf08f7f803cfe63f32cd781b0bc5537a733fbe0d43c82e94eee",
+    "src/engine/surface_load.c": "a9688dbac5b95e4859fc40c659faaf4c8064e0e7f8807dd2cf9c5ac7bd5cb9b0",
+    "data/behavior_data.c": "da1aad6e3982bc3a35b195480157330e2cd98e909503e2100d2072d3be265f6a"
+  },
+  "filesSha256": {
+    ".gitattributes": "4889cbcbe000bede9ea97e7bb0da911f8e32c8788a2fb5e0c47f6f590265872e",
+    "pilot.json.gz": "5e2cbb44e26273a0f06c4d5748f2c47c2ca0e01660a350451d5bc9d9c091b239",
+    "README.md": "6228cf352d543dcf75bc3215006707abfa4358c6b1a0530f79444711da0a144a",
+    "results.json.gz": "03492e597026eb2956bbb15a0ead08a970e3f42351f4a12a414ad7fe06fce751",
+    "test.py": "acc84d9afd7ca58e077a9689a7af7385d5b7778e6763cb17102c62ea7fe76ff2"
+  },
+  "scope": "Finite supplied-state JP Wafel landing/slide/handoff result. Mario high freefall pose, live high large-box placement, shell spawn and timed placement are grants. No ground action/cache pointer grant. Frozen-box diagnostic adds three explicitly recorded fields; no clone lineage. Original-ROM evidence is separate. No new Coq theorem claimed."
+}

@@ -1,0 +1,14 @@
+{
+  "sourceDirectory": "build\\jp-high-solid-support-20261114-a",
+  "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+  "files": {
+    "checker-source.py": "9776326cfa813b2689c5e900cf583cafb3ce2a5a57dac61c50990d405f3daa0e",
+    "prefix-source.c": "7ebe3672f71bb596610b6b3b3fe2804a451ca74e3a5bcd48a94ff864e2bdc8b5",
+    "probe-source.c": "1a3d9ab9bde04565296bff15cbc62c69ba2f1fb4ddbd0f55fbbeeba2589611b1",
+    "raw.log.gz": "6de2f4415840783a75b3c3a2897ca332c2ccd6724075fa646bd8efda78089ac3",
+    "receipt.json": "84e9f1a4c3d96fe6b05645af4c24e997b84861c51f91738bdc25ffdfd9e72cfa",
+    "run-source.sh": "8203dc0eec132c2c240653ce1f885ff8ff703d4616e7085a9b3f5069fa4aa891",
+    "trace.txt": "6c48f8d165d864b9cc70b4910c808da1256240f6ddb73304b47a156512d2225b"
+  },
+  "scope": "Original-JP high supplied-air/live-solid native landing and shell fallback; no supplied ground action or later Mario edits; placement/delivery remain supplied."
+}
