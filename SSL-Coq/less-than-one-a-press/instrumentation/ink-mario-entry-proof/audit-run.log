@@ -1,0 +1,21 @@
+Activated proof toolchain 'sm64-item-proof'.
+  coqc:      The Coq Proof Assistant, version 8.16.1
+  clightgen: The CompCert CompCert AST generator, version 3.15
+SSL proof audit. Logs: build/audit/20261114-001616-kb9nz9q4
+PASS: source inventory: 718 source files; 0 inventory problems
+Running build (MainTheorem and requested module dependencies)...
+PASS: build: exit 0; see build.log
+PASS: proof holes: exit 0; includes untracked source files
+PASS: link hygiene: exit 0; includes untracked source files
+Checking assumptions 1/4: LessThanOneAPress.Proofs.MainTheorem.current_ink_backward_execution_boundary...
+PASS: assumptions LessThanOneAPress.Proofs.MainTheorem.current_ink_backward_execution_boundary: 9 allowed foundations; see assumptions-1.log
+Checking assumptions 2/4: LessThanOneAPress.Proofs.InkRetryQuery.irq_retry_connects_display_to_real_floor_call...
+PASS: assumptions LessThanOneAPress.Proofs.InkRetryQuery.irq_retry_connects_display_to_real_floor_call: 7 allowed foundations; see assumptions-2.log
+Checking assumptions 3/4: LessThanOneAPress.Proofs.InkVerticalRetryGeometry.ivr_vertical_retry_geometry_checked...
+PASS: assumptions LessThanOneAPress.Proofs.InkVerticalRetryGeometry.ivr_vertical_retry_geometry_checked: 4 allowed foundations; see assumptions-3.log
+Checking assumptions 4/4: LessThanOneAPress.Proofs.MainTheorem.current_ink_mario_entry_guard_boundary...
+PASS: assumptions LessThanOneAPress.Proofs.MainTheorem.current_ink_mario_entry_guard_boundary: 7 allowed foundations; see assumptions-4.log
+PASS: integration: 552/638 modules in MainTheorem's import closure; 86 standalone-only; 0 problems
+VERDICT: PASS (mechanical checks only; not a completed game proof)
+Mechanical hygiene only. Explicit hypotheses, live reachability, and statement fidelity require review.
+Source interface index: build/audit/20261114-001616-kb9nz9q4/interfaces.txt

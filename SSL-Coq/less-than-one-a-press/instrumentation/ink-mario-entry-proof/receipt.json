@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "recorded_utc": "2026-11-14T06:20:28.7186539Z",
+  "proof_base_revision": "921e4d1954d79f3b4deb6958c88419a8f4bd5a28",
+  "branch": "codex/ssl-pyramid-item-proof",
+  "original_audit_directory": "build/audit/20261114-001616-kb9nz9q4",
+  "distro": "Ubuntu",
+  "opam_switch": "sm64-item-proof",
+  "coq_version": "8.16.1",
+  "compcert_version": "3.15",
+  "memory_limit": "default 6.5 GiB unchanged",
+  "target_build_command": "bash pipeline/build.sh audit-build AUDIT_VO_TARGETS=proofs/InkMarioEntryGuards.vo",
+  "audit_command": "bash pipeline/discipline-check.sh --build-timeout 600 --assumption-timeout 240 LessThanOneAPress.Proofs.MainTheorem current_ink_backward_execution_boundary LessThanOneAPress.Proofs.InkRetryQuery irq_retry_connects_display_to_real_floor_call LessThanOneAPress.Proofs.InkVerticalRetryGeometry ivr_vertical_retry_geometry_checked LessThanOneAPress.Proofs.MainTheorem current_ink_mario_entry_guard_boundary",
+  "verdict": "PASS",
+  "scope": "MainTheorem and requested dependencies; not --full-build",
+  "source_file_count": 718,
+  "main_import_closure_count": 552,
+  "proof_module_count": 638,
+  "standalone_only_count": 86,
+  "new_boundary_foundation_count": 7,
+  "source_sha256": {
+    "proofs/InkMarioEntryGuards.v": "bcca2123ad550424d04ca10206b85f635e0007dfe260e2f4366cc9cbf58fc717",
+    "proofs/MainTheorem.v": "b965eeed69655105527875a74e5f49d0499339ab49aa4806f95159263ca7c11a",
+    "_CoqProject": "a0a8c69fbf45edc6d5bde886a1eead5f1a3a579e05137f1312449877d12394b5",
+    "generated/jp_mario.v": "6eae1a48bc0eb232f8a30a4d1089989d571418f34061f74e9a39a02d77922271",
+    "generated/us_mario.v": "9219c324571bede4ec6913a6c000c9a4ec41f9328e614d14967870f02af44dcf",
+    "generated/jp_mario_actions_moving.v": "be1314c3ff8ea5ab33015e20a20344e7360d7b44533ba059d5c2b5b35d9084a7",
+    "generated/us_mario_actions_moving.v": "d447fc51ac385c75eb1d4f1b5a38c96dcedaef825e75b7c9e322a1fbb428aa7a"
+  },
+  "semantic_scope": [
+    "Actual post-preparation null-floor suffix construction and forced-return exclusion",
+    "Composition with completed actual preparation/interaction stage chain",
+    "Actual crawl/common-slide LEFT_GROUND switch prefix and break before caller alignment"
+  ],
+  "remaining_obligations": [
+    "Reachability of a suitable Mario state from allowed inputs",
+    "Fresh low cache, matching action guards and stopped-quarter result",
+    "Actor delivery at actual coordinates",
+    "Joined top-phase timing and complete useful handoff from a continuous history"
+  ]
+}
