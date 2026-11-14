@@ -1,0 +1,4 @@
+$ bash pipeline/check-link-hygiene.sh
+us: 39 units, 135 private literal atoms uniquely prefixed, 0 private collisions, 403 documented public variable type-mismatch groups
+jp: 39 units, 127 private literal atoms uniquely prefixed, 0 private collisions, 402 documented public variable type-mismatch groups
+linked external-constructor and extern/tentative-variable manifests reproduce

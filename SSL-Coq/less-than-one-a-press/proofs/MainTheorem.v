@@ -53,7 +53,7 @@ From LessThanOneAPress.Proofs Require Import
   SecretContactExecution
   InkBackwardSource InkBackwardExecution InkCopyCaller InkFloorResetCopy InkRawCopyHeight
   InkQuicksandBackward InkMovingBackward InkControllerBackward InkBackwardHistory
-  PositionSplitCatalog TweesterGap InkConcreteProducerBoundary InkSlideHandoff InkMarioEntryGuards InkIdleOffFloorGuard InkMarioRawCopyCall InkMarioZeroParticleTail InkFlyGuySizeBoundary
+  PositionSplitCatalog TweesterGap InkConcreteProducerBoundary InkSlideHandoff InkMarioEntryGuards InkIdleOffFloorGuard InkBuddyMovement InkMarioRawCopyCall InkMarioZeroParticleTail InkFlyGuySizeBoundary
   InkBounceLiveReadBoundary InkStockBounceHeight InkFlyGuyCycleHeight InkPokeyLiveScale
   CompCertRouteScope TeleporterWrongWarpBoundary TeleporterShindouReset
   TeleporterDestinationReset TeleporterPlatformResetExecution
@@ -1613,6 +1613,12 @@ Proof. exact imeg_mario_entry_guards_checked. Qed.
     guards, cache production and knockback/entry reachability remain separate. *)
 Theorem current_ink_idle_off_floor_guard_boundary : InkIdleOffFloorGuardBoundary.
 Proof. exact iio_idle_off_floor_guard_checked. Qed.
+
+(** The stock Buddy remains on its native script under HOLDABLE pickup;
+    native dialog readiness cannot retarget usedObj during the three pickup
+    actions. Conditional drop placement does not supply a pickup history. *)
+Theorem current_ink_buddy_movement_boundary : InkBuddyMovementBoundary.
+Proof. exact ibm_buddy_movement_checked. Qed.
 
 (** Also consumes the actual object-push commit frame, nearby static-floor
     certificate, post-query crawl-quarter execution and non-null item-drop

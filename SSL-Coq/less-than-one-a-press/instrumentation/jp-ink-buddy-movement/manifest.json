@@ -1,0 +1,41 @@
+[
+  {
+    "mode": 1,
+    "label": "drop",
+    "files": {
+      "checker-source.py": "5c592f47f5f29f85cfe86f83376878094de53078fb796bdb02445e09fe063ef5",
+      "prefix-source.c": "7ebe3672f71bb596610b6b3b3fe2804a451ca74e3a5bcd48a94ff864e2bdc8b5",
+      "probe-source.c": "331c05f076658b9dd4e2df801dbc16f259d2981480f0d72654b7af84b6697c0d",
+      "raw.log.gz": "ff917dd15899d26fcc8f302d8a033b3294bd04dd14ab287114e0f63c0a635469",
+      "result.json": "eb541f69419302428009adb104565458c9332959a39e6959246fabb6f8ef77ae",
+      "run-source.sh": "5033be951d5ec02532f5b9258f3e2b0929270e040039aee8ef21f769f3073227",
+      "selected-trace.txt": "90a8ebd6c7c3cd9598db45e7089a0fb09b2a2967209c0961c05274fd6037a400"
+    }
+  },
+  {
+    "mode": 2,
+    "label": "throw",
+    "files": {
+      "checker-source.py": "5c592f47f5f29f85cfe86f83376878094de53078fb796bdb02445e09fe063ef5",
+      "prefix-source.c": "7ebe3672f71bb596610b6b3b3fe2804a451ca74e3a5bcd48a94ff864e2bdc8b5",
+      "probe-source.c": "331c05f076658b9dd4e2df801dbc16f259d2981480f0d72654b7af84b6697c0d",
+      "raw.log.gz": "03168aa37fd8766ea6c3f02f6ecf7485ac1670aad219730f0348006fd873cc73",
+      "result.json": "effa84449d7aa5e4d0f48f92f6a6cdfae44b58d15b911baa9c25227214a61e6d",
+      "run-source.sh": "5033be951d5ec02532f5b9258f3e2b0929270e040039aee8ef21f769f3073227",
+      "selected-trace.txt": "b89ef89d2c6b4641262c2b7259083947fb4ab7bff6f66740afb2a88489344327"
+    }
+  },
+  {
+    "mode": 3,
+    "label": "no-retarget",
+    "files": {
+      "checker-source.py": "5c592f47f5f29f85cfe86f83376878094de53078fb796bdb02445e09fe063ef5",
+      "prefix-source.c": "7ebe3672f71bb596610b6b3b3fe2804a451ca74e3a5bcd48a94ff864e2bdc8b5",
+      "probe-source.c": "331c05f076658b9dd4e2df801dbc16f259d2981480f0d72654b7af84b6697c0d",
+      "raw.log.gz": "7cef301fa4f8687ec20f7afd96b72f2fb57c572b38fe3a18bbc070eaea9cbb94",
+      "result.json": "f71e311a6e2fde467461b40d96a5737e582bd47742c194909eff6985e51c6285",
+      "run-source.sh": "5033be951d5ec02532f5b9258f3e2b0929270e040039aee8ef21f769f3073227",
+      "selected-trace.txt": "ce6b42bb203e10f6691a20f30a4742c8ca7ed4fa214d03155b48364f63a6c1af"
+    }
+  }
+]

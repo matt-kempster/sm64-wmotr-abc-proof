@@ -723,5 +723,6 @@ proofs/InkPuVpu.v
 proofs/InkSlideHandoff.v
 proofs/InkMarioEntryGuards.v
 proofs/InkIdleOffFloorGuard.v
+proofs/InkBuddyMovement.v
 proofs/InkBelowCapPhaseGuard.v
 proofs/InkBelowCapPhaseBounds.v

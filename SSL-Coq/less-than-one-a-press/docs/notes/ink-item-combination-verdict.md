@@ -14,6 +14,8 @@ after the fresh floor cache is prepared. All three species in the successful
 test occur in stock SSL Area 1. They are ordinary native actors, not cloned
 enemies; stock availability does not establish their delivery.
 
+**Buddy delivery follow-up:** [the movement investigation](ink-buddy-movement.md) confirms that native release can relocate him only after a supplied pickup-reference change. Ordinary contact and the named cloning predecessors do not establish that acquisition. The Buddy position in this handoff therefore remains a grant.
+
 ## What the three actors do
 
 The shell supplies the action entry at128. Its accepted mount stops later

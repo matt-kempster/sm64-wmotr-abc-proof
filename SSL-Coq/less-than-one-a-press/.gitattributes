@@ -51,3 +51,4 @@ instrumentation/wafel-jp-pilot/ink_height_map_verify.py text eol=lf
 instrumentation/jp-ink-candidate-views/*.sh text eol=lf
 instrumentation/jp-ink-candidate-views/*.c text eol=lf
 instrumentation/jp-ink-candidate-views/*.py text eol=lf
+docs/notes/ink-buddy-movement-runtime-receipt.json -text whitespace=cr-at-eol
