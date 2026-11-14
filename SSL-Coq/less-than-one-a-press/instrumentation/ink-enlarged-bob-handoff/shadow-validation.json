@@ -1,0 +1,48 @@
+{
+  "scope": "Isolated diagnostic action fork matches these two hooked native controls; not a global equivalence theorem",
+  "positive": {
+    "queryCandidate": [
+      -2140.031982421875,
+      1830.177978515625,
+      -1115.0291748046875
+    ],
+    "floorY": 768.0,
+    "floorOwner": -1,
+    "ceilY": 1523.0,
+    "diagnosticEdits": [
+      {
+        "path": "gMarioState.action",
+        "before": 8651858,
+        "after": 4864
+      },
+      {
+        "path": "gMarioState.actionArg",
+        "before": 0,
+        "after": 0
+      }
+    ]
+  },
+  "negative": {
+    "queryCandidate": [
+      -2168.8564453125,
+      1889.0369873046875,
+      -1036.69287109375
+    ],
+    "floorY": 1933.4923095703125,
+    "floorOwner": 61,
+    "ceilY": 20000.0,
+    "diagnosticEdits": [
+      {
+        "path": "gMarioState.action",
+        "before": 8651858,
+        "after": 4864
+      },
+      {
+        "path": "gMarioState.actionArg",
+        "before": 0,
+        "after": 0
+      }
+    ]
+  },
+  "fullSnapshotRestored": true
+}

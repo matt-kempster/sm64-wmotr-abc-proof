@@ -1,5 +1,12 @@
 # Can a black Bob-omb replace Buddy in the frozen-shell handoff?
 
+**Later follow-up, 14 November:** [the enlarged-Bob study](ink-enlarged-bob-handoff.md)
+now gives a revised Buddy-free conditional handoff, confirmed on original JP.
+It uses the actual radius91 donor profile as a disclosed state transplant,
+changes the initial air pose/speed, and separates Bob129 from Crazy Box130.
+Delivery remains unjoined. The direct-swap and stock-size failures below are
+the earlier experiment, not an exclusion of that successful new recipe.
+
 14 November 2026. **Not as a direct replacement in the successful recipe.**
 A black Bob-omb can shove Mario, and it has a demonstrated no-new-A transport
 mechanism. But the Crazy Box and Bob-omb both use the same GRABBABLE handler.

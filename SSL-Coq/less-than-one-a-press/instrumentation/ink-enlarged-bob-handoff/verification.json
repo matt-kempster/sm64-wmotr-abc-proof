@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "positiveIndependentFreshReconstructions": 2,
+  "positiveBoundaries": 27,
+  "independentlyMatchedControls": 8,
+  "controlBoundaries": 281,
+  "knownNativeShadowChecks": 2,
+  "expandedEarlierFrameMenuRun": false,
+  "noteSha256": "6c5cd7923f1ade1731f86d0ccdf89aee0afb5d30aac5d6efb501dd9f62d5b098",
+  "files": {
+    ".gitattributes": "efb293d17a716d72ffb572ff7b3d3b280dd9a7364e3ec84df30fe5265d7230ff",
+    "control-diagnostics.json.gz": "020a8700fc7faead0f1a5a9c6bf34e2199aae2805e8568fd6a58f3fc6c633a71",
+    "diagnose_controls.py": "23a65210285ab26fdb849a21a8aa4f6c063d077ca2cb5340a932ef047fc9a33f",
+    "export_positive.py": "4d57dfb6e29aaff5756177811890f3bc4b6e0e58aedcb870a283dafb9a145974",
+    "positive-case.json": "c409ab218a6d3458423b4e1f9b2802dd48c11c39f89e4f4c37010e2d7f3e0622",
+    "positive-reconstruction.json.gz": "da2bd2f0c27fe907ed86c60bfa663ddd9f99c5fcabd1749d1ffc352e9bbf89be",
+    "README.md": "54f485763ad811cef3a6837e79d7553597bd4ec500e3589f5bfc2b2641c3f27b",
+    "search.py": "306147d99bee01bad16c199dad3c14af653c2ba4246e92524a44d78aa6502e46",
+    "shadow-validation.json": "9ffaad8a81bfa2ec3096bbe518d30c3b222b8182b20a9c468fbf30d638c52b33",
+    "stock65-closer-100-case.json": "4934319c6e997d21809da220217d63a6a17c8450d8242a11852ba35024b280b8",
+    "validate_shadow.py": "d5c83a07180168af6b6ef0d569cf16d44b35f2995f27b84b53f5d81f123dfa8c",
+    "verify.py": "4da2faa1328d96044546db631ff884bc6f67f4aff1c662c40177f68d45cea787"
+  }
+}
