@@ -262,6 +262,23 @@ exhausts these joined histories.
 
 ## Relation to earlier investigations
 
+The later [collision-only actor follow-up](ink-collision-clone-runtime.md)
+does not repair the missing handoff. A supplied carry-script override freezes
+the Crazy Box's XYZ while leaving its hitbox and grabbable interaction live.
+The low fixed box misses the later contact; raising it interferes with the
+landing. A 1,030-recipe four-update Wafel screen finds no intended phase131
+top capture, including horizontal timing variants. The six retained frozen
+controls remain in Area1 through33 updates without the large gap or capture.
+This is finite diagnostic evidence, not a gameplay-created clone or universal
+exclusion. The [source note](ink-collision-clone-source.md) distinguishes the
+ordinary HOLDABLE Crazy Box path from inert non-holdable carry scripts.
+
+The requested third film was cancelled before any new files, render or
+publication were created. The user correctly identified that an ordinary
+warp without spawning displacement is not the desired result. The fragment's
+limited value is native action-entry evidence after a supplied airborne seed;
+it must not be presented as a working Ink installation or useful route.
+
 The old behavior112 exterior-freefall seed already lands on the top at113,
 slides at117, and has extensive slide-to-crawl and walking-edge searches.
 Those searches are credited in [the earlier slide study](ink-top-slide-to-crawl.md)
