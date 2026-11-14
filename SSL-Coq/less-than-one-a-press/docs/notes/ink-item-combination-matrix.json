@@ -1,0 +1,1201 @@
+{
+  "evidence": "Manual complete handler-branch source classification; no runtime or Coq theorem",
+  "primary_question": "Construct or retain a usable walking/crawling/common-ground-slide action AND obtain the required X/Z shove. A numerical Y change alone does not satisfy the movement-action requirement.",
+  "ground_entry_summary": "Successful shell mounting selects RIDING_SHELL_GROUND but terminates before later pushes. Ordinary bounce then failed shell mount then box supplies a Y snap and X/Z pushes while retaining AIR. Post-shell cap/dialog guards require existing idle/walking; airborne dive pickup still needs AIR_STEP_LANDED to enter its ground action. Later action execution, retention and productive alignment must be checked separately.",
+  "date": "2026-11-14",
+  "proof_revision": "08b72af44fbb54aaef3ed7f8be399868ba75db98",
+  "decompile_revision": "36fbf8d693a9fc2bdec0c77402f8e96d07d2f461",
+  "stock_inventory_revision": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "interaction_sha256": "a327202d33612821f884f01b5e4692aa5cfe2003f3b9a2eeb1452ad72725ea00",
+  "scope": "Valid distinct Mario/actor storage; ordinary initialized interaction-type values; completed defined calls. The full action handler executes later. Frozen clones inherit live interaction fields, not novel handlers or automatic native status resets.",
+  "definitions": {
+    "movement_xz": "MarioState.pos[0/2], immediate coordinate effect",
+    "movement_y": "MarioState.pos[1], immediate coordinate effect",
+    "velocity": "Speed fields change; this alone is not coordinate motion",
+    "returns": "false continues fixed type table; true stops it, whether or not action changed",
+    "graphics_collision": "gfx.pos and Mario object's oPos are separate; metadata writes do not move them",
+    "stock": "Reviewed SSL Area 1 placements and native child sources, not a proof of all possible cross-area/corrupt histories"
+  },
+  "callback_supplement": [
+    {
+      "mechanism": "tree_native",
+      "phase": "POLELIKE after collision detection, before Mario geometry",
+      "effect": "Stock palm tree adds C-relative X/Z displacement to M; no floor query/action/Y/C/D write. Fresh geometry follows. Frozen non-HOLDABLE tree loses callback. Radius70; timer>10; raw vertical range; action mask0x100000."
+    },
+    {
+      "mechanism": "platform_carry",
+      "phase": "After SURFACE, before collision detection and Mario geometry",
+      "effect": "Previously captured platform changes M, not action; fresh cache follows. Translation uses VelX/Z, not VelY. Rotation requires nonzero angular-velocity fields."
+    },
+    {
+      "mechanism": "tox_box",
+      "phase": "SURFACE before Mario",
+      "effect": "Native face pitch/roll changes do not set angular velocities. Zero-rotation carry has no Y change. Actual mesh loading/support and a real actor/history remain required."
+    },
+    {
+      "mechanism": "solid_boxes",
+      "phase": "SURFACE before Mario",
+      "effect": "Large/exclamation box callbacks update actors/meshes/children; no identified direct Mario push. Later wall/floor resolution is part of Mario geometry/step."
+    },
+    {
+      "mechanism": "tweester",
+      "phase": "POLELIKE after collision detection, before Mario",
+      "effect": "Callback moves/scales actor and clears status; capture later ends interactions. Mario tornado action moves M, copies D; exit TWIRLING."
+    },
+    {
+      "mechanism": "enemy_callbacks",
+      "phase": "PUSHABLE/GENACTOR after Mario",
+      "effect": "Goomba/Pokey/Fly Guy/Klepto motion/status/size concern actors. Shared object-object collision explicitly excludes Mario; Klepto cap theft changes flags/save state, not Mario XYZ/action."
+    },
+    {
+      "mechanism": "held_actor_callbacks",
+      "phase": "After Mario; drop/throw inside Mario code",
+      "effect": "Crazy Box/Bob-omb/small-box motion and HOLP drop/throw place the actor. HOLDABLE does not automatically freeze its native callback. Crazy-box Mario bounce is an airborne action path."
+    },
+    {
+      "mechanism": "cannon",
+      "phase": "LEVEL after Mario; IN_CANNON inside Mario",
+      "effect": "Callback moves cannon. Mario action sets M at cannon, copies D; firing requires A_PRESSED and selects SHOT_FROM_CANNON."
+    },
+    {
+      "mechanism": "buddy_dialog",
+      "phase": "GENACTOR after Mario",
+      "effect": "Can request READING_NPC_DIALOG only through readiness guard: waiting/stationary/moving, excluding riding-shell/invulnerable/first-person. No callback XYZ write; later dialog copies D and exits IDLE/HOLD_IDLE/cap."
+    },
+    {
+      "mechanism": "pole_automatic",
+      "phase": "Inside Mario",
+      "effect": "IDLE only after below-floor snap or collided wall at/below floor+20. Below-pole exit is FREEFALL and can undo ceiling clamp by restoring raw actorbase Y; copies M to D. Z exit SOFT_BONK."
+    },
+    {
+      "mechanism": "star_and_pillar",
+      "phase": "Native object callbacks",
+      "effect": "Star spawn changes time-stop/camera/actor state; pillar detector changes top counter. No identified direct Mario ground-action/XYZ constructor; freeze changes scheduling and surface lifetime."
+    },
+    {
+      "mechanism": "absent_callbacks",
+      "phase": "Foreign to reviewed stock SSL1",
+      "effect": "Cylinder pushes from chest/bookend/chair/Koopa/piano/penguin/snowman/water-bomb cannon; set_mario_pos from Dorrie/tilting inverted pyramid. Butterfly temporarily writes C then subtracts offsets, without a claimed bitwise cancellation. These actors are absent from reviewed SSL1. No sphere helper found. Not inherited by unrelated clones."
+    }
+  ],
+  "unhandled_values": [
+    {
+      "type": "INTERACT_UNKNOWN_31",
+      "value": "0x80000000",
+      "effect": "Defined in interaction.h but absent from the dispatch table; no source writer found. No Mario handler effect. An overlapping actor can still consume collision-list capacity."
+    },
+    {
+      "type": "zero",
+      "value": "0",
+      "effect": "No interaction-table bit or handler. Behavior callbacks, loaded surfaces and object-list collision bookkeeping are separate mechanisms."
+    }
+  ],
+  "rows": [
+    {
+      "order": 1,
+      "type": "INTERACT_COIN",
+      "handler": "interact_coin",
+      "source_line": 743,
+      "stock_ssl_area1": "Yes: placed/spawned coins",
+      "branches": [
+        {
+          "guard": "collected",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": "coins/healing and INTERACTED; 100-coin threshold spawns star"
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 2,
+      "type": "INTERACT_WATER_RING",
+      "handler": "interact_water_ring",
+      "source_line": 763,
+      "stock_ssl_area1": "Absent from reviewed stock Area 1 inventory",
+      "branches": [
+        {
+          "guard": "contact",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": "healing and INTERACTED"
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 3,
+      "type": "INTERACT_STAR_OR_KEY",
+      "handler": "interact_star_or_key",
+      "source_line": 769,
+      "stock_ssl_area1": "Yes: stars; no Area 1 key source",
+      "branches": [
+        {
+          "guard": "health >= 0x100",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "FALL_AFTER_STAR_GRAB zeroes forward velocity",
+          "action": "selected star cutscene; AIR gives FALL_AFTER_STAR_GRAB unless grand-star override",
+          "returns": "true",
+          "other": "save/star/health/cap effects; stop riding/holding; actor INTERACTED"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 4,
+      "type": "INTERACT_BBH_ENTRANCE",
+      "handler": "interact_bbh_entrance",
+      "source_line": 837,
+      "stock_ssl_area1": "Absent",
+      "branches": [
+        {
+          "guard": "not already BBH-enter action",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "BBH_ENTER_SPIN if AIR else BBH_ENTER_JUMP",
+          "returns": "true",
+          "other": "stop riding/holding; references and actor status"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 5,
+      "type": "INTERACT_WARP",
+      "handler": "interact_warp",
+      "source_line": 855,
+      "stock_ssl_area1": "Yes: ordinary pyramid warps and fading warps",
+      "branches": [
+        {
+          "guard": "accepted fading warp: idle/panting/standing-against-wall/crouching, not just teleported",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "TELEPORT_FADE_OUT",
+          "returns": "true",
+          "other": "references/teleport latch"
+        },
+        {
+          "guard": "ordinary warp and action != EMERGE_FROM_PIPE",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "DISAPPEARED with OBJECT warp argument",
+          "returns": "true",
+          "other": "stop riding; references and actor INTERACTED; scheduling occurs later"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 6,
+      "type": "INTERACT_WARP_DOOR",
+      "handler": "interact_warp_door",
+      "source_line": 903,
+      "stock_ssl_area1": "Absent",
+      "branches": [
+        {
+          "guard": "walking/decelerating and missing key",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "READING_AUTOMATIC_DIALOG when first displaying",
+          "returns": "false",
+          "other": "door text latch; action change can continue"
+        },
+        {
+          "guard": "walking/decelerating and usable door",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unlock/pull/push door",
+          "returns": "true",
+          "other": "references"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 7,
+      "type": "INTERACT_DOOR",
+      "handler": "interact_door",
+      "source_line": 999,
+      "stock_ssl_area1": "Absent",
+      "branches": [
+        {
+          "guard": "walking/decelerating and entry or first insufficient-star message; special idle 70-star continuation",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "door action or READING_AUTOMATIC_DIALOG",
+          "returns": "true",
+          "other": "references/text latch"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 8,
+      "type": "INTERACT_CANNON_BASE",
+      "handler": "interact_cannon_base",
+      "source_line": 1066,
+      "stock_ssl_area1": "Yes: opened cannon",
+      "branches": [
+        {
+          "guard": "not already IN_CANNON",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "IN_CANNON",
+          "returns": "true",
+          "other": "stop riding/holding; references/status"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 9,
+      "type": "INTERACT_IGLOO_BARRIER",
+      "handler": "interact_igloo_barrier",
+      "source_line": 1078,
+      "stock_ssl_area1": "Absent",
+      "branches": [
+        {
+          "guard": "contact",
+          "movement_xz": "push_mario_out_of_object; commits X/Z only if destination floor exists; cached floor unchanged; padding +5",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": "sets interactObj and usedObj"
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 10,
+      "type": "INTERACT_TORNADO",
+      "handler": "interact_tornado",
+      "source_line": 1088,
+      "stock_ssl_area1": "Yes: Tweesters",
+      "branches": [
+        {
+          "guard": "not TORNADO_TWIRLING or SQUISHED",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "forward/slide XZ velocity zeroed",
+          "action": "TORNADO_TWIRLING",
+          "returns": "true",
+          "other": "stop riding/holding; actor status/references"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "oMarioTornadoYawVel=0x400; oMarioTornadoPosY=M.Y-actorY"
+    },
+    {
+      "order": 11,
+      "type": "INTERACT_WHIRLPOOL",
+      "handler": "interact_whirlpool",
+      "source_line": 1113,
+      "stock_ssl_area1": "Absent",
+      "branches": [
+        {
+          "guard": "not CAUGHT_IN_WHIRLPOOL",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "forwardVel=0",
+          "action": "CAUGHT_IN_WHIRLPOOL",
+          "returns": "true",
+          "other": "stop riding/holding; actor status/references"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "oMarioWhirlpoolPosY=M.Y-actorY"
+    },
+    {
+      "order": 12,
+      "type": "INTERACT_STRONG_WIND",
+      "handler": "interact_strong_wind",
+      "source_line": 1136,
+      "stock_ssl_area1": "Absent from reviewed stock Area 1 inventory",
+      "branches": [
+        {
+          "guard": "not GETTING_BLOWN",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "forwardVel=-24; Y=12; facing reversed; gravity=0.4",
+          "action": "GETTING_BLOWN",
+          "returns": "true",
+          "other": "stop riding/holding; actor status/references"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 13,
+      "type": "INTERACT_FLAME",
+      "handler": "interact_flame",
+      "source_line": 1158,
+      "stock_ssl_area1": "Yes: fire-spitter/Fly-Guy flames",
+      "branches": [
+        {
+          "guard": "effective dry contact",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "BURNING_JUMP initializer Y=31.5, forward=8; falling branch retains Y velocity",
+          "action": "BURNING_FALL if AIR and Y velocity <=0, otherwise BURNING_JUMP",
+          "returns": "true",
+          "other": "drop held/ridden; burn timer=0; status/references"
+        },
+        {
+          "guard": "effective but submerged/deep-water extinguishing",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": "actor INTERACTED and sound"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "oMarioBurnTimer"
+    },
+    {
+      "order": 14,
+      "type": "INTERACT_SNUFIT_BULLET",
+      "handler": "interact_snufit_bullet",
+      "source_line": 1188,
+      "stock_ssl_area1": "Absent",
+      "branches": [
+        {
+          "guard": "not invulnerable/vanish and not metal",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "selected knockback velocity",
+          "action": "selected knockback",
+          "returns": "true",
+          "other": "drop held/ridden; damage and status"
+        },
+        {
+          "guard": "metal hit or ignored contact",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": "metal marks actor attacked; delay-invincibility timer flag where applicable"
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 15,
+      "type": "INTERACT_CLAM_OR_BUBBA",
+      "handler": "interact_clam_or_bubba",
+      "source_line": 1213,
+      "stock_ssl_area1": "Absent",
+      "branches": [
+        {
+          "guard": "EATS_MARIO subtype",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "EATEN_BY_BUBBA",
+          "returns": "true",
+          "other": "actor status/reference"
+        },
+        {
+          "guard": "damage guard accepts",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "knockback facing/forward/possible water Y velocity",
+          "action": "drop held/ridden actor; selected ground/air/water knockback",
+          "returns": "true",
+          "other": "actor INTERACTED|ATTACKED_MARIO; hurtCounter"
+        },
+        {
+          "guard": "damage rejected",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "true",
+          "other": "still terminates; may set delay-invincibility flag"
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 16,
+      "type": "INTERACT_BULLY",
+      "handler": "interact_bully",
+      "source_line": 1229,
+      "stock_ssl_area1": "Absent",
+      "branches": [
+        {
+          "guard": "attack/metal branch",
+          "movement_xz": "push_mario_out_of_object; commits X/Z only if destination floor exists; cached floor unchanged; padding +5",
+          "movement_y": "unchanged",
+          "velocity": "forwardVel=-16 plus recoil",
+          "action": "PUNCHING may become MOVE_PUNCHING",
+          "returns": "true",
+          "other": "actor speed/yaw/attack status"
+        },
+        {
+          "guard": "effective nonattack collision",
+          "movement_xz": "push_mario_out_of_object; commits X/Z only if destination floor exists; cached floor unchanged then bully collision solver writes M.XZ",
+          "movement_y": "unchanged",
+          "velocity": "bully transfer updates facing/forwardVel",
+          "action": "selected ground/air knockback",
+          "returns": "true",
+          "other": "drop held/ridden; invincibility=2; also writes bully XZ/velocity"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 17,
+      "type": "INTERACT_SHOCK",
+      "handler": "interact_shock",
+      "source_line": 1276,
+      "stock_ssl_area1": "Absent from reviewed stock Area 1 inventory",
+      "branches": [
+        {
+          "guard": "effective shock guard",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "WATER_SHOCKED in water else SHOCKED with grounded arg",
+          "returns": "true",
+          "other": "drop held/ridden; damage and status"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 18,
+      "type": "INTERACT_BOUNCE_TOP2",
+      "handler": "interact_bounce_top",
+      "source_line": 1368,
+      "stock_ssl_area1": "No stock Area 1 writer found; same handler as BOUNCE_TOP",
+      "branches": [
+        {
+          "guard": "ordinary INT_HIT_FROM_ABOVE; no TWIRL_BOUNCE",
+          "movement_xz": "unchanged",
+          "movement_y": "actor origin Y + live hitboxHeight",
+          "velocity": "Y=30",
+          "action": "unchanged",
+          "returns": "false",
+          "other": "attack status written; action remains airborne for ordinary air entry"
+        },
+        {
+          "guard": "INT_HIT_FROM_ABOVE and TWIRL_BOUNCE",
+          "movement_xz": "unchanged",
+          "movement_y": "actor origin Y + live hitboxHeight",
+          "velocity": "Y=80 before action initializer",
+          "action": "TWIRLING; squish/quicksand initializer may substitute JUMP",
+          "returns": "true",
+          "other": "drop held/ridden; actor attack status"
+        },
+        {
+          "guard": "accepted attack other than top bounce",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "punch/kick/trip horizontal recoil; other attacks no displacement",
+          "action": "PUNCHING may become MOVE_PUNCHING",
+          "returns": "false",
+          "other": "actor attack status"
+        },
+        {
+          "guard": "damage guard accepts",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "knockback facing/forward/possible water Y velocity",
+          "action": "drop held/ridden actor; selected ground/air/water knockback",
+          "returns": "true",
+          "other": "actor INTERACTED|ATTACKED_MARIO; hurtCounter"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 19,
+      "type": "INTERACT_MR_BLIZZARD",
+      "handler": "interact_mr_blizzard",
+      "source_line": 1312,
+      "stock_ssl_area1": "Absent",
+      "branches": [
+        {
+          "guard": "damage guard accepts",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "knockback facing/forward/possible water Y velocity",
+          "action": "drop held/ridden actor; selected ground/air/water knockback",
+          "returns": "true",
+          "other": "actor INTERACTED|ATTACKED_MARIO; hurtCounter"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 20,
+      "type": "INTERACT_HIT_FROM_BELOW",
+      "handler": "interact_hit_from_below",
+      "source_line": 1324,
+      "stock_ssl_area1": "Yes: Klepto",
+      "branches": [
+        {
+          "guard": "ordinary INT_HIT_FROM_ABOVE; no TWIRL_BOUNCE",
+          "movement_xz": "unchanged",
+          "movement_y": "actor origin Y + live hitboxHeight",
+          "velocity": "Y=30",
+          "action": "unchanged",
+          "returns": "false",
+          "other": "attack status written; action remains airborne for ordinary air entry"
+        },
+        {
+          "guard": "INT_HIT_FROM_ABOVE and TWIRL_BOUNCE",
+          "movement_xz": "unchanged",
+          "movement_y": "actor origin Y + live hitboxHeight",
+          "velocity": "Y=80 before action initializer",
+          "action": "TWIRLING; squish/quicksand initializer may substitute JUMP",
+          "returns": "true",
+          "other": "drop held/ridden; actor attack status"
+        },
+        {
+          "guard": "INT_HIT_FROM_BELOW",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "Y=0",
+          "action": "unchanged",
+          "returns": "false",
+          "other": "actor attack status"
+        },
+        {
+          "guard": "accepted attack other than top bounce",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "punch/kick/trip horizontal recoil; other attacks no displacement",
+          "action": "PUNCHING may become MOVE_PUNCHING",
+          "returns": "false",
+          "other": "actor attack status"
+        },
+        {
+          "guard": "damage guard accepts",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "knockback facing/forward/possible water Y velocity",
+          "action": "drop held/ridden actor; selected ground/air/water knockback",
+          "returns": "true",
+          "other": "actor INTERACTED|ATTACKED_MARIO; hurtCounter"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 21,
+      "type": "INTERACT_BOUNCE_TOP",
+      "handler": "interact_bounce_top",
+      "source_line": 1368,
+      "stock_ssl_area1": "Yes: Goomba, Pokey body part, Fly Guy",
+      "branches": [
+        {
+          "guard": "ordinary INT_HIT_FROM_ABOVE; no TWIRL_BOUNCE",
+          "movement_xz": "unchanged",
+          "movement_y": "actor origin Y + live hitboxHeight",
+          "velocity": "Y=30",
+          "action": "unchanged",
+          "returns": "false",
+          "other": "attack status written; action remains airborne for ordinary air entry"
+        },
+        {
+          "guard": "INT_HIT_FROM_ABOVE and TWIRL_BOUNCE",
+          "movement_xz": "unchanged",
+          "movement_y": "actor origin Y + live hitboxHeight",
+          "velocity": "Y=80 before action initializer",
+          "action": "TWIRLING; squish/quicksand initializer may substitute JUMP",
+          "returns": "true",
+          "other": "drop held/ridden; actor attack status"
+        },
+        {
+          "guard": "accepted attack other than top bounce",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "punch/kick/trip horizontal recoil; other attacks no displacement",
+          "action": "PUNCHING may become MOVE_PUNCHING",
+          "returns": "false",
+          "other": "actor attack status"
+        },
+        {
+          "guard": "damage guard accepts",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "knockback facing/forward/possible water Y velocity",
+          "action": "drop held/ridden actor; selected ground/air/water knockback",
+          "returns": "true",
+          "other": "actor INTERACTED|ATTACKED_MARIO; hurtCounter"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 22,
+      "type": "INTERACT_DAMAGE",
+      "handler": "interact_damage",
+      "source_line": 1423,
+      "stock_ssl_area1": "Yes: Bob-omb explosion child and applicable hazards",
+      "branches": [
+        {
+          "guard": "damage guard accepts",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "knockback facing/forward/possible water Y velocity",
+          "action": "drop held/ridden actor; selected ground/air/water knockback",
+          "returns": "true",
+          "other": "actor INTERACTED|ATTACKED_MARIO; hurtCounter"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 23,
+      "type": "INTERACT_POLE",
+      "handler": "interact_pole",
+      "source_line": 1510,
+      "stock_ssl_area1": "Yes: Area 1 palm tree/polelike actor",
+      "branches": [
+        {
+          "guard": "air action ID 0x080..0x09f and pole regrab guard accepts",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "Y=0; forwardVel=0",
+          "action": "GRAB_POLE_SLOW/FAST",
+          "returns": "true",
+          "other": "stop riding/holding; references; JP fast-spin bug uses just-zeroed speed"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "pole offset, yaw velocity, and auxiliary pole state"
+    },
+    {
+      "order": 24,
+      "type": "INTERACT_HOOT",
+      "handler": "interact_hoot",
+      "source_line": 1560,
+      "stock_ssl_area1": "Absent",
+      "branches": [
+        {
+          "guard": "air action ID 0x080..0x097 and release-time guard accepts",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "RIDING_HOOT",
+          "returns": "true",
+          "other": "stop riding/holding; actor boolean status/references"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 25,
+      "type": "INTERACT_BREAKABLE",
+      "handler": "interact_breakable",
+      "source_line": 1435,
+      "stock_ssl_area1": "Yes: large boxes and exclamation boxes",
+      "branches": [
+        {
+          "guard": "INT_ATTACK_NOT_WEAK_FROM_ABOVE mask accepts",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "attack recoil; HIT_FROM_BELOW sets Y=0",
+          "action": "PUNCHING may become MOVE_PUNCHING",
+          "returns": "true",
+          "other": "attack status/reference; apparent ordinary top-bounce switch arm is unreachable under mask"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 26,
+      "type": "INTERACT_KOOPA",
+      "handler": "interact_bounce_top",
+      "source_line": 1368,
+      "stock_ssl_area1": "Absent: shell availability does not imply a Koopa actor",
+      "branches": [
+        {
+          "guard": "ordinary INT_HIT_FROM_ABOVE; no TWIRL_BOUNCE",
+          "movement_xz": "unchanged",
+          "movement_y": "actor origin Y + live hitboxHeight",
+          "velocity": "Y=30",
+          "action": "unchanged",
+          "returns": "false",
+          "other": "attack status written; action remains airborne for ordinary air entry"
+        },
+        {
+          "guard": "INT_HIT_FROM_ABOVE and TWIRL_BOUNCE",
+          "movement_xz": "unchanged",
+          "movement_y": "actor origin Y + live hitboxHeight",
+          "velocity": "Y=80 before action initializer",
+          "action": "TWIRLING; squish/quicksand initializer may substitute JUMP",
+          "returns": "true",
+          "other": "drop held/ridden; actor attack status"
+        },
+        {
+          "guard": "accepted attack other than top bounce",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "punch/kick/trip horizontal recoil; other attacks no displacement",
+          "action": "PUNCHING may become MOVE_PUNCHING",
+          "returns": "false",
+          "other": "actor attack status"
+        },
+        {
+          "guard": "damage guard accepts",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "knockback facing/forward/possible water Y velocity",
+          "action": "drop held/ridden actor; selected ground/air/water knockback",
+          "returns": "true",
+          "other": "actor INTERACTED|ATTACKED_MARIO; hurtCounter"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 27,
+      "type": "INTERACT_KOOPA_SHELL",
+      "handler": "interact_koopa_shell",
+      "source_line": 1460,
+      "stock_ssl_area1": "Yes: shell spawned by stock shell box",
+      "branches": [
+        {
+          "guard": "not riding; HIT_FROM_ABOVE or WALKING/HOLD_WALKING",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "RIDING_SHELL_GROUND",
+          "returns": "true",
+          "other": "drop held actor; ridden/used/interact references; actor attack status"
+        },
+        {
+          "guard": "not riding; mount guard fails",
+          "movement_xz": "push_mario_out_of_object; commits X/Z only if destination floor exists; cached floor unchanged; padding +2",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": "no actor attack status from push"
+        },
+        {
+          "guard": "already RIDING_SHELL flag",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 28,
+      "type": "INTERACT_UNKNOWN_08",
+      "handler": "interact_unknown_08",
+      "source_line": 1406,
+      "stock_ssl_area1": "Spiny handler; no stock Area 1 Spiny",
+      "branches": [
+        {
+          "guard": "INT_PUNCH",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "horizontal recoil",
+          "action": "PUNCHING may become MOVE_PUNCHING",
+          "returns": "false",
+          "other": "actor attacked status"
+        },
+        {
+          "guard": "damage guard accepts",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "knockback facing/forward/possible water Y velocity",
+          "action": "drop held/ridden actor; selected ground/air/water knockback",
+          "returns": "true",
+          "other": "actor INTERACTED|ATTACKED_MARIO; hurtCounter"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 29,
+      "type": "INTERACT_CAP",
+      "handler": "interact_cap",
+      "source_line": 1583,
+      "stock_ssl_area1": "Yes: wing caps, normal cap from relevant cap history",
+      "branches": [
+        {
+          "guard": "valid cap identity and not GETTING_BLOWN",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "PUTTING_ON_CAP only if IDLE flag or WALKING; otherwise unchanged",
+          "returns": "true",
+          "other": "terminates even without action change; cap flags/timer/music and actor status"
+        },
+        {
+          "guard": "ignored/rejected branch",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 30,
+      "type": "INTERACT_GRABBABLE",
+      "handler": "interact_grabbable",
+      "source_line": 1636,
+      "stock_ssl_area1": "Yes: Crazy Box, Bob-omb, small box; GRABS_MARIO subtype not a stock Area 1 actor",
+      "branches": [
+        {
+          "guard": "KICKABLE and INT_KICK/INT_TRIP",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "horizontal recoil",
+          "action": "PUNCHING may become MOVE_PUNCHING",
+          "returns": "false",
+          "other": "attack status; early return before push"
+        },
+        {
+          "guard": "GRABS_MARIO and grab/facing guard accepts",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "GRABBED",
+          "returns": "true",
+          "other": "stop riding/holding; references; actor status"
+        },
+        {
+          "guard": "able_to_grab_object and not NOT_GRABBABLE",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "true",
+          "other": "sets INPUT_INTERACT_OBJ_GRABBABLE; later action code performs pickup; failed GRABS_MARIO helper may already have pushed"
+        },
+        {
+          "guard": "remaining non-Bowser path",
+          "movement_xz": "push_mario_out_of_object; commits X/Z only if destination floor exists; cached floor unchanged; padding -5",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": "failed GRABS_MARIO helper also calls push before final fallthrough, potentially two helper invocations"
+        },
+        {
+          "guard": "Bowser fallback",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": "no final ordinary push; stock Area 1 has no Bowser"
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "none"
+    },
+    {
+      "order": 31,
+      "type": "INTERACT_TEXT",
+      "handler": "interact_text",
+      "source_line": 1741,
+      "stock_ssl_area1": "Yes: signposts and Bob-omb Buddy NPC",
+      "branches": [
+        {
+          "guard": "SIGN subtype and JP B/facing/talk guards accept",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "READING_SIGN",
+          "returns": "true",
+          "other": "stores sign interpolation deltas, not immediate position"
+        },
+        {
+          "guard": "SIGN subtype guard rejected",
+          "movement_xz": "unchanged",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        },
+        {
+          "guard": "NPC subtype and JP B/talk/facing guards accept",
+          "movement_xz": "push_mario_out_of_object; commits X/Z only if destination floor exists; cached floor unchanged; padding -10",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "WAITING_FOR_DIALOG",
+          "returns": "true",
+          "other": "references and actor INTERACTED"
+        },
+        {
+          "guard": "NPC subtype rejected",
+          "movement_xz": "push_mario_out_of_object; commits X/Z only if destination floor exists; cached floor unchanged; padding -10",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": ""
+        },
+        {
+          "guard": "neither SIGN nor NPC",
+          "movement_xz": "push_mario_out_of_object; commits X/Z only if destination floor exists; cached floor unchanged; padding +2",
+          "movement_y": "unchanged",
+          "velocity": "unchanged",
+          "action": "unchanged",
+          "returns": "false",
+          "other": "no ordinary stock SSL representative established for this subtype combination"
+        }
+      ],
+      "graphics_or_collision_position": "No direct stored gfx.pos or Mario object oPos XYZ update in this handler family under valid nonaliasing actor references",
+      "other_mario_object_fields": "sign yaw/XZ interpolation deltas where applicable"
+    }
+  ]
+}

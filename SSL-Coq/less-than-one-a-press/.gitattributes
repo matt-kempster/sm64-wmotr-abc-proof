@@ -1,4 +1,5 @@
 # Keep the patched Bash checker executable under WSL with core.autocrlf=true.
+docs/notes/ink-item-*-receipt.json -text whitespace=cr-at-eol
 pipeline/check-link-hygiene.sh text eol=lf
 # Keep the new replay's recorded script hash stable and its ROM runner usable.
 instrumentation/wafel-jp-pilot/ink_timer130_crawl.py text eol=lf
