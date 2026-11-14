@@ -84,6 +84,37 @@ the actual frozen-shell sequence rather than claiming that prior result anew.
 
 ## Which substitutions remain plausible?
 
+The [original-JP floor-query diagnosis](ink-floor768-diagnosis.md) corrects
+the earlier explanation of the completed-cache failure. In its selected
+retimed near miss, the final ground quarter **does find floor Y=768**.
+It does not save that result: Mario's earlier geometry query has cached the
+top at Y=1933.4923095703125, and the quarter's ceiling stop returns before
+the cache assignment. Alignment therefore snaps Movement to that old top
+height. The selected retimed history has no first Bob placement; it is a
+Box-only control retained by the broader Bob/Box search, not evidence that
+every failed history has this identical internal cause.
+
+The successful Buddy control has the reverse order of local results:
+its pre-interaction geometry query saves 768, then its shove and quarter
+queries find static floor 1280. That quarter also stops before assignment,
+preserving 768. Both use a real ceiling at 1523. Thus a destination query
+returning 768 is insufficient; the cache-writing query must select it before
+the productive stopped step. The next geometry target is the previous
+update's endpoint and the next update's geometry query, including any
+platform movement and wall correction, rather than just the final shove's
+destination. These two new original-ROM traces diagnose the mechanism;
+they do not construct actor delivery or a new Buddy-free handoff.
+
+The loaded-mesh comparison narrows the next target further. At the successful
+incoming query `(-2140.031982421875,1830.177978515625,-1115.0291748046875)`,
+the top is just too high for the signed-integer floor query: its eligibility
+threshold is 1831.11376953125, versus query Y=1830. Static floor 768 wins.
+At the failed incoming query
+`(-2168.8564453125,1889.0369873046875,-1036.69287109375)`, the top is eligible;
+moreover, the static floor underneath is 1280. Lowering Y at that same X/Z
+enough to reject the top would therefore still not produce 768. Both the
+earlier horizontal endpoint and the top's height eligibility matter.
+
 - A Bob-omb can replace the **grabbable role**, provided new geometry/timing
   supplies the intermediate state. It cannot simply add Buddy's independent
   same-pass interaction while Crazy Box remains selected.
