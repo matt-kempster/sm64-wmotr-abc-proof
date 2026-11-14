@@ -1,961 +1,961 @@
 {
-  "scope": "Conditional original-JP three-actor handoff. Actual ROM footage, explanatory diagrams, on-screen commentary and original instrumental music. No spoken narration. Setup grants remain explicit; no complete gameplay route is claimed.",
-  "textFitChecks": 1263,
-  "coordinateLabels": {
-    "C": "Collision",
-    "G": "Stored Graphics (gfx.pos), not rendered pose",
-    "M": "Movement"
-  },
-  "chapters": [
-    {
-      "footer": "High entry, actor positions and copied Bob state are supplied. This demonstrates a local handoff, not a complete gameplay route.",
-      "endSeconds": 10,
-      "firstFrame": 0,
-      "lastFrame": 299,
-      "tag": "CONDITIONAL ORIGINAL-JP SUCCESS",
-      "startSeconds": 0,
-      "id": "roles",
-      "title": "Three actors, three different jobs",
-      "lines": [
-        "A frozen shell, an enlarged black Bob-omb, and a Crazy Box work together.",
-        "The original Japanese game reaches a useful displaced Area 2 spawn."
-      ]
-    },
-    {
-      "footer": "Initial FREEFALL at (-1960,19900,-1230); horizontal speed 0, vertical speed -16. High shell delivery remains a setup grant.",
-      "endSeconds": 24,
-      "firstFrame": 300,
-      "lastFrame": 719,
-      "tag": "SETUP CUT / BEFORE TOP UPDATE 128",
-      "startSeconds": 10,
-      "id": "setup",
-      "title": "The supplied airborne starting point",
-      "lines": [
-        "The test places airborne Mario at Y 19900, ten units above the shell.",
-        "His ground-slide action is not supplied. The game must create it."
-      ]
-    },
-    {
-      "footer": "One Z update, then neutral controls. M=C.Y 1809.207; G.Y 19900. This immediate alignment is not a long visible fall.",
-      "endSeconds": 37,
-      "firstFrame": 720,
-      "lastFrame": 1109,
-      "tag": "TOP UPDATE 128 / NATIVE ACTION TRANSITIONS",
-      "startSeconds": 24,
-      "id": "shell",
-      "title": "Shell contact, then Z in the same update",
-      "lines": [
-        "Shell contact mounts Mario; Z cancels riding into a butt slide.",
-        "The slide's floor alignment puts Movement on the real spinning top."
-      ]
-    },
-    {
-      "footer": "Diagrams show stored coordinates, not the rendered pose. G is always a labelled coordinate marker, never a model-placement claim.",
-      "endSeconds": 48,
-      "firstFrame": 1110,
-      "lastFrame": 1439,
-      "tag": "POSITION LEGEND / STORED GAME STATE",
-      "startSeconds": 37,
-      "id": "positions",
-      "title": "Three positions to watch",
-      "lines": [
-        "M is Movement. C is the Mario object's Collision position.",
-        "G is Stored Graphics: gfx.pos, not the visibly drawn model."
-      ]
-    },
-    {
-      "footer": "The enlarged Bob reaches old C while sitting near shifted M. Radius 91+37 registers; stock 65+37 misses this exact placement.",
-      "endSeconds": 62,
-      "firstFrame": 1440,
-      "lastFrame": 1859,
-      "tag": "INSIDE TOP UPDATE 129 / EXPLANATORY TOP VIEW",
-      "startSeconds": 48,
-      "id": "carry",
-      "title": "The rotating top separates M and C",
-      "lines": [
-        "The top moves Movement sideways before Mario's actor interactions.",
-        "Collision still uses the earlier position when the game checks the Bob."
-      ]
-    },
-    {
-      "footer": "Bob position is supplied before 129. Its callback and fuse remain live; its radius changes normally after this useful contact.",
-      "endSeconds": 74,
-      "firstFrame": 1860,
-      "lastFrame": 2219,
-      "tag": "TOP UPDATE 129 / SUPPLIED ACTOR POSITION, NATIVE RESPONSE",
-      "startSeconds": 62,
-      "id": "bob",
-      "title": "Bob supplies the earlier shove",
-      "lines": [
-        "The Bob pushes Mario toward the low pad's footprint.",
-        "Mario stays in butt slide at Y 1839.447, with no platform carried forward."
-      ]
-    },
-    {
-      "footer": "Native hook confirms the initial query and saved cache 768. A shove's separate floor check does not overwrite Mario's cache.",
-      "endSeconds": 85,
-      "firstFrame": 2220,
-      "lastFrame": 2549,
-      "tag": "START OF TOP UPDATE 130 / DIRECT ROM QUERY CHECK",
-      "startSeconds": 74,
-      "id": "cache",
-      "title": "First save the low floor",
-      "lines": [
-        "A fresh floor lookup saves height 768 while Movement is still high.",
-        "This happens before the Crazy Box's shove. The order matters."
-      ]
-    },
-    {
-      "footer": "Normal interaction ordering chooses the Crazy Box here. Bob remains present. There is no collision-list or floor-cache edit.",
-      "endSeconds": 97,
-      "firstFrame": 2550,
-      "lastFrame": 2909,
-      "tag": "TOP UPDATE 130 / FINAL ACTOR POSITION CUT",
-      "startSeconds": 85,
-      "id": "box",
-      "title": "Crazy Box supplies the final shove",
-      "lines": [
-        "The Crazy Box now pushes Mario farther sideways.",
-        "Bob and Box act on different updates, not as two same-type pushes at once."
-      ]
-    },
-    {
-      "footer": "M=C (-2200.002,768,-1075.004); G.Y 1839.447. Gap 1071.447. The top underside stops the quarter; cached 768 survives.",
-      "endSeconds": 110,
-      "firstFrame": 2910,
-      "lastFrame": 3299,
-      "tag": "INSIDE TOP UPDATE 130 / STORE, STOP AND ALIGN",
-      "startSeconds": 97,
-      "id": "gap",
-      "title": "Save high G, then snap low",
-      "lines": [
-        "The stopped ground step saves high coordinates in G.",
-        "Floor alignment snaps Movement to 768; Collision also finishes low."
-      ]
-    },
-    {
-      "footer": "Warp 64 is accepted; floor and platform name top 61 at Y 1914.855. The floor query is high; the real warp remains low.",
-      "endSeconds": 123,
-      "firstFrame": 3300,
-      "lastFrame": 3689,
-      "tag": "TOP UPDATE 131 / ACCEPTED WARP AND TOP CAPTURE",
-      "startSeconds": 110,
-      "id": "retry",
-      "title": "Low warp contact, high floor retry",
-      "lines": [
-        "Low Collision overlaps the real warp.",
-        "The failed floor lookup retries at Stored Graphics and selects the top."
-      ]
-    },
-    {
-      "footer": "Two transition camera observations are unavailable. We disclose the gap; first Area 2 coordinates come from the native log.",
-      "endSeconds": 134,
-      "firstFrame": 3690,
-      "lastFrame": 4019,
-      "tag": "SLOW REPLAY / OBSERVED AREA 1 CONTINUATION",
-      "startSeconds": 123,
-      "id": "retention",
-      "title": "The top reference survives",
-      "lines": [
-        "The recorded Area 1 boundaries retain the top as Mario's platform.",
-        "That retained reference is needed for the later spawning displacement."
-      ]
-    },
-    {
-      "footer": "First-arrival coordinates come from the checked native log. Later replay images may show movement. Diagram compares spawn points.",
-      "endSeconds": 146,
-      "firstFrame": 4020,
-      "lastFrame": 4379,
-      "tag": "USEFUL SPAWN / CHECKED LOG + LATER JP REPLAY",
-      "startSeconds": 134,
-      "id": "arrival",
-      "title": "A useful Area 2 arrival",
-      "lines": [
-        "The original Japanese ROM reaches (365.593,5500,-1096.803).",
-        "The ordinary upper-warp arrival is (0,5500,256)."
-      ]
-    },
-    {
-      "footer": "Both runs accept the warp. The control keeps the live Bob and its later nudge; only the final Crazy Box placement is omitted.",
-      "endSeconds": 158,
-      "firstFrame": 4380,
-      "lastFrame": 4739,
-      "tag": "SEPARATE ORIGINAL-JP CONTROL / ORDINARY WARP",
-      "startSeconds": 146,
-      "id": "comparison",
-      "title": "Without the final Crazy Box",
-      "lines": [
-        "Omitting only the final Crazy Box still makes a gap and fresh floor 768.",
-        "But it reaches the ordinary spawn without capturing the top."
-      ]
-    },
-    {
-      "footer": "Supplied: shell spawn/fake-pickup pointer/high HOLP, copied Bob state, high Mario/shell and actor positions. No later Mario edits.",
-      "endSeconds": 175,
-      "firstFrame": 4740,
-      "lastFrame": 5249,
-      "tag": "WHAT THIS FILM ESTABLISHES",
-      "startSeconds": 158,
-      "id": "scope",
-      "title": "The handoff works; joining the route is open",
-      "lines": [
-        "A black Bob-omb can replace the Buddy's local job in this revised setup.",
-        "Joining Mario's entry, actor delivery and timing through play is still open."
-      ]
-    }
-  ],
-  "frames": 5250,
-  "rendererSha256": "ccba2455b5dedb856a0b24b5169664cd8650a4b1c182f19865bf6e2496f32700",
-  "schema": 1,
-  "storyboardSha256": "6623f9d9f1ee762072128b0a99c4b825db6d482c1580a011099b9cf0b2426423",
   "panels": [
     {
       "source": "frames/positive-closeup/super_mario_64-001.png",
-      "file": "panel-0000.png",
-      "sourceSha256": "91d45e9db3481abcd158e44d19ef9b289b1068075cf4e0772718a66f3e63554c",
-      "chapter": 0,
-      "case": "positive",
-      "frames": 300,
       "firstFrame": 0,
-      "nativeBridge": 1,
-      "framebufferTimer": 2677
+      "chapter": 0,
+      "frames": 300,
+      "file": "panel-0000.png",
+      "framebufferTimer": 2677,
+      "sourceSha256": "91d45e9db3481abcd158e44d19ef9b289b1068075cf4e0772718a66f3e63554c",
+      "case": "positive",
+      "nativeBridge": 1
     },
     {
       "source": "frames/positive-closeup/super_mario_64-001.png",
-      "file": "panel-0001.png",
-      "sourceSha256": "91d45e9db3481abcd158e44d19ef9b289b1068075cf4e0772718a66f3e63554c",
-      "chapter": 1,
-      "case": "positive",
-      "frames": 420,
       "firstFrame": 300,
-      "nativeBridge": 1,
-      "framebufferTimer": 2677
-    },
-    {
-      "source": "frames/positive-closeup/super_mario_64-001.png",
-      "file": "panel-0002.png",
-      "sourceSha256": "91d45e9db3481abcd158e44d19ef9b289b1068075cf4e0772718a66f3e63554c",
-      "chapter": 2,
-      "case": "positive",
-      "frames": 390,
-      "firstFrame": 720,
-      "nativeBridge": 1,
-      "framebufferTimer": 2677
-    },
-    {
-      "source": "frames/positive-closeup/super_mario_64-001.png",
-      "file": "panel-0003.png",
-      "sourceSha256": "91d45e9db3481abcd158e44d19ef9b289b1068075cf4e0772718a66f3e63554c",
-      "chapter": 3,
-      "case": "positive",
-      "frames": 330,
-      "firstFrame": 1110,
-      "nativeBridge": 1,
-      "framebufferTimer": 2677
-    },
-    {
-      "source": "frames/positive-closeup/super_mario_64-001.png",
-      "file": "panel-0004.png",
-      "sourceSha256": "91d45e9db3481abcd158e44d19ef9b289b1068075cf4e0772718a66f3e63554c",
-      "chapter": 4,
-      "case": "positive",
+      "chapter": 1,
       "frames": 420,
-      "firstFrame": 1440,
-      "nativeBridge": 1,
-      "framebufferTimer": 2677
+      "file": "panel-0001.png",
+      "framebufferTimer": 2677,
+      "sourceSha256": "91d45e9db3481abcd158e44d19ef9b289b1068075cf4e0772718a66f3e63554c",
+      "case": "positive",
+      "nativeBridge": 1
     },
     {
-      "source": "frames/positive-closeup/super_mario_64-002.png",
-      "file": "panel-0005.png",
-      "sourceSha256": "0267f798cf44f45bc75ea57a700708fff6c42f24826d8878d4eb0301fb6e8731",
-      "chapter": 5,
+      "source": "frames/positive-closeup/super_mario_64-001.png",
+      "firstFrame": 720,
+      "chapter": 2,
+      "frames": 390,
+      "file": "panel-0002.png",
+      "framebufferTimer": 2677,
+      "sourceSha256": "91d45e9db3481abcd158e44d19ef9b289b1068075cf4e0772718a66f3e63554c",
       "case": "positive",
-      "frames": 360,
-      "firstFrame": 1860,
-      "nativeBridge": 2,
-      "framebufferTimer": 2678
+      "nativeBridge": 1
     },
     {
-      "source": "frames/positive-closeup/super_mario_64-002.png",
-      "file": "panel-0006.png",
-      "sourceSha256": "0267f798cf44f45bc75ea57a700708fff6c42f24826d8878d4eb0301fb6e8731",
-      "chapter": 6,
-      "case": "positive",
+      "source": "frames/positive-closeup/super_mario_64-001.png",
+      "firstFrame": 1110,
+      "chapter": 3,
       "frames": 330,
-      "firstFrame": 2220,
-      "nativeBridge": 2,
-      "framebufferTimer": 2678
+      "file": "panel-0003.png",
+      "framebufferTimer": 2677,
+      "sourceSha256": "91d45e9db3481abcd158e44d19ef9b289b1068075cf4e0772718a66f3e63554c",
+      "case": "positive",
+      "nativeBridge": 1
+    },
+    {
+      "source": "frames/positive-closeup/super_mario_64-001.png",
+      "firstFrame": 1440,
+      "chapter": 4,
+      "frames": 420,
+      "file": "panel-0004.png",
+      "framebufferTimer": 2677,
+      "sourceSha256": "91d45e9db3481abcd158e44d19ef9b289b1068075cf4e0772718a66f3e63554c",
+      "case": "positive",
+      "nativeBridge": 1
     },
     {
       "source": "frames/positive-closeup/super_mario_64-002.png",
-      "file": "panel-0007.png",
-      "sourceSha256": "0267f798cf44f45bc75ea57a700708fff6c42f24826d8878d4eb0301fb6e8731",
-      "chapter": 7,
-      "case": "positive",
+      "firstFrame": 1860,
+      "chapter": 5,
       "frames": 360,
+      "file": "panel-0005.png",
+      "framebufferTimer": 2678,
+      "sourceSha256": "0267f798cf44f45bc75ea57a700708fff6c42f24826d8878d4eb0301fb6e8731",
+      "case": "positive",
+      "nativeBridge": 2
+    },
+    {
+      "source": "frames/positive-closeup/super_mario_64-002.png",
+      "firstFrame": 2220,
+      "chapter": 6,
+      "frames": 330,
+      "file": "panel-0006.png",
+      "framebufferTimer": 2678,
+      "sourceSha256": "0267f798cf44f45bc75ea57a700708fff6c42f24826d8878d4eb0301fb6e8731",
+      "case": "positive",
+      "nativeBridge": 2
+    },
+    {
+      "source": "frames/positive-closeup/super_mario_64-002.png",
       "firstFrame": 2550,
-      "nativeBridge": 2,
-      "framebufferTimer": 2678
+      "chapter": 7,
+      "frames": 360,
+      "file": "panel-0007.png",
+      "framebufferTimer": 2678,
+      "sourceSha256": "0267f798cf44f45bc75ea57a700708fff6c42f24826d8878d4eb0301fb6e8731",
+      "case": "positive",
+      "nativeBridge": 2
     },
     {
       "source": "frames/positive-closeup/super_mario_64-003.png",
-      "file": "panel-0008.png",
-      "sourceSha256": "785198f14077ba52588a2c95b4be89c7e9a23e58aace88f33f3d668bd2953941",
-      "chapter": 8,
-      "case": "positive",
-      "frames": 390,
       "firstFrame": 2910,
-      "nativeBridge": 3,
-      "framebufferTimer": 2679
+      "chapter": 8,
+      "frames": 390,
+      "file": "panel-0008.png",
+      "framebufferTimer": 2679,
+      "sourceSha256": "785198f14077ba52588a2c95b4be89c7e9a23e58aace88f33f3d668bd2953941",
+      "case": "positive",
+      "nativeBridge": 3
     },
     {
       "source": "frames/positive-closeup/super_mario_64-004.png",
-      "file": "panel-0009.png",
-      "sourceSha256": "759223e590f0d367808e0afb721ed89bc8560c94f4d5b8fcb7b3473404c6a56e",
-      "chapter": 9,
-      "case": "positive",
-      "frames": 390,
       "firstFrame": 3300,
-      "nativeBridge": 4,
-      "framebufferTimer": 2680
+      "chapter": 9,
+      "frames": 390,
+      "file": "panel-0009.png",
+      "framebufferTimer": 2680,
+      "sourceSha256": "759223e590f0d367808e0afb721ed89bc8560c94f4d5b8fcb7b3473404c6a56e",
+      "case": "positive",
+      "nativeBridge": 4
     },
     {
       "source": "frames/positive-closeup/super_mario_64-005.png",
-      "file": "panel-0010.png",
-      "sourceSha256": "30c6e605da0a9a544b059e53acf4e8438a0ae21e2edc8d7bb5665c8b2f5293c7",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 17,
       "firstFrame": 3690,
-      "nativeBridge": 5,
-      "framebufferTimer": 2681
+      "chapter": 10,
+      "frames": 17,
+      "file": "panel-0010.png",
+      "framebufferTimer": 2681,
+      "sourceSha256": "30c6e605da0a9a544b059e53acf4e8438a0ae21e2edc8d7bb5665c8b2f5293c7",
+      "case": "positive",
+      "nativeBridge": 5
     },
     {
       "source": "frames/positive-closeup/super_mario_64-006.png",
-      "file": "panel-0011.png",
-      "sourceSha256": "5952aa331f5d1a9fb657d15fda1f09d56215a62a4fcbaaa844156068fa896795",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 17,
       "firstFrame": 3707,
-      "nativeBridge": 6,
-      "framebufferTimer": 2682
+      "chapter": 10,
+      "frames": 17,
+      "file": "panel-0011.png",
+      "framebufferTimer": 2682,
+      "sourceSha256": "5952aa331f5d1a9fb657d15fda1f09d56215a62a4fcbaaa844156068fa896795",
+      "case": "positive",
+      "nativeBridge": 6
     },
     {
       "source": "frames/positive-closeup/super_mario_64-007.png",
-      "file": "panel-0012.png",
-      "sourceSha256": "8b68a867da6b0bc3b21a926185ea098a9f74c78d555e8fe6bf33e7e86e9d9a6d",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 17,
       "firstFrame": 3724,
-      "nativeBridge": 7,
-      "framebufferTimer": 2683
+      "chapter": 10,
+      "frames": 17,
+      "file": "panel-0012.png",
+      "framebufferTimer": 2683,
+      "sourceSha256": "8b68a867da6b0bc3b21a926185ea098a9f74c78d555e8fe6bf33e7e86e9d9a6d",
+      "case": "positive",
+      "nativeBridge": 7
     },
     {
       "source": "frames/positive-closeup/super_mario_64-008.png",
-      "file": "panel-0013.png",
-      "sourceSha256": "2597e8c07a2b38bc46c58587584b1f62747c3da588d80c53bcd09448ccb11185",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 17,
       "firstFrame": 3741,
-      "nativeBridge": 8,
-      "framebufferTimer": 2684
+      "chapter": 10,
+      "frames": 17,
+      "file": "panel-0013.png",
+      "framebufferTimer": 2684,
+      "sourceSha256": "2597e8c07a2b38bc46c58587584b1f62747c3da588d80c53bcd09448ccb11185",
+      "case": "positive",
+      "nativeBridge": 8
     },
     {
       "source": "frames/positive-closeup/super_mario_64-009.png",
-      "file": "panel-0014.png",
-      "sourceSha256": "3ce310bf9def12ba2ee6bac42d281d49481f95e77ec2d2dbdcc3ce2baf67a623",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 17,
       "firstFrame": 3758,
-      "nativeBridge": 9,
-      "framebufferTimer": 2685
+      "chapter": 10,
+      "frames": 17,
+      "file": "panel-0014.png",
+      "framebufferTimer": 2685,
+      "sourceSha256": "3ce310bf9def12ba2ee6bac42d281d49481f95e77ec2d2dbdcc3ce2baf67a623",
+      "case": "positive",
+      "nativeBridge": 9
     },
     {
       "source": "frames/positive-closeup/super_mario_64-010.png",
-      "file": "panel-0015.png",
-      "sourceSha256": "e38c16f50288aa7478f7736b2dac5d1a5d79d1ef5c7260effb596b812033f632",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 17,
       "firstFrame": 3775,
-      "nativeBridge": 10,
-      "framebufferTimer": 2686
+      "chapter": 10,
+      "frames": 17,
+      "file": "panel-0015.png",
+      "framebufferTimer": 2686,
+      "sourceSha256": "e38c16f50288aa7478f7736b2dac5d1a5d79d1ef5c7260effb596b812033f632",
+      "case": "positive",
+      "nativeBridge": 10
     },
     {
       "source": "frames/positive-closeup/super_mario_64-011.png",
-      "file": "panel-0016.png",
-      "sourceSha256": "fd7b35d619099f0af647d0e3c24d043271879b4a9a12cb03f7feae80fc4fe689",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 17,
       "firstFrame": 3792,
-      "nativeBridge": 11,
-      "framebufferTimer": 2687
+      "chapter": 10,
+      "frames": 17,
+      "file": "panel-0016.png",
+      "framebufferTimer": 2687,
+      "sourceSha256": "fd7b35d619099f0af647d0e3c24d043271879b4a9a12cb03f7feae80fc4fe689",
+      "case": "positive",
+      "nativeBridge": 11
     },
     {
       "source": "frames/positive-closeup/super_mario_64-012.png",
-      "file": "panel-0017.png",
-      "sourceSha256": "0dc30cee7c027ec17db9dd87a09bacd2f1a8cd2bafe9052d0c6444b226e53b62",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 17,
       "firstFrame": 3809,
-      "nativeBridge": 12,
-      "framebufferTimer": 2688
+      "chapter": 10,
+      "frames": 17,
+      "file": "panel-0017.png",
+      "framebufferTimer": 2688,
+      "sourceSha256": "0dc30cee7c027ec17db9dd87a09bacd2f1a8cd2bafe9052d0c6444b226e53b62",
+      "case": "positive",
+      "nativeBridge": 12
     },
     {
       "source": "frames/positive-closeup/super_mario_64-013.png",
-      "file": "panel-0018.png",
-      "sourceSha256": "4aa2f578f4409a6c5c0ebd855029f6e7daac3d4674985a743646e442462fa046",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 17,
       "firstFrame": 3826,
-      "nativeBridge": 13,
-      "framebufferTimer": 2689
+      "chapter": 10,
+      "frames": 17,
+      "file": "panel-0018.png",
+      "framebufferTimer": 2689,
+      "sourceSha256": "4aa2f578f4409a6c5c0ebd855029f6e7daac3d4674985a743646e442462fa046",
+      "case": "positive",
+      "nativeBridge": 13
     },
     {
       "source": "frames/positive-closeup/super_mario_64-014.png",
-      "file": "panel-0019.png",
-      "sourceSha256": "48a4f582d215724d59224527d778070d52d619cfb5b61a7ffbee535ff5fb7964",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 17,
       "firstFrame": 3843,
-      "nativeBridge": 14,
-      "framebufferTimer": 2690
+      "chapter": 10,
+      "frames": 17,
+      "file": "panel-0019.png",
+      "framebufferTimer": 2690,
+      "sourceSha256": "48a4f582d215724d59224527d778070d52d619cfb5b61a7ffbee535ff5fb7964",
+      "case": "positive",
+      "nativeBridge": 14
     },
     {
       "source": "frames/positive-closeup/super_mario_64-015.png",
-      "file": "panel-0020.png",
-      "sourceSha256": "e26cb881019d7ea06e88778d216a1d1d4b2fec0817fe04b99f9fb560fa83ef27",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 17,
       "firstFrame": 3860,
-      "nativeBridge": 15,
-      "framebufferTimer": 2691
+      "chapter": 10,
+      "frames": 17,
+      "file": "panel-0020.png",
+      "framebufferTimer": 2691,
+      "sourceSha256": "e26cb881019d7ea06e88778d216a1d1d4b2fec0817fe04b99f9fb560fa83ef27",
+      "case": "positive",
+      "nativeBridge": 15
     },
     {
       "source": "frames/positive-closeup/super_mario_64-016.png",
-      "file": "panel-0021.png",
-      "sourceSha256": "80789ecb5e10e12125965021c41c9c2903d54a05117ec9727b93db0f0b7b8bae",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 17,
       "firstFrame": 3877,
-      "nativeBridge": 16,
-      "framebufferTimer": 2692
+      "chapter": 10,
+      "frames": 17,
+      "file": "panel-0021.png",
+      "framebufferTimer": 2692,
+      "sourceSha256": "80789ecb5e10e12125965021c41c9c2903d54a05117ec9727b93db0f0b7b8bae",
+      "case": "positive",
+      "nativeBridge": 16
     },
     {
       "source": "frames/positive-closeup/super_mario_64-017.png",
-      "file": "panel-0022.png",
-      "sourceSha256": "8d1b799007c5889284e8cd48d9f0c6e1e54818d01f068cf21213ee6e7c60f45e",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 17,
       "firstFrame": 3894,
-      "nativeBridge": 17,
-      "framebufferTimer": 2693
+      "chapter": 10,
+      "frames": 17,
+      "file": "panel-0022.png",
+      "framebufferTimer": 2693,
+      "sourceSha256": "8d1b799007c5889284e8cd48d9f0c6e1e54818d01f068cf21213ee6e7c60f45e",
+      "case": "positive",
+      "nativeBridge": 17
     },
     {
       "source": "frames/positive-closeup/super_mario_64-018.png",
-      "file": "panel-0023.png",
-      "sourceSha256": "e1c8e2da89aecd0e831a2d579f163cac79a3df17993577b01f964ddbeb4792be",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 17,
       "firstFrame": 3911,
-      "nativeBridge": 18,
-      "framebufferTimer": 2694
+      "chapter": 10,
+      "frames": 17,
+      "file": "panel-0023.png",
+      "framebufferTimer": 2694,
+      "sourceSha256": "e1c8e2da89aecd0e831a2d579f163cac79a3df17993577b01f964ddbeb4792be",
+      "case": "positive",
+      "nativeBridge": 18
     },
     {
       "source": "frames/positive-closeup/super_mario_64-019.png",
-      "file": "panel-0024.png",
-      "sourceSha256": "38f850ff298b92eb02a3a573d860e2dcb80f12d685d40018f356b8499cdd109d",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 17,
       "firstFrame": 3928,
-      "nativeBridge": 19,
-      "framebufferTimer": 2695
+      "chapter": 10,
+      "frames": 17,
+      "file": "panel-0024.png",
+      "framebufferTimer": 2695,
+      "sourceSha256": "38f850ff298b92eb02a3a573d860e2dcb80f12d685d40018f356b8499cdd109d",
+      "case": "positive",
+      "nativeBridge": 19
     },
     {
       "source": "frames/positive-closeup/super_mario_64-020.png",
-      "file": "panel-0025.png",
-      "sourceSha256": "e460de221203300f20e118cebb051941f067c5a081df67e4993f6b72d4addd99",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 17,
       "firstFrame": 3945,
-      "nativeBridge": 20,
-      "framebufferTimer": 2696
+      "chapter": 10,
+      "frames": 17,
+      "file": "panel-0025.png",
+      "framebufferTimer": 2696,
+      "sourceSha256": "e460de221203300f20e118cebb051941f067c5a081df67e4993f6b72d4addd99",
+      "case": "positive",
+      "nativeBridge": 20
     },
     {
       "source": "frames/positive-closeup/super_mario_64-021.png",
-      "file": "panel-0026.png",
-      "sourceSha256": "135df4235955951808e96bfabbbbabda3c1a610b724e64912d2cbfe3b1d8322a",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 17,
       "firstFrame": 3962,
-      "nativeBridge": 21,
-      "framebufferTimer": 2697
+      "chapter": 10,
+      "frames": 17,
+      "file": "panel-0026.png",
+      "framebufferTimer": 2697,
+      "sourceSha256": "135df4235955951808e96bfabbbbabda3c1a610b724e64912d2cbfe3b1d8322a",
+      "case": "positive",
+      "nativeBridge": 21
     },
     {
       "source": "frames/positive-closeup/super_mario_64-022.png",
-      "file": "panel-0027.png",
-      "sourceSha256": "2ea156c82e8539a564b8ad5e19f0bcbcdde3f70b4033aaf5f3eb4c9f8ec924f7",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 17,
       "firstFrame": 3979,
-      "nativeBridge": 22,
-      "framebufferTimer": 2698
+      "chapter": 10,
+      "frames": 17,
+      "file": "panel-0027.png",
+      "framebufferTimer": 2698,
+      "sourceSha256": "2ea156c82e8539a564b8ad5e19f0bcbcdde3f70b4033aaf5f3eb4c9f8ec924f7",
+      "case": "positive",
+      "nativeBridge": 22
     },
     {
       "source": "frames/positive-closeup/super_mario_64-023.png",
-      "file": "panel-0028.png",
-      "sourceSha256": "12a72c0d31eaf47e7aba3816f5146ce7f152fed6fe2555801a0e7f4549e96b1f",
-      "chapter": 10,
-      "case": "positive",
-      "frames": 24,
       "firstFrame": 3996,
-      "nativeBridge": 23,
-      "framebufferTimer": 2699
+      "chapter": 10,
+      "frames": 24,
+      "file": "panel-0028.png",
+      "framebufferTimer": 2699,
+      "sourceSha256": "12a72c0d31eaf47e7aba3816f5146ce7f152fed6fe2555801a0e7f4549e96b1f",
+      "case": "positive",
+      "nativeBridge": 23
     },
     {
       "source": "frames/positive-closeup/super_mario_64-036.png",
-      "file": "panel-0029.png",
-      "sourceSha256": "4244174bc08412e20062f698f7fe208878a937e1615c8594f0aadcf337158842",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 18,
       "firstFrame": 4020,
-      "nativeBridge": 38,
-      "framebufferTimer": 2714
+      "chapter": 11,
+      "frames": 18,
+      "file": "panel-0029.png",
+      "framebufferTimer": 2714,
+      "sourceSha256": "4244174bc08412e20062f698f7fe208878a937e1615c8594f0aadcf337158842",
+      "case": "positive",
+      "nativeBridge": 38
     },
     {
       "source": "frames/positive-closeup/super_mario_64-037.png",
-      "file": "panel-0030.png",
-      "sourceSha256": "5d02774166908d81546da7cb3c54b0336f5c69c70a70a3d6ccc59f46030c9163",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 18,
       "firstFrame": 4038,
-      "nativeBridge": 39,
-      "framebufferTimer": 2715
+      "chapter": 11,
+      "frames": 18,
+      "file": "panel-0030.png",
+      "framebufferTimer": 2715,
+      "sourceSha256": "5d02774166908d81546da7cb3c54b0336f5c69c70a70a3d6ccc59f46030c9163",
+      "case": "positive",
+      "nativeBridge": 39
     },
     {
       "source": "frames/positive-closeup/super_mario_64-038.png",
-      "file": "panel-0031.png",
-      "sourceSha256": "1a73a465835fdc5c62716ea344578e33af1cd2e208a271252bca8e10028eba8e",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 18,
       "firstFrame": 4056,
-      "nativeBridge": 40,
-      "framebufferTimer": 2716
+      "chapter": 11,
+      "frames": 18,
+      "file": "panel-0031.png",
+      "framebufferTimer": 2716,
+      "sourceSha256": "1a73a465835fdc5c62716ea344578e33af1cd2e208a271252bca8e10028eba8e",
+      "case": "positive",
+      "nativeBridge": 40
     },
     {
       "source": "frames/positive-closeup/super_mario_64-039.png",
-      "file": "panel-0032.png",
-      "sourceSha256": "f4dbb54ae90df15c8ac921e070ebcdeca0ab6ad09c1ca8f962ec677f9caef636",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 18,
       "firstFrame": 4074,
-      "nativeBridge": 41,
-      "framebufferTimer": 2717
+      "chapter": 11,
+      "frames": 18,
+      "file": "panel-0032.png",
+      "framebufferTimer": 2717,
+      "sourceSha256": "f4dbb54ae90df15c8ac921e070ebcdeca0ab6ad09c1ca8f962ec677f9caef636",
+      "case": "positive",
+      "nativeBridge": 41
     },
     {
       "source": "frames/positive-closeup/super_mario_64-040.png",
-      "file": "panel-0033.png",
-      "sourceSha256": "896a5e0c23e08d2df2b8d34a8723dd1a4cd01cdb4bae5815f000fc6431330851",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 18,
       "firstFrame": 4092,
-      "nativeBridge": 42,
-      "framebufferTimer": 2718
+      "chapter": 11,
+      "frames": 18,
+      "file": "panel-0033.png",
+      "framebufferTimer": 2718,
+      "sourceSha256": "896a5e0c23e08d2df2b8d34a8723dd1a4cd01cdb4bae5815f000fc6431330851",
+      "case": "positive",
+      "nativeBridge": 42
     },
     {
       "source": "frames/positive-closeup/super_mario_64-041.png",
-      "file": "panel-0034.png",
-      "sourceSha256": "44b75323787107c6a425bfbbb5652870be8cc35cd016ed82d055b207679a806c",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 18,
       "firstFrame": 4110,
-      "nativeBridge": 43,
-      "framebufferTimer": 2719
+      "chapter": 11,
+      "frames": 18,
+      "file": "panel-0034.png",
+      "framebufferTimer": 2719,
+      "sourceSha256": "44b75323787107c6a425bfbbb5652870be8cc35cd016ed82d055b207679a806c",
+      "case": "positive",
+      "nativeBridge": 43
     },
     {
       "source": "frames/positive-closeup/super_mario_64-042.png",
-      "file": "panel-0035.png",
-      "sourceSha256": "5c8adfa0b3b836a575f26004923ecf8b49073aa16f363c52c9637eb97ece877b",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 18,
       "firstFrame": 4128,
-      "nativeBridge": 44,
-      "framebufferTimer": 2720
+      "chapter": 11,
+      "frames": 18,
+      "file": "panel-0035.png",
+      "framebufferTimer": 2720,
+      "sourceSha256": "5c8adfa0b3b836a575f26004923ecf8b49073aa16f363c52c9637eb97ece877b",
+      "case": "positive",
+      "nativeBridge": 44
     },
     {
       "source": "frames/positive-closeup/super_mario_64-043.png",
-      "file": "panel-0036.png",
-      "sourceSha256": "1b4a27610271c3e94a3aa8461eba5800b285295b03cac22d59ea72af6c3383fb",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 18,
       "firstFrame": 4146,
-      "nativeBridge": 45,
-      "framebufferTimer": 2721
+      "chapter": 11,
+      "frames": 18,
+      "file": "panel-0036.png",
+      "framebufferTimer": 2721,
+      "sourceSha256": "1b4a27610271c3e94a3aa8461eba5800b285295b03cac22d59ea72af6c3383fb",
+      "case": "positive",
+      "nativeBridge": 45
     },
     {
       "source": "frames/positive-closeup/super_mario_64-044.png",
-      "file": "panel-0037.png",
-      "sourceSha256": "33606314320a89e37c4dac55d31c8b388fc4b9324524de53d632b036435d63ff",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 18,
       "firstFrame": 4164,
-      "nativeBridge": 46,
-      "framebufferTimer": 2722
+      "chapter": 11,
+      "frames": 18,
+      "file": "panel-0037.png",
+      "framebufferTimer": 2722,
+      "sourceSha256": "33606314320a89e37c4dac55d31c8b388fc4b9324524de53d632b036435d63ff",
+      "case": "positive",
+      "nativeBridge": 46
     },
     {
       "source": "frames/positive-closeup/super_mario_64-045.png",
-      "file": "panel-0038.png",
-      "sourceSha256": "8d8a462060a95c3199880b69127ab9b7dbf33277abcc0e858d92739be5b9deb1",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 18,
       "firstFrame": 4182,
-      "nativeBridge": 47,
-      "framebufferTimer": 2723
+      "chapter": 11,
+      "frames": 18,
+      "file": "panel-0038.png",
+      "framebufferTimer": 2723,
+      "sourceSha256": "8d8a462060a95c3199880b69127ab9b7dbf33277abcc0e858d92739be5b9deb1",
+      "case": "positive",
+      "nativeBridge": 47
     },
     {
       "source": "frames/positive-closeup/super_mario_64-046.png",
-      "file": "panel-0039.png",
-      "sourceSha256": "14f862b556731a7c8624f587341c899a0ce25ad06d627e9e10d722b556633dcf",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 18,
       "firstFrame": 4200,
-      "nativeBridge": 48,
-      "framebufferTimer": 2724
+      "chapter": 11,
+      "frames": 18,
+      "file": "panel-0039.png",
+      "framebufferTimer": 2724,
+      "sourceSha256": "14f862b556731a7c8624f587341c899a0ce25ad06d627e9e10d722b556633dcf",
+      "case": "positive",
+      "nativeBridge": 48
     },
     {
       "source": "frames/positive-closeup/super_mario_64-047.png",
-      "file": "panel-0040.png",
-      "sourceSha256": "fe897493c17596d7e01dc9deafe7a25247815a18fa57a9e7c2a539d3a237fa02",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 18,
       "firstFrame": 4218,
-      "nativeBridge": 49,
-      "framebufferTimer": 2725
+      "chapter": 11,
+      "frames": 18,
+      "file": "panel-0040.png",
+      "framebufferTimer": 2725,
+      "sourceSha256": "fe897493c17596d7e01dc9deafe7a25247815a18fa57a9e7c2a539d3a237fa02",
+      "case": "positive",
+      "nativeBridge": 49
     },
     {
       "source": "frames/positive-closeup/super_mario_64-048.png",
-      "file": "panel-0041.png",
-      "sourceSha256": "22de162c6d19837cad4953125dee44e1c73e833cd8519271424e466c358d15a5",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 18,
       "firstFrame": 4236,
-      "nativeBridge": 50,
-      "framebufferTimer": 2726
+      "chapter": 11,
+      "frames": 18,
+      "file": "panel-0041.png",
+      "framebufferTimer": 2726,
+      "sourceSha256": "22de162c6d19837cad4953125dee44e1c73e833cd8519271424e466c358d15a5",
+      "case": "positive",
+      "nativeBridge": 50
     },
     {
       "source": "frames/positive-closeup/super_mario_64-049.png",
-      "file": "panel-0042.png",
-      "sourceSha256": "274bf01d6d1b1cb4b60d35a64903161ae0dfbbbe3beb8dc2d06ee5d83332505e",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 18,
       "firstFrame": 4254,
-      "nativeBridge": 51,
-      "framebufferTimer": 2727
+      "chapter": 11,
+      "frames": 18,
+      "file": "panel-0042.png",
+      "framebufferTimer": 2727,
+      "sourceSha256": "274bf01d6d1b1cb4b60d35a64903161ae0dfbbbe3beb8dc2d06ee5d83332505e",
+      "case": "positive",
+      "nativeBridge": 51
     },
     {
       "source": "frames/positive-closeup/super_mario_64-050.png",
-      "file": "panel-0043.png",
-      "sourceSha256": "af28ffbb93f5580c88880a2b7649cc0f73c38f7f980a27c9fc711774a13f8a5b",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 18,
       "firstFrame": 4272,
-      "nativeBridge": 52,
-      "framebufferTimer": 2728
+      "chapter": 11,
+      "frames": 18,
+      "file": "panel-0043.png",
+      "framebufferTimer": 2728,
+      "sourceSha256": "af28ffbb93f5580c88880a2b7649cc0f73c38f7f980a27c9fc711774a13f8a5b",
+      "case": "positive",
+      "nativeBridge": 52
     },
     {
       "source": "frames/positive-closeup/super_mario_64-051.png",
-      "file": "panel-0044.png",
-      "sourceSha256": "c1c689ae97af1c81f379ccfec024f77dc486d43b06034537fa2177e0a4a7557b",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 18,
       "firstFrame": 4290,
-      "nativeBridge": 53,
-      "framebufferTimer": 2729
+      "chapter": 11,
+      "frames": 18,
+      "file": "panel-0044.png",
+      "framebufferTimer": 2729,
+      "sourceSha256": "c1c689ae97af1c81f379ccfec024f77dc486d43b06034537fa2177e0a4a7557b",
+      "case": "positive",
+      "nativeBridge": 53
     },
     {
       "source": "frames/positive-closeup/super_mario_64-052.png",
-      "file": "panel-0045.png",
-      "sourceSha256": "08ba783020917af5472b166a37837a89e85ac352052a23e679fc141686d49d27",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 18,
       "firstFrame": 4308,
-      "nativeBridge": 54,
-      "framebufferTimer": 2730
+      "chapter": 11,
+      "frames": 18,
+      "file": "panel-0045.png",
+      "framebufferTimer": 2730,
+      "sourceSha256": "08ba783020917af5472b166a37837a89e85ac352052a23e679fc141686d49d27",
+      "case": "positive",
+      "nativeBridge": 54
     },
     {
       "source": "frames/positive-closeup/super_mario_64-053.png",
-      "file": "panel-0046.png",
-      "sourceSha256": "704709902819a905b1c05abb74772fbe6bafa6edbe8330bbeecc5d3ed5623bba",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 18,
       "firstFrame": 4326,
-      "nativeBridge": 55,
-      "framebufferTimer": 2731
+      "chapter": 11,
+      "frames": 18,
+      "file": "panel-0046.png",
+      "framebufferTimer": 2731,
+      "sourceSha256": "704709902819a905b1c05abb74772fbe6bafa6edbe8330bbeecc5d3ed5623bba",
+      "case": "positive",
+      "nativeBridge": 55
     },
     {
       "source": "frames/positive-closeup/super_mario_64-054.png",
-      "file": "panel-0047.png",
-      "sourceSha256": "949096732746a6a07c13200a0193e758c0515db9a6d4c68b5d3ac6ffc5364163",
-      "chapter": 11,
-      "case": "positive",
-      "frames": 36,
       "firstFrame": 4344,
-      "nativeBridge": 56,
-      "framebufferTimer": 2732
+      "chapter": 11,
+      "frames": 36,
+      "file": "panel-0047.png",
+      "framebufferTimer": 2732,
+      "sourceSha256": "949096732746a6a07c13200a0193e758c0515db9a6d4c68b5d3ac6ffc5364163",
+      "case": "positive",
+      "nativeBridge": 56
     },
     {
       "source": "frames/no-final-box/super_mario_64-033.png",
-      "file": "panel-0048.png",
-      "sourceSha256": "74c7a821735504c0c754768c3ca48e441d555e30d3a17e1a6605105f55be04c9",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 18,
       "firstFrame": 4380,
-      "nativeBridge": 35,
-      "framebufferTimer": 2711
+      "chapter": 12,
+      "frames": 18,
+      "file": "panel-0048.png",
+      "framebufferTimer": 2711,
+      "sourceSha256": "74c7a821735504c0c754768c3ca48e441d555e30d3a17e1a6605105f55be04c9",
+      "case": "no-final-box",
+      "nativeBridge": 35
     },
     {
       "source": "frames/no-final-box/super_mario_64-034.png",
-      "file": "panel-0049.png",
-      "sourceSha256": "a5180965bbba720d898fd3df4c2033b2a503bb37b698129e61820edfc8c4a669",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 18,
       "firstFrame": 4398,
-      "nativeBridge": 36,
-      "framebufferTimer": 2712
+      "chapter": 12,
+      "frames": 18,
+      "file": "panel-0049.png",
+      "framebufferTimer": 2712,
+      "sourceSha256": "a5180965bbba720d898fd3df4c2033b2a503bb37b698129e61820edfc8c4a669",
+      "case": "no-final-box",
+      "nativeBridge": 36
     },
     {
       "source": "frames/no-final-box/super_mario_64-035.png",
-      "file": "panel-0050.png",
-      "sourceSha256": "cf49e42e6893207f276a59c9e0240787e9b89ca3b966dc000dc2294e15fafe9d",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 18,
       "firstFrame": 4416,
-      "nativeBridge": 37,
-      "framebufferTimer": 2713
+      "chapter": 12,
+      "frames": 18,
+      "file": "panel-0050.png",
+      "framebufferTimer": 2713,
+      "sourceSha256": "cf49e42e6893207f276a59c9e0240787e9b89ca3b966dc000dc2294e15fafe9d",
+      "case": "no-final-box",
+      "nativeBridge": 37
     },
     {
       "source": "frames/no-final-box/super_mario_64-036.png",
-      "file": "panel-0051.png",
-      "sourceSha256": "788f4d7f2316a1430bb16a0b7d901f27fc7d8b1518896a13339d7589b9e96c8e",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 18,
       "firstFrame": 4434,
-      "nativeBridge": 38,
-      "framebufferTimer": 2714
+      "chapter": 12,
+      "frames": 18,
+      "file": "panel-0051.png",
+      "framebufferTimer": 2714,
+      "sourceSha256": "788f4d7f2316a1430bb16a0b7d901f27fc7d8b1518896a13339d7589b9e96c8e",
+      "case": "no-final-box",
+      "nativeBridge": 38
     },
     {
       "source": "frames/no-final-box/super_mario_64-037.png",
-      "file": "panel-0052.png",
-      "sourceSha256": "89d797a0c034fa8ed3a4fb1e209369316aae103c70cb3b7e6fae7566b66ee954",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 18,
       "firstFrame": 4452,
-      "nativeBridge": 39,
-      "framebufferTimer": 2715
+      "chapter": 12,
+      "frames": 18,
+      "file": "panel-0052.png",
+      "framebufferTimer": 2715,
+      "sourceSha256": "89d797a0c034fa8ed3a4fb1e209369316aae103c70cb3b7e6fae7566b66ee954",
+      "case": "no-final-box",
+      "nativeBridge": 39
     },
     {
       "source": "frames/no-final-box/super_mario_64-038.png",
-      "file": "panel-0053.png",
-      "sourceSha256": "8ea3849a3ff5fbe12a26d847f926d9af83c3b6c87b505f0124071b997364b0d6",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 18,
       "firstFrame": 4470,
-      "nativeBridge": 40,
-      "framebufferTimer": 2716
+      "chapter": 12,
+      "frames": 18,
+      "file": "panel-0053.png",
+      "framebufferTimer": 2716,
+      "sourceSha256": "8ea3849a3ff5fbe12a26d847f926d9af83c3b6c87b505f0124071b997364b0d6",
+      "case": "no-final-box",
+      "nativeBridge": 40
     },
     {
       "source": "frames/no-final-box/super_mario_64-039.png",
-      "file": "panel-0054.png",
-      "sourceSha256": "b989bcde07be29c2c019bf7a21e7334a6f3cb71a3554d1baa254d8d3593abe69",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 18,
       "firstFrame": 4488,
-      "nativeBridge": 41,
-      "framebufferTimer": 2717
+      "chapter": 12,
+      "frames": 18,
+      "file": "panel-0054.png",
+      "framebufferTimer": 2717,
+      "sourceSha256": "b989bcde07be29c2c019bf7a21e7334a6f3cb71a3554d1baa254d8d3593abe69",
+      "case": "no-final-box",
+      "nativeBridge": 41
     },
     {
       "source": "frames/no-final-box/super_mario_64-040.png",
-      "file": "panel-0055.png",
-      "sourceSha256": "d4c9465c1e3a5c95eb85f4f3a03c57ce16b61e1195b82892be992e9ef725b598",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 18,
       "firstFrame": 4506,
-      "nativeBridge": 42,
-      "framebufferTimer": 2718
+      "chapter": 12,
+      "frames": 18,
+      "file": "panel-0055.png",
+      "framebufferTimer": 2718,
+      "sourceSha256": "d4c9465c1e3a5c95eb85f4f3a03c57ce16b61e1195b82892be992e9ef725b598",
+      "case": "no-final-box",
+      "nativeBridge": 42
     },
     {
       "source": "frames/no-final-box/super_mario_64-041.png",
-      "file": "panel-0056.png",
-      "sourceSha256": "77865a06eb3b982e0f5938f164308c54ce898102c6b96b676427e502800693e3",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 18,
       "firstFrame": 4524,
-      "nativeBridge": 43,
-      "framebufferTimer": 2719
+      "chapter": 12,
+      "frames": 18,
+      "file": "panel-0056.png",
+      "framebufferTimer": 2719,
+      "sourceSha256": "77865a06eb3b982e0f5938f164308c54ce898102c6b96b676427e502800693e3",
+      "case": "no-final-box",
+      "nativeBridge": 43
     },
     {
       "source": "frames/no-final-box/super_mario_64-042.png",
-      "file": "panel-0057.png",
-      "sourceSha256": "efbc22cf3096f822cffd18f90bcbb9017e5a30e76772d363046cd0eacc824e68",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 18,
       "firstFrame": 4542,
-      "nativeBridge": 44,
-      "framebufferTimer": 2720
+      "chapter": 12,
+      "frames": 18,
+      "file": "panel-0057.png",
+      "framebufferTimer": 2720,
+      "sourceSha256": "efbc22cf3096f822cffd18f90bcbb9017e5a30e76772d363046cd0eacc824e68",
+      "case": "no-final-box",
+      "nativeBridge": 44
     },
     {
       "source": "frames/no-final-box/super_mario_64-043.png",
-      "file": "panel-0058.png",
-      "sourceSha256": "ad8aafd957b4c4fe7325c267a3d18e6dc7917ed605365f4830db9b0cbfe67ef6",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 18,
       "firstFrame": 4560,
-      "nativeBridge": 45,
-      "framebufferTimer": 2721
+      "chapter": 12,
+      "frames": 18,
+      "file": "panel-0058.png",
+      "framebufferTimer": 2721,
+      "sourceSha256": "ad8aafd957b4c4fe7325c267a3d18e6dc7917ed605365f4830db9b0cbfe67ef6",
+      "case": "no-final-box",
+      "nativeBridge": 45
     },
     {
       "source": "frames/no-final-box/super_mario_64-044.png",
-      "file": "panel-0059.png",
-      "sourceSha256": "60abd32969e7e28afe1c18ab968b765c994e056486505b1a14e0878a7957387a",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 18,
       "firstFrame": 4578,
-      "nativeBridge": 46,
-      "framebufferTimer": 2722
+      "chapter": 12,
+      "frames": 18,
+      "file": "panel-0059.png",
+      "framebufferTimer": 2722,
+      "sourceSha256": "60abd32969e7e28afe1c18ab968b765c994e056486505b1a14e0878a7957387a",
+      "case": "no-final-box",
+      "nativeBridge": 46
     },
     {
       "source": "frames/no-final-box/super_mario_64-045.png",
-      "file": "panel-0060.png",
-      "sourceSha256": "1cfec46e6c612f76d2a11ab5ef53b2d88ce825bc144c6362f97ebd8f49ade7b0",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 18,
       "firstFrame": 4596,
-      "nativeBridge": 47,
-      "framebufferTimer": 2723
+      "chapter": 12,
+      "frames": 18,
+      "file": "panel-0060.png",
+      "framebufferTimer": 2723,
+      "sourceSha256": "1cfec46e6c612f76d2a11ab5ef53b2d88ce825bc144c6362f97ebd8f49ade7b0",
+      "case": "no-final-box",
+      "nativeBridge": 47
     },
     {
       "source": "frames/no-final-box/super_mario_64-046.png",
-      "file": "panel-0061.png",
-      "sourceSha256": "2559730a9c5cada9b9232f28e18ab59c4eff4320c3a5d6028fc992c32594b8c4",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 18,
       "firstFrame": 4614,
-      "nativeBridge": 48,
-      "framebufferTimer": 2724
+      "chapter": 12,
+      "frames": 18,
+      "file": "panel-0061.png",
+      "framebufferTimer": 2724,
+      "sourceSha256": "2559730a9c5cada9b9232f28e18ab59c4eff4320c3a5d6028fc992c32594b8c4",
+      "case": "no-final-box",
+      "nativeBridge": 48
     },
     {
       "source": "frames/no-final-box/super_mario_64-047.png",
-      "file": "panel-0062.png",
-      "sourceSha256": "cc03c9bbbb7ebb83769d3c1100a1479f5e42ae9ace2bc619487c7c35ba392264",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 18,
       "firstFrame": 4632,
-      "nativeBridge": 49,
-      "framebufferTimer": 2725
+      "chapter": 12,
+      "frames": 18,
+      "file": "panel-0062.png",
+      "framebufferTimer": 2725,
+      "sourceSha256": "cc03c9bbbb7ebb83769d3c1100a1479f5e42ae9ace2bc619487c7c35ba392264",
+      "case": "no-final-box",
+      "nativeBridge": 49
     },
     {
       "source": "frames/no-final-box/super_mario_64-048.png",
-      "file": "panel-0063.png",
-      "sourceSha256": "7b11f0d8927690286c065c0302c2d89953f7a5bf859a038abb688fcf656b626d",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 18,
       "firstFrame": 4650,
-      "nativeBridge": 50,
-      "framebufferTimer": 2726
+      "chapter": 12,
+      "frames": 18,
+      "file": "panel-0063.png",
+      "framebufferTimer": 2726,
+      "sourceSha256": "7b11f0d8927690286c065c0302c2d89953f7a5bf859a038abb688fcf656b626d",
+      "case": "no-final-box",
+      "nativeBridge": 50
     },
     {
       "source": "frames/no-final-box/super_mario_64-049.png",
-      "file": "panel-0064.png",
-      "sourceSha256": "0f9eec6a3b60f69b6fd3674d83da34b6e87fa971ca7e536ea674f64ffe1697b2",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 18,
       "firstFrame": 4668,
-      "nativeBridge": 51,
-      "framebufferTimer": 2727
+      "chapter": 12,
+      "frames": 18,
+      "file": "panel-0064.png",
+      "framebufferTimer": 2727,
+      "sourceSha256": "0f9eec6a3b60f69b6fd3674d83da34b6e87fa971ca7e536ea674f64ffe1697b2",
+      "case": "no-final-box",
+      "nativeBridge": 51
     },
     {
       "source": "frames/no-final-box/super_mario_64-050.png",
-      "file": "panel-0065.png",
-      "sourceSha256": "543757b7fed34e62e84a644e2c57c4192b2b13a5136943d5e3e562a1fff54034",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 18,
       "firstFrame": 4686,
-      "nativeBridge": 52,
-      "framebufferTimer": 2728
+      "chapter": 12,
+      "frames": 18,
+      "file": "panel-0065.png",
+      "framebufferTimer": 2728,
+      "sourceSha256": "543757b7fed34e62e84a644e2c57c4192b2b13a5136943d5e3e562a1fff54034",
+      "case": "no-final-box",
+      "nativeBridge": 52
     },
     {
       "source": "frames/no-final-box/super_mario_64-051.png",
-      "file": "panel-0066.png",
-      "sourceSha256": "8ded35105b000798a20c8088b1475c73f9183cd647d55ce4a9b3b652fd8a5a4a",
-      "chapter": 12,
-      "case": "no-final-box",
-      "frames": 36,
       "firstFrame": 4704,
-      "nativeBridge": 53,
-      "framebufferTimer": 2729
+      "chapter": 12,
+      "frames": 36,
+      "file": "panel-0066.png",
+      "framebufferTimer": 2729,
+      "sourceSha256": "8ded35105b000798a20c8088b1475c73f9183cd647d55ce4a9b3b652fd8a5a4a",
+      "case": "no-final-box",
+      "nativeBridge": 53
     },
     {
       "source": "frames/positive-closeup/super_mario_64-058.png",
-      "file": "panel-0067.png",
-      "sourceSha256": "c4f9fd2632012299d16e794499bb93fb1c946a0578f179695c82120fe41fe52d",
-      "chapter": 13,
-      "case": "positive",
-      "frames": 510,
       "firstFrame": 4740,
-      "nativeBridge": 60,
-      "framebufferTimer": 2736
+      "chapter": 13,
+      "frames": 510,
+      "file": "panel-0067.png",
+      "framebufferTimer": 2736,
+      "sourceSha256": "c4f9fd2632012299d16e794499bb93fb1c946a0578f179695c82120fe41fe52d",
+      "case": "positive",
+      "nativeBridge": 60
+    }
+  ],
+  "schema": 1,
+  "rendererSha256": "0d906aad35f2c4059f14a1cfa5917f61be9ca7d419cf2565658a08a9f657a905",
+  "scope": "Conditional original-JP three-actor handoff. Actual ROM footage, explanatory diagrams, on-screen commentary and original instrumental music. No spoken narration. Setup grants remain explicit; no complete gameplay route is claimed.",
+  "textFitChecks": 1263,
+  "coordinateLabels": {
+    "M": "Movement",
+    "C": "Collision",
+    "G": "Stored Graphics (gfx.pos), not rendered pose"
+  },
+  "frames": 5250,
+  "storyboardSha256": "c2a5705f491c861983f9974e596b40b900bf705785055ecc75c151e1802fb042",
+  "chapters": [
+    {
+      "lines": [
+        "A frozen shell, an enlarged black Bob-omb, and a Crazy Box work together.",
+        "The original Japanese game reaches a useful displaced Area 2 spawn."
+      ],
+      "firstFrame": 0,
+      "title": "Three actors, three different jobs",
+      "endSeconds": 10,
+      "id": "roles",
+      "tag": "CONDITIONAL ORIGINAL-JP SUCCESS",
+      "lastFrame": 299,
+      "startSeconds": 0,
+      "footer": "High entry, actor positions and copied Bob state are supplied. This demonstrates a local handoff, not a complete gameplay route."
+    },
+    {
+      "lines": [
+        "The test places airborne Mario at Y 19900, ten units above the shell.",
+        "His ground-slide action is not supplied. The game must create it."
+      ],
+      "firstFrame": 300,
+      "title": "The supplied airborne starting point",
+      "endSeconds": 24,
+      "id": "setup",
+      "tag": "SETUP CUT / BEFORE TOP UPDATE 128",
+      "lastFrame": 719,
+      "startSeconds": 10,
+      "footer": "Initial FREEFALL at (-1960,19900,-1230); horizontal speed 0, vertical speed -16. High shell delivery remains a setup grant."
+    },
+    {
+      "lines": [
+        "Shell contact mounts Mario; Z cancels riding into a butt slide.",
+        "The slide's floor alignment puts Movement on the real spinning top."
+      ],
+      "firstFrame": 720,
+      "title": "Shell contact, then Z in the same update",
+      "endSeconds": 37,
+      "id": "shell",
+      "tag": "TOP UPDATE 128 / NATIVE ACTION TRANSITIONS",
+      "lastFrame": 1109,
+      "startSeconds": 24,
+      "footer": "One Z update, then neutral controls. M=C.Y 1809.207; G.Y 19900. This immediate alignment is not a long visible fall."
+    },
+    {
+      "lines": [
+        "M is Movement. C is the Mario object's Collision position.",
+        "G is Stored Graphics: gfx.pos, not the visibly drawn model."
+      ],
+      "firstFrame": 1110,
+      "title": "Three positions to watch",
+      "endSeconds": 48,
+      "id": "positions",
+      "tag": "POSITION LEGEND / STORED GAME STATE",
+      "lastFrame": 1439,
+      "startSeconds": 37,
+      "footer": "Diagrams show stored coordinates, not the rendered pose. G is always a labelled coordinate marker, never a model-placement claim."
+    },
+    {
+      "lines": [
+        "The top moves Movement sideways before Mario's actor interactions.",
+        "Collision still uses the earlier position when the game checks the Bob."
+      ],
+      "firstFrame": 1440,
+      "title": "The rotating top separates M and C",
+      "endSeconds": 62,
+      "id": "carry",
+      "tag": "INSIDE TOP UPDATE 129 / EXPLANATORY TOP VIEW",
+      "lastFrame": 1859,
+      "startSeconds": 48,
+      "footer": "The enlarged Bob reaches old C while sitting near shifted M. Radius 91+37 registers; stock 65+37 misses this exact placement."
+    },
+    {
+      "lines": [
+        "The Bob pushes Mario toward the low pad's footprint.",
+        "Mario stays in butt slide at Y 1839.447, with no platform carried forward."
+      ],
+      "firstFrame": 1860,
+      "title": "Bob supplies the earlier shove",
+      "endSeconds": 74,
+      "id": "bob",
+      "tag": "TOP UPDATE 129 / SUPPLIED ACTOR POSITION, NATIVE RESPONSE",
+      "lastFrame": 2219,
+      "startSeconds": 62,
+      "footer": "Bob position is supplied before 129. Its callback and fuse remain live; its radius changes normally after this useful contact."
+    },
+    {
+      "lines": [
+        "A fresh floor lookup saves height 768 while Movement is still high.",
+        "This happens before the Crazy Box's shove. The order matters."
+      ],
+      "firstFrame": 2220,
+      "title": "First save the low floor",
+      "endSeconds": 85,
+      "id": "cache",
+      "tag": "START OF TOP UPDATE 130 / DIRECT ROM QUERY CHECK",
+      "lastFrame": 2549,
+      "startSeconds": 74,
+      "footer": "Native hook confirms the initial query and saved cache 768. A shove's separate floor check does not overwrite Mario's cache."
+    },
+    {
+      "lines": [
+        "The Crazy Box now pushes Mario farther sideways.",
+        "Bob and Box act on different updates, not as two same-type pushes at once."
+      ],
+      "firstFrame": 2550,
+      "title": "Crazy Box supplies the final shove",
+      "endSeconds": 97,
+      "id": "box",
+      "tag": "TOP UPDATE 130 / FINAL ACTOR POSITION CUT",
+      "lastFrame": 2909,
+      "startSeconds": 85,
+      "footer": "Normal interaction ordering chooses the Crazy Box here. Bob remains present. There is no collision-list or floor-cache edit."
+    },
+    {
+      "lines": [
+        "The stopped ground step saves high coordinates in G.",
+        "Floor alignment snaps Movement to 768; Collision also finishes low."
+      ],
+      "firstFrame": 2910,
+      "title": "Save high G, then snap low",
+      "endSeconds": 110,
+      "id": "gap",
+      "tag": "INSIDE TOP UPDATE 130 / STORE, STOP AND ALIGN",
+      "lastFrame": 3299,
+      "startSeconds": 97,
+      "footer": "M=C (-2200.002,768,-1075.004); G.Y 1839.447. Gap 1071.447. The top underside stops the quarter; cached 768 survives."
+    },
+    {
+      "lines": [
+        "Low Collision overlaps the real warp.",
+        "The failed floor lookup retries at Stored Graphics and selects the top."
+      ],
+      "firstFrame": 3300,
+      "title": "Low warp contact, high floor retry",
+      "endSeconds": 123,
+      "id": "retry",
+      "tag": "TOP UPDATE 131 / ACCEPTED WARP AND TOP CAPTURE",
+      "lastFrame": 3689,
+      "startSeconds": 110,
+      "footer": "Warp 64 is accepted; floor and platform name top 61 at Y 1914.855. The floor query is high; the real warp remains low."
+    },
+    {
+      "lines": [
+        "The recorded Area 1 boundaries retain the top as Mario's platform.",
+        "That retained reference is needed for the later spawning displacement."
+      ],
+      "firstFrame": 3690,
+      "title": "The top reference survives",
+      "endSeconds": 134,
+      "id": "retention",
+      "tag": "SLOW REPLAY / OBSERVED AREA 1 CONTINUATION",
+      "lastFrame": 4019,
+      "startSeconds": 123,
+      "footer": "Two transition camera observations are unavailable. We disclose the gap; first Area 2 coordinates come from the native log."
+    },
+    {
+      "lines": [
+        "The original Japanese ROM reaches (365.593,5500,-1096.803).",
+        "The ordinary upper-warp arrival is (0,5500,256)."
+      ],
+      "firstFrame": 4020,
+      "title": "A useful Area 2 arrival",
+      "endSeconds": 146,
+      "id": "arrival",
+      "tag": "USEFUL SPAWN / CHECKED LOG + LATER JP REPLAY",
+      "lastFrame": 4379,
+      "startSeconds": 134,
+      "footer": "First-arrival coordinates come from the checked native log. Later replay images may show movement. Diagram compares spawn points."
+    },
+    {
+      "lines": [
+        "Omitting only the final Crazy Box still makes a gap and fresh floor 768.",
+        "But it reaches the ordinary spawn without capturing the top."
+      ],
+      "firstFrame": 4380,
+      "title": "Without the final Crazy Box",
+      "endSeconds": 158,
+      "id": "comparison",
+      "tag": "SEPARATE ORIGINAL-JP CONTROL / ORDINARY WARP",
+      "lastFrame": 4739,
+      "startSeconds": 146,
+      "footer": "Both runs accept the warp. The control keeps the live Bob and its later nudge; only the final Crazy Box placement is omitted."
+    },
+    {
+      "lines": [
+        "A black Bob-omb can replace the Buddy's local job in this revised setup.",
+        "Joining Mario's entry, actor delivery and timing through play is still open."
+      ],
+      "firstFrame": 4740,
+      "title": "The handoff works; joining the route is open",
+      "endSeconds": 175,
+      "id": "scope",
+      "tag": "WHAT THIS FILM ESTABLISHES",
+      "lastFrame": 5249,
+      "startSeconds": 158,
+      "footer": "Supplied: shell spawn/fake-pickup pointer/high HOLP, copied Bob state, high Mario/shell and actor positions. No later Mario edits."
     }
   ],
   "durationSeconds": 175

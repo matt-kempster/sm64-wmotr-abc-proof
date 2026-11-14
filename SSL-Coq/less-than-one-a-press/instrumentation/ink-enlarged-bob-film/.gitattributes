@@ -2,3 +2,4 @@
 *.ps1 text eol=lf
 *.json text eol=lf
 *.md text eol=lf
+render-receipt.json -text

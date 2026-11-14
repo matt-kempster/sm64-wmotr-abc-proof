@@ -6,7 +6,7 @@
   "compositionReceiptSha256": "c02266d0240e948aeb03826095f413aad04167e21773f68243cfd3fc0de966ae",
   "compositionSeed": 20261114,
   "sourceComposition": "instrumentation/ink-film-soundtrack/compose.py",
-  "audioEditSha256": "e4941e4c5d33d6297c2ac431dac8ec1f16610c28a6d7bcd1a415f7dc7246e995",
+  "audioEditSha256": "b626a242dbc62de043d5cce3947b3491741b8b1a77ca24410a33c437ef2e74b3",
   "durationSeconds": 175.0,
   "frames": 5250,
   "videoSha256": "5aca937444f6501df4d144f08bb0df64f4d4d5a7315da51a7cd26d1881b6c8cd",
@@ -29,11 +29,11 @@
   "posterSha256": "bdb4b95f84c0af3c458d4f2333cb1ff2aedf6941cff4e2ecc24508726a725232",
   "transcriptSha256": "9347c920b6fd0eb01dc13a07fc639617341ba2388dfc0f94242cafe4f1a88655",
   "vttSha256": "d139b35cccfb50f1af116ef0d425782bacec3526272c0a94188544d5c039add9",
-  "renderReceiptSha256": "c8677cf221770d365043862806ce61d3018bcd70261e8269a4af939ec612381c",
+  "renderReceiptSha256": "764f5e0296d10ee1f4568a1de78ed9dcc0094c6075292a1388d7c3b80c50d755",
   "coordinateLabels": {
+    "M": "Movement",
     "C": "Collision",
-    "G": "Stored Graphics (gfx.pos), not rendered pose",
-    "M": "Movement"
+    "G": "Stored Graphics (gfx.pos), not rendered pose"
   },
   "chapters": [
     {
