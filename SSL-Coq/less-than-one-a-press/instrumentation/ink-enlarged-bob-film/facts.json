@@ -1,0 +1,975 @@
+{
+  "schema": 1,
+  "scope": "Small read-only film facts derived from the checked original-JP archives.",
+  "positionLegend": {
+    "M": "Movement position",
+    "C": "Mario object collision position",
+    "G": "Stored Graphics gfx.pos, not the drawn model or render matrix"
+  },
+  "evidence": "Original Japanese ROM conditional supplied-state replays; physical projections agree with separately reconstructed Wafel",
+  "positive": {
+    "name": "positive",
+    "archiveSha256": {
+      "receipt.json.gz": "816de166d94cac2aac78ad13e6835d6db6db22f9fe4fa0a7bb1e78a287a03be0",
+      "case.json.gz": "7da1a364f1a0ae1d199fa6403680920318ddcc8402e9deda485bc30b12f3945e",
+      "raw.log.gz": "c519229ef01293b2f266b2560e518c68d25d72804b30355e897f389adaf2c239"
+    },
+    "initialMario": {
+      "action": "FREEFALL",
+      "M": [
+        -1960,
+        19900,
+        -1230
+      ],
+      "C": [
+        -1960,
+        19900,
+        -1230
+      ],
+      "G": [
+        -1960,
+        19900,
+        -1230
+      ],
+      "velocity": [
+        0,
+        -16,
+        0
+      ],
+      "speed": 0,
+      "yaw": 0
+    },
+    "initialShellXYZ": [
+      -1960,
+      19890,
+      -1230
+    ],
+    "inputs": {
+      "update128": "Z",
+      "later": "neutral",
+      "A": "always released"
+    },
+    "laterActorCuts": [
+      {
+        "phase": 129,
+        "edits": [
+          {
+            "path": "gObjectPool[39].oPosX",
+            "before": 3800.316650390625,
+            "after": -2080.06005859375
+          },
+          {
+            "path": "gObjectPool[39].oPosY",
+            "before": -0.0,
+            "after": 1809.2066650390625
+          },
+          {
+            "path": "gObjectPool[39].oPosZ",
+            "before": 6002.8515625,
+            "after": -1230.322021484375
+          }
+        ]
+      },
+      {
+        "phase": 130,
+        "edits": [
+          {
+            "path": "gObjectPool[49].oPosX",
+            "before": -5200.0,
+            "after": -2102.720703125
+          },
+          {
+            "path": "gObjectPool[49].oPosY",
+            "before": -0.0,
+            "after": 1839.447265625
+          },
+          {
+            "path": "gObjectPool[49].oPosZ",
+            "before": 1700.0,
+            "after": -1119.5618896484375
+          }
+        ]
+      }
+    ],
+    "selectedBoundaries": [
+      {
+        "bridge": 1,
+        "completedUpdateLabel": 128,
+        "nativeGlobalTimer": 2677,
+        "wafelGlobalTimer": 2679,
+        "area": 1,
+        "topTimerAfterUpdate": 129,
+        "action": "ACT_BUTT_SLIDE",
+        "M": [
+          -1960.0,
+          1809.2066650390625,
+          -1230.0
+        ],
+        "C": [
+          -1960.0,
+          1809.2066650390625,
+          -1230.0
+        ],
+        "G": [
+          -1960.0,
+          19900.0,
+          -1230.0
+        ],
+        "floorCache": 1809.2066650390625,
+        "ceilingY": 20000.0,
+        "floorOwner": 61,
+        "platform": 61,
+        "used": 71,
+        "ridden": -1,
+        "collisions": [
+          71
+        ],
+        "bob": {
+          "slot": 39,
+          "XYZ": [
+            3800.316650390625,
+            -0.0,
+            6002.8515625
+          ],
+          "active": 259,
+          "radius": 91.0,
+          "height": 158.1999969482422,
+          "scale": [
+            1.399999976158142,
+            1.399999976158142,
+            1.399999976158142
+          ],
+          "fuse": 170,
+          "action": 0,
+          "actionTimer": 1,
+          "heldState": 0
+        },
+        "shellXYZ": [
+          -1960.0,
+          19890.0,
+          -1230.0
+        ]
+      },
+      {
+        "bridge": 2,
+        "completedUpdateLabel": 129,
+        "nativeGlobalTimer": 2678,
+        "wafelGlobalTimer": 2680,
+        "area": 1,
+        "topTimerAfterUpdate": 130,
+        "action": "ACT_BUTT_SLIDE",
+        "M": [
+          -2117.02685546875,
+          1839.447265625,
+          -1113.008544921875
+        ],
+        "C": [
+          -2117.02685546875,
+          1839.447265625,
+          -1113.008544921875
+        ],
+        "G": [
+          -2117.02685546875,
+          1809.2066650390625,
+          -1113.008544921875
+        ],
+        "floorCache": 1839.447265625,
+        "ceilingY": 20000.0,
+        "floorOwner": 61,
+        "platform": -1,
+        "used": 71,
+        "ridden": -1,
+        "collisions": [
+          39
+        ],
+        "bob": {
+          "slot": 39,
+          "XYZ": [
+            -2078.953369140625,
+            1835.079345703125,
+            -1227.845947265625
+          ],
+          "active": 257,
+          "radius": 91.0,
+          "height": 158.1999969482422,
+          "scale": [
+            1.399999976158142,
+            1.399999976158142,
+            1.399999976158142
+          ],
+          "fuse": 171,
+          "action": 3,
+          "actionTimer": 0,
+          "heldState": 0
+        },
+        "shellXYZ": [
+          -1960.0,
+          19890.0,
+          -1230.0
+        ]
+      },
+      {
+        "bridge": 3,
+        "completedUpdateLabel": 130,
+        "nativeGlobalTimer": 2679,
+        "wafelGlobalTimer": 2681,
+        "area": 1,
+        "topTimerAfterUpdate": 131,
+        "action": "ACT_BUTT_SLIDE_STOP",
+        "M": [
+          -2200.001708984375,
+          768.0,
+          -1075.00390625
+        ],
+        "C": [
+          -2200.001708984375,
+          768.0,
+          -1075.00390625
+        ],
+        "G": [
+          -2200.001708984375,
+          1839.447265625,
+          -1075.00390625
+        ],
+        "floorCache": 768.0,
+        "ceilingY": 1523.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "used": 71,
+        "ridden": -1,
+        "collisions": [
+          49,
+          39
+        ],
+        "bob": {
+          "slot": 39,
+          "XYZ": [
+            -2078.953369140625,
+            1835.079345703125,
+            -1227.845947265625
+          ],
+          "active": 257,
+          "radius": 65.0,
+          "height": 113.0,
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "fuse": 172,
+          "action": 3,
+          "actionTimer": 1,
+          "heldState": 0
+        },
+        "shellXYZ": [
+          -1960.0,
+          19890.0,
+          -1230.0
+        ]
+      },
+      {
+        "bridge": 4,
+        "completedUpdateLabel": 131,
+        "nativeGlobalTimer": 2680,
+        "wafelGlobalTimer": 2682,
+        "area": 1,
+        "topTimerAfterUpdate": 132,
+        "action": "ACT_DISAPPEARED",
+        "M": [
+          -2200.001708984375,
+          1914.85498046875,
+          -1075.00390625
+        ],
+        "C": [
+          -2200.001708984375,
+          1914.85498046875,
+          -1075.00390625
+        ],
+        "G": [
+          -2200.001708984375,
+          1914.85498046875,
+          -1075.00390625
+        ],
+        "floorCache": 1914.85498046875,
+        "ceilingY": 20000.0,
+        "floorOwner": 61,
+        "platform": 61,
+        "used": 64,
+        "ridden": -1,
+        "collisions": [
+          64
+        ],
+        "bob": {
+          "slot": 39,
+          "XYZ": [
+            -2078.953369140625,
+            1835.079345703125,
+            -1227.845947265625
+          ],
+          "active": 257,
+          "radius": 78.0,
+          "height": 135.60000610351562,
+          "scale": [
+            1.2000000476837158,
+            1.2000000476837158,
+            1.2000000476837158
+          ],
+          "fuse": 173,
+          "action": 3,
+          "actionTimer": 2,
+          "heldState": 0
+        },
+        "shellXYZ": [
+          -1960.0,
+          19890.0,
+          -1230.0
+        ]
+      },
+      {
+        "bridge": 24,
+        "completedUpdateLabel": null,
+        "nativeGlobalTimer": 2700,
+        "wafelGlobalTimer": 2702,
+        "area": 1,
+        "topTimerAfterUpdate": 1,
+        "action": "ACT_DISAPPEARED",
+        "M": [
+          -2119.937255859375,
+          2027.761474609375,
+          -1152.518798828125
+        ],
+        "C": [
+          -2119.937255859375,
+          2027.761474609375,
+          -1152.518798828125
+        ],
+        "G": [
+          -2119.937255859375,
+          2027.761474609375,
+          -1152.518798828125
+        ],
+        "floorCache": 2027.761474609375,
+        "ceilingY": 20000.0,
+        "floorOwner": 61,
+        "platform": 61,
+        "used": 64,
+        "ridden": -1,
+        "collisions": [
+          49
+        ],
+        "bob": {
+          "slot": 39,
+          "XYZ": [
+            -2108.578857421875,
+            1938.9002685546875,
+            -910.3016357421875
+          ],
+          "active": 257,
+          "radius": 50.0,
+          "height": 100.0,
+          "scale": [
+            3.0,
+            3.0,
+            3.0
+          ],
+          "fuse": 0,
+          "action": 0,
+          "actionTimer": 1,
+          "heldState": 0
+        },
+        "shellXYZ": [
+          -1960.0,
+          19890.0,
+          -1230.0
+        ]
+      },
+      {
+        "bridge": 27,
+        "completedUpdateLabel": null,
+        "nativeGlobalTimer": 2703,
+        "wafelGlobalTimer": 2705,
+        "area": 2,
+        "topTimerAfterUpdate": 1,
+        "action": "ACT_SPAWN_NO_SPIN_AIRBORNE",
+        "M": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "C": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "G": [
+          365.5927734375,
+          5500.0,
+          -1096.8026123046875
+        ],
+        "floorCache": 4429.0,
+        "ceilingY": 5222.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "used": 85,
+        "ridden": -1,
+        "collisions": [],
+        "bob": {
+          "slot": 39,
+          "XYZ": [
+            -870.0,
+            3840.0,
+            105.0
+          ],
+          "active": 257,
+          "radius": 50.0,
+          "height": 100.0,
+          "scale": [
+            0.8999999761581421,
+            0.8999999761581421,
+            0.8999999761581421
+          ],
+          "fuse": 1,
+          "action": 0,
+          "actionTimer": 1,
+          "heldState": 0
+        },
+        "shellXYZ": [
+          -1960.0,
+          19890.0,
+          -1230.0
+        ]
+      }
+    ],
+    "producerQueryRoles": {
+      "initialGeometry": {
+        "queryXYZ": [
+          -2117.02685546875,
+          1839.447265625,
+          -1113.008544921875
+        ],
+        "result": 768.0,
+        "cacheAtFunctionReturn": 1839.447265625,
+        "surfaceOwner": -1
+      },
+      "shoveValidation": {
+        "queryXYZ": [
+          -2200.001708984375,
+          1839.447265625,
+          -1075.00390625
+        ],
+        "result": 1916.10986328125,
+        "cacheAtFunctionReturn": 768.0,
+        "surfaceOwner": 61
+      },
+      "groundQuarter": {
+        "queryXYZ": [
+          -2199.115966796875,
+          1839.447265625,
+          -1072.0838623046875
+        ],
+        "result": 1280.0,
+        "cacheAtFunctionReturn": 768.0,
+        "surfaceOwner": -1
+      }
+    },
+    "producerGap": 1071.447265625,
+    "capture": true,
+    "arrivalXYZ": [
+      365.5927734375,
+      5500.0,
+      -1096.8026123046875
+    ],
+    "noLaterMarioEdits": true,
+    "rawSetupScalarWrites": 95,
+    "missingNativeCameraBridges": [
+      25,
+      26
+    ],
+    "matchedPhysicalBoundaries": 25,
+    "retainedClockDifferences": 25
+  },
+  "ordinaryWarpControl": {
+    "name": "no-final-box",
+    "archiveSha256": {
+      "receipt.json.gz": "38645a37243d5a6b83583653b1a6b32536d9881ddf60434ceff60d23b2459728",
+      "case.json.gz": "e6afab269c770a4e0780e08bf32d00cbda08db2adfe560d24f82f8204f7f2207",
+      "raw.log.gz": "fb8c2b40982369287aa1131e14eec8192afba03f02912a55140e819060ca2427"
+    },
+    "initialMario": {
+      "action": "FREEFALL",
+      "M": [
+        -1960,
+        19900,
+        -1230
+      ],
+      "C": [
+        -1960,
+        19900,
+        -1230
+      ],
+      "G": [
+        -1960,
+        19900,
+        -1230
+      ],
+      "velocity": [
+        0,
+        -16,
+        0
+      ],
+      "speed": 0,
+      "yaw": 0
+    },
+    "initialShellXYZ": [
+      -1960,
+      19890,
+      -1230
+    ],
+    "inputs": {
+      "update128": "Z",
+      "later": "neutral",
+      "A": "always released"
+    },
+    "laterActorCuts": [
+      {
+        "phase": 129,
+        "edits": [
+          {
+            "path": "gObjectPool[39].oPosX",
+            "before": 3800.316650390625,
+            "after": -2080.06005859375
+          },
+          {
+            "path": "gObjectPool[39].oPosY",
+            "before": -0.0,
+            "after": 1809.2066650390625
+          },
+          {
+            "path": "gObjectPool[39].oPosZ",
+            "before": 6002.8515625,
+            "after": -1230.322021484375
+          }
+        ]
+      }
+    ],
+    "selectedBoundaries": [
+      {
+        "bridge": 1,
+        "completedUpdateLabel": 128,
+        "nativeGlobalTimer": 2677,
+        "wafelGlobalTimer": 2679,
+        "area": 1,
+        "topTimerAfterUpdate": 129,
+        "action": "ACT_BUTT_SLIDE",
+        "M": [
+          -1960.0,
+          1809.2066650390625,
+          -1230.0
+        ],
+        "C": [
+          -1960.0,
+          1809.2066650390625,
+          -1230.0
+        ],
+        "G": [
+          -1960.0,
+          19900.0,
+          -1230.0
+        ],
+        "floorCache": 1809.2066650390625,
+        "ceilingY": 20000.0,
+        "floorOwner": 61,
+        "platform": 61,
+        "used": 71,
+        "ridden": -1,
+        "collisions": [
+          71
+        ],
+        "bob": {
+          "slot": 39,
+          "XYZ": [
+            3800.316650390625,
+            -0.0,
+            6002.8515625
+          ],
+          "active": 259,
+          "radius": 91.0,
+          "height": 158.1999969482422,
+          "scale": [
+            1.399999976158142,
+            1.399999976158142,
+            1.399999976158142
+          ],
+          "fuse": 170,
+          "action": 0,
+          "actionTimer": 1,
+          "heldState": 0
+        },
+        "shellXYZ": [
+          -1960.0,
+          19890.0,
+          -1230.0
+        ]
+      },
+      {
+        "bridge": 2,
+        "completedUpdateLabel": 129,
+        "nativeGlobalTimer": 2678,
+        "wafelGlobalTimer": 2680,
+        "area": 1,
+        "topTimerAfterUpdate": 130,
+        "action": "ACT_BUTT_SLIDE",
+        "M": [
+          -2117.02685546875,
+          1839.447265625,
+          -1113.008544921875
+        ],
+        "C": [
+          -2117.02685546875,
+          1839.447265625,
+          -1113.008544921875
+        ],
+        "G": [
+          -2117.02685546875,
+          1809.2066650390625,
+          -1113.008544921875
+        ],
+        "floorCache": 1839.447265625,
+        "ceilingY": 20000.0,
+        "floorOwner": 61,
+        "platform": -1,
+        "used": 71,
+        "ridden": -1,
+        "collisions": [
+          39
+        ],
+        "bob": {
+          "slot": 39,
+          "XYZ": [
+            -2078.953369140625,
+            1835.079345703125,
+            -1227.845947265625
+          ],
+          "active": 257,
+          "radius": 91.0,
+          "height": 158.1999969482422,
+          "scale": [
+            1.399999976158142,
+            1.399999976158142,
+            1.399999976158142
+          ],
+          "fuse": 171,
+          "action": 3,
+          "actionTimer": 0,
+          "heldState": 0
+        },
+        "shellXYZ": [
+          -1960.0,
+          19890.0,
+          -1230.0
+        ]
+      },
+      {
+        "bridge": 3,
+        "completedUpdateLabel": 130,
+        "nativeGlobalTimer": 2679,
+        "wafelGlobalTimer": 2681,
+        "area": 1,
+        "topTimerAfterUpdate": 131,
+        "action": "ACT_BUTT_SLIDE_STOP",
+        "M": [
+          -2117.71533203125,
+          768.0,
+          -1111.11328125
+        ],
+        "C": [
+          -2117.71533203125,
+          768.0,
+          -1111.11328125
+        ],
+        "G": [
+          -2117.71533203125,
+          1839.447265625,
+          -1111.11328125
+        ],
+        "floorCache": 768.0,
+        "ceilingY": 1523.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "used": 71,
+        "ridden": -1,
+        "collisions": [
+          39
+        ],
+        "bob": {
+          "slot": 39,
+          "XYZ": [
+            -2078.953369140625,
+            1835.079345703125,
+            -1227.845947265625
+          ],
+          "active": 257,
+          "radius": 65.0,
+          "height": 113.0,
+          "scale": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "fuse": 172,
+          "action": 3,
+          "actionTimer": 1,
+          "heldState": 0
+        },
+        "shellXYZ": [
+          -1960.0,
+          19890.0,
+          -1230.0
+        ]
+      },
+      {
+        "bridge": 4,
+        "completedUpdateLabel": 131,
+        "nativeGlobalTimer": 2680,
+        "wafelGlobalTimer": 2682,
+        "area": 1,
+        "topTimerAfterUpdate": 132,
+        "action": "ACT_DISAPPEARED",
+        "M": [
+          -2099.0,
+          768.0,
+          -1075.0
+        ],
+        "C": [
+          -2099.0,
+          768.0,
+          -1075.0
+        ],
+        "G": [
+          -2099.0,
+          768.0,
+          -1075.0
+        ],
+        "floorCache": 768.0,
+        "ceilingY": 1528.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "used": 64,
+        "ridden": -1,
+        "collisions": [
+          64
+        ],
+        "bob": {
+          "slot": 39,
+          "XYZ": [
+            -2078.953369140625,
+            1835.079345703125,
+            -1227.845947265625
+          ],
+          "active": 257,
+          "radius": 78.0,
+          "height": 135.60000610351562,
+          "scale": [
+            1.2000000476837158,
+            1.2000000476837158,
+            1.2000000476837158
+          ],
+          "fuse": 173,
+          "action": 3,
+          "actionTimer": 2,
+          "heldState": 0
+        },
+        "shellXYZ": [
+          -1960.0,
+          19890.0,
+          -1230.0
+        ]
+      },
+      {
+        "bridge": 24,
+        "completedUpdateLabel": null,
+        "nativeGlobalTimer": 2700,
+        "wafelGlobalTimer": 2702,
+        "area": 1,
+        "topTimerAfterUpdate": 1,
+        "action": "ACT_DISAPPEARED",
+        "M": [
+          -2099.0,
+          768.0,
+          -1075.0
+        ],
+        "C": [
+          -2099.0,
+          768.0,
+          -1075.0
+        ],
+        "G": [
+          -2099.0,
+          768.0,
+          -1075.0
+        ],
+        "floorCache": 768.0,
+        "ceilingY": 1623.0,
+        "floorOwner": -1,
+        "platform": -1,
+        "used": 64,
+        "ridden": -1,
+        "collisions": [
+          64
+        ],
+        "bob": {
+          "slot": 39,
+          "XYZ": [
+            -2063.850341796875,
+            1923.433349609375,
+            -938.9613037109375
+          ],
+          "active": 257,
+          "radius": 50.0,
+          "height": 100.0,
+          "scale": [
+            3.0,
+            3.0,
+            3.0
+          ],
+          "fuse": 0,
+          "action": 0,
+          "actionTimer": 1,
+          "heldState": 0
+        },
+        "shellXYZ": [
+          -1960.0,
+          19890.0,
+          -1230.0
+        ]
+      },
+      {
+        "bridge": 27,
+        "completedUpdateLabel": null,
+        "nativeGlobalTimer": 2703,
+        "wafelGlobalTimer": 2705,
+        "area": 2,
+        "topTimerAfterUpdate": 1,
+        "action": "ACT_SPAWN_NO_SPIN_AIRBORNE",
+        "M": [
+          0.0,
+          5500.0,
+          256.0
+        ],
+        "C": [
+          0.0,
+          5500.0,
+          256.0
+        ],
+        "G": [
+          0.0,
+          5500.0,
+          256.0
+        ],
+        "floorCache": 4966.0,
+        "ceilingY": 6144.0,
+        "floorOwner": 114,
+        "platform": -1,
+        "used": 85,
+        "ridden": -1,
+        "collisions": [],
+        "bob": {
+          "slot": 39,
+          "XYZ": [
+            -870.0,
+            3840.0,
+            105.0
+          ],
+          "active": 257,
+          "radius": 50.0,
+          "height": 100.0,
+          "scale": [
+            0.8999999761581421,
+            0.8999999761581421,
+            0.8999999761581421
+          ],
+          "fuse": 1,
+          "action": 0,
+          "actionTimer": 1,
+          "heldState": 0
+        },
+        "shellXYZ": [
+          -1960.0,
+          19890.0,
+          -1230.0
+        ]
+      }
+    ],
+    "producerQueryRoles": {
+      "initialGeometry": {
+        "queryXYZ": [
+          -2117.02685546875,
+          1839.447265625,
+          -1113.008544921875
+        ],
+        "result": 768.0,
+        "cacheAtFunctionReturn": 1839.447265625,
+        "surfaceOwner": -1
+      },
+      "shoveValidation": {
+        "queryXYZ": [
+          -2117.71533203125,
+          1839.447265625,
+          -1111.11328125
+        ],
+        "result": 768.0,
+        "cacheAtFunctionReturn": 768.0,
+        "surfaceOwner": -1
+      },
+      "groundQuarter": {
+        "queryXYZ": [
+          -2116.82958984375,
+          1839.447265625,
+          -1108.1932373046875
+        ],
+        "result": 768.0,
+        "cacheAtFunctionReturn": 768.0,
+        "surfaceOwner": -1
+      }
+    },
+    "producerGap": 1071.447265625,
+    "capture": false,
+    "arrivalXYZ": [
+      0.0,
+      5500.0,
+      256.0
+    ],
+    "noLaterMarioEdits": true,
+    "rawSetupScalarWrites": 92,
+    "missingNativeCameraBridges": [
+      25,
+      26
+    ],
+    "matchedPhysicalBoundaries": 25,
+    "retainedClockDifferences": 25
+  },
+  "donor": {
+    "cleanControllerInputsToHeld91": 616,
+    "additionalNeutralInputsToFree91": 12,
+    "freeDonorFuse": 170,
+    "freeDonorRadius": 91,
+    "freeDonorHeight": 158.1999969482422,
+    "fixtureTransplantFields": 32,
+    "fixtureTransplantScalarComponents": 34,
+    "deliveryJoined": false
+  },
+  "captionChecks": [
+    "No Buddy participates.",
+    "The shell creates the ground action natively from supplied FREEFALL; no slide action is written.",
+    "The enlarged Bob and Crazy Box shove on different updates, not twice through GRABBABLE in one pass.",
+    "The final producer stores G.Y=1839.447265625; 19900 is the initial airborne height, not its final stored G.",
+    "The producer initial lookup selects768 before the Crazy Box shove; later validation/quarter queries do not overwrite this stopped-step cache.",
+    "The no-final-box control retains a live Bob and a later Bob shove; it is not a no-further-push control.",
+    "Both runs have the same1071.447265625 gap and fresh768, but only the positive captures the top and displaces spawn.",
+    "Show missing camera bridges25/26 as a cut or disclosed gap, not invented images.",
+    "Rice screenshot requests concern the previous completed framebuffer; join requestTimer\u22121 separately from the native+2=Wafel telemetry convention.",
+    "Any schematic vertical motion is an instant assignment, not a literal visible falling path.",
+    "The high Mario/shell, conditional fake pickup/HOLP, native-profile copy, timed Bob placement and timed Crazy Box placement remain supplied.",
+    "No continuous no-new-A route or new Coq theorem follows from this film."
+  ]
+}

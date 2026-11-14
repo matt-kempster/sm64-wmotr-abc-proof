@@ -1,3 +1,7 @@
+# Current fourth film
+
+The [shell, bloated Bob-omb and Crazy Box film](ink-enlarged-bob-film.md) is now available at [the private screening room](https://ink-handoff-films.tra38.chatgpt.site/#enlarged-bob): 2:55 of on-screen commentary, original instrumental music and labeled original-JP closeups. It includes the useful versus ordinary-warp comparison, keeps M / C / G, and has no spoken narration. The historical editions below remain preserved. The conditional route verdict and all45 subjective estimates are unchanged.
+
 # Ink handoff films: private viewing site and music
 
 ## Current three-film edition — 14 November 2026

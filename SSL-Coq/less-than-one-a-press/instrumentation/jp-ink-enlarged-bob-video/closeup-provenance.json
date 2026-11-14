@@ -1,0 +1,8 @@
+{
+  "scope": "Separately labeled GraphNodeCamera-only closeup of the positive replay.",
+  "defaultCaptureSourceSha256": "81bc723eb06e981848e71babbba2b4c91c2ab4f1c057c788492121f54ba10cc2",
+  "closeupSourceSha256": "8e4184a23a361d70e4a91d9bda3466cfdbd006681e63129f9579d16240f612c9",
+  "hook": "0x80287738 update_graph_node_camera epilogue",
+  "fields": "GraphNodeCamera pos offsets0x1c/20/24, focus0x28/2c/30, rollScreen0x3a",
+  "nativeCameraAndGameplayEdits": 0
+}

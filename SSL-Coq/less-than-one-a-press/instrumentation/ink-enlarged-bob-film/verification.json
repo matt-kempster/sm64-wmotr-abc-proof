@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "scope": "Film artifact/provenance checks, not a gameplay reachability theorem",
+  "durationSeconds": 175,
+  "frames": 5250,
+  "chapters": 14,
+  "panels": 68,
+  "textFitChecks": 1263,
+  "nativeImages": "All selected image hashes and joined native bridges match preserved maps",
+  "narration": false,
+  "videoSha256": "5aca937444f6501df4d144f08bb0df64f4d4d5a7315da51a7cd26d1881b6c8cd",
+  "captureVerificationSha256": "257bb9c89a0438b312513baece62debb59be7463b1408c3a01e555ad3013fd62",
+  "files": {
+    "instrumentation/ink-enlarged-bob-film/render.ps1": "ccba2455b5dedb856a0b24b5169664cd8650a4b1c182f19865bf6e2496f32700",
+    "instrumentation/ink-enlarged-bob-film/finish.py": "e4941e4c5d33d6297c2ac431dac8ec1f16610c28a6d7bcd1a415f7dc7246e995",
+    "instrumentation/ink-enlarged-bob-film/storyboard.json": "6623f9d9f1ee762072128b0a99c4b825db6d482c1580a011099b9cf0b2426423",
+    "instrumentation/ink-enlarged-bob-film/render-receipt.json": "c8677cf221770d365043862806ce61d3018bcd70261e8269a4af939ec612381c",
+    "instrumentation/ink-enlarged-bob-film/facts.json": "e2992478a3d80bc3749cfead3c075bb5e1f8f1353b54f99e742606d0db9d841f",
+    "docs/media/ink-enlarged-bob-video/enlarged-bob-video-receipt.json": "8ed221b8b6045932ccd12224b075f13d649f67eb39dafaee3076f35cb89cf691",
+    "docs/notes/ink-enlarged-bob-film.md": "133f24c06fbbd5b2709d7d4c7a8de1bfccd46c99a38f159814ad5fe4d527b6b7"
+  }
+}

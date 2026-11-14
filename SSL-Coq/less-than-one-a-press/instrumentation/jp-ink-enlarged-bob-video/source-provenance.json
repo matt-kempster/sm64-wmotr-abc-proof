@@ -1,0 +1,15 @@
+{
+  "scope": "Add read-only frame capture to the already verified original-JP recipes.\n\nOnly screenshot requests and observation horizon change. No camera or gameplay\nwrite is added, removed or retimed. Original sources remain untouched.\n",
+  "sources": {
+    "positive": {
+      "source": "2d02bfc6b3c49a9fb2d7003ce05909b895c2a59e865f5cf9bdfc6d35780a4505",
+      "case": "5ed701fbc284f531319ce7c09bdec444cec97f257911e0c4121fbcd729781fd8",
+      "captureSource": "81bc723eb06e981848e71babbba2b4c91c2ab4f1c057c788492121f54ba10cc2"
+    },
+    "no-final-box": {
+      "source": "f1a8551fbcc21ee17f04aed0f6fb3d72468a7c2507e3e0ba82bd9fec5e206800",
+      "case": "b45281fec57b1ca6c9cded602d18c1613ec6a86b26b1526bd9fd3e5b9f9d6b4f",
+      "captureSource": "d56ed4886b29aa825efb33110bfcb894057a76801afc23819eb534174199276d"
+    }
+  }
+}

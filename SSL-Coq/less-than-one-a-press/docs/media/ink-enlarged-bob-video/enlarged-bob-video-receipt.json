@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "title": "Stored in the Dark - three-actor edit",
+  "sourcePolicy": "Original procedural composition, no downloaded music/samples or voice. Trimmed from the existing VPU score master; new ending fade and loudness normalization.",
+  "scoreMasterSha256": "006d9257044a502a542dfd88a42ecaadaa3f78d04b0c07d3b6b002e66c173baa",
+  "compositionReceiptSha256": "c02266d0240e948aeb03826095f413aad04167e21773f68243cfd3fc0de966ae",
+  "compositionSeed": 20261114,
+  "sourceComposition": "instrumentation/ink-film-soundtrack/compose.py",
+  "audioEditSha256": "e4941e4c5d33d6297c2ac431dac8ec1f16610c28a6d7bcd1a415f7dc7246e995",
+  "durationSeconds": 175.0,
+  "frames": 5250,
+  "videoSha256": "5aca937444f6501df4d144f08bb0df64f4d4d5a7315da51a7cd26d1881b6c8cd",
+  "videoElementarySha256": "SHA256=dcb2efa7f095c37425ed075d0e56d9768ecdf408f190e54bba83ec7c07751fa7",
+  "videoUnchangedByMux": true,
+  "fullDecodePassed": true,
+  "audioCodec": "aac",
+  "sampleRate": 48000,
+  "integratedLUFS": -19.01,
+  "truePeakDBTP": -3.37,
+  "loudnessRangeLU": 5.7,
+  "finalFadeSeconds": 7,
+  "ffmpegVersion": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+  "review": "Objective format, full decode, duration, bitstream, loudness and true-peak checks; no human listening review claimed.",
+  "scope": "Conditional original-JP three-actor handoff. Actual ROM footage, explanatory diagrams, on-screen commentary and original instrumental music. No spoken narration. Setup grants remain explicit; no complete gameplay route is claimed.",
+  "width": 1600,
+  "height": 900,
+  "videoCodec": "h264",
+  "narration": false,
+  "posterSha256": "bdb4b95f84c0af3c458d4f2333cb1ff2aedf6941cff4e2ecc24508726a725232",
+  "transcriptSha256": "9347c920b6fd0eb01dc13a07fc639617341ba2388dfc0f94242cafe4f1a88655",
+  "vttSha256": "d139b35cccfb50f1af116ef0d425782bacec3526272c0a94188544d5c039add9",
+  "renderReceiptSha256": "c8677cf221770d365043862806ce61d3018bcd70261e8269a4af939ec612381c",
+  "coordinateLabels": {
+    "C": "Collision",
+    "G": "Stored Graphics (gfx.pos), not rendered pose",
+    "M": "Movement"
+  },
+  "chapters": [
+    {
+      "id": "roles",
+      "title": "Three actors, three different jobs",
+      "startSeconds": 0,
+      "endSeconds": 10
+    },
+    {
+      "id": "setup",
+      "title": "The supplied airborne starting point",
+      "startSeconds": 10,
+      "endSeconds": 24
+    },
+    {
+      "id": "shell",
+      "title": "Shell contact, then Z in the same update",
+      "startSeconds": 24,
+      "endSeconds": 37
+    },
+    {
+      "id": "positions",
+      "title": "Three positions to watch",
+      "startSeconds": 37,
+      "endSeconds": 48
+    },
+    {
+      "id": "carry",
+      "title": "The rotating top separates M and C",
+      "startSeconds": 48,
+      "endSeconds": 62
+    },
+    {
+      "id": "bob",
+      "title": "Bob supplies the earlier shove",
+      "startSeconds": 62,
+      "endSeconds": 74
+    },
+    {
+      "id": "cache",
+      "title": "First save the low floor",
+      "startSeconds": 74,
+      "endSeconds": 85
+    },
+    {
+      "id": "box",
+      "title": "Crazy Box supplies the final shove",
+      "startSeconds": 85,
+      "endSeconds": 97
+    },
+    {
+      "id": "gap",
+      "title": "Save high G, then snap low",
+      "startSeconds": 97,
+      "endSeconds": 110
+    },
+    {
+      "id": "retry",
+      "title": "Low warp contact, high floor retry",
+      "startSeconds": 110,
+      "endSeconds": 123
+    },
+    {
+      "id": "retention",
+      "title": "The top reference survives",
+      "startSeconds": 123,
+      "endSeconds": 134
+    },
+    {
+      "id": "arrival",
+      "title": "A useful Area 2 arrival",
+      "startSeconds": 134,
+      "endSeconds": 146
+    },
+    {
+      "id": "comparison",
+      "title": "Without the final Crazy Box",
+      "startSeconds": 146,
+      "endSeconds": 158
+    },
+    {
+      "id": "scope",
+      "title": "The handoff works; joining the route is open",
+      "startSeconds": 158,
+      "endSeconds": 175
+    }
+  ],
+  "fastStart": true
+}

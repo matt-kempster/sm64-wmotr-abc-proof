@@ -1,0 +1,57 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:10.000
+A frozen shell, an enlarged black Bob-omb, and a Crazy Box work together.
+The original Japanese game reaches a useful displaced Area 2 spawn.
+
+00:00:10.000 --> 00:00:24.000
+The test places airborne Mario at Y 19900, ten units above the shell.
+His ground-slide action is not supplied. The game must create it.
+
+00:00:24.000 --> 00:00:37.000
+Shell contact mounts Mario; Z cancels riding into a butt slide.
+The slide's floor alignment puts Movement on the real spinning top.
+
+00:00:37.000 --> 00:00:48.000
+M is Movement. C is the Mario object's Collision position.
+G is Stored Graphics: gfx.pos, not the visibly drawn model.
+
+00:00:48.000 --> 00:01:02.000
+The top moves Movement sideways before Mario's actor interactions.
+Collision still uses the earlier position when the game checks the Bob.
+
+00:01:02.000 --> 00:01:14.000
+The Bob pushes Mario toward the low pad's footprint.
+Mario stays in butt slide at Y 1839.447, with no platform carried forward.
+
+00:01:14.000 --> 00:01:25.000
+A fresh floor lookup saves height 768 while Movement is still high.
+This happens before the Crazy Box's shove. The order matters.
+
+00:01:25.000 --> 00:01:37.000
+The Crazy Box now pushes Mario farther sideways.
+Bob and Box act on different updates, not as two same-type pushes at once.
+
+00:01:37.000 --> 00:01:50.000
+The stopped ground step saves high coordinates in G.
+Floor alignment snaps Movement to 768; Collision also finishes low.
+
+00:01:50.000 --> 00:02:03.000
+Low Collision overlaps the real warp.
+The failed floor lookup retries at Stored Graphics and selects the top.
+
+00:02:03.000 --> 00:02:14.000
+The recorded Area 1 boundaries retain the top as Mario's platform.
+That retained reference is needed for the later spawning displacement.
+
+00:02:14.000 --> 00:02:26.000
+The original Japanese ROM reaches (365.593,5500,-1096.803).
+The ordinary upper-warp arrival is (0,5500,256).
+
+00:02:26.000 --> 00:02:38.000
+Omitting only the final Crazy Box still makes a gap and fresh floor 768.
+But it reaches the ordinary spawn without capturing the top.
+
+00:02:38.000 --> 00:02:55.000
+A black Bob-omb can replace the Buddy's local job in this revised setup.
+Joining Mario's entry, actor delivery and timing through play is still open.
