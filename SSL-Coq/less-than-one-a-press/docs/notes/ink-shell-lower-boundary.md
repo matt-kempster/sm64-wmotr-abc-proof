@@ -84,7 +84,7 @@ Then reuse the exact previously recorded XYZ-only actor placements:
 
 | Completed boundary | M=C | G.Y | Result |
 | --- | --- | --- | --- |
-| Top129 | (-1920,1799.2869873046875,-1210) | 1799.2869873046875 | Native BUTT_SLIDE on top |
+| Top129 | (-1920,1799.2869873046875,-1210) | 19900 | Native BUTT_SLIDE on top; initial high G retained |
 | Top130 | (-2140.031982421875,1830.177978515625,-1115.0291748046875) | 1799.2869873046875 | Box then Buddy push into the intermediate position |
 | Top131 | (-2210.062255859375,768,-1075.10888671875) | 1830.177978515625 | Fresh floor768; productive gap1062.177978515625 |
 | Top132 | (-2210.062255859375,1906.03515625,-1075.10888671875) | 1906.03515625 | Warp64 accepted; floor owner/platform61 |
