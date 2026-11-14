@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "independentlyVerified": true,
+  "directHistories": 16,
+  "directBoundaries": 567,
+  "lowOffsetHistories": 9,
+  "lowOffsetBoundaries": 324,
+  "totalBoundaries": 891,
+  "scope": "Current frozen-shell direct replacements and separate low untouched-shell initial-offset menu; stock Bob radius65 only; no retimed delivery or new original-ROM proof.",
+  "hashes": {
+    "instrumentation/ink-frozen-shell-buddy-replacement/low.py": "f4ed6efecb3b7b04ae1c0673221cb99ce3fb9142436a752a48337fff928a9b27",
+    "instrumentation/ink-frozen-shell-buddy-replacement/test.py": "a3a8d9c0b96af2a8cfc3bece31f4cc76d786eb0bda50f03e00bf65f8edd5f746",
+    "instrumentation/ink-frozen-shell-buddy-replacement/verify.py": "252ee13a81d2daefbd576e6eb2160ae02f860d225f6291f89dbed4fe5671fa5d",
+    "instrumentation/ink-frozen-shell-buddy-replacement/README.md": "43b9e92790a6022b4b0900d7c77827ca7fa651e502bf6d89a2d4a452f2391304",
+    "instrumentation/ink-frozen-shell-buddy-replacement/results.json.gz": "979d687ed1aa6137bbb348a7110b6b4b87b73c7495d64d26d8408411f283ea3e",
+    "instrumentation/ink-frozen-shell-buddy-replacement/low-results.json.gz": "6568e369e68487c66d3dcae56bb4635e73e83d6b9ba31f306e9dfcbae2eff552",
+    "docs/notes/ink-frozen-shell-buddy-replacement.md": "505654227dc085c543fb12a52c4ca1afc4cf8b31b13989d4f9a210376e71217f",
+    "instrumentation/ink-shell-clone-isolation/test.py": "28130311248a478bea060872a8404e36b73ce0dc740228dae6fcd1962dad6528",
+    "instrumentation/ink-shell-lower-boundary/test.py": "53b465b93d23633c71c27898d7ef3badcf1c7cf395ef7f67a2c40b246173a941",
+    "instrumentation/ink-cloned-shell-bridge/search.py": "8c67beb27941081ed31bf1f795b4e1ba822b9b6bb4a04a02190812332a6806c6",
+    "instrumentation/ink-item-clone-controls/fixtures.py": "62a380c440360bfae642288c558f5e6aae6ac3987dca7c37d2bd66e821a373a8"
+  }
+}

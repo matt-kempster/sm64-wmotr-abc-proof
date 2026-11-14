@@ -1,0 +1,25 @@
+{
+  "scope": "Finite search, all screens separately reconstructed; selected12 histories and10 seeds fresh-matched.",
+  "counts": {
+    "seeds": 10,
+    "firstStage": 170,
+    "secondStage": 523,
+    "finalBeam": 32,
+    "producerScreens": 1863,
+    "captures": 0,
+    "useful": 0,
+    "completeHistories": 12,
+    "selectedBoundaries": 480,
+    "additionalSeedBoundaries": 10
+  },
+  "hashes": {
+    "instrumentation/ink-bobomb-retimed-shoves/search.py": "c4cad710d3fc87b0a28082f5d414282dfdabe6979abe1b169f4bd343e22bd64c",
+    "instrumentation/ink-bobomb-retimed-shoves/verify.py": "7fc06d4d370fbc7b44b2007ce1ea8e5714466276aa5cb0d5a293ceda8f7823e2",
+    "instrumentation/ink-bobomb-retimed-shoves/pilot.json.gz": "d252399a427ec6478a2fe429cd83dfc1cfa934c2c59e9d97c4804c792db87e26",
+    "instrumentation/ink-bobomb-retimed-shoves/results.json.gz": "54bb27ae2d0525897bb32ad34fbf0590adc063e377fed3f0a1949cedfee8e8a9",
+    "instrumentation/ink-bobomb-retimed-shoves/xz-ranking-results.json.gz": "dbab4fd730bcd8dfe457d50e792c769f9b1c577ab05d39947934a5998f7fce83",
+    "instrumentation/ink-bobomb-retimed-shoves/README.md": "b0a13112a69c3b2ca5dc6b777bf05d6cfab21814be4d7d6253af377ab0eb922b",
+    "docs/notes/ink-bobomb-retimed-shoves.md": "a7991efcca4680a7df9477b5db2b916d4c87b16be319509a15ab610380456041",
+    "instrumentation/ink-shell-clone-isolation/test.py": "28130311248a478bea060872a8404e36b73ce0dc740228dae6fcd1962dad6528"
+  }
+}

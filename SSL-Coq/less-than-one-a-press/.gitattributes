@@ -64,3 +64,6 @@ proofs/InkBoxFloor*.v text eol=lf
 docs/notes/ink-shell*.md text eol=lf
 docs/notes/ink-cloned-shell*.md text eol=lf
 proofs/InkShellBridge.v text eol=lf
+docs/notes/ink-bobomb-buddy-replacement.md text eol=lf
+docs/notes/ink-bobomb-retimed-shoves.md text eol=lf
+docs/notes/ink-frozen-shell-buddy-replacement.md text eol=lf
