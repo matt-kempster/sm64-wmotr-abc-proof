@@ -53,3 +53,4 @@ instrumentation/jp-ink-candidate-views/*.c text eol=lf
 instrumentation/jp-ink-candidate-views/*.py text eol=lf
 docs/notes/ink-buddy-movement-runtime-receipt.json -text whitespace=cr-at-eol
 docs/notes/ink-buddy-acquisition-runtime.md text eol=lf
+docs/notes/ink-buddy-replacement*.md text eol=lf
