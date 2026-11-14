@@ -53,7 +53,7 @@ From LessThanOneAPress.Proofs Require Import
   SecretContactExecution
   InkBackwardSource InkBackwardExecution InkCopyCaller InkFloorResetCopy InkRawCopyHeight
   InkQuicksandBackward InkMovingBackward InkControllerBackward InkBackwardHistory
-  PositionSplitCatalog TweesterGap InkConcreteProducerBoundary InkSlideHandoff InkMarioEntryGuards InkIdleOffFloorGuard InkBuddyMovement InkBuddyAcquisition InkBoxFloor InkBoxFloorFrame InkMarioRawCopyCall InkMarioZeroParticleTail InkFlyGuySizeBoundary
+  PositionSplitCatalog TweesterGap InkConcreteProducerBoundary InkSlideHandoff InkMarioEntryGuards InkIdleOffFloorGuard InkBuddyMovement InkBuddyAcquisition InkBoxFloor InkBoxFloorFrame InkShellBridge InkMarioRawCopyCall InkMarioZeroParticleTail InkFlyGuySizeBoundary
   InkBounceLiveReadBoundary InkStockBounceHeight InkFlyGuyCycleHeight InkPokeyLiveScale
   CompCertRouteScope TeleporterWrongWarpBoundary TeleporterShindouReset
   TeleporterDestinationReset TeleporterPlatformResetExecution
@@ -1634,6 +1634,13 @@ Proof. exact iba_buddy_acquisition_guards_checked. Qed.
     floor delivery are not supplied by this boundary. *)
 Theorem current_ink_box_floor_boundary : InkBoxFloorFrameBoundary.
 Proof. exact ibff_clone_floor_frame_boundary_checked. Qed.
+
+(** Conditional actual quarter-stop and riding-result checkpoints. The shell
+    requests knockback on result two; common slides reach floor alignment.
+    Earlier live queries, the whole loop/action tail, shell delivery and the
+    gameplay history reaching these cuts remain separate obligations. *)
+Theorem current_ink_shell_bridge_boundary : InkShellBridgeBoundary.
+Proof. exact isb_shell_bridge_boundary_checked. Qed.
 
 (** Also consumes the actual object-push commit frame, nearby static-floor
     certificate, post-query crawl-quarter execution and non-null item-drop

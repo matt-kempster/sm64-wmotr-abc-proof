@@ -1,0 +1,15 @@
+{
+  "hashes": {
+    "instrumentation/ink-shell-bridge-proof/assumptions-1.log": "4c4e1ebafafc987bf01de206da660a99a181b8ed5da6f3012581bc00c8e2ac6f",
+    "instrumentation/ink-shell-bridge-proof/assumptions-2.log": "fb00170b815ff3235deb499695d2890454d09aaec85283d990015909d797e18a",
+    "instrumentation/ink-shell-bridge-proof/assumptions-3.log": "52fc6623062942a968b3916e6006f673ab8b14b2d9acdb17d5c053d27e5e178d",
+    "instrumentation/ink-shell-bridge-proof/build.log": "99f8aca81f5a9fb1f7c743654cbcb11b6937f5dbee17ee1f65b4f0091141e138",
+    "instrumentation/ink-shell-bridge-proof/summary.txt": "bb25dad86c727a80d0c28bba2a9ae7ccfae7819bfd44db2c15a30e2fdc9f196d",
+    "instrumentation/ink-shell-bridge-proof/report.json": "f238010a308b52bb3ee3e81975b779dac9f24efc6628085b0c237971ec49e3a2",
+    "instrumentation/ink-shell-bridge-proof/README.md": "b7b6900f7b015a404c60eb214f057002cfb45d61eefcd60363edede9604a6a58",
+    "proofs/InkShellBridge.v": "06ba39df661f5fbbe9a0b1cf208e55483671daa348c7b472fed3958d4895c6ea",
+    "proofs/MainTheorem.v": "7317059560b923ecf05a8519df2550af7e82faaf7ff1f5c5076501615a7497df",
+    "_CoqProject": "8b6de5f5d13e773367205730e622139cd99c1f808c2540bf5487eefc19593e3e",
+    "docs/notes/ink-shell-bridge-proof.md": "a5b08bdfd0d4272dc83a8edcec59c2597facf4e9eaffc7d2f32a63cb87dfc22f"
+  }
+}

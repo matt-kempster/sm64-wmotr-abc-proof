@@ -1,0 +1,885 @@
+{
+  "passed": false,
+  "case": "timely",
+  "inputCount": 1894,
+  "matchedObservations": 1546,
+  "mismatchCount": 462,
+  "firstMismatches": [
+    [
+      372,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 24,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 24,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      373,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 25,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 25,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      374,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 26,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 26,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      375,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 27,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 27,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      376,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 28,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 28,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      377,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 29,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 29,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      378,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 30,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 30,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      379,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 31,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 31,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      380,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 32,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 32,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      381,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 33,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 33,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      382,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 34,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 34,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      383,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 35,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 35,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      384,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 36,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 36,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      385,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 37,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 37,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      386,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 38,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 38,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      387,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 39,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 39,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      388,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 40,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 40,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      389,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 41,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 41,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      390,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 42,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 42,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ],
+    [
+      391,
+      "slot23",
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 2,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 43,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      },
+      {
+        "active": 771,
+        "flags": 1073742921,
+        "parent": 23,
+        "posBits": [
+          1169711104,
+          1112276992,
+          1163329536
+        ],
+        "type": 2,
+        "subtype": 0,
+        "status": 0,
+        "intangible": 0,
+        "heldState": 0,
+        "action": 0,
+        "timer": 43,
+        "radiusBits": 1114636288,
+        "heightBits": 1120403456
+      }
+    ]
+  ],
+  "WafelMinusNativeTimer": [
+    1
+  ],
+  "AInputs": 0,
+  "gameplayMemoryWrites": [
+    {
+      "poll": 1816,
+      "slot": 32,
+      "field": "oAction",
+      "before": 2,
+      "after": 4
+    }
+  ],
+  "mounted": true,
+  "scope": "Native small-box expiry/pending pickup, one shell-box action4 grant, native carry/throw and low walking mount test; not high delivery or Ink handoff",
+  "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+  "nativeBehaviorPointers": [
+    2148442716,
+    2148451608
+  ],
+  "nativeCommandCorrespondence": {
+    "bhvCarrySomething3[1]": [
+      2148448104
+    ],
+    "bhvCarrySomething5[1]": [
+      2148448120
+    ]
+  },
+  "hashes": {
+    "rawLog": "b01c15ce95ac96afc15603bbfe23572ea992b9b505f815af1d7476fa21f894d3",
+    "inputs": "b0a09bdb919fc226db35b5f5de8efc78b479ee70a619a8c0762da3949ce3a50e",
+    "controller": "d434ab7e4053124d33a083d7491aacaa5c554a27b9cf60daaf8985738ca24a85",
+    "wafelTrace": "6c21aec8cb2a2c9888c17199df8caac25569564243289542cfd382236a5585f3",
+    "probe": "9f8daf27599c5bb4215583e663e43ccc4aade1c852c45ed88d2f08cc6cc0c245",
+    "checker": "3b60ba45e0e0788d6fb77f119e4cc39ef5bd5eaba89bc2695513bf7c311c0891"
+  }
+}

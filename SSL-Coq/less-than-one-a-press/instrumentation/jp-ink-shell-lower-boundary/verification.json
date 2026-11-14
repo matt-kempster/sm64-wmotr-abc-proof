@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "records": [
+    "positive",
+    "no-buddy"
+  ],
+  "recordManifestSha256": {
+    "positive": "704446d278446a6274c4ce8f53bca4f1fdb0cae1d04c972c0cabc9e24eef75e4",
+    "no-buddy": "787e778c45c844c2ddbfd29c46e2769e92df368fc96977ed28fa54753ab4a92d"
+  },
+  "filesSha256": {
+    "probe.c": "e52b2c3ccfcfd0ba666ac24ceaceccc2481683dc501c10ecdda4147c44df2d04",
+    "run.sh": "ce30bbe9ea1e8a56a65b12bd3c57c9b51cdc871bc7cf89fc0948211b03a68505",
+    "check.py": "a2b65764e961b5288415bad5f326da12934eb5974047641121c38c7305c6c531",
+    "archive.py": "e761d42d0d46ef0a452a91b361a96c73e7cf6f27d1ef1f4cf9ae1aeafbd7d12d",
+    "verify.py": "cedf908cb1a1fe0c2b51038e7d686d8c50363529d4b6d5ea0793f817cd78dd79",
+    "README.md": "2306bcea58c0733e9574e40c21a3fe0ef32cd816997c4227e4cd6d56b560f7cf",
+    ".gitattributes": "850f320563fed7854261e209f6d4e4d74081056664585a8af526cc9df0ed027d"
+  },
+  "noteSha256": "9094b3ee6fe1d3c6989bce29da5e03cad353e86ac8417ef492e8777def36e863",
+  "expectedSha256": "acb18424db4e83b707a5950376985c253e26b4e6484b4cebb95d6cee8a0f4758",
+  "allSelectedPhysicalFieldsMatch": true,
+  "strictRawSelectedFieldsMatch": false,
+  "rawMismatch": "144 global timer differences, native+2=Wafel; every difference archived",
+  "coverage": "144 compared boundaries;326 native observations;positive missing transition steps154/155;negative final step165 beyond probe camera horizon"
+}

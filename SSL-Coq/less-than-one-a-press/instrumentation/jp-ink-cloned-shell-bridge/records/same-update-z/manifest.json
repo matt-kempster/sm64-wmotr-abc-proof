@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "mode": 3,
+  "height": 25000,
+  "sourceDirectory": "jp-shell-bridge-same-z",
+  "files": {
+    "raw.log": {
+      "compressedSha256": "edf95be2ff3b5fc4cf1fa976c07d51ea9a1764378aaee8b9b3bc093812aad8fa",
+      "uncompressedSha256": "8f56ca381d9a4e575ec74298ccafb2646aa11de976fee9a735028ed3c11287ba",
+      "uncompressedBytes": 218624
+    },
+    "trace.txt": {
+      "compressedSha256": "81c1f96453c2c298f68ce6cd6efcfdb6f982728007abd40e5c8c490672fa8c57",
+      "uncompressedSha256": "24996ec2b6d4f4c737604245326eea8003cb39b2a6a36dd588e204fb0b593fe4",
+      "uncompressedBytes": 122897
+    },
+    "probe-source.c": {
+      "compressedSha256": "e5d7f47e898d51e4fab3f1ca162d1538ed540f42dd96896913aaa921844e334c",
+      "uncompressedSha256": "6a0029fef017a9be199f81b81457713914bb9c4bb7cf7e6b0beeeada781ad95a",
+      "uncompressedBytes": 6879
+    },
+    "prefix-source.c": {
+      "compressedSha256": "358c366222f65ce5e3053d7bc83a7d41bb0813a8e482cc7b239ea16156651a3f",
+      "uncompressedSha256": "7ebe3672f71bb596610b6b3b3fe2804a451ca74e3a5bcd48a94ff864e2bdc8b5",
+      "uncompressedBytes": 197714
+    },
+    "run-source.sh": {
+      "compressedSha256": "ed47df0a066a04e0948760b26d8f6a8b3803a9af542fa06dfbc9667801737c8c",
+      "uncompressedSha256": "8a4823769e3d27d00c217eef1c6465f701ce10cdaef69515210e581e775167d8",
+      "uncompressedBytes": 1440
+    },
+    "checker-source.py": {
+      "compressedSha256": "28549a46b64eb2f35b7991ab248cd42fb4a71347b35c46fc6e216fed7542612a",
+      "uncompressedSha256": "e9d697f1567259593b8afd865404b120ea1a1eaa83c1454485fc1df74417fe54",
+      "uncompressedBytes": 11641
+    },
+    "receipt.json": {
+      "compressedSha256": "f99b779865fb7752a2cb07b0d83e7a08813d211be75b19f1b4d624afe133b5da",
+      "uncompressedSha256": "26f076df97e31702097cdf4ee2e4309936f0c4a5bfa734bbe113f5308c06d4ab",
+      "uncompressedBytes": 246256
+    }
+  },
+  "counts": {
+    "observations": 164,
+    "writes": 46,
+    "compared": 65,
+    "missing": 2,
+    "mismatches": 65
+  }
+}

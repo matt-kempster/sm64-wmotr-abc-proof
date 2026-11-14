@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "validation": "Two fresh JP Wafel roots; full preparation, recipes, edits, controls, events and snapshots compared exactly.",
+  "checkedBoundariesScope": "69 continuations including six low-mount updates, plus 324 one-update geometry checks; excludes preparation/wait updates.",
+  "counts": {
+    "continuations": 69,
+    "geometryChecks": 324,
+    "continuationMountEvents": 63,
+    "screenMountEvents": 324,
+    "bridges": 0,
+    "captures": 6,
+    "useful": 6,
+    "checkedBoundaries": 2610
+  },
+  "artifacts": {
+    "instrumentation/ink-cloned-shell-bridge/search.py": {
+      "bytes": 10015,
+      "sha256": "8c67beb27941081ed31bf1f795b4e1ba822b9b6bb4a04a02190812332a6806c6"
+    },
+    "instrumentation/ink-cloned-shell-bridge/results.json.gz": {
+      "bytes": 327939,
+      "sha256": "d3c8a7b403bbd3fd308115053a61221e4934891565afb713dded053279ea408f"
+    },
+    "instrumentation/ink-shell-clone-isolation/test.py": {
+      "bytes": 9641,
+      "sha256": "28130311248a478bea060872a8404e36b73ce0dc740228dae6fcd1962dad6528"
+    }
+  },
+  "runtimeSha256": "960fe979068b78e6733b3ddb87741833fbf4eb29b2a21a2bba871977427c2d0f",
+  "prefixUncompressedSha256": "9bcc451964025d9f0bb1344c45957b6bfd095451b44bfb9a01f8584a75db6a72"
+}

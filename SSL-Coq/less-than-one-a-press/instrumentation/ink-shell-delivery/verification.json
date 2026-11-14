@@ -1,0 +1,20 @@
+{
+  "independentReplayMatched": true,
+  "trials": 49,
+  "followups": 6,
+  "initializedAcquisitions": 5,
+  "uninitializedAcquisitions": 2,
+  "alreadyInitializedFrozenPickup": 1,
+  "initializedAfterAllocationIntoHeldSlot": 4,
+  "nativeReleaseMounts": 4,
+  "nativeReleaseFailures": 2,
+  "postEntryGrantPerTrial": "gObjectPool[32].oAction=4",
+  "AInputs": 0,
+  "hashes": {
+    "instrumentation/ink-shell-delivery/pending_slot.py": "e8c0423e1178193267fd2ef69bc8ab66c71f04b8f8f19a56d137df23a44db021",
+    "instrumentation/ink-shell-delivery/pending-results.json.gz": "51ab91d4323add5efdca985d34a2b063fe7702d901ab16875d2dcfa15c6394ed",
+    "instrumentation/ink-shell-delivery/verification.log": "31cf184978006a3e122befb311572139ecb16e6f10c7741ccb7fe9e155e85f2e",
+    "instrumentation/ink-shell-delivery/README.md": "0688d94ff668fbbb3054629332f61ad3dfa8cef83ede8893ff452c4c7864cdf5",
+    "docs/notes/ink-shell-delivery-source.md": "f4056ce8dc91d9d59979f05e774ab458a1ce8334cfc277ef5411d021de20dbce"
+  }
+}

@@ -729,3 +729,4 @@ proofs/InkBelowCapPhaseGuard.v
 proofs/InkBelowCapPhaseBounds.v
 proofs/InkBoxFloor.v
 proofs/InkBoxFloorFrame.v
+proofs/InkShellBridge.v

@@ -1,0 +1,177 @@
+{
+  "passed": true,
+  "fullComparedFieldsMatch": false,
+  "case": "late",
+  "inputCount": 1972,
+  "comparedObservations": 1624,
+  "mismatchCount": 462,
+  "firstMismatches": [
+    [
+      372,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      373,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      374,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      375,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      376,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      377,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      378,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      379,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      380,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      381,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      382,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      383,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      384,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      385,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      386,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      387,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      388,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      389,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      390,
+      "slot23.subtype",
+      2,
+      0
+    ],
+    [
+      391,
+      "slot23.subtype",
+      2,
+      0
+    ]
+  ],
+  "prefixDifference": {
+    "firstPoll": 372,
+    "lastPoll": 833,
+    "field": "slot23.subtype",
+    "native": 2,
+    "wafel": 0,
+    "count": 462
+  },
+  "exactSuffixFirstPoll": 834,
+  "exactSuffixObservations": 1139,
+  "exactSuffixMismatchCount": 0,
+  "WafelMinusNativeTimer": [
+    1
+  ],
+  "AInputs": 0,
+  "gameplayMemoryWrites": [
+    {
+      "poll": 1817,
+      "slot": 32,
+      "field": "oAction",
+      "before": 2,
+      "after": 4
+    }
+  ],
+  "mounted": false,
+  "scope": "Native small-box expiry/pending pickup, one shell-box action4 grant, native carry/throw and low walking mount test; not high delivery or Ink handoff",
+  "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+  "nativeBehaviorPointers": [
+    2148442716,
+    2148451608
+  ],
+  "nativeCommandCorrespondence": {
+    "bhvCarrySomething3[1]": [
+      2148448104
+    ],
+    "bhvCarrySomething5[1]": [
+      2148448120
+    ]
+  },
+  "hashes": {
+    "rawLog": "aeae144dde25d47b8bee7ba7edf00103e18345f1f63754b353498ca49b3437fc",
+    "inputs": "2240b555efd7d3605cd82ae951b30ed5679ac8dcb9519ca993d038beb60e1b6a",
+    "controller": "b93b535a43819f5ff692c403f8591906ced45f9600b7bc6a025cac53ed270c44",
+    "wafelTrace": "ba9d31f6e224517838c36d7f149f1407261c60f5001020a587476ae34716760e",
+    "probe": "9f8daf27599c5bb4215583e663e43ccc4aade1c852c45ed88d2f08cc6cc0c245",
+    "checker": "b8e3cc17f3bfc8a831f0f7ab9abb9e460119bbf07d7613b7485b2c940c961da7"
+  }
+}

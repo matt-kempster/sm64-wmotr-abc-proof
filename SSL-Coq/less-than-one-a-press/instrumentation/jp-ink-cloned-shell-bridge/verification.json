@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "records": [
+    "relocated-rider",
+    "high-freefall",
+    "same-update-z"
+  ],
+  "recordManifestSha256": {
+    "relocated-rider": "e4d0e5eda6f52d39dde4339c2ce6cec40decf28ed208e3500bc9c0371f810b45",
+    "high-freefall": "ad3934610878616dcb54c25232a44f23a9c6caaab2107b96fe39b9f32bc657c0",
+    "same-update-z": "eddc4517dc04ac0539a1449fca9a85bd8d2e433f7a318ddf0bccc23b77d49f5f"
+  },
+  "filesSha256": {
+    "probe.c": "6a0029fef017a9be199f81b81457713914bb9c4bb7cf7e6b0beeeada781ad95a",
+    "run.sh": "8a4823769e3d27d00c217eef1c6465f701ce10cdaef69515210e581e775167d8",
+    "check.py": "e9d697f1567259593b8afd865404b120ea1a1eaa83c1454485fc1df74417fe54",
+    "prepare_expected.py": "766d137d6e3b8b9f4944ff1c261ddc6cf9f7691841689738ccff02c308a2f7cc",
+    "verify.py": "11602772cd2fe9db2ac6928f0cac52788a9c133e5e32f2eb48cbf65cb0d1b10d",
+    "expected.json.gz": "a1664072c1e113aef7b07b51e98e8c906f95af3b768960a6c187b3f6ab67a67d",
+    "README.md": "c18417e1b649e2ee47bbee70b35de293237beb2b1b8a0a046fddc6085baeb2aa",
+    ".gitattributes": "730a35ae3d558080083c3103d9ac8100c3f6561678092abe341701dfa331eb1d"
+  },
+  "noteSha256": "a7fbe0d0290da9fe30a6e9e15662eca6927e49270afcf3fc8097bc269afa13cd",
+  "allSelectedPhysicalFieldsMatch": true,
+  "strictRawSelectedFieldsMatch": false,
+  "rawMismatch": "208 global timer differences, native +2 = Wafel; every difference archived",
+  "coverage": "208 compared boundaries; 492 native observations; two absent camera observations per warp explicitly reported"
+}

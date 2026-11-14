@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "date": "2026-11-14",
+  "scope": "Initialized native shell, conditional fake pickup/releases, supplied-pose mount diagnostics; no controller delivery or high handoff",
+  "independentlyVerifiedBoundaries": 228,
+  "proofStart": "162617b708b2244beca85af58b76ad5794e598cd",
+  "filesSha256": {
+    ".gitattributes": "730a35ae3d558080083c3103d9ac8100c3f6561678092abe341701dfa331eb1d",
+    "README.md": "eb4b75bf186419084613b48ee8b598f37df532065af98f13bf3d3e6cf9781d91",
+    "test.py": "28130311248a478bea060872a8404e36b73ce0dc740228dae6fcd1962dad6528",
+    "verify.py": "64b4172d53667e57bbd9fb10df709da6733cf2334c2480619a9cde870d83163b",
+    "results.json.gz": "46a3df60f12ba0ebd5be509419449b89a6ad735348e61c59dc1e50b34d2b7bc1"
+  },
+  "noteSha256": "624e614b715b2bf1d69640ed67dda00d23d1415a1bdd4f5929f57a70723cd189"
+}

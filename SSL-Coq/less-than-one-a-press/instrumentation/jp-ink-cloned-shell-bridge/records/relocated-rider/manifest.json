@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "mode": 1,
+  "height": 25000,
+  "sourceDirectory": "jp-shell-bridge-pilot-positive",
+  "files": {
+    "raw.log": {
+      "compressedSha256": "32cf44571dac02274984d87066e2687c6dcd5ca43e740842625bcef6d6a7a690",
+      "uncompressedSha256": "6103920f863c411a66423c27f05d7ed54baaa8e94cb2df7a70fab7bd7b1a9d18",
+      "uncompressedBytes": 222918
+    },
+    "trace.txt": {
+      "compressedSha256": "9d90928d97125390a8c30dd18c3819c8663328b0376a6b197c652f52afc716e4",
+      "uncompressedSha256": "28e168e8e432bfb655628d66beeafe4edf5cf1a12544b797517c4f3f937dba0b",
+      "uncompressedBytes": 126870
+    },
+    "probe-source.c": {
+      "compressedSha256": "e5d7f47e898d51e4fab3f1ca162d1538ed540f42dd96896913aaa921844e334c",
+      "uncompressedSha256": "6a0029fef017a9be199f81b81457713914bb9c4bb7cf7e6b0beeeada781ad95a",
+      "uncompressedBytes": 6879
+    },
+    "prefix-source.c": {
+      "compressedSha256": "358c366222f65ce5e3053d7bc83a7d41bb0813a8e482cc7b239ea16156651a3f",
+      "uncompressedSha256": "7ebe3672f71bb596610b6b3b3fe2804a451ca74e3a5bcd48a94ff864e2bdc8b5",
+      "uncompressedBytes": 197714
+    },
+    "run-source.sh": {
+      "compressedSha256": "ed47df0a066a04e0948760b26d8f6a8b3803a9af542fa06dfbc9667801737c8c",
+      "uncompressedSha256": "8a4823769e3d27d00c217eef1c6465f701ce10cdaef69515210e581e775167d8",
+      "uncompressedBytes": 1440
+    },
+    "checker-source.py": {
+      "compressedSha256": "28549a46b64eb2f35b7991ab248cd42fb4a71347b35c46fc6e216fed7542612a",
+      "uncompressedSha256": "e9d697f1567259593b8afd865404b120ea1a1eaa83c1454485fc1df74417fe54",
+      "uncompressedBytes": 11641
+    },
+    "receipt.json": {
+      "compressedSha256": "dd8c0a242c489f3f32d944634e3cefdc06a947fd163a37a09f47f8679ba9cbe9",
+      "uncompressedSha256": "55f96626a039ae012a91258b16a0d3f6d5fdd1057f8634bf355d5bfc8fb6b12d",
+      "uncompressedBytes": 250683
+    }
+  },
+  "counts": {
+    "observations": 163,
+    "writes": 61,
+    "compared": 66,
+    "missing": 2,
+    "mismatches": 66
+  }
+}
