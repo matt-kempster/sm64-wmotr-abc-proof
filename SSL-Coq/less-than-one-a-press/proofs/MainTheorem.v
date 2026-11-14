@@ -53,7 +53,7 @@ From LessThanOneAPress.Proofs Require Import
   SecretContactExecution
   InkBackwardSource InkBackwardExecution InkCopyCaller InkFloorResetCopy InkRawCopyHeight
   InkQuicksandBackward InkMovingBackward InkControllerBackward InkBackwardHistory
-  PositionSplitCatalog TweesterGap InkConcreteProducerBoundary InkSlideHandoff InkMarioEntryGuards InkIdleOffFloorGuard InkBuddyMovement InkMarioRawCopyCall InkMarioZeroParticleTail InkFlyGuySizeBoundary
+  PositionSplitCatalog TweesterGap InkConcreteProducerBoundary InkSlideHandoff InkMarioEntryGuards InkIdleOffFloorGuard InkBuddyMovement InkBuddyAcquisition InkMarioRawCopyCall InkMarioZeroParticleTail InkFlyGuySizeBoundary
   InkBounceLiveReadBoundary InkStockBounceHeight InkFlyGuyCycleHeight InkPokeyLiveScale
   CompCertRouteScope TeleporterWrongWarpBoundary TeleporterShindouReset
   TeleporterDestinationReset TeleporterPlatformResetExecution
@@ -1619,6 +1619,13 @@ Proof. exact iio_idle_off_floor_guard_checked. Qed.
     actions. Conditional drop placement does not supply a pickup history. *)
 Theorem current_ink_buddy_movement_boundary : InkBuddyMovementBoundary.
 Proof. exact ibm_buddy_movement_checked. Qed.
+
+(** A remembered Buddy conversation pointer without a current GRABBABLE
+    input cannot pass the actual grab selector. Pending pickup actions also
+    fail native NPC readiness. These are local execution guards, not a
+    complete reachable-pointer or allocation invariant. *)
+Theorem current_ink_buddy_acquisition_boundary : InkBuddyAcquisitionBoundary.
+Proof. exact iba_buddy_acquisition_guards_checked. Qed.
 
 (** Also consumes the actual object-push commit frame, nearby static-floor
     certificate, post-query crawl-quarter execution and non-null item-drop

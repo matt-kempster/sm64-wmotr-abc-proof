@@ -1,0 +1,197 @@
+{
+  "passed": true,
+  "AInputs": 0,
+  "postStartupGameWrites": 0,
+  "sourcePrefix": {
+    "rows": 2852,
+    "sha256": "9bcc451964025d9f0bb1344c45957b6bfd095451b44bfb9a01f8584a75db6a72"
+  },
+  "archiveSha256": "ae82b7ae637d4f98d03acaa0f1ef2552a833371acf581d7eaca4a62d714fab5b",
+  "checks": [
+    {
+      "name": "talk",
+      "prefixInputs": 2339,
+      "suffixInputs": 500,
+      "exactSampleCount": 500,
+      "final": {
+        "timer": 2840,
+        "area": 1,
+        "level": 26,
+        "mario": [
+          -5748.158203125,
+          0.0,
+          -4385.802734375
+        ],
+        "action": 135953,
+        "actionName": "ACT_STANDING_DEATH",
+        "actionState": 0,
+        "actionTimer": 0,
+        "held": -1,
+        "used": 55,
+        "interact": 122,
+        "floor": 0.0,
+        "buddy": [
+          -5990.0,
+          0.0,
+          -3871.0
+        ],
+        "buddyAction": 0,
+        "buddyActive": 0,
+        "buddyHeld": 0,
+        "input": 8224,
+        "health": 250,
+        "quicksand": 0.0,
+        "forward": 0.0,
+        "dialog": -1
+      }
+    },
+    {
+      "name": "talk-v2",
+      "prefixInputs": 2339,
+      "suffixInputs": 329,
+      "exactSampleCount": 329,
+      "final": {
+        "timer": 2669,
+        "area": 1,
+        "level": 8,
+        "mario": [
+          -5903.70654296875,
+          0.0,
+          -3777.8203125
+        ],
+        "action": 205521409,
+        "actionName": "ACT_IDLE",
+        "actionState": 1,
+        "actionTimer": 0,
+        "held": -1,
+        "used": 15,
+        "interact": 15,
+        "floor": 0.0,
+        "buddy": [
+          -5990.0,
+          0.0,
+          -3871.0
+        ],
+        "buddyAction": 0,
+        "buddyActive": 257,
+        "buddyHeld": 0,
+        "input": 32,
+        "health": 640,
+        "quicksand": 0.0,
+        "forward": 32.882869720458984,
+        "dialog": -1
+      }
+    },
+    {
+      "name": "carry",
+      "prefixInputs": 2675,
+      "suffixInputs": 2,
+      "exactSampleCount": 2,
+      "final": {
+        "timer": 2678,
+        "area": 1,
+        "level": 8,
+        "mario": [
+          -5272.7041015625,
+          -0.0,
+          1778.505615234375
+        ],
+        "action": 899,
+        "actionName": "ACT_PICKING_UP",
+        "actionState": 1,
+        "actionTimer": 0,
+        "held": 49,
+        "used": 49,
+        "interact": 49,
+        "floor": -0.0,
+        "buddy": [
+          -5990.0,
+          0.0,
+          -3871.0
+        ],
+        "buddyAction": 0,
+        "buddyActive": 259,
+        "buddyHeld": 0,
+        "input": 32,
+        "health": 1920,
+        "quicksand": 0.0,
+        "forward": 0.0,
+        "dialog": -1
+      }
+    },
+    {
+      "name": "transport",
+      "prefixInputs": 2675,
+      "suffixInputs": 123,
+      "exactSampleCount": 123,
+      "final": {
+        "timer": 2799,
+        "area": 1,
+        "level": 8,
+        "mario": [
+          -4554.224609375,
+          -140.10997009277344,
+          443.6163635253906
+        ],
+        "action": 9176147,
+        "actionName": "ACT_STOMACH_SLIDE",
+        "actionState": 0,
+        "actionTimer": 0,
+        "held": -1,
+        "used": 49,
+        "interact": 49,
+        "floor": -140.10997009277344,
+        "buddy": [
+          -5990.0,
+          0.0,
+          -3871.0
+        ],
+        "buddyAction": 0,
+        "buddyActive": 259,
+        "buddyHeld": 0,
+        "input": 1,
+        "health": 1920,
+        "quicksand": 0.0,
+        "forward": -14.741421699523926,
+        "dialog": -1
+      }
+    },
+    {
+      "name": "aftertalk",
+      "prefixInputs": 2668,
+      "suffixInputs": 801,
+      "exactSampleCount": 801,
+      "final": {
+        "timer": 3470,
+        "area": 1,
+        "level": 8,
+        "mario": [
+          -5104.796875,
+          -0.0,
+          1748.840087890625
+        ],
+        "action": 899,
+        "actionName": "ACT_PICKING_UP",
+        "actionState": 1,
+        "actionTimer": 0,
+        "held": 49,
+        "used": 49,
+        "interact": 49,
+        "floor": -0.0,
+        "buddy": [
+          -5990.0,
+          0.0,
+          -3871.0
+        ],
+        "buddyAction": 0,
+        "buddyActive": 259,
+        "buddyHeld": 0,
+        "input": 1,
+        "health": 640,
+        "quicksand": 0.0,
+        "forward": 0.0,
+        "dialog": -1
+      }
+    }
+  ]
+}

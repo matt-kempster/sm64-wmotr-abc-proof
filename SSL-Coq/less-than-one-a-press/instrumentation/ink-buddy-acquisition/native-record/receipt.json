@@ -1,0 +1,278 @@
+{
+  "passed": true,
+  "scope": "Original Japanese ROM, complete controller-only history after debug-level-select startup; conversation and native donor pickup, no Buddy grab/clone or Ink delivery",
+  "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+  "romMd5": "85d61f5525af708c9f1e84dce6dc10e9",
+  "inputCount": 3471,
+  "nativeObservedPolls": 3123,
+  "WafelMinusNativeGlobalTimer": [
+    1
+  ],
+  "AInputs": 0,
+  "gameplayMemoryWrites": 0,
+  "behaviorPointers": {
+    "buddy": [
+      2148447528
+    ],
+    "box": [
+      2148440432
+    ]
+  },
+  "comparison": "Exact binary32 M/C/D/floor, action/input/platform/top and buddy/box XYZ/action/activity/held/reference fields at before-controller-poll boundaries; not whole-memory equivalence",
+  "mismatchCount": 0,
+  "firstMismatches": [],
+  "hashes": {
+    "rawLog": "3fe6b26833003e0857315e400d674defa6c1383679e69ef01b5e2164561d06e4",
+    "inputs": "c3165ace8576d68df34216877d8009a37d64ec65deca9b42ca3006d8126003c8",
+    "controllerInputs": "9ea30126f4915960c361aa48d147acd05ffa404e78f414b9d5b31f1ddeab47a7",
+    "wafelTrace": "626fb1211ea089da8c2cfad2f069f15d32b1b06eb5bd1933ba2dfd2106dac457",
+    "probe": "305ffc27ba79dc38e28ecb12f54df58e831e94c76f08e9591cf04dd7c467b50a",
+    "checker": "29ae97cd12685542a0c2b8bd4677d201a08be0d019577725d5a145f4b26ecccc",
+    "plugin": "c92aeb295a158f49b013ec408ad29d01b9066e4f2b356bec41f4d808eae8c9d6"
+  },
+  "milestones": [
+    {
+      "poll": 2340,
+      "timer": 2339,
+      "action": 67109952,
+      "actionState": 0,
+      "used": 55,
+      "held": -1,
+      "interact": 55,
+      "buddyBits": [
+        3317379072,
+        0,
+        3312578560
+      ],
+      "buddyHeld": 0,
+      "buddyAction": 0,
+      "buddyActive": 257,
+      "buddyBehavior": 2148447528,
+      "boxBits": [
+        3315761152,
+        2147483648,
+        1154777088
+      ],
+      "boxHeld": 0,
+      "boxAction": 0,
+      "boxActive": 259,
+      "boxBehavior": 2148440432
+    },
+    {
+      "poll": 2360,
+      "timer": 2359,
+      "action": 4874,
+      "actionState": 0,
+      "used": 15,
+      "held": -1,
+      "interact": 15,
+      "buddyBits": [
+        3317379072,
+        0,
+        3312578560
+      ],
+      "buddyHeld": 0,
+      "buddyAction": 2,
+      "buddyActive": 257,
+      "buddyBehavior": 2148447528,
+      "boxBits": [
+        3315761152,
+        2147483648,
+        1154777088
+      ],
+      "boxHeld": 0,
+      "boxAction": 0,
+      "boxActive": 259,
+      "boxBehavior": 2148440432
+    },
+    {
+      "poll": 2669,
+      "timer": 2668,
+      "action": 205521409,
+      "actionState": 1,
+      "used": 15,
+      "held": -1,
+      "interact": 15,
+      "buddyBits": [
+        3317379072,
+        0,
+        3312578560
+      ],
+      "buddyHeld": 0,
+      "buddyAction": 0,
+      "buddyActive": 257,
+      "buddyBehavior": 2148447528,
+      "boxBits": [
+        3315761152,
+        2147483648,
+        1154777088
+      ],
+      "boxHeld": 0,
+      "boxAction": 0,
+      "boxActive": 259,
+      "boxBehavior": 2148440432
+    },
+    {
+      "poll": 3466,
+      "timer": 3465,
+      "action": 8389719,
+      "actionState": 1,
+      "used": 15,
+      "held": -1,
+      "interact": 49,
+      "buddyBits": [
+        3317379072,
+        0,
+        3312578560
+      ],
+      "buddyHeld": 0,
+      "buddyAction": 0,
+      "buddyActive": 259,
+      "buddyBehavior": 2148447528,
+      "boxBits": [
+        3315761152,
+        1107232640,
+        1154777088
+      ],
+      "boxHeld": 0,
+      "boxAction": 0,
+      "boxActive": 257,
+      "boxBehavior": 2148440432
+    },
+    {
+      "poll": 3467,
+      "timer": 3466,
+      "action": 8389719,
+      "actionState": 1,
+      "used": 15,
+      "held": -1,
+      "interact": 49,
+      "buddyBits": [
+        3317379072,
+        0,
+        3312578560
+      ],
+      "buddyHeld": 0,
+      "buddyAction": 0,
+      "buddyActive": 259,
+      "buddyBehavior": 2148447528,
+      "boxBits": [
+        3315761152,
+        1106168160,
+        1154777088
+      ],
+      "boxHeld": 0,
+      "boxAction": 0,
+      "boxActive": 257,
+      "boxBehavior": 2148440432
+    },
+    {
+      "poll": 3468,
+      "timer": 3467,
+      "action": 899,
+      "actionState": 0,
+      "used": 49,
+      "held": -1,
+      "interact": 49,
+      "buddyBits": [
+        3317379072,
+        0,
+        3312578560
+      ],
+      "buddyHeld": 0,
+      "buddyAction": 0,
+      "buddyActive": 259,
+      "buddyBehavior": 2148447528,
+      "boxBits": [
+        3315761152,
+        1103006528,
+        1154777088
+      ],
+      "boxHeld": 0,
+      "boxAction": 0,
+      "boxActive": 257,
+      "boxBehavior": 2148440432
+    },
+    {
+      "poll": 3469,
+      "timer": 3468,
+      "action": 899,
+      "actionState": 0,
+      "used": 49,
+      "held": -1,
+      "interact": 49,
+      "buddyBits": [
+        3317379072,
+        0,
+        3312578560
+      ],
+      "buddyHeld": 0,
+      "buddyAction": 0,
+      "buddyActive": 259,
+      "buddyBehavior": 2148447528,
+      "boxBits": [
+        3315761152,
+        1096587840,
+        1154777088
+      ],
+      "boxHeld": 0,
+      "boxAction": 0,
+      "boxActive": 257,
+      "boxBehavior": 2148440432
+    },
+    {
+      "poll": 3470,
+      "timer": 3469,
+      "action": 899,
+      "actionState": 1,
+      "used": 49,
+      "held": 49,
+      "interact": 49,
+      "buddyBits": [
+        3317379072,
+        0,
+        3312578560
+      ],
+      "buddyHeld": 0,
+      "buddyAction": 0,
+      "buddyActive": 259,
+      "buddyBehavior": 2148447528,
+      "boxBits": [
+        3315566176,
+        2147483648,
+        1155177186
+      ],
+      "boxHeld": 1,
+      "boxAction": 0,
+      "boxActive": 257,
+      "boxBehavior": 2148440432
+    },
+    {
+      "poll": 3471,
+      "timer": 3470,
+      "action": 899,
+      "actionState": 1,
+      "used": 49,
+      "held": 49,
+      "interact": 49,
+      "buddyBits": [
+        3317379072,
+        0,
+        3312578560
+      ],
+      "buddyHeld": 0,
+      "buddyAction": 0,
+      "buddyActive": 259,
+      "buddyBehavior": 2148447528,
+      "boxBits": [
+        3315566176,
+        2147483648,
+        1155177186
+      ],
+      "boxHeld": 1,
+      "boxAction": 0,
+      "boxActive": 257,
+      "boxBehavior": 2148440432
+    }
+  ]
+}

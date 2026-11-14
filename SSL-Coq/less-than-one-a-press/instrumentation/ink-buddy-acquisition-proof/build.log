@@ -1,0 +1,10 @@
+$ bash pipeline/build.sh audit-build 'AUDIT_VO_TARGETS=proofs/InkRetryQuery.vo proofs/InkVerticalRetryGeometry.vo proofs/MainTheorem.vo'
+Activated proof toolchain 'sm64-item-proof'.
+  coqc:      The Coq Proof Assistant, version 8.16.1
+  clightgen: The CompCert CompCert AST generator, version 3.15
+make -f CoqMakefile proofs/InkRetryQuery.vo proofs/InkVerticalRetryGeometry.vo proofs/MainTheorem.vo
+make[1]: Entering directory '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/SSL-Coq/less-than-one-a-press'
+make[1]: 'proofs/InkRetryQuery.vo' is up to date.
+make[1]: 'proofs/InkVerticalRetryGeometry.vo' is up to date.
+COQC proofs/MainTheorem.v
+make[1]: Leaving directory '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/SSL-Coq/less-than-one-a-press'

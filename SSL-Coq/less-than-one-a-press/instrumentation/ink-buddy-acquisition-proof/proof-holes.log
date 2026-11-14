@@ -1,0 +1,2 @@
+$ bash pipeline/check-no-admitted.sh
+no forbidden proof holes or unconstrained declarations found

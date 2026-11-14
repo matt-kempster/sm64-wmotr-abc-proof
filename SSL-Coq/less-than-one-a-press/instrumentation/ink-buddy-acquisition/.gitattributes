@@ -1,0 +1,9 @@
+*.py text eol=lf
+*.c text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.inputs text eol=lf
+*.gz binary
+.gitattributes text eol=lf
