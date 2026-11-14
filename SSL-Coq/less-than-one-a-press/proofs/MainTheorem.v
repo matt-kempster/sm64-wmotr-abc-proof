@@ -53,7 +53,7 @@ From LessThanOneAPress.Proofs Require Import
   SecretContactExecution
   InkBackwardSource InkBackwardExecution InkCopyCaller InkFloorResetCopy InkRawCopyHeight
   InkQuicksandBackward InkMovingBackward InkControllerBackward InkBackwardHistory
-  PositionSplitCatalog TweesterGap InkConcreteProducerBoundary InkSlideHandoff InkMarioEntryGuards InkMarioRawCopyCall InkMarioZeroParticleTail InkFlyGuySizeBoundary
+  PositionSplitCatalog TweesterGap InkConcreteProducerBoundary InkSlideHandoff InkMarioEntryGuards InkIdleOffFloorGuard InkMarioRawCopyCall InkMarioZeroParticleTail InkFlyGuySizeBoundary
   InkBounceLiveReadBoundary InkStockBounceHeight InkFlyGuyCycleHeight InkPokeyLiveScale
   CompCertRouteScope TeleporterWrongWarpBoundary TeleporterShindouReset
   TeleporterDestinationReset TeleporterPlatformResetExecution
@@ -1607,6 +1607,12 @@ Proof. exact isl_slide_handoff_boundary_checked. Qed.
 
 Theorem current_ink_mario_entry_guard_boundary : InkMarioEntryGuardBoundary.
 Proof. exact imeg_mario_entry_guards_checked. Qed.
+
+(** A reached idle cancellation cut with live OFF_FLOOR set returns through
+    the real FREEFALL request before later slide/walk/Z controls. Earlier
+    guards, cache production and knockback/entry reachability remain separate. *)
+Theorem current_ink_idle_off_floor_guard_boundary : InkIdleOffFloorGuardBoundary.
+Proof. exact iio_idle_off_floor_guard_checked. Qed.
 
 (** Also consumes the actual object-push commit frame, nearby static-floor
     certificate, post-query crawl-quarter execution and non-null item-drop

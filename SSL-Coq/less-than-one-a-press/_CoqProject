@@ -722,5 +722,6 @@ proofs/InkLowFixtureCrawl.v
 proofs/InkPuVpu.v
 proofs/InkSlideHandoff.v
 proofs/InkMarioEntryGuards.v
+proofs/InkIdleOffFloorGuard.v
 proofs/InkBelowCapPhaseGuard.v
 proofs/InkBelowCapPhaseBounds.v
