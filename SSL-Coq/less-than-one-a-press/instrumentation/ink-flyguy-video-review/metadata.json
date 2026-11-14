@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "reviewDate": "2026-11-14",
+  "inputFile": "YTDown.com_YouTube_Media__IuC9Ci57Hs_The-B-Button-Challenge_001_1080p.mp4",
+  "inputBytes": 356769072,
+  "inputSha256": "66efc953971d6f3d77f9d0bccdbaaa5da8cbbadb499cfa988bcabae609ee6e49",
+  "durationSeconds": 889.022404,
+  "video": {
+    "codec": "h264",
+    "width": 1920,
+    "height": 1080,
+    "nominalFrameRate": "30000/1001"
+  },
+  "audioCodec": "aac",
+  "audioAnalyzed": false,
+  "frameExtractor": "ffmpeg version 7.0.2-full_build-www.gyan.dev",
+  "fullResolutionFramesVisuallyInspectedSeconds": [270, 280, 300, 310, 330, 340, 350, 360, 375, 390, 405, 420, 435, 450],
+  "coarseContactSheets": {"filter": "fps=1/15,scale=320:-1,tile=5x6", "count": 2},
+  "recordedSourceReference": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "sourceFileChecked": "levels/ttm/areas/1/macro.inc.c",
+  "stockTTMFlyGuy": {"preset": "macro_fire_fly_guy", "xyz": [2300, -1384, 3753]},
+  "sourceDiffAgainstPin": "empty",
+  "evidence": "Visual frames and on-screen commentary from user-provided reference video, with separate stock-source identity check",
+  "limitations": [
+    "No controller input movie or ROM provenance",
+    "Video demonstrates B-button restrictions, not an A-free route",
+    "Long jump, sliding jump and BLJ are explicitly used in the inspected segment",
+    "No new SSL gameplay or Ink witness follows from this review",
+    "Full video and extracted copyrighted frames remain local and are not redistributed"
+  ]
+}

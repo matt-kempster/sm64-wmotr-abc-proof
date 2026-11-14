@@ -1,0 +1,47 @@
+{
+  "passed": true,
+  "trials": 146,
+  "matchedSuffixObservations": 21181,
+  "archives": [
+    {
+      "archive": "lures.json.gz",
+      "trials": 32,
+      "matchedSuffixObservations": 7789,
+      "sha256": "8cc9120932a9354e6f73f06c12be6ee6701820c4a60ed79cdfc62bfd166adc53"
+    },
+    {
+      "archive": "burn-roof.json.gz",
+      "trials": 18,
+      "matchedSuffixObservations": 6928,
+      "sha256": "82c54ac73e80944ca0e80e6e7b5c8de5ce98136f7b7e95669e48b43a1c49f147"
+    },
+    {
+      "archive": "pre-fourth-late.json.gz",
+      "trials": 48,
+      "matchedSuffixObservations": 722,
+      "sha256": "c734697f441dd86d3e947dcc05ebd1b953d92fc493377024bada86aa1d7f116e"
+    },
+    {
+      "archive": "pre-fourth-early.json.gz",
+      "trials": 48,
+      "matchedSuffixObservations": 5742,
+      "sha256": "1ba0bd66e6ad9bf4f6cbc4164d8136d78d244135b5cd7137cb0853cc455bb68b"
+    }
+  ],
+  "files": {
+    ".gitattributes": "abeba78466be388a1c5f3cb4ad595b915a0aa9402d1d87e37dfe42762e5b91c5",
+    "burn-roof.json.gz": "82c54ac73e80944ca0e80e6e7b5c8de5ce98136f7b7e95669e48b43a1c49f147",
+    "burn_roof.py": "768d80f1ebadc2a25e4e3109548bcaf5b12df01cd22421f0455386ff66f9fc09",
+    "harness.py": "63cf9f011e3bc7b42ce3f794792f33ab7c0dac4790a6e4341a8c3734aeb96083",
+    "lures.json.gz": "8cc9120932a9354e6f73f06c12be6ee6701820c4a60ed79cdfc62bfd166adc53",
+    "native-flame-roof-inputs.jsonl": "cf29c62a3d94965448d92bfe577b8d20dcf4d8f24f8fee3db694c8dd02c6a745",
+    "native-flame-roof-receipt.json": "b6c9c02e9e4581850d034d0ad24f114ae92759260fa64ea942804c310b5bb2a8",
+    "pre-fourth-early.json.gz": "1ba0bd66e6ad9bf4f6cbc4164d8136d78d244135b5cd7137cb0853cc455bb68b",
+    "pre-fourth-late.json.gz": "c734697f441dd86d3e947dcc05ebd1b953d92fc493377024bada86aa1d7f116e",
+    "preserve.py": "426d6e9818b647beb9fc5fa19867109c384ad41f6593195f10ef7bec2de69c5d",
+    "pre_fourth.py": "6ddf89692a486ebfa956ba38488f1ce453007f6805976dfbd90213deb678beec",
+    "README.md": "4bcefd13ccde87c57c26a75b8e97677166af1cf94398d1076d36c4929754201a",
+    "search.py": "2164f2e3216f52d3a27d0492b1f9107628a6aeea587c52f0355222095c473730"
+  },
+  "scope": "Controller-only post-top-expiry luring and flame-assisted roof action; no usable Ink handoff or original-ROM result in this receipt"
+}

@@ -1,0 +1,49 @@
+Activated proof toolchain 'sm64-item-proof'.
+  coqc:      The Coq Proof Assistant, version 8.16.1
+  clightgen: The CompCert CompCert AST generator, version 3.15
+make -f CoqMakefile proofs/InkFlyGuyEntryGuards.vo
+make[1]: Entering directory '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/SSL-Coq/less-than-one-a-press'
+COQDEP VFILES
+COQC proofs/InkFlyGuyEntryGuards.v
+IF
+(Ebinop Oand (Etempvar us_interaction._action tuint)
+   (Ebinop Oshl (Econst_int (Int.repr 1) tint)
+      (Econst_int (Int.repr 23) tint) tint) tuint)
+IF
+(Ebinop Oeq (Etempvar us_interaction._action tuint)
+   (Econst_int (Int.repr 8389504) tint) tint)
+SET us_interaction._t'10
+(Ecast
+   (Ebinop Oeq (Etempvar us_interaction._action tuint)
+      (Econst_int (Int.repr 8389719) tint) tint) tbool)
+IF (Etempvar us_interaction._t'10 tint)
+SET us_interaction._t'11
+(Ecast
+   (Ebinop Oeq (Etempvar us_interaction._action tuint)
+      (Econst_int (Int.repr 25168044) tint) tint) tbool)
+IF (Etempvar us_interaction._t'11 tint)
+IF
+(Ebinop Oeq (Etempvar us_interaction._action tuint)
+   (Econst_int (Int.repr 8390825) tint) tint)
+SET us_interaction._t'9
+(Ecast
+   (Ebinop Oeq (Etempvar us_interaction._action tuint)
+      (Econst_int (Int.repr 276826276) tint) tint) tbool)
+IF (Etempvar us_interaction._t'9 tint)
+SET us_interaction._t'22
+(Ederef
+   (Ebinop Oadd
+      (Efield
+         (Ederef
+            (Etempvar us_interaction._m
+               (tptr (Tstruct us_interaction._MarioState noattr)))
+            (Tstruct us_interaction._MarioState noattr)) us_interaction._vel
+         (tarray tfloat 3)) (Econst_int (Int.repr 1) tint) 
+      (tptr tfloat)) tfloat)
+File "./proofs/InkFlyGuyEntryGuards.v", line 123, characters 5-13:
+Error: No applicable tactic.
+
+make[1]: *** [CoqMakefile:793: proofs/InkFlyGuyEntryGuards.vo] Error 1
+make[1]: Leaving directory '/mnt/c/Users/tariq/OneDrive/Documents/sm64 - the item-grab proof/reference-sm64-wmotr-abc-proof/SSL-Coq/less-than-one-a-press'
+make: *** [Makefile:27: audit-build] Error 2
+

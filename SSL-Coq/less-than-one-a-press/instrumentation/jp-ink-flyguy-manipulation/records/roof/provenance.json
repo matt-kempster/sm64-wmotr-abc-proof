@@ -1,0 +1,30 @@
+{
+  "proofRevision": "4813e95d33286a30882caf0759dd838c95ee48f2",
+  "stockSource": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "runtime": "Wafel 0.8.5 JP, Python 3.9.13; original JP via Mupen64Plus 2.5.9 interpreter, Rice 2.5.9, HLE RSP, dummy audio",
+  "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+  "romMD5": "85d61f5525af708c9f1e84dce6dc10e9",
+  "runtimeDllSha256": "960fe979068b78e6733b3ddb87741833fbf4eb29b2a21a2bba871977427c2d0f",
+  "capture": "capture.Kp9pbE",
+  "startupGrant": "existing debug level-selection entry only; all subsequent writes controller inputs, A off",
+  "sourceFiles": {
+    "instrumentation/jp-ink-flyguy-manipulation/native-probe.c": "2daffaec5cfc693558bef5d6843d1a1c5f5daf67839e84979ff74229d0e122bb",
+    "instrumentation/jp-ink-flyguy-manipulation/prepare.py": "42ef363c9999b3e223ea8bc79e3ceaa44a6f7314407154234c6740d167fd9651",
+    "instrumentation/jp-ink-flyguy-manipulation/check.py": "20c8b7babfc773b243327a4ee5aeb7033e71700ab6a9384f6c478a464d89dcea",
+    "instrumentation/jp-ink-flyguy-manipulation/diagnose.py": "0b92cd586cc576bfdb29000a66dd85f8d59a08dad3d9dd41c1003641f18cb42e",
+    "instrumentation/jp-ink-flyguy-manipulation/archive.py": "fd9c2b18e5ed693ee39af9abd2272ddc4538018bd2f9cce26e067d6090799f35",
+    "instrumentation/wafel-jp-pilot/capture.c": "aa11c73ccfa57cc06369bfd0bda2b4e5404f4caabca2cb76cb1ce3d4764b7f13",
+    "instrumentation/wafel-jp-pilot/capture.sh": "ce5f376440601278b9492a7897aa5640bc6a6182567f557d326f86c6ed2c2487",
+    "instrumentation/wafel-jp-pilot/replay.py": "ea422b6478e40931c9d61aaa0e19c9d86a551a0219dbeaca85cd9a82e70df66d",
+    "instrumentation/jp-warp-acceptance/probe.c": "cdb7a5b36e19b9d008d160e994648118d35519a5bd3de0f2c477f2504d485f01"
+  },
+  "files": {
+    "controller.inputs": "bf39c53f1be5a98f797fe7ab260fc0333be25775ba0d29219ad87c9d9c900c4e",
+    "diagnostic.json": "1f95d31701307581142334b26efde5a15eb428cb2191613817eedf8d63cbe04c",
+    "fields.json": "f699bd6d3edebf0eaeb6e21245c019c6f476caf913f69b3f24f99542bcfbc8ec",
+    "inputs.jsonl": "3d66baaab100afe4112fbec11dea9bd5eba9d847c9a07b1b74cdddca30580e8e",
+    "raw.log.gz": "7bcb0e92d2b70def85643d62df55a90b393406d1460e208b21e13872fb3304d9",
+    "strict-receipt.json": "3782fd433766d6d3628e02584e4d8312c42cef5fba42a73f721ee8d0c9e80733",
+    "wafel-trace.json.gz": "426de8cb1a88a9a6db7b40b377e545b601db805f5790ab90e34be37d6520963b"
+  }
+}

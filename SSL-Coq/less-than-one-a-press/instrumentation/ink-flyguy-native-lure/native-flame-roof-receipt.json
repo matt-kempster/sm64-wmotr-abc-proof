@@ -1,0 +1,258 @@
+{
+  "inputCount": 3487,
+  "AInputs": 0,
+  "gameplayWrites": [],
+  "startupGrant": "inherited debug level selection only",
+  "recipe": {
+    "radius": 350,
+    "lead": 0.4,
+    "direction": 1
+  },
+  "final": {
+    "n": 3487,
+    "timer": 3488,
+    "level": 8,
+    "area": 1,
+    "M": [
+      -2379.44970703125,
+      1280.0,
+      -1048.8916015625
+    ],
+    "C": [
+      -2379.44970703125,
+      1280.0,
+      -1048.8916015625
+    ],
+    "D": [
+      -2379.44970703125,
+      1280.0,
+      -1048.8916015625
+    ],
+    "action": 67142728,
+    "actionName": "ACT_CRAWLING",
+    "state": 0,
+    "arg": 0,
+    "input": 16385,
+    "velocity": [
+      -0.26735642552375793,
+      0.0,
+      2.8488576412200928
+    ],
+    "forward": 2.861375331878662,
+    "used": 49,
+    "held": -1,
+    "floorY": 1280.0,
+    "floorType": 48,
+    "floorOwner": -1,
+    "platform": -1,
+    "health": 1446,
+    "quicksand": 0.0,
+    "topNative": false,
+    "topActive": 0,
+    "topAction": 0,
+    "topTimer": 3,
+    "pillars": 1101004800,
+    "collisions": [],
+    "rng": 23587,
+    "fly": {
+      "xyz": [
+        -2516.90234375,
+        1604.6527099609375,
+        -1748.4000244140625
+      ],
+      "home": [
+        -3400.0,
+        1160.0,
+        -1120.0
+      ],
+      "native": true,
+      "action": 1,
+      "timer": 50,
+      "active": 257,
+      "velocity": [
+        -8.505495071411133,
+        0.0,
+        5.258950233459473
+      ],
+      "forward": 10.0,
+      "moveYaw": -10606,
+      "faceYaw": 1884,
+      "scale": [
+        1.5,
+        1.5,
+        1.5
+      ],
+      "intangible": 0,
+      "interact": 0,
+      "height": 90.0,
+      "radius": 105.0,
+      "distance": 786.0189819335938,
+      "flags": 128
+    }
+  },
+  "maxFlySample": {
+    "n": 3310,
+    "timer": 3311,
+    "level": 8,
+    "area": 1,
+    "M": [
+      -2074.66455078125,
+      1280.0,
+      -1364.85791015625
+    ],
+    "C": [
+      -2074.66455078125,
+      1280.0,
+      -1364.85791015625
+    ],
+    "D": [
+      -2074.66455078125,
+      1280.0,
+      -1364.85791015625
+    ],
+    "action": 67142728,
+    "actionName": "ACT_CRAWLING",
+    "state": 0,
+    "arg": 0,
+    "input": 16385,
+    "velocity": [
+      -3.4667985439300537,
+      0.0,
+      0.6179941892623901
+    ],
+    "forward": 3.5214498043060303,
+    "used": 49,
+    "held": -1,
+    "floorY": 1280.0,
+    "floorType": 48,
+    "floorOwner": -1,
+    "platform": -1,
+    "health": 1446,
+    "quicksand": 0.0,
+    "topNative": false,
+    "topActive": 0,
+    "topAction": 0,
+    "topTimer": 3,
+    "pillars": 1101004800,
+    "collisions": [],
+    "rng": 44850,
+    "fly": {
+      "xyz": [
+        -2182.48291015625,
+        1735.033447265625,
+        -1086.2354736328125
+      ],
+      "home": [
+        -3400.0,
+        1160.0,
+        -1120.0
+      ],
+      "native": true,
+      "action": 2,
+      "timer": 60,
+      "active": 257,
+      "velocity": [
+        0.06429091840982437,
+        0.5,
+        -20.955514907836914
+      ],
+      "forward": 20.95561408996582,
+      "moveYaw": -32791,
+      "faceYaw": 32745,
+      "scale": [
+        1.5,
+        1.5,
+        1.5
+      ],
+      "intangible": 0,
+      "interact": 0,
+      "height": 90.0,
+      "radius": 105.0,
+      "distance": 555.32177734375,
+      "flags": 128
+    }
+  },
+  "firstCrawl": {
+    "n": 3174,
+    "timer": 3175,
+    "level": 8,
+    "area": 1,
+    "M": [
+      -1723.08349609375,
+      1280.0,
+      -1318.9306640625
+    ],
+    "C": [
+      -1723.08349609375,
+      1280.0,
+      -1318.9306640625
+    ],
+    "D": [
+      -1723.08349609375,
+      1280.0,
+      -1318.9306640625
+    ],
+    "action": 67142728,
+    "actionName": "ACT_CRAWLING",
+    "state": 0,
+    "arg": 0,
+    "input": 16385,
+    "velocity": [
+      -0.0,
+      0.0,
+      -0.0
+    ],
+    "forward": 0.0,
+    "used": 49,
+    "held": -1,
+    "floorY": 1280.0,
+    "floorType": 48,
+    "floorOwner": -1,
+    "platform": -1,
+    "health": 1446,
+    "quicksand": 0.0,
+    "topNative": false,
+    "topActive": 0,
+    "topAction": 0,
+    "topTimer": 3,
+    "pillars": 1101004800,
+    "collisions": [],
+    "rng": 17360,
+    "fly": {
+      "xyz": [
+        -2896.84912109375,
+        1331.7686767578125,
+        -941.4921264648438
+      ],
+      "home": [
+        -3400.0,
+        1160.0,
+        -1120.0
+      ],
+      "native": true,
+      "action": 1,
+      "timer": 7,
+      "active": 257,
+      "velocity": [
+        3.333312511444092,
+        0.0,
+        -1.067252278327942
+      ],
+      "forward": 3.5,
+      "moveYaw": 19627,
+      "faceYaw": 19627,
+      "scale": [
+        1.5,
+        1.5,
+        1.5
+      ],
+      "intangible": 0,
+      "interact": 0,
+      "height": 90.0,
+      "radius": 105.0,
+      "distance": 1237.5118408203125,
+      "flags": 128
+    }
+  },
+  "scope": "Archive and freshly reconstruct every actual native lure continuation."
+}

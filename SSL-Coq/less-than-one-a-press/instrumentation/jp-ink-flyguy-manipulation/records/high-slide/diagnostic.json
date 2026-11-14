@@ -1,0 +1,62 @@
+{
+  "strictComparisonPassed": false,
+  "marioTrajectoryFieldsMatch": true,
+  "extraFieldsMatchExceptReportedSubtype": true,
+  "observations": 2521,
+  "primaryMismatchCount": 0,
+  "extraMismatchCount": 1951,
+  "extraMismatchFields": {
+    "oInteractionSubtype": 1951
+  },
+  "mismatchPollRanges": [
+    [
+      849,
+      2799
+    ]
+  ],
+  "firstDifferences": [
+    [
+      849,
+      "oInteractionSubtype",
+      130,
+      128
+    ],
+    [
+      850,
+      "oInteractionSubtype",
+      130,
+      128
+    ],
+    [
+      851,
+      "oInteractionSubtype",
+      130,
+      128
+    ]
+  ],
+  "lastDifferences": [
+    [
+      2797,
+      "oInteractionSubtype",
+      130,
+      128
+    ],
+    [
+      2798,
+      "oInteractionSubtype",
+      130,
+      128
+    ],
+    [
+      2799,
+      "oInteractionSubtype",
+      130,
+      128
+    ]
+  ],
+  "primaryDifferences": [],
+  "matchedScope": "Exact recorded Mario M/C/stored-graphics, action/input, floor/cache and platform; Fly Guy XYZ, velocity, action, home, activation, headings and scale",
+  "limit": "The delayed-invincibility subtype differs and affects the damage guard in general. This diagnostic does not establish whole-state equivalence or the cause of that difference.",
+  "rawLogSha256": "9507b253ee9cb899a907dabb565a595c21eaac05c0808b22cf742f8497903f6f",
+  "scriptSha256": "0b92cd586cc576bfdb29000a66dd85f8d59a08dad3d9dd41c1003641f18cb42e"
+}

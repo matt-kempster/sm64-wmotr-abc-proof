@@ -1,0 +1,93 @@
+{
+  "inputs": 3097,
+  "observations": 2749,
+  "AInputs": 0,
+  "gameplayWrites": 0,
+  "startupGrant": "debug level selection",
+  "source": "actual controller replay, Wafel JP; original-ROM comparison recorded separately",
+  "inputsSha256": "3d66baaab100afe4112fbec11dea9bd5eba9d847c9a07b1b74cdddca30580e8e",
+  "traceSha256": "1e50759f7403cd7c62c7f032f163788badfcaf369ed0d17e8705965eff2d614f",
+  "maxMarioY": 1885.1968994140625,
+  "final": {
+    "n": 3097,
+    "timer": 3098,
+    "level": 8,
+    "area": 1,
+    "M": [
+      -2112.283447265625,
+      1280.0,
+      -1495.3319091796875
+    ],
+    "C": [
+      -2112.283447265625,
+      1280.0,
+      -1495.3319091796875
+    ],
+    "D": [
+      -2112.283447265625,
+      1280.0,
+      -1495.3319091796875
+    ],
+    "action": 201359908,
+    "actionName": "ACT_STOP_CRAWLING",
+    "state": 0,
+    "arg": 0,
+    "input": 1,
+    "velocity": [
+      0.0,
+      0.0,
+      -0.0
+    ],
+    "forward": 0.0,
+    "used": 49,
+    "held": -1,
+    "floorY": 1280.0,
+    "floorType": 48,
+    "floorOwner": -1,
+    "platform": -1,
+    "health": 2176,
+    "quicksand": 0.0,
+    "topNative": false,
+    "topActive": 0,
+    "topAction": 0,
+    "topTimer": 8,
+    "pillars": 0,
+    "collisions": [],
+    "rng": 5684,
+    "fly": {
+      "xyz": [
+        -3053.05419921875,
+        949.4702758789062,
+        -906.597900390625
+      ],
+      "home": [
+        -3400.0,
+        1160.0,
+        -1120.0
+      ],
+      "native": true,
+      "action": 2,
+      "timer": 1,
+      "active": 0,
+      "velocity": [
+        -1.9919637441635132,
+        -6.019296646118164,
+        18.74935531616211
+      ],
+      "forward": 18.854873657226562,
+      "moveYaw": -1095,
+      "faceYaw": 13383,
+      "scale": [
+        1.5,
+        1.5,
+        1.5
+      ],
+      "intangible": 0,
+      "interact": 0,
+      "height": 90.0,
+      "radius": 105.0,
+      "distance": 198.5558624267578,
+      "flags": 128
+    }
+  }
+}

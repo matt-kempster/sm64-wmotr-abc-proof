@@ -1,0 +1,16 @@
+{
+  "matchedBoundaries": 3504,
+  "shortRecipes": 24,
+  "extendedContinuations": 4,
+  "freshLowCacheAll": true,
+  "shortSplitCount": 0,
+  "captureCount": 0,
+  "usefulCount": 0,
+  "files": {
+    ".gitattributes": "abeba78466be388a1c5f3cb4ad595b915a0aa9402d1d87e37dfe42762e5b91c5",
+    "prefix.jsonl.gz": "92fe78f908354ca3c47afad0e31e8d34fef6f3bef6981761add363b3e7e61c01",
+    "README.md": "deb3de775492b66d2d82c02e70614e2f337e6da9a079abcc7ba6b1e8543369c1",
+    "results.json.gz": "6411572cdff9787968dfe7a689396ae24aefdb356fc89d89aa2c24685972cd36",
+    "test.py": "6386b68afba1aac828da693fb18ab28f93d18c8a4d53f34cf7f7473636e8ba52"
+  }
+}

@@ -1,0 +1,198 @@
+(** UNCOMPILED DRAFT, 2026-11-14. Not registered in _CoqProject or imported by
+    MainTheorem. The targeted pipeline fails in ifg_descending_twirl_path at
+    the generated vel[1] < 0 branch; subsequent theorems are unverified. See
+    ink-flyguy-native-manipulation-source.md for the exact status. The presence
+    of Qed text in this draft is not a successful kernel check.+
+    The actual generated classifier distinguishes a descending twirl attack
+    from an ordinary falling hit. The real shell mounting gate rejects that
+    result while Mario remains twirling. This closes the direct twirl/shell/Z
+    shortcut at its two actual execution cuts, not all earlier Fly Guy routes. *)
+From Coq Require Import Bool List ZArith.
+From compcert Require Import AST Clight ClightBigstep Clightdefs Cop Ctypes
+  Events Floats Globalenvs Integers Maps Memory Values.
+From LessThanOneAPress.Generated Require Import us_interaction jp_interaction.
+From LessThanOneAPress.Proofs Require Import GameTypes InkActionPassStart
+  InkBackwardSource InkBackwardExecution InkCopyCaller InkWarpStop
+  InkBounceApproachGap InkBounceDetermineEntry ObjectContactNecessity
+  ObjectContactReadback ReadOnlyClightPaths SelectedClightTarget ASTFacts.
+Import ListNotations.
+Import Clightdefs.ClightNotations.
+Local Open Scope Z_scope.
+Local Opaque selected_clight_target.
+Module FGE := us_interaction.
+
+Definition ifg_twirl := Int.repr 276826276.
+Definition ifg_classifier_prefix version :=
+  ocn_prefix_items 4 (fn_body (ibag_determine_body version)).
+Definition ifg_classifier_return := Sreturn (Some (Etempvar FGE._interaction tuint)).
+Definition ifg_shell version := match version with
+| VersionUS => us_interaction.f_interact_koopa_shell
+| VersionJP => jp_interaction.f_interact_koopa_shell end.
+Definition ifg_shell_gate version := match fn_body (ifg_shell version) with
+| Ssequence (Ssequence _ (Sifthenelse _
+    (Ssequence _ (Ssequence gate _)) _)) _ => gate
+| _ => Sskip end.
+
+Lemma ifg_classifier_shape : forall version,
+  fn_body (ibag_determine_body version) =
+    ocn_prepend (ifg_classifier_prefix version) ifg_classifier_return /\
+  forallb ibk_normal (ifg_classifier_prefix version) = true.
+Proof. intros []; split; reflexivity. Qed.
+
+Lemma ifg_velocity_read : forall version le memory mario y,
+  le ! FGE._m = Some (Vptr mario Ptrofs.zero) ->
+  Mem.load Mfloat32 memory mario 76 = Some (Vsingle y) ->
+  eval_expr (Clight.globalenv (selected_clight_target version)) empty_env le memory
+    (iws_velocity_index 1) (Vsingle y).
+Proof.
+  intros version le memory mario y Hm Hy.
+  destruct (ibcc_field_ok_sound _ _ _ _
+    (proj2 (proj2 (proj2 (iws_selected_fields version))))) as (co & Hco & Hoff).
+  eapply eval_Elvalue with (ofs := Ptrofs.repr 76) (bf := Full).
+  - apply eval_Ederef. eapply eval_Ebinop with
+      (v1 := Vptr mario (Ptrofs.repr 72)) (v2 := Vint Int.one).
+    + eapply eval_Elvalue with (ofs := Ptrofs.add Ptrofs.zero (Ptrofs.repr 72)) (bf := Full).
+      * eapply eval_Efield_struct with (co := co).
+        -- eapply eval_Elvalue.
+           ++ apply eval_Ederef. apply eval_Etempvar. exact Hm.
+           ++ apply deref_loc_copy. reflexivity.
+        -- reflexivity.
+        -- exact Hco.
+        -- exact Hoff.
+      * apply deref_loc_reference. reflexivity.
+    + apply eval_Econst_int.
+    + reflexivity.
+  - eapply deref_loc_value with (chunk := Mfloat32); [reflexivity|exact Hy].
+Qed.
+
+Ltac ifg_temp := repeat rewrite PTree.gso by discriminate;
+  first [apply PTree.gss | assumption].
+
+(** Evaluation only of the real expressions on the selected path. Constants
+    are reduced individually; the selected whole program is kept opaque. *)
+Ltac ifg_eval := first
+  [ apply eval_Econst_int
+  | apply eval_Econst_single
+  | apply eval_Etempvar; ifg_temp
+  | eapply ias_field_read with (offset := 12) (chunk := Mint32);
+      [apply ias_selected_action_field|reflexivity|ifg_temp|assumption]
+  | match goal with
+      H : Mem.load Mfloat32 ?memory ?mario 76 = Some (Vsingle ?y) |- _ =>
+      eapply ifg_velocity_read with (mario := mario) (y := y);
+        [ifg_temp|exact H]
+    end
+  | eapply eval_Ecast; [ifg_eval|reflexivity]
+  | eapply eval_Ebinop; [ifg_eval|ifg_eval|
+      first [reflexivity|
+        change (Some (Val.of_bool (Float32.cmp Clt _ Float32.zero)) = _);
+        match goal with H : Float32.cmp Clt _ Float32.zero = true |- _ =>
+          rewrite H; reflexivity end]] ].
+
+Ltac ifg_path := lazymatch goal with
+  | |- readonly_path _ _ _ _ Sskip _ => apply ro_skip
+  | |- readonly_path _ _ _ _ (Ssequence _ _) _ =>
+      eapply ro_seq; [ifg_path|ifg_path]
+  | |- readonly_path _ _ _ _ (Sset ?id ?expression) _ =>
+      idtac "SET" id expression;
+      apply ro_set; tryif ifg_eval then idtac else
+        (match goal with |- ?g => idtac "READ FAILED" g end; fail)
+  | |- readonly_path _ _ _ _ (Sifthenelse (Ebinop Olt _ _ _) _ _) _ =>
+      eapply ro_if with (v := Vint Int.one) (choice := true);
+        [ifg_eval|reflexivity|]; cbn; ifg_path
+  | |- readonly_path _ _ _ _ (Sifthenelse ?condition _ _) _ =>
+      idtac "IF" condition;
+      first [eapply ro_if with (choice := true); [ifg_eval|reflexivity|]
+            |eapply ro_if with (choice := false); [ifg_eval|reflexivity|]];
+      cbn; ifg_path
+  end.
+
+Lemma ifg_descending_twirl_path : forall version le memory mario y,
+  le ! FGE._m = Some (Vptr mario Ptrofs.zero) ->
+  Mem.load Mint32 memory mario 12 = Some (Vint ifg_twirl) ->
+  Mem.load Mfloat32 memory mario 76 = Some (Vsingle y) ->
+  Float32.cmp Clt y Float32.zero = true ->
+  exists final,
+    readonly_path (Clight.globalenv (selected_clight_target version)) empty_env
+      memory le (ocn_prepend (ifg_classifier_prefix version) Sskip) final /\
+    final ! FGE._interaction = Some (Vint Int.one).
+Proof.
+  intros version le memory mario y Hm Ha Hy Hnegative.
+  destruct version; (eexists; split;
+    [cbn [ifg_classifier_prefix ibag_determine_body ocn_prefix_items ocn_prepend
+      us_interaction.f_determine_interaction jp_interaction.f_determine_interaction fn_body];
+     eapply ro_seq; [apply ro_set; apply eval_Econst_int|];
+     eapply ro_seq;
+       [apply ro_set; eapply ias_field_read with (offset := 12) (chunk := Mint32);
+        [apply ias_selected_action_field|reflexivity|
+         rewrite PTree.gso by discriminate; exact Hm|exact Ha]|];
+     ifg_path
+    |ifg_temp]).
+Qed.
+
+Definition IFGDescendingClassifier : Prop :=
+  forall version le memory mario y trace final after out,
+  le ! FGE._m = Some (Vptr mario Ptrofs.zero) ->
+  Mem.load Mint32 memory mario 12 = Some (Vint ifg_twirl) ->
+  Mem.load Mfloat32 memory mario 76 = Some (Vsingle y) ->
+  Float32.cmp Clt y Float32.zero = true ->
+  ocn_exec (Clight.globalenv (selected_clight_target version)) empty_env le memory
+    (fn_body (ibag_determine_body version)) trace final after out ->
+  trace = E0 /\ after = memory /\
+    out = Out_return (Some (Vint Int.one, tuint)).
+
+Theorem ifg_descending_twirl_is_attack_not_falling_hit : IFGDescendingClassifier.
+Proof.
+  intros version le memory mario y trace final after out Hm Ha Hy Hnegative Hrun.
+  destruct (ifg_descending_twirl_path version le memory mario y Hm Ha Hy Hnegative)
+    as (ready & Hpath & Hone).
+  destruct (ifg_classifier_shape version) as [Hbody Hnormal]. rewrite Hbody in Hrun.
+  destruct (ibk_split_prefix _ _ _ _ _ _ _ _ _ _ Hnormal Hrun)
+    as (cut & cutmem & pre & post & Htrace & Hprefix & Hreturn).
+  destruct (readonly_path_forces_every_execution _ _ _ _ _ _ Hpath _ _ _ _ Hprefix)
+    as (-> & -> & -> & _).
+  unfold ifg_classifier_return in Hreturn. inversion Hreturn; subst.
+  match goal with Hv : eval_expr _ _ _ _ (Etempvar FGE._interaction _) ?v |- _ =>
+    assert (v = Vint Int.one) by (eapply ocn_temp_value; [exact Hv|exact Hone]); subst v end.
+  repeat split; reflexivity.
+Qed.
+
+Lemma ifg_shell_gate_source : forall version,
+  calls_ident_s FGE._set_mario_action (ifg_shell_gate version) = true.
+Proof. intros []; reflexivity. Qed.
+
+Lemma ifg_twirl_shell_gate_path : forall version le memory mario,
+  le ! FGE._m = Some (Vptr mario Ptrofs.zero) ->
+  le ! FGE._interaction = Some (Vint Int.one) ->
+  Mem.load Mint32 memory mario 12 = Some (Vint ifg_twirl) ->
+  exists final, readonly_path (Clight.globalenv (selected_clight_target version))
+    empty_env memory le (ifg_shell_gate version) final.
+Proof.
+  intros version le memory mario Hm Hi Ha. destruct version; eexists;
+    cbn [ifg_shell_gate ifg_shell us_interaction.f_interact_koopa_shell
+      jp_interaction.f_interact_koopa_shell fn_body]; ifg_path.
+Qed.
+
+Definition IFGTwirlShellGate : Prop :=
+  forall version le memory mario trace final after out,
+  le ! FGE._m = Some (Vptr mario Ptrofs.zero) ->
+  le ! FGE._interaction = Some (Vint Int.one) ->
+  Mem.load Mint32 memory mario 12 = Some (Vint ifg_twirl) ->
+  ocn_exec (Clight.globalenv (selected_clight_target version)) empty_env le memory
+    (ifg_shell_gate version) trace final after out ->
+  trace = E0 /\ after = memory /\ out = Out_normal.
+
+Theorem ifg_twirl_shell_mount_gate_skips_action_request : IFGTwirlShellGate.
+Proof.
+  intros version le memory mario trace final after out Hm Hi Ha Hrun.
+  destruct (ifg_twirl_shell_gate_path version le memory mario Hm Hi Ha) as (ready & Hpath).
+  destruct (readonly_path_forces_every_execution _ _ _ _ _ _ Hpath _ _ _ _ Hrun)
+    as (-> & -> & -> & ->). repeat split; reflexivity.
+Qed.
+
+Definition InkFlyGuyEntryGuardBoundary : Prop :=
+  IFGDescendingClassifier /\ IFGTwirlShellGate.
+Theorem ifg_flyguy_entry_guards_checked : InkFlyGuyEntryGuardBoundary.
+Proof.
+  split; [exact ifg_descending_twirl_is_attack_not_falling_hit|
+    exact ifg_twirl_shell_mount_gate_skips_action_request].
+Qed.

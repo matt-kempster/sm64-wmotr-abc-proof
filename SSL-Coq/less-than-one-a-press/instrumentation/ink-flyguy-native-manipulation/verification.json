@@ -1,0 +1,58 @@
+{
+  "passed": true,
+  "AInputs": 0,
+  "primaryGameplayWrites": 0,
+  "checks": [
+    {
+      "file": "flyguy-approaches-v1.json.gz",
+      "histories": 80,
+      "matchedObservations": 9902,
+      "suppliedState": "none after inherited debug level selection"
+    },
+    {
+      "file": "flyguy-buddy-approach-v1.json.gz",
+      "histories": 28,
+      "matchedObservations": 3365,
+      "suppliedState": "none after inherited debug level selection"
+    },
+    {
+      "file": "flyguy-pre-fourth-brake-v1.json.gz",
+      "histories": 100,
+      "matchedObservations": 14120,
+      "suppliedState": "none after inherited debug level selection"
+    },
+    {
+      "file": "flyguy-pre-fourth-land-v1.json.gz",
+      "histories": 90,
+      "matchedObservations": 17582,
+      "suppliedState": "none after inherited debug level selection"
+    },
+    {
+      "file": "flyguy-stationary-box-v2.json.gz",
+      "histories": 780,
+      "matchedObservations": 35880,
+      "suppliedState": "small box23 XYZ once per trial"
+    },
+    {
+      "file": "flyguy-twirl-land-v1.json.gz",
+      "histories": 40,
+      "matchedObservations": 6966,
+      "suppliedState": "none after inherited debug level selection"
+    },
+    {
+      "file": "native-roof",
+      "histories": 1,
+      "matchedObservations": 2749,
+      "suppliedState": "none after inherited debug level selection"
+    },
+    {
+      "file": "native-high-slide",
+      "histories": 1,
+      "matchedObservations": 2521,
+      "suppliedState": "none after inherited debug level selection"
+    }
+  ],
+  "histories": 1120,
+  "matchedObservations": 93085,
+  "limitations": "Finite controller menus and actor-only component cuts; no exhaustive route claim. Original-ROM receipts are separate."
+}

@@ -1,0 +1,589 @@
+{
+  "inputs": 2869,
+  "observations": 2521,
+  "AInputs": 0,
+  "gameplayWrites": 0,
+  "startupGrant": "debug level selection",
+  "source": "actual controller replay, Wafel JP; original-ROM comparison recorded separately",
+  "creditedEarlierPrefix": "ink-box-delivery.md before-fourth native Fire Fly Guy bounce to Y2099.5149",
+  "inputsSha256": "730b9269cd1b03e4d0c530a21f5b6f25952ac27e60428c80602be4e7caed0c52",
+  "traceSha256": "cb707c6c4d3f86fa46a3c1fa1c759fec52feb4b47d1f8b5793d35e244acf57d3",
+  "milestones": [
+    {
+      "n": 2804,
+      "timer": 2805,
+      "level": 8,
+      "area": 1,
+      "M": [
+        -3254.871826171875,
+        1339.514892578125,
+        -1178.69970703125
+      ],
+      "C": [
+        -3254.871826171875,
+        1339.514892578125,
+        -1178.69970703125
+      ],
+      "D": [
+        -3254.871826171875,
+        1339.514892578125,
+        -1178.69970703125
+      ],
+      "action": 276826276,
+      "actionName": "ACT_TWIRLING",
+      "state": 0,
+      "arg": 0,
+      "input": 13,
+      "velocity": [
+        17.081613540649414,
+        76.0,
+        -29.20561981201172
+      ],
+      "forward": 33.83415222167969,
+      "used": 49,
+      "held": -1,
+      "floorY": 585.2697143554688,
+      "floorType": 53,
+      "floorOwner": -1,
+      "platform": -1,
+      "health": 1920,
+      "quicksand": 0.0,
+      "topNative": true,
+      "topActive": 257,
+      "topAction": 0,
+      "topTimer": 2457,
+      "pillars": 3,
+      "collisions": [
+        45
+      ],
+      "rng": 34823,
+      "fly": {
+        "xyz": [
+          -3400.0,
+          1168.3553466796875,
+          -1120.0
+        ],
+        "home": [
+          -3400.0,
+          1160.0,
+          -1120.0
+        ],
+        "native": true,
+        "action": 0,
+        "timer": 50,
+        "active": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "forward": 0.0,
+        "moveYaw": 3809,
+        "faceYaw": 3809,
+        "scale": [
+          1.5,
+          1.5,
+          1.5
+        ],
+        "intangible": 0,
+        "interact": 0,
+        "height": 90.0,
+        "radius": 105.0,
+        "distance": 231.1013641357422,
+        "flags": 128
+      }
+    },
+    {
+      "n": 2823,
+      "timer": 2824,
+      "level": 8,
+      "area": 1,
+      "M": [
+        -2782.939208984375,
+        2099.514892578125,
+        -1386.602294921875
+      ],
+      "C": [
+        -2782.939208984375,
+        2099.514892578125,
+        -1386.602294921875
+      ],
+      "D": [
+        -2782.939208984375,
+        2099.514892578125,
+        -1386.602294921875
+      ],
+      "action": 276826276,
+      "actionName": "ACT_TWIRLING",
+      "state": 0,
+      "arg": 1,
+      "input": 13,
+      "velocity": [
+        30.734540939331055,
+        0.0,
+        1.3209059238433838
+      ],
+      "forward": 30.76291275024414,
+      "used": 49,
+      "held": -1,
+      "floorY": 1056.9998779296875,
+      "floorType": 53,
+      "floorOwner": -1,
+      "platform": -1,
+      "health": 1920,
+      "quicksand": 0.0,
+      "topNative": true,
+      "topActive": 257,
+      "topAction": 0,
+      "topTimer": 2476,
+      "pillars": 3,
+      "collisions": [],
+      "rng": 16927,
+      "fly": {
+        "xyz": [
+          -3400.0,
+          1168.3553466796875,
+          -1120.0
+        ],
+        "home": [
+          -3400.0,
+          1160.0,
+          -1120.0
+        ],
+        "native": true,
+        "action": 0,
+        "timer": 50,
+        "active": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "forward": 0.0,
+        "moveYaw": 3809,
+        "faceYaw": 3809,
+        "scale": [
+          1.5,
+          1.5,
+          1.5
+        ],
+        "intangible": 0,
+        "interact": 0,
+        "height": 90.0,
+        "radius": 105.0,
+        "distance": 231.1013641357422,
+        "flags": 128
+      }
+    },
+    {
+      "n": 2855,
+      "timer": 2856,
+      "level": 8,
+      "area": 1,
+      "M": [
+        -2036.716552734375,
+        1772.0,
+        -1043.787353515625
+      ],
+      "C": [
+        -2036.716552734375,
+        1772.0,
+        -1043.787353515625
+      ],
+      "D": [
+        -2036.716552734375,
+        1772.0,
+        -1043.787353515625
+      ],
+      "action": 411042360,
+      "actionName": "ACT_TWIRL_LAND",
+      "state": 0,
+      "arg": 0,
+      "input": 9,
+      "velocity": [
+        13.310369491577148,
+        -12.5,
+        8.145374298095703
+      ],
+      "forward": 15.604905128479004,
+      "used": 49,
+      "held": -1,
+      "floorY": 1772.0,
+      "floorType": 53,
+      "floorOwner": 61,
+      "platform": 61,
+      "health": 1920,
+      "quicksand": 0.0,
+      "topNative": true,
+      "topActive": 257,
+      "topAction": 0,
+      "topTimer": 2508,
+      "pillars": 3,
+      "collisions": [],
+      "rng": 65439,
+      "fly": {
+        "xyz": [
+          -3400.0,
+          1168.3553466796875,
+          -1120.0
+        ],
+        "home": [
+          -3400.0,
+          1160.0,
+          -1120.0
+        ],
+        "native": true,
+        "action": 0,
+        "timer": 50,
+        "active": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "forward": 0.0,
+        "moveYaw": 3809,
+        "faceYaw": 3809,
+        "scale": [
+          1.5,
+          1.5,
+          1.5
+        ],
+        "intangible": 0,
+        "interact": 0,
+        "height": 90.0,
+        "radius": 105.0,
+        "distance": 231.1013641357422,
+        "flags": 128
+      }
+    },
+    {
+      "n": 2866,
+      "timer": 2867,
+      "level": 8,
+      "area": 1,
+      "M": [
+        -2036.716552734375,
+        1772.0,
+        -1043.787353515625
+      ],
+      "C": [
+        -2036.716552734375,
+        1772.0,
+        -1043.787353515625
+      ],
+      "D": [
+        -2036.716552734375,
+        1772.0,
+        -1043.787353515625
+      ],
+      "action": 205521409,
+      "actionName": "ACT_IDLE",
+      "state": 0,
+      "arg": 0,
+      "input": 16393,
+      "velocity": [
+        0.0,
+        -12.5,
+        0.0
+      ],
+      "forward": 0.0,
+      "used": 49,
+      "held": -1,
+      "floorY": 1772.0,
+      "floorType": 53,
+      "floorOwner": 61,
+      "platform": 61,
+      "health": 1920,
+      "quicksand": 0.0,
+      "topNative": true,
+      "topActive": 257,
+      "topAction": 0,
+      "topTimer": 2519,
+      "pillars": 3,
+      "collisions": [],
+      "rng": 32288,
+      "fly": {
+        "xyz": [
+          -3400.0,
+          1168.3553466796875,
+          -1120.0
+        ],
+        "home": [
+          -3400.0,
+          1160.0,
+          -1120.0
+        ],
+        "native": true,
+        "action": 0,
+        "timer": 50,
+        "active": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "forward": 0.0,
+        "moveYaw": 3809,
+        "faceYaw": 3809,
+        "scale": [
+          1.5,
+          1.5,
+          1.5
+        ],
+        "intangible": 0,
+        "interact": 0,
+        "height": 90.0,
+        "radius": 105.0,
+        "distance": 231.1013641357422,
+        "flags": 128
+      }
+    },
+    {
+      "n": 2867,
+      "timer": 2868,
+      "level": 8,
+      "area": 1,
+      "M": [
+        -2036.716552734375,
+        1768.0,
+        -1047.598876953125
+      ],
+      "C": [
+        -2036.716552734375,
+        1768.0,
+        -1047.598876953125
+      ],
+      "D": [
+        -2036.716552734375,
+        1768.0,
+        -1047.598876953125
+      ],
+      "action": 8651858,
+      "actionName": "ACT_BUTT_SLIDE",
+      "state": 0,
+      "arg": 0,
+      "input": 16393,
+      "velocity": [
+        0.0,
+        0.0,
+        -5.390084266662598
+      ],
+      "forward": 5.390084266662598,
+      "used": 49,
+      "held": -1,
+      "floorY": 1768.0,
+      "floorType": 53,
+      "floorOwner": 61,
+      "platform": 61,
+      "health": 1920,
+      "quicksand": 0.0,
+      "topNative": true,
+      "topActive": 257,
+      "topAction": 0,
+      "topTimer": 2520,
+      "pillars": 3,
+      "collisions": [],
+      "rng": 32030,
+      "fly": {
+        "xyz": [
+          -3400.0,
+          1168.3553466796875,
+          -1120.0
+        ],
+        "home": [
+          -3400.0,
+          1160.0,
+          -1120.0
+        ],
+        "native": true,
+        "action": 0,
+        "timer": 50,
+        "active": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "forward": 0.0,
+        "moveYaw": 3809,
+        "faceYaw": 3809,
+        "scale": [
+          1.5,
+          1.5,
+          1.5
+        ],
+        "intangible": 0,
+        "interact": 0,
+        "height": 90.0,
+        "radius": 105.0,
+        "distance": 231.1013641357422,
+        "flags": 128
+      }
+    },
+    {
+      "n": 2869,
+      "timer": 2870,
+      "level": 8,
+      "area": 1,
+      "M": [
+        -2037.098388671875,
+        1750.0001220703125,
+        -1065.971923828125
+      ],
+      "C": [
+        -2037.098388671875,
+        1750.0001220703125,
+        -1065.971923828125
+      ],
+      "D": [
+        -2037.098388671875,
+        1750.0001220703125,
+        -1065.971923828125
+      ],
+      "action": 8651858,
+      "actionName": "ACT_BUTT_SLIDE",
+      "state": 0,
+      "arg": 0,
+      "input": 16393,
+      "velocity": [
+        -0.4031601846218109,
+        0.0,
+        -15.443099975585938
+      ],
+      "forward": 15.44836139678955,
+      "used": 49,
+      "held": -1,
+      "floorY": 1750.0001220703125,
+      "floorType": 53,
+      "floorOwner": 61,
+      "platform": 61,
+      "health": 1920,
+      "quicksand": 0.0,
+      "topNative": true,
+      "topActive": 257,
+      "topAction": 0,
+      "topTimer": 2522,
+      "pillars": 3,
+      "collisions": [],
+      "rng": 48928,
+      "fly": {
+        "xyz": [
+          -3400.0,
+          1168.3553466796875,
+          -1120.0
+        ],
+        "home": [
+          -3400.0,
+          1160.0,
+          -1120.0
+        ],
+        "native": true,
+        "action": 0,
+        "timer": 50,
+        "active": 0,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "forward": 0.0,
+        "moveYaw": 3809,
+        "faceYaw": 3809,
+        "scale": [
+          1.5,
+          1.5,
+          1.5
+        ],
+        "intangible": 0,
+        "interact": 0,
+        "height": 90.0,
+        "radius": 105.0,
+        "distance": 231.1013641357422,
+        "flags": 128
+      }
+    }
+  ],
+  "final": {
+    "n": 2869,
+    "timer": 2870,
+    "level": 8,
+    "area": 1,
+    "M": [
+      -2037.098388671875,
+      1750.0001220703125,
+      -1065.971923828125
+    ],
+    "C": [
+      -2037.098388671875,
+      1750.0001220703125,
+      -1065.971923828125
+    ],
+    "D": [
+      -2037.098388671875,
+      1750.0001220703125,
+      -1065.971923828125
+    ],
+    "action": 8651858,
+    "actionName": "ACT_BUTT_SLIDE",
+    "state": 0,
+    "arg": 0,
+    "input": 16393,
+    "velocity": [
+      -0.4031601846218109,
+      0.0,
+      -15.443099975585938
+    ],
+    "forward": 15.44836139678955,
+    "used": 49,
+    "held": -1,
+    "floorY": 1750.0001220703125,
+    "floorType": 53,
+    "floorOwner": 61,
+    "platform": 61,
+    "health": 1920,
+    "quicksand": 0.0,
+    "topNative": true,
+    "topActive": 257,
+    "topAction": 0,
+    "topTimer": 2522,
+    "pillars": 3,
+    "collisions": [],
+    "rng": 48928,
+    "fly": {
+      "xyz": [
+        -3400.0,
+        1168.3553466796875,
+        -1120.0
+      ],
+      "home": [
+        -3400.0,
+        1160.0,
+        -1120.0
+      ],
+      "native": true,
+      "action": 0,
+      "timer": 50,
+      "active": 0,
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "forward": 0.0,
+      "moveYaw": 3809,
+      "faceYaw": 3809,
+      "scale": [
+        1.5,
+        1.5,
+        1.5
+      ],
+      "intangible": 0,
+      "interact": 0,
+      "height": 90.0,
+      "radius": 105.0,
+      "distance": 231.1013641357422,
+      "flags": 128
+    }
+  }
+}

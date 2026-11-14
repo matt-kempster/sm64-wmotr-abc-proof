@@ -1,0 +1,97 @@
+{
+  "proofRevision": "4813e95d33286a30882caf0759dd838c95ee48f2",
+  "date": "2026-11-14",
+  "runtime": {
+    "version": "Wafel 0.8.5 JP",
+    "python": "3.9.13 (tags/v3.9.13:6de2ca5, May 17 2022, 16:36:42) [MSC v.1929 64 bit (AMD64)]",
+    "dllSha256": "960fe979068b78e6733b3ddb87741833fbf4eb29b2a21a2bba871977427c2d0f"
+  },
+  "evidence": "Primary controller-only histories plus explicitly separate single-small-box XYZ cuts; finite coverage",
+  "noteSha256": "2eb58ec5e1909857aa12cb6e03f6eff734a821eacf0bf27dc4f11dceabb28932",
+  "filesSha256": {
+    ".gitattributes": "abeba78466be388a1c5f3cb4ad595b915a0aa9402d1d87e37dfe42762e5b91c5",
+    "manifest.py": "1c70c9fe613b47011a1d394ef763d7ea31f82d81fb1501d41067176f94b0cb66",
+    "native-high-slide-inputs.jsonl": "730b9269cd1b03e4d0c530a21f5b6f25952ac27e60428c80602be4e7caed0c52",
+    "native-high-slide-receipt.json": "f877e675d817246b217e7827a509ff6b98a673228e8724b7ab7f54db3fd543e6",
+    "native-high-slide-samples.json.gz": "cb707c6c4d3f86fa46a3c1fa1c759fec52feb4b47d1f8b5793d35e244acf57d3",
+    "native-roof-identity.json.gz": "8aef21a61228049a79acb7c95059039b49be42d0ca61492fd3b390c81dd196c4",
+    "native-roof-inputs.jsonl": "3d66baaab100afe4112fbec11dea9bd5eba9d847c9a07b1b74cdddca30580e8e",
+    "native-roof-receipt.json": "8c4bc9c69a30556e39de0b7e0e18719c0b6e9a1e9e84dcebdcff10aa19622f86",
+    "native-roof-samples.json.gz": "1e50759f7403cd7c62c7f032f163788badfcaf369ed0d17e8705965eff2d614f",
+    "preserve.py": "dcf45bf42c38f26daa5207638181f0510935ab9dce771dfa44077459b2970ddb",
+    "preserve_high.py": "8cf55a797376406e107497d19ebb9a6ad81c8291eabc47b802d63d1741b7d903",
+    "README.md": "6e33a486fcf0e7d14fa3e187db34137b786acc57517edb57b5a09df04511b8a8",
+    "records/flyguy-approaches-v1.json.gz": "cd089f377d608eb5dfa919f8a97fd674607f9e2a686e99ff8a0801f74056532c",
+    "records/flyguy-buddy-approach-v1.json.gz": "4572c61f74e6cca3a12a6ba375f2494f371649cc7ca666f9e1db6abd2c39178a",
+    "records/flyguy-pre-fourth-brake-v1.json.gz": "9056cea5560a66b1971185e8366e4c192054e869ae89b8b036ae396b15875c99",
+    "records/flyguy-pre-fourth-land-v1.json.gz": "f57b63c3e275c69f0ae1ba29290bc8e4fbc4299db4da0054ca5012e6f3a15a69",
+    "records/flyguy-stationary-box-v2.json.gz": "7336d0a48ae7220d0aeb6580e91536e307964f27faac1f1b042548d811a94f63",
+    "records/flyguy-twirl-land-v1.json.gz": "ad7f97ae1c74a71b93fa00c5379c18d578b93e8528e35a746c6bdecaffa567c8",
+    "search.py": "ff899269533f44e58e57026f74c9887c7fd52710903f01463f140423fed80b0e",
+    "stationary_box_probe.py": "f1a0edcb1b68cf7bf32fc2313dccd7db21ee3b7e1440ecd2076f4205d477a5ba",
+    "verification.json": "79453fdf4b9bfa166d89faee54993707984390eeac8fbb162a2b8e238aaf704a",
+    "verify.py": "995b277c5da8be68fd1e4be8cec19827335d32ccc732ba12f0b038a368930baa"
+  },
+  "helperSha256": {
+    "instrumentation/wafel-jp-pilot/replay.py": "ea422b6478e40931c9d61aaa0e19c9d86a551a0219dbeaca85cd9a82e70df66d",
+    "instrumentation/wafel-jp-pilot/ink_crawl_predecessors.py": "c4f64df454ebb845788788dfa25eabebe96e1f7221b2bba66f441ed387576a0b"
+  },
+  "verification": {
+    "passed": true,
+    "AInputs": 0,
+    "primaryGameplayWrites": 0,
+    "checks": [
+      {
+        "file": "flyguy-approaches-v1.json.gz",
+        "histories": 80,
+        "matchedObservations": 9902,
+        "suppliedState": "none after inherited debug level selection"
+      },
+      {
+        "file": "flyguy-buddy-approach-v1.json.gz",
+        "histories": 28,
+        "matchedObservations": 3365,
+        "suppliedState": "none after inherited debug level selection"
+      },
+      {
+        "file": "flyguy-pre-fourth-brake-v1.json.gz",
+        "histories": 100,
+        "matchedObservations": 14120,
+        "suppliedState": "none after inherited debug level selection"
+      },
+      {
+        "file": "flyguy-pre-fourth-land-v1.json.gz",
+        "histories": 90,
+        "matchedObservations": 17582,
+        "suppliedState": "none after inherited debug level selection"
+      },
+      {
+        "file": "flyguy-stationary-box-v2.json.gz",
+        "histories": 780,
+        "matchedObservations": 35880,
+        "suppliedState": "small box23 XYZ once per trial"
+      },
+      {
+        "file": "flyguy-twirl-land-v1.json.gz",
+        "histories": 40,
+        "matchedObservations": 6966,
+        "suppliedState": "none after inherited debug level selection"
+      },
+      {
+        "file": "native-roof",
+        "histories": 1,
+        "matchedObservations": 2749,
+        "suppliedState": "none after inherited debug level selection"
+      },
+      {
+        "file": "native-high-slide",
+        "histories": 1,
+        "matchedObservations": 2521,
+        "suppliedState": "none after inherited debug level selection"
+      }
+    ],
+    "histories": 1120,
+    "matchedObservations": 93085,
+    "limitations": "Finite controller menus and actor-only component cuts; no exhaustive route claim. Original-ROM receipts are separate."
+  }
+}
