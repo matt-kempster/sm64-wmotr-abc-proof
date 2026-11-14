@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "scope": "Two supplied-state original-JP checks; no delivery or global reachability claim",
+  "runs": [
+    {
+      "case": "positive",
+      "checked": 25,
+      "components": 1825,
+      "mismatches": 27,
+      "floorReturns": 690,
+      "writes": 95,
+      "noLaterSetupWrites": true,
+      "capture": true,
+      "arrival": "(365.592773,5500,-1096.80261)"
+    },
+    {
+      "case": "no-final-box",
+      "checked": 25,
+      "components": 1825,
+      "mismatches": 50,
+      "floorReturns": 667,
+      "writes": 92,
+      "noLaterSetupWrites": true,
+      "capture": false,
+      "arrival": "(0,5500,256)"
+    }
+  ],
+  "retainedClockOffsets": 50,
+  "retainedBoxSubtypeDifferences": 27,
+  "missingCameraBoundariesPerRun": [
+    25,
+    26
+  ],
+  "noteSha256": "9a24c44294dd65f2a9db8a040cb5894e89e1b3bb84f5f80c2a8da744d8ec806b",
+  "dependencies": {
+    "instrumentation/jp-ink-enlarged-bob-handoff/generate.py": "2b42b5fc4551c0b74482a3843b407e84c7cfa3171c3b014ad74f8ae4c3682376",
+    "instrumentation/ink-floor768-diagnosis/probe.c": "22bdb45e17f9fa25e41f041f35c3cece38920c0f95b080b45d43275d35d2d9bb",
+    "instrumentation/jp-clean-gap-search/jp_clean_gap_search_probe.c": "7ebe3672f71bb596610b6b3b3fe2804a451ca74e3a5bcd48a94ff864e2bdc8b5"
+  },
+  "files": {
+    ".gitattributes": "d1032ccdea407338eb64628c1f9695ac5ff1fc26e5f9af3f33c4bd163a6458cb",
+    "archive.py": "5fc272a682b737ab6f1c769334fba0ec5fb6f1833ec881ece115bf8a1d8341ea",
+    "check.py": "cea1e2059329ebae966235fa24a960711103c0dba12dc74fe1a7a7b5b47e031c",
+    "generate.py": "d4c9589f632867ef8c1c1bbfcc5b017a9ab4845e438392034032d43353829a82",
+    "no-final-box.c": "2b021647062403ba9db6f5374495e0eb93f9b973eb9c16a4675dd4137a96f67c",
+    "no-final-box.json": "55f5579067c1a21d4cdbd74bad408541e6aab0e33be17a869f2891a9b2904142",
+    "positive.c": "2e6a56b888242b22c9f22e1d8e1aad177b56418015ba68a931485d8df652d442",
+    "positive.json": "ed8adc617479afca5d9cbe9ff34e483509129e8a7bb14977be729dbb3176e0ec",
+    "README.md": "5fc9e3f7f1649927c14388162ee4b74acf13af29fc676fdd14344c5746cd2eb2",
+    "records/no-final-box/archive-hashes.json": "11cd758d097dc4729a546517f3dcc7aa973ea59e1ac7f9cf1d0f75af5212005d",
+    "records/no-final-box/case.json.gz": "02c32f74dcac67ce71a47996ada82f6dc59f7e6e41e93770dbe0805a1ec16e5a",
+    "records/no-final-box/checker-source.py.gz": "42707991907ee0da93dd80cff2109f3c65154c77fb0ca3edaf74c2100394e286",
+    "records/no-final-box/prefix-source.c.gz": "12fba15844709b6fb96babc7610f0e97444e90bfb91fa043d3979b16e5b4c779",
+    "records/no-final-box/probe-source.c.gz": "e5a61fc0eb07aa5fa594ad6ba49e6f90123fe6b5310457bea8c702b7892d7930",
+    "records/no-final-box/raw.log.gz": "e6fe1c0afb97a31f84715c7b7fca7b653b0f26a4aeaea38cb7a7cf5e9f6e3b6d",
+    "records/no-final-box/receipt.json.gz": "1ba0a50a7dfe98ad8997f82166402912e41b6fd61e80449d2c81b2e07d0934cd",
+    "records/no-final-box/run-source.sh.gz": "9c724fa66fe45c1508d2bec2cdf88af8a5f23a0c8d029d0cf9e7387e47467019",
+    "records/no-final-box/trace.txt.gz": "30e0edbf263404fb7d51f9531da40dfe2667e7fffe450289eee16833d3772165",
+    "records/positive/archive-hashes.json": "7a4e888bbde40c97aab1f86a711ac6667d78de93459c40424b0fce80615c4bb2",
+    "records/positive/case.json.gz": "7f78e868bcdccb92e8206ec1702d352d5bb115f80b0284a37116ab5e8469c99e",
+    "records/positive/checker-source.py.gz": "42707991907ee0da93dd80cff2109f3c65154c77fb0ca3edaf74c2100394e286",
+    "records/positive/prefix-source.c.gz": "12fba15844709b6fb96babc7610f0e97444e90bfb91fa043d3979b16e5b4c779",
+    "records/positive/probe-source.c.gz": "6f2d40f4603fada3323654e6a604abc30c132cac725f1132c6aa9e11f0bdcbf1",
+    "records/positive/raw.log.gz": "e35d9cf5bd889c2e85217a0affae4317b30ff9ab2847a0885cb65792e4913715",
+    "records/positive/receipt.json.gz": "cd7fa5b0134a092299fcfc7202d9cb248e43c380f836a07513eb0b6bfe48c890",
+    "records/positive/run-source.sh.gz": "9c724fa66fe45c1508d2bec2cdf88af8a5f23a0c8d029d0cf9e7387e47467019",
+    "records/positive/trace.txt.gz": "f47ab3ac22f79dc4d7c41ae11d26c7fe907ca8e7020160d591a5584c93f4cf96",
+    "run.sh": "adec9674f44bacad8391313e48309cc168bc214baf58220c02a560a42bf618e8",
+    "verify.py": "b31088f80370469af068475fd039759b5ef13957385c84fa9045aeb9f2a47aee"
+  }
+}

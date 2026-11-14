@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 65,
+      "sha256": "9fa86624e7afa33074271dc81f0fba89ffc01da2bdce80e7da7df8164ef1532f"
+    },
+    {
+      "path": "check.py",
+      "bytes": 5398,
+      "sha256": "3ac0ca57a0bfa625c400209f987d189a3bb1a093c8e859b568419afd12eaa3c3"
+    },
+    {
+      "path": "archive.py",
+      "bytes": 1316,
+      "sha256": "be02819134255d87fa510f1c0c86bc53cab27c364df5887b33ef3941ee4a5bd4"
+    },
+    {
+      "path": "README.md",
+      "bytes": 7499,
+      "sha256": "b920f15ac21dce19d8cffa83be72f5e9cecf009dfffe874afd8b47db163ec15a"
+    },
+    {
+      "path": "results.json.gz",
+      "bytes": 165412,
+      "sha256": "c7c545ced9f4edb4f6e238f135a696e1f96407268cc2c63e7b0186a4daab6d62"
+    }
+  ],
+  "inputs": [
+    {
+      "path": "docs/notes/ink-box-delivery-receipt.json",
+      "bytes": 480469,
+      "sha256": "6ad2cce7fb27dc4039a135286d7a3022d6340738319d75b805a75e33b41e4fd9"
+    },
+    {
+      "path": "instrumentation/ink-high-item-nudge/prefix.jsonl.gz",
+      "bytes": 70302,
+      "sha256": "92fe78f908354ca3c47afad0e31e8d34fef6f3bef6981761add363b3e7e61c01"
+    },
+    {
+      "path": "instrumentation/wafel-jp-pilot/ink_box_delivery.py",
+      "bytes": 13352,
+      "sha256": "c473407831ae794d647905a954bf563b8cdc9be1ebddc5afb1a28d3808c37634"
+    },
+    {
+      "path": "instrumentation/wafel-jp-pilot/replay.py",
+      "bytes": 5471,
+      "sha256": "ea422b6478e40931c9d61aaa0e19c9d86a551a0219dbeaca85cd9a82e70df66d"
+    }
+  ],
+  "source": [
+    {
+      "path": "src/game/behaviors/jumping_box.inc.c",
+      "bytes": 2218,
+      "sha256": "38ac532512361af15f5e78d89afc02ac349e5a74a6779db27e03cdf1b27545b8"
+    },
+    {
+      "path": "src/game/mario_actions_airborne.c",
+      "bytes": 67842,
+      "sha256": "49a1df4e42e169a745e7c91c592bb6139ca1aa43ad27d6e7f1fb3d9cdc6f812f"
+    },
+    {
+      "path": "src/game/mario_actions_moving.c",
+      "bytes": 65436,
+      "sha256": "63364abba7cd12cb89e47614f901c933334a26654183896448f309fa2d847cfb"
+    },
+    {
+      "path": "src/game/mario_actions_stationary.c",
+      "bytes": 36437,
+      "sha256": "a6ce312eadb4271646643b14c90ca7c6135de9d0846cd7a6a5642972c8501608"
+    },
+    {
+      "path": "src/game/interaction.c",
+      "bytes": 63778,
+      "sha256": "a327202d33612821f884f01b5e4692aa5cfe2003f3b9a2eeb1452ad72725ea00"
+    }
+  ]
+}

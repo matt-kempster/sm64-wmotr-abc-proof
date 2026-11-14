@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "scope": "Verify immutable local lower-approach inputs, scripts and saved results.",
+  "files": [
+    {
+      "path": "instrumentation/ink-mario-pusher-delivery/lower-approach/archive.py",
+      "bytes": 1102,
+      "sha256": "6ffdb2c4ec028e233233f5a558a72e9e0d42831f2b5ac0daf775c9575e8cf55d"
+    },
+    {
+      "path": "instrumentation/ink-mario-pusher-delivery/lower-approach/check.py",
+      "bytes": 3854,
+      "sha256": "74801352859078a34f443f61092dcbbb5ffe67c02b8a7abf26ac4d74fbd8c9d1"
+    },
+    {
+      "path": "instrumentation/ink-mario-pusher-delivery/lower-approach/compensated-results.json.gz",
+      "bytes": 18875,
+      "sha256": "6ee2f425a45dac6de16471c574f635f9ff48e80633cf66269e522a9b65f62ac5"
+    },
+    {
+      "path": "instrumentation/ink-mario-pusher-delivery/lower-approach/compensated.py",
+      "bytes": 2298,
+      "sha256": "942cf5d48b4e7de3fb0e0d35fb9b4879f5493cf777dd09faeff0b367db9cbfe5"
+    },
+    {
+      "path": "instrumentation/ink-mario-pusher-delivery/lower-approach/corrected-results.json.gz",
+      "bytes": 155458,
+      "sha256": "447d94a63e197b0119aeb2fddf99498b289fbb50d4c14f94b5a9befe755dabe5"
+    },
+    {
+      "path": "instrumentation/ink-mario-pusher-delivery/lower-approach/corrected.py",
+      "bytes": 1893,
+      "sha256": "4ed0fa3021f38eff7c570668afb18b100cfc27b053c79ef78e77c0020fd3a785"
+    },
+    {
+      "path": "instrumentation/ink-mario-pusher-delivery/lower-approach/edge-results.json.gz",
+      "bytes": 128360,
+      "sha256": "c60479c19f24e9764ca0043b729db98c5431c10b736a277bfcab17be41aaaa6f"
+    },
+    {
+      "path": "instrumentation/ink-mario-pusher-delivery/lower-approach/edge.py",
+      "bytes": 1527,
+      "sha256": "e27a3df44ee3fc9160980a9fa172867239a822897b05744ba7444e4aae396fee"
+    },
+    {
+      "path": "instrumentation/ink-mario-pusher-delivery/lower-approach/export.py",
+      "bytes": 1553,
+      "sha256": "402cbb438bbd24fa607fe1913db14d46ed13bd11bba3854e4f2311b3717b8912"
+    },
+    {
+      "path": "instrumentation/ink-mario-pusher-delivery/lower-approach/positive-case.json",
+      "bytes": 222230,
+      "sha256": "37751dda73e810e168043223963c0f270d062bba466510aaf1473fc780741ccb"
+    },
+    {
+      "path": "instrumentation/ink-mario-pusher-delivery/lower-approach/README.md",
+      "bytes": 7810,
+      "sha256": "9b43a7daa0b7a9dc7fbc56d4bb99ca36d5e8daf57b6ec29b5559b4376a5a8f93"
+    },
+    {
+      "path": "instrumentation/ink-mario-pusher-delivery/lower-approach/refine-results.json.gz",
+      "bytes": 100204,
+      "sha256": "ac059c00204d999ee1e13265fddea483f06d9c94d91c2cbd9575021cc637204a"
+    },
+    {
+      "path": "instrumentation/ink-mario-pusher-delivery/lower-approach/refine.py",
+      "bytes": 1513,
+      "sha256": "eb291e691aecdbc4ebc21fe2cf8690d41af8f69f14b022386678da0e2f1729d6"
+    },
+    {
+      "path": "instrumentation/ink-mario-pusher-delivery/lower-approach/results.json.gz",
+      "bytes": 77085,
+      "sha256": "664a38dbaa7c151d59900b5052b5d027a2b5c7e41124dab30f04512de515ec6a"
+    },
+    {
+      "path": "instrumentation/ink-mario-pusher-delivery/lower-approach/uncompensated-bob-case.json",
+      "bytes": 396343,
+      "sha256": "678bda69357db597835c54684152c7e531ea9a9da53ce3280795c82c8389274b"
+    },
+    {
+      "path": "instrumentation/ink-preplaced-pushers-search/positive-case.json",
+      "bytes": 222066,
+      "sha256": "233ca36c6f929da4da98cdff6ff6e68ea7ae253f2fe698c2053613901d46c090"
+    },
+    {
+      "path": "instrumentation/ink-enlarged-bob-handoff/search.py",
+      "bytes": 3167,
+      "sha256": "306147d99bee01bad16c199dad3c14af653c2ba4246e92524a44d78aa6502e46"
+    },
+    {
+      "path": "instrumentation/ink-enlarged-bob-profile/profile.py",
+      "bytes": 4603,
+      "sha256": "cafbbe6429a37b689f5fce5a1c1c0590d0b70f6f5fa7ad0201510990500b3ea2"
+    },
+    {
+      "path": "instrumentation/ink-bobomb-retimed-shoves/search.py",
+      "bytes": 9875,
+      "sha256": "c4cad710d3fc87b0a28082f5d414282dfdabe6979abe1b169f4bd343e22bd64c"
+    },
+    {
+      "path": "instrumentation/ink-shell-clone-isolation/test.py",
+      "bytes": 9641,
+      "sha256": "28130311248a478bea060872a8404e36b73ce0dc740228dae6fcd1962dad6528"
+    }
+  ]
+}

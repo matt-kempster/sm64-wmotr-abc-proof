@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "scope": "Exact pre128 placement plus finite leads0/1/2, each independently reconstructed twice; no placement grid. Archive verification is separate from runtime replay.",
+  "files": [
+    {
+      "path": "instrumentation/ink-preplaced-pushers-search/.gitattributes",
+      "bytes": 92,
+      "sha256": "7350eb65007459e4c5c5e549dbaf3aaea4409479183b0c67f266bfecf0064c61"
+    },
+    {
+      "path": "instrumentation/ink-preplaced-pushers-search/check.py",
+      "bytes": 4930,
+      "sha256": "b88dd6f31505d9c14b9c2366ba2852218ff4f80ce65f76642f0653450d233ed1"
+    },
+    {
+      "path": "instrumentation/ink-preplaced-pushers-search/waiting.py",
+      "bytes": 3497,
+      "sha256": "39559519e8e2686097585edf2cb77dc8e4aac1cd247e3083a9d67bcaf0175357"
+    },
+    {
+      "path": "instrumentation/ink-preplaced-pushers-search/archive.py",
+      "bytes": 1461,
+      "sha256": "48119fe85cd08ced77df20fbba886063ee9668515996115047eaa05fc57fb0a2"
+    },
+    {
+      "path": "instrumentation/ink-preplaced-pushers-search/README.md",
+      "bytes": 6917,
+      "sha256": "3c8ae568202c9ce4b93e912499e99fe221e9da72a26245da0f90905869d9cc7d"
+    },
+    {
+      "path": "instrumentation/ink-preplaced-pushers-search/positive-case.json",
+      "bytes": 222066,
+      "sha256": "233ca36c6f929da4da98cdff6ff6e68ea7ae253f2fe698c2053613901d46c090"
+    },
+    {
+      "path": "instrumentation/ink-preplaced-pushers-search/results.json.gz",
+      "bytes": 19816,
+      "sha256": "e8533b6555ffa175808615d608a743404744ccc65ba0e2e7087b9452961405f2"
+    },
+    {
+      "path": "instrumentation/ink-preplaced-pushers-search/waiting-results.json.gz",
+      "bytes": 34544,
+      "sha256": "c9f0d80c697f3064c3ff5f8365ccf069c10a6d17110bd9dd2a64ee4f258baef4"
+    }
+  ],
+  "directInputs": [
+    {
+      "path": "instrumentation/ink-enlarged-bob-handoff/search.py",
+      "bytes": 3167,
+      "sha256": "306147d99bee01bad16c199dad3c14af653c2ba4246e92524a44d78aa6502e46"
+    },
+    {
+      "path": "instrumentation/ink-enlarged-bob-handoff/positive-case.json",
+      "bytes": 221194,
+      "sha256": "c409ab218a6d3458423b4e1f9b2802dd48c11c39f89e4f4c37010e2d7f3e0622"
+    },
+    {
+      "path": "instrumentation/ink-bobomb-retimed-shoves/search.py",
+      "bytes": 9875,
+      "sha256": "c4cad710d3fc87b0a28082f5d414282dfdabe6979abe1b169f4bd343e22bd64c"
+    },
+    {
+      "path": "instrumentation/ink-enlarged-bob-profile/profile.py",
+      "bytes": 4603,
+      "sha256": "cafbbe6429a37b689f5fce5a1c1c0590d0b70f6f5fa7ad0201510990500b3ea2"
+    },
+    {
+      "path": "instrumentation/ink-shell-clone-isolation/test.py",
+      "bytes": 9641,
+      "sha256": "28130311248a478bea060872a8404e36b73ce0dc740228dae6fcd1962dad6528"
+    },
+    {
+      "path": "instrumentation/ink-preplaced-pushers-controls/results.json.gz",
+      "bytes": 40226,
+      "sha256": "d4dc433e140f3b45907d495524a1cd5697d589b3ed48dee9764e4b2dffab9d77"
+    }
+  ]
+}

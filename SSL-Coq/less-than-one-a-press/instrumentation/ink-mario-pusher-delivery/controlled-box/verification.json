@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 65,
+      "sha256": "9fa86624e7afa33074271dc81f0fba89ffc01da2bdce80e7da7df8164ef1532f"
+    },
+    {
+      "path": "check.py",
+      "bytes": 4998,
+      "sha256": "31f61a6ded1d980af1021dc23dc5ff30b8554168cdcca307a1c209c2562a48fc"
+    },
+    {
+      "path": "export.py",
+      "bytes": 1644,
+      "sha256": "f3f30be37c2d642f462c636c4953a4c70c082c5abc8fbf52f96a821d3a401971"
+    },
+    {
+      "path": "archive.py",
+      "bytes": 1410,
+      "sha256": "f669a1dfebea2bebd3e65396c962355dbce255f860f74ed7b27f7585aa5381cd"
+    },
+    {
+      "path": "README.md",
+      "bytes": 6659,
+      "sha256": "7db81951cd556abd338767d87e99dab1490e28f94d622fc32a9993de8e28f9ae"
+    },
+    {
+      "path": "results.json.gz",
+      "bytes": 49986,
+      "sha256": "2826b7e87983b6a34f08bcb9b5b78376616d527278ab0befcf8b28535f66e099"
+    },
+    {
+      "path": "edge-results.json.gz",
+      "bytes": 31902,
+      "sha256": "4ecf25c05b365a45b252dca7010b04905d5e70db6e5a42320a34af18400ede44"
+    },
+    {
+      "path": "positive-case.json",
+      "bytes": 238204,
+      "sha256": "cd2f60448927f573fd2d2e0405c96d00798a5f3ea0e3c3d36bc08a39b7967f23"
+    },
+    {
+      "path": "high-miss-case.json",
+      "bytes": 236011,
+      "sha256": "8635f746d469baabb8dc26eab97c338decd1eb39e9685ff29b9e174e4a246980"
+    }
+  ],
+  "inputs": [
+    {
+      "path": "instrumentation/ink-enlarged-bob-handoff/search.py",
+      "bytes": 3167,
+      "sha256": "306147d99bee01bad16c199dad3c14af653c2ba4246e92524a44d78aa6502e46"
+    },
+    {
+      "path": "instrumentation/ink-bobomb-retimed-shoves/search.py",
+      "bytes": 9875,
+      "sha256": "c4cad710d3fc87b0a28082f5d414282dfdabe6979abe1b169f4bd343e22bd64c"
+    },
+    {
+      "path": "instrumentation/ink-enlarged-bob-profile/profile.py",
+      "bytes": 4603,
+      "sha256": "cafbbe6429a37b689f5fce5a1c1c0590d0b70f6f5fa7ad0201510990500b3ea2"
+    },
+    {
+      "path": "instrumentation/ink-shell-clone-isolation/test.py",
+      "bytes": 9641,
+      "sha256": "28130311248a478bea060872a8404e36b73ce0dc740228dae6fcd1962dad6528"
+    }
+  ],
+  "source": [
+    {
+      "path": "src/game/behaviors/jumping_box.inc.c",
+      "bytes": 2218,
+      "sha256": "38ac532512361af15f5e78d89afc02ac349e5a74a6779db27e03cdf1b27545b8"
+    },
+    {
+      "path": "src/game/mario_actions_airborne.c",
+      "bytes": 67842,
+      "sha256": "49a1df4e42e169a745e7c91c592bb6139ca1aa43ad27d6e7f1fb3d9cdc6f812f"
+    },
+    {
+      "path": "src/game/interaction.c",
+      "bytes": 63778,
+      "sha256": "a327202d33612821f884f01b5e4692aa5cfe2003f3b9a2eeb1452ad72725ea00"
+    },
+    {
+      "path": "src/game/object_helpers.c",
+      "bytes": 92602,
+      "sha256": "a603370892b2589a97343be38a6fafd86b84279b8413e75ab94cada3719f5818"
+    },
+    {
+      "path": "src/game/object_collision.c",
+      "bytes": 6965,
+      "sha256": "4bdbe3bd3acd72c16738ec93638395a2f0daac4f69f905b76da8eae3384dc234"
+    }
+  ]
+}
