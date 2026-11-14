@@ -2,4 +2,4 @@
 *.ps1 text eol=lf
 *.json text eol=lf
 *.md text eol=lf
-render-receipt.json -text
+render-receipt.json -text whitespace=cr-at-eol
