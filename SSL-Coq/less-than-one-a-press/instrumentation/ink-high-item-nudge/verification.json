@@ -1,0 +1,62 @@
+{
+  "passed": true,
+  "proofRevision": "3772fb57701ad0074c9a2016c366bed7e7e3ea24",
+  "runtime": "Wafel0.8.5 JP /Python3.9.13",
+  "runtimeSha256": "960fe979068b78e6733b3ddb87741833fbf4eb29b2a21a2bba871977427c2d0f",
+  "recipes": 82,
+  "matchedBoundaries": 3044,
+  "suffixUpdates": 2950,
+  "airborneAndStagedRecipes": 48,
+  "airborneAndStagedCaptures": 0,
+  "airborneAndStagedUseful": 0,
+  "conditionalCaptures": 21,
+  "conditionalUseful": 14,
+  "usefulArrival": [
+    365.5927734375,
+    5500,
+    -1096.8026123046875
+  ],
+  "positiveSuffixUpdates": 25,
+  "positiveRetentionChecked": true,
+  "suffixAOff": true,
+  "noteSha256": "aad9162b36b22acb3520b645890b3caf39520b73461b34d50ff0420474cc6951",
+  "helpersSha256": {
+    "instrumentation/ink-high-action-entry/prelude.py": "1b5d30c06ac9f8721770ef23ab0980cd645d9f592ff8dfd80b208505d20f818d",
+    "instrumentation/ink-item-clone-controls/fixtures.py": "62a380c440360bfae642288c558f5e6aae6ac3987dca7c37d2bd66e821a373a8",
+    "instrumentation/wafel-jp-pilot/ink_slide_handoff.py": "8561f5ddc223c0954c56c7b0e7f16efd040360f67f52ef6c95ec38591dcb5bb2",
+    "instrumentation/wafel-jp-pilot/ink_crawl_predecessors.py": "c4f64df454ebb845788788dfa25eabebe96e1f7221b2bba66f441ed387576a0b",
+    "instrumentation/wafel-jp-pilot/ink_floorless_warp.py": "d9d4422dad8e8bfa146b4dad8b81a9aed00ab113b913451cf6f96f8431a3ad16",
+    "instrumentation/wafel-jp-pilot/ink_timer130_crawl.py": "7be9986ae0c3d6183c4dd34607222f216d90c1994c98786589a37b6455cfb34d"
+  },
+  "filesSha256": {
+    ".gitattributes": "abeba78466be388a1c5f3cb4ad595b915a0aa9402d1d87e37dfe42762e5b91c5",
+    "initial-snapshot-metadata-pilot-82.json.gz": "1aaaeb02b4f8696d9e64eb00ed0df18860a85079f4ece99b61672f77251683db",
+    "prefix.jsonl.gz": "92fe78f908354ca3c47afad0e31e8d34fef6f3bef6981761add363b3e7e61c01",
+    "README.md": "d2edbb7267348d37fab7fe7c278a3519e986956d3ede11703e9264359b41b3e5",
+    "results.json.gz": "fedffccfb1b48ade51b8617fde054dfd0969d0d830df48324418efc28146c1e1",
+    "test.py": "8815b23b47d4289257d4ecaea79f2048b8762cc85922e98df34d9e9dca8b9561",
+    "timing-calibration-78.json.gz": "9a53423dde4aff116ef5c0c8e4a5951c3c72c89c8542bdfaf9ddf66530a9c1e9",
+    "timing-pilot.json.gz": "12bc769c3c88496321f0d09b2f3fd03d36b8f18e6e1f4c38b6ba1e8fee925693"
+  },
+  "scope": "Finite supplied-state Wafel diagnostics. High rider relocation/supplied butt-slide controls do not solve high action entry or actor delivery. No original-ROM replay or Coq claim.",
+  "initialSnapshotMetadataCorrection": {
+    "changedTrials": [
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      68
+    ],
+    "otherDataUnchanged": true,
+    "freshRerun": "PASS 82 3044"
+  }
+}
