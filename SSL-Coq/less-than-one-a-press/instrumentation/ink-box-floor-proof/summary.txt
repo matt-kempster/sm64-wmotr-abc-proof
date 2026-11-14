@@ -1,0 +1,11 @@
+PASS: source inventory: 723 source files; 0 inventory problems
+PASS: build: exit 0; see build.log
+PASS: proof holes: exit 0; includes untracked source files
+PASS: link hygiene: exit 0; includes untracked source files
+PASS: assumptions LessThanOneAPress.Proofs.MainTheorem.current_ink_box_floor_boundary: 7 allowed foundations; see assumptions-1.log
+PASS: assumptions LessThanOneAPress.Proofs.InkBoxFloor.ibf_clone_floor_boundary_checked: 7 allowed foundations; see assumptions-2.log
+PASS: assumptions LessThanOneAPress.Proofs.InkBoxFloorFrame.ibff_clone_floor_frame_boundary_checked: 7 allowed foundations; see assumptions-3.log
+PASS: assumptions LessThanOneAPress.Proofs.MainTheorem.current_ink_backward_execution_boundary: 9 allowed foundations; see assumptions-4.log
+PASS: integration: 557/643 modules in MainTheorem's import closure; 86 standalone-only; 0 problems
+VERDICT: PASS (mechanical checks only; not a completed game proof)
+Mechanical hygiene only. Explicit hypotheses, live reachability, and statement fidelity require review.

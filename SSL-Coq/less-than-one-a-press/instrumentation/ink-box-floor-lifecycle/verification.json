@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "date": "2026-11-14",
+  "scope": "Finite JP Wafel native mesh/conditional clone lifecycle; all edits explicit, no reachable delivery or Coq theorem",
+  "freshVerifiedBoundaries": 133,
+  "proofStart": "97d870c2d208f8adeb5bae88993d84ee4a9f9f6a",
+  "runtimeSha256": "960fe979068b78e6733b3ddb87741833fbf4eb29b2a21a2bba871977427c2d0f",
+  "prefixSha256": "92fe78f908354ca3c47afad0e31e8d34fef6f3bef6981761add363b3e7e61c01",
+  "filesSha256": {
+    ".gitattributes": "abeba78466be388a1c5f3cb4ad595b915a0aa9402d1d87e37dfe42762e5b91c5",
+    "README.md": "4dedca11d73bb60a3cb79cc6253dbe8a6912121b589e65f053956d018a774c9a",
+    "results.json.gz": "29ebd367c33d365fcb4c923c152dbd8936ba0033929c7609ec6810de7c1fddc3",
+    "test.py": "bf5c6185879a5a6ef8013a31c118b240393c7782fb3b380aa3d1859e0555439e"
+  },
+  "noteSha256": "6214559f660dba9512b6de0221259c488bb46bce5440db7dda8421a5c15bada5",
+  "sourceHashes": {
+    "src/engine/surface_load.c": "a9688dbac5b95e4859fc40c659faaf4c8064e0e7f8807dd2cf9c5ac7bd5cb9b0",
+    "src/game/object_list_processor.c": "203bcde4c5eb638eb1eab93d2d7b2226fda797644e26dc2b26d52c21edf851e8",
+    "src/game/object_helpers.c": "a603370892b2589a97343be38a6fafd86b84279b8413e75ab94cada3719f5818",
+    "src/game/interaction.c": "a327202d33612821f884f01b5e4692aa5cfe2003f3b9a2eeb1452ad72725ea00",
+    "src/game/mario_actions_object.c": "36dfaf152586b81101f5075ba65d119148f776be26cb063751995346175ac5f3",
+    "src/game/behaviors/breakable_box.inc.c": "78ffc1fab3971cf08f7f803cfe63f32cd781b0bc5537a733fbe0d43c82e94eee",
+    "data/behavior_data.c": "da1aad6e3982bc3a35b195480157330e2cd98e909503e2100d2072d3be265f6a"
+  }
+}

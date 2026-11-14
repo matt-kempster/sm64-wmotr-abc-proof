@@ -727,3 +727,5 @@ proofs/InkBuddyMovement.v
 proofs/InkBuddyAcquisition.v
 proofs/InkBelowCapPhaseGuard.v
 proofs/InkBelowCapPhaseBounds.v
+proofs/InkBoxFloor.v
+proofs/InkBoxFloorFrame.v

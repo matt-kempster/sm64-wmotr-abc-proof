@@ -1,0 +1,52 @@
+{
+  "date": "2026-11-14",
+  "passed": true,
+  "scope": "Generated-code local preservation; not reachable clone or high-floor delivery",
+  "proofStart": "97d870c2d208f8adeb5bae88993d84ee4a9f9f6a",
+  "toolchain": {
+    "switch": "sm64-item-proof",
+    "Coq": "8.16.1",
+    "CompCert": "3.15"
+  },
+  "auditDirectory": "build/audit/20261114-135229-18oxyow3",
+  "theorems": [
+    [
+      "LessThanOneAPress.Proofs.MainTheorem",
+      "current_ink_box_floor_boundary"
+    ],
+    [
+      "LessThanOneAPress.Proofs.InkBoxFloor",
+      "ibf_clone_floor_boundary_checked"
+    ],
+    [
+      "LessThanOneAPress.Proofs.InkBoxFloorFrame",
+      "ibff_clone_floor_frame_boundary_checked"
+    ],
+    [
+      "LessThanOneAPress.Proofs.MainTheorem",
+      "current_ink_backward_execution_boundary"
+    ]
+  ],
+  "sourceHashConvention": "SHA256 after CRLF-to-LF normalization",
+  "sourceSha256": {
+    "proofs/InkBoxFloor.v": "ff201c2cd812c92eaecd15b4b4ce1427ec4c4a915d504a42f3a9c6f89e9c2bdc",
+    "proofs/InkBoxFloorFrame.v": "26b0928d8c07e0a8487608dd0458f121b2d2ed2a12fab1c5a4b28e51e446a458",
+    "proofs/MainTheorem.v": "cf6579f295ef13a99bfac1f0ab957acb5603e7b21d1c304db28c6ac382b74bc1",
+    "_CoqProject": "146b0b65c258bb8e0f7f7f170d273950db9eddb6e14be08f030fa023e9b33fd9"
+  },
+  "archiveSha256": {
+    "summary.txt": "462c1ee5a94064d060beeffce50a725617da8a4307594366f31c726cbf9ea8ba",
+    "report.json": "8803675d30a1027aa5e3799b05582d7d139c047ebcd97218e0e4c96b1303b2de",
+    "build.log": "620f380e5d1df4c9fcd32708cc98c77cf78048dc2107d52d66b3215b1e96dfec",
+    "assumptions-1.log": "2b9e5ed492f0ded9155ebb61967519907654138978501df64d66a2e6791b0188",
+    "assumptions-2.log": "99df5582cbc0cbc2fba5d591d7e57786858e498c3399427cfa00b2449563948c",
+    "assumptions-3.log": "37e84d541f9eeb3c9476b1f28dac52d693da2739c1b850f6aa0f2aacbfdcea2c",
+    "assumptions-4.log": "52fc6623062942a968b3916e6006f673ab8b14b2d9acdb17d5c053d27e5e178d"
+  },
+  "remainingObligations": [
+    "Complete native segmented-address call existence, beyond the constructive suffix",
+    "Live floor-cell interpretation, separation and valid pool bounds",
+    "Actual behavior-interpreter and update-history composition",
+    "Controller-reachable fake pickup, live high-floor delivery and useful Ink phase join"
+  ]
+}

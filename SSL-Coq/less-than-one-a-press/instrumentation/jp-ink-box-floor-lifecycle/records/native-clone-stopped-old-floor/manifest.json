@@ -1,0 +1,14 @@
+{
+  "sourceDirectory": "build\\jp-box-floor-lifecycle-20261114-b",
+  "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+  "files": {
+    "checker-source.py": "93d21f9242841294c7b746b133a3a4c15597470b496c367b8b3f7e0e58f82f3d",
+    "prefix-source.c": "7ebe3672f71bb596610b6b3b3fe2804a451ca74e3a5bcd48a94ff864e2bdc8b5",
+    "probe-source.c": "b0a8eb28c3f32de41661915d879e7d08edef6f3eb615fd8d66ca8d04ca76eeff",
+    "raw.log.gz": "2e38db93619b2cdd78fec462845ad5d6cd9163ff7d41b75bfee812e6681a81da",
+    "receipt.json": "b533ee084052910cfc195b7d6fbe5e090d349ee2dfd2c69e4608aa7127e2df63",
+    "run-source.sh": "bf3e150937fbd92779eeb2bcd533295c3ab54c25e419eff021093b355c07720a",
+    "trace.txt": "efb3dc8c414cef36821fe6617d166d3d5fc848540ea11aafdbb9a33e2f44b760"
+  },
+  "scope": "Conditional native fakepickup after usedObj cut, supplied time stop/high HOLP. Native throw moves actor high while 12 old low triangles remain; resume clears them. No reachable clone route."
+}

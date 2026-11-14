@@ -53,7 +53,7 @@ From LessThanOneAPress.Proofs Require Import
   SecretContactExecution
   InkBackwardSource InkBackwardExecution InkCopyCaller InkFloorResetCopy InkRawCopyHeight
   InkQuicksandBackward InkMovingBackward InkControllerBackward InkBackwardHistory
-  PositionSplitCatalog TweesterGap InkConcreteProducerBoundary InkSlideHandoff InkMarioEntryGuards InkIdleOffFloorGuard InkBuddyMovement InkBuddyAcquisition InkMarioRawCopyCall InkMarioZeroParticleTail InkFlyGuySizeBoundary
+  PositionSplitCatalog TweesterGap InkConcreteProducerBoundary InkSlideHandoff InkMarioEntryGuards InkIdleOffFloorGuard InkBuddyMovement InkBuddyAcquisition InkBoxFloor InkBoxFloorFrame InkMarioRawCopyCall InkMarioZeroParticleTail InkFlyGuySizeBoundary
   InkBounceLiveReadBoundary InkStockBounceHeight InkFlyGuyCycleHeight InkPokeyLiveScale
   CompCertRouteScope TeleporterWrongWarpBoundary TeleporterShindouReset
   TeleporterDestinationReset TeleporterPlatformResetExecution
@@ -1626,6 +1626,14 @@ Proof. exact ibm_buddy_movement_checked. Qed.
     complete reachable-pointer or allocation invariant. *)
 Theorem current_ink_buddy_acquisition_boundary : InkBuddyAcquisitionBoundary.
 Proof. exact iba_buddy_acquisition_guards_checked. Qed.
+
+(** A stopped carry command need not erase already-loaded collision memory.
+    The constructive clone suffix and BREAK call, completed-helper frame,
+    and active-time-stop clear are local generated-code results. Live memory
+    separation, pickup-target acquisition, scheduler composition and high
+    floor delivery are not supplied by this boundary. *)
+Theorem current_ink_box_floor_boundary : InkBoxFloorFrameBoundary.
+Proof. exact ibff_clone_floor_frame_boundary_checked. Qed.
 
 (** Also consumes the actual object-push commit frame, nearby static-floor
     certificate, post-query crawl-quarter execution and non-null item-drop

@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "date": "2026-11-14",
+  "scope": "Original-JP conditional clone and retained old floor; 66 supplied scalar writes, no reachable route",
+  "observedBoundaries": 48,
+  "comparedBoundaries": 42,
+  "strictMismatches": 147,
+  "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+  "filesSha256": {
+    ".gitattributes": "abeba78466be388a1c5f3cb4ad595b915a0aa9402d1d87e37dfe42762e5b91c5",
+    "archive.py": "1981fe6a8b8074c4725ada0746010cfb4bb4793bbd727710ee94c4b55da757ed",
+    "check.py": "93d21f9242841294c7b746b133a3a4c15597470b496c367b8b3f7e0e58f82f3d",
+    "probe.c": "b0a8eb28c3f32de41661915d879e7d08edef6f3eb615fd8d66ca8d04ca76eeff",
+    "README.md": "90b1571fa618cd26f82217a507fa8020f9493a28bf344e62f0e894c873fb533e",
+    "records/native-clone-stopped-old-floor/checker-source.py": "93d21f9242841294c7b746b133a3a4c15597470b496c367b8b3f7e0e58f82f3d",
+    "records/native-clone-stopped-old-floor/manifest.json": "630fe0b08819fceaef5081d875509e061f7a2ab64bfc8d57152fb9990fc54307",
+    "records/native-clone-stopped-old-floor/prefix-source.c": "7ebe3672f71bb596610b6b3b3fe2804a451ca74e3a5bcd48a94ff864e2bdc8b5",
+    "records/native-clone-stopped-old-floor/probe-source.c": "b0a8eb28c3f32de41661915d879e7d08edef6f3eb615fd8d66ca8d04ca76eeff",
+    "records/native-clone-stopped-old-floor/raw.log.gz": "2e38db93619b2cdd78fec462845ad5d6cd9163ff7d41b75bfee812e6681a81da",
+    "records/native-clone-stopped-old-floor/receipt.json": "b533ee084052910cfc195b7d6fbe5e090d349ee2dfd2c69e4608aa7127e2df63",
+    "records/native-clone-stopped-old-floor/run-source.sh": "bf3e150937fbd92779eeb2bcd533295c3ab54c25e419eff021093b355c07720a",
+    "records/native-clone-stopped-old-floor/trace.txt": "efb3dc8c414cef36821fe6617d166d3d5fc848540ea11aafdbb9a33e2f44b760",
+    "run.sh": "bf3e150937fbd92779eeb2bcd533295c3ab54c25e419eff021093b355c07720a",
+    "verify.py": "e47f71a3c7ee7c522ab0c38aac7b4a35130dfaab1e3a3dbeafb91b35deb63228"
+  },
+  "noteSha256": "a097b1d95e46a7d6233bee0c5bcabd396ed5ac401a6175b18e6be4e97fe58fe3"
+}
