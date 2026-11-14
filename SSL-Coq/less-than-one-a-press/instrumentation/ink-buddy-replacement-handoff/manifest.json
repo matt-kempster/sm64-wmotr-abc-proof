@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "proofRevision": "1222ab0ee82b870ba5efe1a8afd7f3ea7e78b1bf",
+  "decompileRevision": "36fbf8d693a9fc2bdec0c77402f8e96d07d2f461",
+  "stockSourceReference": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "evidence": "Instrumented Wafel JP source-runtime; conditional placements and initializers explicitly recorded; no new original-ROM replay or complete route",
+  "runtime": {
+    "wafelVersion": "0.8.5",
+    "pythonVersion": "3.9.13 (tags/v3.9.13:6de2ca5, May 17 2022, 16:36:42) [MSC v.1929 64 bit (AMD64)]",
+    "library": "build/wafel-pilot/sm64_jp.dll",
+    "sha256": "960fe979068b78e6733b3ddb87741833fbf4eb29b2a21a2bba871977427c2d0f"
+  },
+  "prefix": {
+    "archive": "instrumentation/ink-buddy-movement/original-prefix.jsonl.gz",
+    "sha256Compressed": "92fe78f908354ca3c47afad0e31e8d34fef6f3bef6981761add363b3e7e61c01",
+    "sha256Decompressed": "9bcc451964025d9f0bb1344c45957b6bfd095451b44bfb9a01f8584a75db6a72",
+    "rows": 2852,
+    "shellFixtureRowsReplayed": 2548
+  },
+  "filesSha256": {
+    ".gitattributes": "abeba78466be388a1c5f3cb4ad595b915a0aa9402d1d87e37dfe42762e5b91c5",
+    ".gitignore": "32dae3052f331ee34d628ef535709b301259a45df7c7522c4d35dcf49873f00b",
+    "experiment.py": "df9dcf286d007506023dcc3a547f9600b11592ca8cf26e6596df082a7bfc6870",
+    "fly_contacts.py": "263af3f98842db74574e05f420be16b4c15583349e6389ce878bc5bd6ddfcce3",
+    "held-component-probe.json.gz": "5a6e587ce1c863f25a44a791496d14e977ca9ec5bfa58088d8f47d83f5862094",
+    "held_component.py": "922d9a8b2e0900196d71cd39a1465ed32187e4f4e898fc165a7503990460e08c",
+    "native-fly-contacts.json.gz": "c5925de1b3d30f86a2c7f86ea4f93aa40f58f2ac8e7d876200df92c6b43aa84a",
+    "README.md": "cdcf00feb11f82bfc74489d114e6e1eb18a295db79af9553a1758c64e6aba3fe",
+    "shell-box-coarse.json.gz": "0c707f2bb4b03a31d27413999037ec932f11c6ffd5921d303241bf4f3cb65e0a",
+    "shell-box-refined.json.gz": "d99a60678a3da035e08366ac4a149ce5eb07c5fcd0f1af207a83e624a5bc4ce3",
+    "substitutions.json.gz": "d31a6be52f53b23d47d6aeb2baba3879d8408c551a664943eb4509e566b169d8",
+    "supplied-clone-controls.json.gz": "bea18e4342940a7c7cd576cfc1741f941aeeed429c2acb5822d5000bf6e807eb",
+    "supplied-ground-controls.json.gz": "eb6af125153081a6bc81bb43fce7c42505574b871c097526cdca46a231be5f34",
+    "verify.py": "526ae18dcfcf516e3bab6f3462e4bdfbebcdfdccf6984f6fbc0ba130b0586323"
+  },
+  "helpersSha256": {
+    "instrumentation/ink-item-native-slide-combinations/search.py": "f9df09ad401c03c3411b5d4d81196e8be981d3c634cdd12d19530cd3d495498f",
+    "instrumentation/ink-high-action-entry/prelude.py": "1b5d30c06ac9f8721770ef23ab0980cd645d9f592ff8dfd80b208505d20f818d",
+    "instrumentation/ink-high-action-entry/seeds.py": "f77bcb8248c83ed9d3a769e4c14c91c084ca27b47ad74c2bd7f654450037f3b6",
+    "instrumentation/ink-item-clone-controls/fixtures.py": "62a380c440360bfae642288c558f5e6aae6ac3987dca7c37d2bd66e821a373a8",
+    "instrumentation/ink-buddy-replacement-delivery/search.py": "08768c0317c7c1ecb46c6887b039417c439d95fc3c039dd1afa93b6ba3756c26",
+    "instrumentation/wafel-jp-pilot/ink_floorless_warp.py": "d9d4422dad8e8bfa146b4dad8b81a9aed00ab113b913451cf6f96f8431a3ad16",
+    "instrumentation/wafel-jp-pilot/ink_slide_handoff.py": "8561f5ddc223c0954c56c7b0e7f16efd040360f67f52ef6c95ec38591dcb5bb2",
+    "instrumentation/wafel-jp-pilot/ink_crawl_predecessors.py": "c4f64df454ebb845788788dfa25eabebe96e1f7221b2bba66f441ed387576a0b",
+    "instrumentation/wafel-jp-pilot/ink_timer130_crawl.py": "7be9986ae0c3d6183c4dd34607222f216d90c1994c98786589a37b6455cfb34d",
+    "instrumentation/wafel-jp-pilot/ink_pu_vpu.py": "035e6a771f0a7e5d54dea1333cfd55b1d05dd7d1c9d133934360107e7b437e8e",
+    "instrumentation/wafel-jp-pilot/replay.py": "ea422b6478e40931c9d61aaa0e19c9d86a551a0219dbeaca85cd9a82e70df66d"
+  },
+  "sourceSha256": {
+    "src/game/interaction.c": "a327202d33612821f884f01b5e4692aa5cfe2003f3b9a2eeb1452ad72725ea00",
+    "src/game/mario_actions_airborne.c": "49a1df4e42e169a745e7c91c592bb6139ca1aa43ad27d6e7f1fb3d9cdc6f812f",
+    "src/game/mario_actions_object.c": "36dfaf152586b81101f5075ba65d119148f776be26cb063751995346175ac5f3",
+    "src/game/mario_actions_moving.c": "63364abba7cd12cb89e47614f901c933334a26654183896448f309fa2d847cfb",
+    "src/game/mario_actions_stationary.c": "a6ce312eadb4271646643b14c90ca7c6135de9d0846cd7a6a5642972c8501608",
+    "src/game/mario_step.c": "6bbec9d8b20fd7b7fbce0f864b9f311be008a95d2881f024140140f1a9430222",
+    "src/game/object_collision.c": "4bdbe3bd3acd72c16738ec93638395a2f0daac4f69f905b76da8eae3384dc234",
+    "src/game/behaviors/fly_guy.inc.c": "483144b6252c425ce47619357b781f5cb334d25786141051063cad311f9e7993",
+    "src/game/behaviors/koopa_shell.inc.c": "75e12279e3275258a1e6cac99f689515ae2e1bbcb149607038e32a77d424ad3f"
+  },
+  "noteSha256": "48fe8a34cfac9458b605c7eb9e75412cd7b2e4b3e18006b3e9fcf1a22d8969ea",
+  "validation": {
+    "command": "build/wafel-pilot/python/python.exe instrumentation/ink-buddy-replacement-handoff/verify.py",
+    "result": "PASS",
+    "fullHistories": 196,
+    "matchedBoundaries": 6303,
+    "heldComponentTrials": 7,
+    "heldComponentUpdatesPerTrial": 5,
+    "heldComponentPreparationMatched": true
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "proofRevision": "1222ab0ee82b870ba5efe1a8afd7f3ea7e78b1bf",
+  "decompileRevision": "36fbf8d693a9fc2bdec0c77402f8e96d07d2f461",
+  "stockPin": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "emulator": "Mupen64Plus2.5.9 interpreter",
+  "graphics": "Rice2.5.9",
+  "rsp": "HLE",
+  "audio": "dummy",
+  "startup": "--cheats6 debug level selection",
+  "gameplayWrites": 0,
+  "sourceCapture": "build/wafel-pilot/capture.D8QKUc",
+  "rawSha256": "a6fa3afca00a6eefe7c6f446c41532a60760ff75de5d974caa6f8e38b8aa84d1",
+  "rawArchiveSha256": "32f2472d20dd0cf43d25d19b18c63e705c685e3193c117905867c7dc28e4262d",
+  "pluginSha256": "f317d1b17cf58c44c99d4ef99625df800af5d8c41f6f16c75fce320f4c7ec59d",
+  "sourceSha256": {
+    "instrumentation/ink-buddy-replacement-delivery/native-probe.c": "6349da9418e0f92100f508c6088489dd43773ba05e9df3770bceaa7e39b10e6c",
+    "instrumentation/wafel-jp-pilot/capture.c": "aa11c73ccfa57cc06369bfd0bda2b4e5404f4caabca2cb76cb1ce3d4764b7f13",
+    "instrumentation/wafel-jp-pilot/capture.sh": "ce5f376440601278b9492a7897aa5640bc6a6182567f557d326f86c6ed2c2487",
+    "instrumentation/jp-warp-acceptance/probe.c": "cdb7a5b36e19b9d008d160e994648118d35519a5bd3de0f2c477f2504d485f01",
+    "instrumentation/jp-clean-gap-search/jp_clean_gap_search_probe.c": "7ebe3672f71bb596610b6b3b3fe2804a451ca74e3a5bcd48a94ff864e2bdc8b5",
+    "instrumentation/jp-ranks13-18/verify.py": "ab77156c12d04ed6327d3e287ea8a1a5d434c48e0c736879c91076b0c953674c",
+    "instrumentation/jp-rank5-state-split/verify.sh": "76d5a2ea3f5f00fdbf5d4540379a3833946363bb08a03ebc71b49b91637fd532"
+  }
+}

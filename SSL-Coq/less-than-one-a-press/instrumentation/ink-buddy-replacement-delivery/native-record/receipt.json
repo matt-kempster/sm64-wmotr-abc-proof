@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "inputCount": 1149,
+  "matchedObservations": 801,
+  "mismatchCount": 0,
+  "firstMismatches": [],
+  "WafelMinusNativeTimer": [
+    1
+  ],
+  "AInputs": 0,
+  "gameplayMemoryWrites": 0,
+  "scope": "Actual no-A small-box acquisition, carry to a low dune and throw; not Ink delivery or spawning displacement",
+  "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+  "nativeBehaviorPointers": [
+    2148451608
+  ],
+  "hashes": {
+    "rawLog": "a6fa3afca00a6eefe7c6f446c41532a60760ff75de5d974caa6f8e38b8aa84d1",
+    "inputs": "7b0b562355ec0c336487907e11cad16822d9f022526b5daff2c0a1d7edbb501b",
+    "controller": "282b713008892243c97c26f35aa69ee12753f96ceffc126223bace157cffa443",
+    "wafelTrace": "273d7dfb59b2aa238e696a3739bc0f767f53e989c4398130f6e811d45280d46e",
+    "probe": "6349da9418e0f92100f508c6088489dd43773ba05e9df3770bceaa7e39b10e6c",
+    "checker": "f87a42f2b16d25b98332b9cbe998e96dfe9acf1ad9d9982db8b0a8e362028e1a"
+  }
+}

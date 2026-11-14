@@ -1,0 +1,62 @@
+{
+  "passed": true,
+  "scope": "Finite native controller histories; not successful Ink delivery",
+  "AInputs": 0,
+  "gameplayWrites": 0,
+  "checks": [
+    {
+      "file": "smallbox-beam-v1.json.gz",
+      "matchedSuffixObservations": 664,
+      "replayedHistories": 1
+    },
+    {
+      "file": "smallbox-beam-v2.json.gz",
+      "matchedSuffixObservations": 1376,
+      "replayedHistories": 1
+    },
+    {
+      "file": "smallbox-holp-release-v1.json.gz",
+      "matchedSuffixObservations": 183,
+      "replayedHistories": 3
+    },
+    {
+      "file": "smallbox-perimeter-pulse-v1.json.gz",
+      "matchedSuffixObservations": 38228,
+      "replayedHistories": 9
+    },
+    {
+      "file": "smallbox-perimeter-v1.json.gz",
+      "matchedSuffixObservations": 9800,
+      "replayedHistories": 4
+    },
+    {
+      "file": "smallbox-pulse-v1.json.gz",
+      "matchedSuffixObservations": 16,
+      "replayedHistories": 8
+    },
+    {
+      "file": "smallbox-release-v1.json.gz",
+      "matchedSuffixObservations": 184,
+      "replayedHistories": 4
+    },
+    {
+      "file": "smallbox-v1.json.gz",
+      "matchedSuffixObservations": 1761,
+      "replayedHistories": 4
+    },
+    {
+      "file": "smallbox-v2.json.gz",
+      "matchedSuffixObservations": 3459,
+      "replayedHistories": 20
+    },
+    {
+      "file": "smallbox-v3.json.gz",
+      "matchedSuffixObservations": 5528,
+      "replayedHistories": 20
+    }
+  ],
+  "matchedSuffixObservations": 61199,
+  "replayedHistories": 74,
+  "selectedNativeInputCount": 1149,
+  "selectedNativeWafelMatched": 801
+}

@@ -1,0 +1,910 @@
+{
+  "scope": "Supplementary Wafel HOLP observations on the original-ROM-validated input stream.\nHOLP itself was not added to the original-ROM observer; do not call it a native\nHOLP field comparison. Actor release XYZ and the other documented fields were.\n",
+  "inputSha256": "7b0b562355ec0c336487907e11cad16822d9f022526b5daff2c0a1d7edbb501b",
+  "matchedCoreFields": 801,
+  "milestones": [
+    {
+      "timer": 501,
+      "level": 8,
+      "area": 1,
+      "marioPresent": true,
+      "M": [
+        3829.056396484375,
+        239.5439910888672,
+        4955.69677734375
+      ],
+      "C": [
+        3829.056396484375,
+        239.5439910888672,
+        4955.69677734375
+      ],
+      "D": [
+        3829.056396484375,
+        239.5439910888672,
+        4955.69677734375
+      ],
+      "action": 9176147,
+      "actionName": "ACT_STOMACH_SLIDE",
+      "actionState": 0,
+      "input": 1,
+      "held": -1,
+      "used": 47,
+      "floorY": 239.5439910888672,
+      "floorType": 0,
+      "floorOwner": -1,
+      "platform": -1,
+      "forward": 18.741344451904297,
+      "health": 2176,
+      "quicksand": 0.0,
+      "actor": {
+        "slot": 23,
+        "behavior": "bhvBreakableBoxSmall",
+        "owner": 1,
+        "xyz": [
+          5900.0,
+          51.0,
+          3440.0
+        ],
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "activeFlags": 769,
+        "oAction": 0,
+        "oTimer": 153,
+        "oHeldState": 0,
+        "oIntangibleTimer": 0,
+        "oInteractStatus": 0,
+        "oInteractionSubtype": 0,
+        "oInteractType": 2,
+        "oForwardVel": 0.0,
+        "hitboxRadius": 60.0,
+        "hitboxHeight": 100.0,
+        "hitboxDownOffset": 8.0,
+        "scale": [
+          0.4000000059604645,
+          0.4000000059604645,
+          0.4000000059604645
+        ]
+      },
+      "topAction": 0,
+      "topTimer": 153,
+      "pillars": 0,
+      "completedInput": 500,
+      "HOLP": [
+        3723.880859375,
+        251.12982177734375,
+        4993.22021484375
+      ]
+    },
+    {
+      "timer": 842,
+      "level": 8,
+      "area": 1,
+      "marioPresent": true,
+      "M": [
+        5821.0888671875,
+        51.0,
+        3487.29736328125
+      ],
+      "C": [
+        5821.0888671875,
+        51.0,
+        3487.29736328125
+      ],
+      "D": [
+        5821.0888671875,
+        51.0,
+        3487.29736328125
+      ],
+      "action": 899,
+      "actionName": "ACT_PICKING_UP",
+      "actionState": 0,
+      "input": 1,
+      "held": -1,
+      "used": 23,
+      "floorY": 51.0,
+      "floorType": 48,
+      "floorOwner": -1,
+      "platform": -1,
+      "forward": 0.0,
+      "health": 1920,
+      "quicksand": 0.0,
+      "actor": {
+        "slot": 23,
+        "behavior": "bhvBreakableBoxSmall",
+        "owner": 1,
+        "xyz": [
+          5900.0,
+          51.0,
+          3440.0
+        ],
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "activeFlags": 769,
+        "oAction": 0,
+        "oTimer": 494,
+        "oHeldState": 0,
+        "oIntangibleTimer": 0,
+        "oInteractStatus": 0,
+        "oInteractionSubtype": 2,
+        "oInteractType": 2,
+        "oForwardVel": 0.0,
+        "hitboxRadius": 60.0,
+        "hitboxHeight": 100.0,
+        "hitboxDownOffset": 8.0,
+        "scale": [
+          0.4000000059604645,
+          0.4000000059604645,
+          0.4000000059604645
+        ]
+      },
+      "topAction": 0,
+      "topTimer": 494,
+      "pillars": 0,
+      "completedInput": 841,
+      "HOLP": [
+        3723.880859375,
+        251.12982177734375,
+        4993.22021484375
+      ]
+    },
+    {
+      "timer": 843,
+      "level": 8,
+      "area": 1,
+      "marioPresent": true,
+      "M": [
+        5821.0888671875,
+        51.0,
+        3487.29736328125
+      ],
+      "C": [
+        5821.0888671875,
+        51.0,
+        3487.29736328125
+      ],
+      "D": [
+        5821.0888671875,
+        51.0,
+        3487.29736328125
+      ],
+      "action": 899,
+      "actionName": "ACT_PICKING_UP",
+      "actionState": 1,
+      "input": 1,
+      "held": 23,
+      "used": 23,
+      "floorY": 51.0,
+      "floorType": 48,
+      "floorOwner": -1,
+      "platform": -1,
+      "forward": 0.0,
+      "health": 1920,
+      "quicksand": 0.0,
+      "actor": {
+        "slot": 23,
+        "behavior": "bhvBreakableBoxSmall",
+        "owner": 1,
+        "xyz": [
+          5900.0,
+          51.0,
+          3440.0
+        ],
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "activeFlags": 769,
+        "oAction": 0,
+        "oTimer": 495,
+        "oHeldState": 1,
+        "oIntangibleTimer": -1,
+        "oInteractStatus": 0,
+        "oInteractionSubtype": 2,
+        "oInteractType": 2,
+        "oForwardVel": 0.0,
+        "hitboxRadius": 60.0,
+        "hitboxHeight": 100.0,
+        "hitboxDownOffset": 8.0,
+        "scale": [
+          0.4000000059604645,
+          0.4000000059604645,
+          0.4000000059604645
+        ]
+      },
+      "topAction": 0,
+      "topTimer": 495,
+      "pillars": 0,
+      "completedInput": 842,
+      "HOLP": [
+        5873.783203125,
+        79.68313598632812,
+        3425.42529296875
+      ]
+    },
+    {
+      "timer": 1103,
+      "level": 8,
+      "area": 1,
+      "marioPresent": true,
+      "M": [
+        3393.489990234375,
+        493.27569580078125,
+        4512.3935546875
+      ],
+      "C": [
+        3393.489990234375,
+        493.27569580078125,
+        4512.3935546875
+      ],
+      "D": [
+        3393.489990234375,
+        493.27569580078125,
+        4512.3935546875
+      ],
+      "action": 1090,
+      "actionName": "ACT_HOLD_WALKING",
+      "actionState": 0,
+      "input": 1,
+      "held": 23,
+      "used": 23,
+      "floorY": 493.27569580078125,
+      "floorType": 0,
+      "floorOwner": -1,
+      "platform": -1,
+      "forward": 12.38786506652832,
+      "health": 1920,
+      "quicksand": 0.0,
+      "actor": {
+        "slot": 23,
+        "behavior": "bhvBreakableBoxSmall",
+        "owner": 1,
+        "xyz": [
+          5900.0,
+          51.0,
+          3440.0
+        ],
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "activeFlags": 769,
+        "oAction": 0,
+        "oTimer": 755,
+        "oHeldState": 1,
+        "oIntangibleTimer": -1,
+        "oInteractStatus": 0,
+        "oInteractionSubtype": 2,
+        "oInteractType": 2,
+        "oForwardVel": 0.0,
+        "hitboxRadius": 60.0,
+        "hitboxHeight": 100.0,
+        "hitboxDownOffset": 8.0,
+        "scale": [
+          0.4000000059604645,
+          0.4000000059604645,
+          0.4000000059604645
+        ]
+      },
+      "topAction": 0,
+      "topTimer": 755,
+      "pillars": 0,
+      "completedInput": 1102,
+      "HOLP": [
+        3354.61279296875,
+        568.0584716796875,
+        4537.599609375
+      ]
+    },
+    {
+      "timer": 1104,
+      "level": 8,
+      "area": 1,
+      "marioPresent": true,
+      "M": [
+        3393.489990234375,
+        493.27569580078125,
+        4512.3935546875
+      ],
+      "C": [
+        3393.489990234375,
+        493.27569580078125,
+        4512.3935546875
+      ],
+      "D": [
+        3393.489990234375,
+        493.27569580078125,
+        4512.3935546875
+      ],
+      "action": 2147485064,
+      "actionName": "ACT_THROWING",
+      "actionState": 0,
+      "input": 8224,
+      "held": 23,
+      "used": 23,
+      "floorY": 493.27569580078125,
+      "floorType": 0,
+      "floorOwner": -1,
+      "platform": -1,
+      "forward": 0.0,
+      "health": 1920,
+      "quicksand": 0.0,
+      "actor": {
+        "slot": 23,
+        "behavior": "bhvBreakableBoxSmall",
+        "owner": 1,
+        "xyz": [
+          5900.0,
+          51.0,
+          3440.0
+        ],
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "activeFlags": 769,
+        "oAction": 0,
+        "oTimer": 756,
+        "oHeldState": 1,
+        "oIntangibleTimer": -1,
+        "oInteractStatus": 0,
+        "oInteractionSubtype": 2,
+        "oInteractType": 2,
+        "oForwardVel": 0.0,
+        "hitboxRadius": 60.0,
+        "hitboxHeight": 100.0,
+        "hitboxDownOffset": 8.0,
+        "scale": [
+          0.4000000059604645,
+          0.4000000059604645,
+          0.4000000059604645
+        ]
+      },
+      "topAction": 0,
+      "topTimer": 756,
+      "pillars": 0,
+      "completedInput": 1103,
+      "HOLP": [
+        3481.33154296875,
+        540.0819702148438,
+        4487.7412109375
+      ]
+    },
+    {
+      "timer": 1109,
+      "level": 8,
+      "area": 1,
+      "marioPresent": true,
+      "M": [
+        3393.489990234375,
+        493.27569580078125,
+        4512.3935546875
+      ],
+      "C": [
+        3393.489990234375,
+        493.27569580078125,
+        4512.3935546875
+      ],
+      "D": [
+        3393.489990234375,
+        493.27569580078125,
+        4512.3935546875
+      ],
+      "action": 2147485064,
+      "actionName": "ACT_THROWING",
+      "actionState": 0,
+      "input": 32,
+      "held": 23,
+      "used": 23,
+      "floorY": 493.27569580078125,
+      "floorType": 0,
+      "floorOwner": -1,
+      "platform": -1,
+      "forward": 0.0,
+      "health": 1920,
+      "quicksand": 0.0,
+      "actor": {
+        "slot": 23,
+        "behavior": "bhvBreakableBoxSmall",
+        "owner": 1,
+        "xyz": [
+          5900.0,
+          51.0,
+          3440.0
+        ],
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "activeFlags": 769,
+        "oAction": 0,
+        "oTimer": 761,
+        "oHeldState": 1,
+        "oIntangibleTimer": -1,
+        "oInteractStatus": 0,
+        "oInteractionSubtype": 2,
+        "oInteractType": 2,
+        "oForwardVel": 0.0,
+        "hitboxRadius": 60.0,
+        "hitboxHeight": 100.0,
+        "hitboxDownOffset": 8.0,
+        "scale": [
+          0.4000000059604645,
+          0.4000000059604645,
+          0.4000000059604645
+        ]
+      },
+      "topAction": 0,
+      "topTimer": 761,
+      "pillars": 0,
+      "completedInput": 1108,
+      "HOLP": [
+        3393.86279296875,
+        605.234619140625,
+        4491.33935546875
+      ]
+    },
+    {
+      "timer": 1110,
+      "level": 8,
+      "area": 1,
+      "marioPresent": true,
+      "M": [
+        3393.489990234375,
+        493.27569580078125,
+        4512.3935546875
+      ],
+      "C": [
+        3393.489990234375,
+        493.27569580078125,
+        4512.3935546875
+      ],
+      "D": [
+        3393.489990234375,
+        493.27569580078125,
+        4512.3935546875
+      ],
+      "action": 2147485064,
+      "actionName": "ACT_THROWING",
+      "actionState": 0,
+      "input": 32,
+      "held": -1,
+      "used": 23,
+      "floorY": 493.27569580078125,
+      "floorType": 0,
+      "floorOwner": -1,
+      "platform": -1,
+      "forward": 0.0,
+      "health": 1920,
+      "quicksand": 0.0,
+      "actor": {
+        "slot": 23,
+        "behavior": "bhvBreakableBoxSmall",
+        "owner": 1,
+        "xyz": [
+          3376.12548828125,
+          605.234619140625,
+          4517.9736328125
+        ],
+        "velocity": [
+          0.0,
+          20.0,
+          0.0
+        ],
+        "activeFlags": 257,
+        "oAction": 0,
+        "oTimer": 762,
+        "oHeldState": 0,
+        "oIntangibleTimer": 0,
+        "oInteractStatus": 0,
+        "oInteractionSubtype": 2,
+        "oInteractType": 2,
+        "oForwardVel": 40.0,
+        "hitboxRadius": 60.0,
+        "hitboxHeight": 100.0,
+        "hitboxDownOffset": 8.0,
+        "scale": [
+          0.4000000059604645,
+          0.4000000059604645,
+          0.4000000059604645
+        ]
+      },
+      "topAction": 0,
+      "topTimer": 762,
+      "pillars": 0,
+      "completedInput": 1109,
+      "HOLP": [
+        3393.86279296875,
+        605.234619140625,
+        4491.33935546875
+      ]
+    },
+    {
+      "timer": 1111,
+      "level": 8,
+      "area": 1,
+      "marioPresent": true,
+      "M": [
+        3463.743896484375,
+        493.27569580078125,
+        4489.919921875
+      ],
+      "C": [
+        3463.743896484375,
+        493.27569580078125,
+        4489.919921875
+      ],
+      "D": [
+        3463.743896484375,
+        493.27569580078125,
+        4489.919921875
+      ],
+      "action": 2147485064,
+      "actionName": "ACT_THROWING",
+      "actionState": 0,
+      "input": 32,
+      "held": -1,
+      "used": 23,
+      "floorY": 493.27569580078125,
+      "floorType": 0,
+      "floorOwner": -1,
+      "platform": -1,
+      "forward": 0.0,
+      "health": 1920,
+      "quicksand": 0.0,
+      "actor": {
+        "slot": 23,
+        "behavior": "bhvBreakableBoxSmall",
+        "owner": 1,
+        "xyz": [
+          3353.95361328125,
+          622.734619140625,
+          4551.2666015625
+        ],
+        "velocity": [
+          0.0,
+          17.5,
+          0.0
+        ],
+        "activeFlags": 257,
+        "oAction": 0,
+        "oTimer": 763,
+        "oHeldState": 0,
+        "oIntangibleTimer": 0,
+        "oInteractStatus": 0,
+        "oInteractionSubtype": 0,
+        "oInteractType": 2,
+        "oForwardVel": 40.0,
+        "hitboxRadius": 60.0,
+        "hitboxHeight": 100.0,
+        "hitboxDownOffset": 8.0,
+        "scale": [
+          0.4000000059604645,
+          0.4000000059604645,
+          0.4000000059604645
+        ]
+      },
+      "topAction": 0,
+      "topTimer": 763,
+      "pillars": 0,
+      "completedInput": 1110,
+      "HOLP": [
+        3393.86279296875,
+        605.234619140625,
+        4491.33935546875
+      ]
+    },
+    {
+      "timer": 1120,
+      "level": 8,
+      "area": 1,
+      "marioPresent": true,
+      "M": [
+        3463.743896484375,
+        496.4366149902344,
+        4489.919921875
+      ],
+      "C": [
+        3463.743896484375,
+        496.4366149902344,
+        4489.919921875
+      ],
+      "D": [
+        3463.743896484375,
+        496.4366149902344,
+        4489.919921875
+      ],
+      "action": 2147485064,
+      "actionName": "ACT_THROWING",
+      "actionState": 0,
+      "input": 32,
+      "held": -1,
+      "used": 23,
+      "floorY": 496.4366149902344,
+      "floorType": 0,
+      "floorOwner": -1,
+      "platform": -1,
+      "forward": 0.0,
+      "health": 1920,
+      "quicksand": 0.0,
+      "actor": {
+        "slot": 23,
+        "behavior": "bhvBreakableBoxSmall",
+        "owner": 1,
+        "xyz": [
+          3154.40673828125,
+          667.734619140625,
+          4850.9033203125
+        ],
+        "velocity": [
+          0.0,
+          -5.0,
+          0.0
+        ],
+        "activeFlags": 257,
+        "oAction": 0,
+        "oTimer": 772,
+        "oHeldState": 0,
+        "oIntangibleTimer": 0,
+        "oInteractStatus": 0,
+        "oInteractionSubtype": 0,
+        "oInteractType": 2,
+        "oForwardVel": 40.0,
+        "hitboxRadius": 60.0,
+        "hitboxHeight": 100.0,
+        "hitboxDownOffset": 8.0,
+        "scale": [
+          0.4000000059604645,
+          0.4000000059604645,
+          0.4000000059604645
+        ]
+      },
+      "topAction": 0,
+      "topTimer": 772,
+      "pillars": 0,
+      "completedInput": 1119,
+      "HOLP": [
+        3393.86279296875,
+        605.234619140625,
+        4491.33935546875
+      ]
+    },
+    {
+      "timer": 1121,
+      "level": 8,
+      "area": 1,
+      "marioPresent": true,
+      "M": [
+        3463.743896484375,
+        496.4366149902344,
+        4489.919921875
+      ],
+      "C": [
+        3463.743896484375,
+        496.4366149902344,
+        4489.919921875
+      ],
+      "D": [
+        3463.743896484375,
+        496.4366149902344,
+        4489.919921875
+      ],
+      "action": 2147485064,
+      "actionName": "ACT_THROWING",
+      "actionState": 0,
+      "input": 32,
+      "held": -1,
+      "used": 23,
+      "floorY": 496.4366149902344,
+      "floorType": 0,
+      "floorOwner": -1,
+      "platform": -1,
+      "forward": 0.0,
+      "health": 1920,
+      "quicksand": 0.0,
+      "actor": {
+        "slot": 23,
+        "behavior": "bhvBreakableBoxSmall",
+        "owner": 1,
+        "xyz": [
+          3132.23486328125,
+          660.234619140625,
+          4884.1962890625
+        ],
+        "velocity": [
+          0.0,
+          -7.5,
+          0.0
+        ],
+        "activeFlags": 257,
+        "oAction": 0,
+        "oTimer": 773,
+        "oHeldState": 0,
+        "oIntangibleTimer": 0,
+        "oInteractStatus": 0,
+        "oInteractionSubtype": 0,
+        "oInteractType": 2,
+        "oForwardVel": 40.0,
+        "hitboxRadius": 60.0,
+        "hitboxHeight": 100.0,
+        "hitboxDownOffset": 8.0,
+        "scale": [
+          0.4000000059604645,
+          0.4000000059604645,
+          0.4000000059604645
+        ]
+      },
+      "topAction": 0,
+      "topTimer": 773,
+      "pillars": 0,
+      "completedInput": 1120,
+      "HOLP": [
+        3393.86279296875,
+        605.234619140625,
+        4491.33935546875
+      ]
+    },
+    {
+      "timer": 1148,
+      "level": 8,
+      "area": 1,
+      "marioPresent": true,
+      "M": [
+        3463.743896484375,
+        496.4366149902344,
+        4489.919921875
+      ],
+      "C": [
+        3463.743896484375,
+        496.4366149902344,
+        4489.919921875
+      ],
+      "D": [
+        3463.743896484375,
+        496.4366149902344,
+        4489.919921875
+      ],
+      "action": 205521409,
+      "actionName": "ACT_IDLE",
+      "actionState": 0,
+      "input": 32,
+      "held": -1,
+      "used": 23,
+      "floorY": 496.4366149902344,
+      "floorType": 0,
+      "floorOwner": -1,
+      "platform": -1,
+      "forward": 0.0,
+      "health": 1920,
+      "quicksand": 0.0,
+      "actor": {
+        "slot": 23,
+        "behavior": "bhvBreakableBoxSmall",
+        "owner": 1,
+        "xyz": [
+          2545.5078125,
+          352.4405212402344,
+          5779.0400390625
+        ],
+        "velocity": [
+          0.0,
+          -11.25,
+          0.0
+        ],
+        "activeFlags": 257,
+        "oAction": 0,
+        "oTimer": 800,
+        "oHeldState": 0,
+        "oIntangibleTimer": 0,
+        "oInteractStatus": 0,
+        "oInteractionSubtype": 0,
+        "oInteractType": 2,
+        "oForwardVel": 39.33071517944336,
+        "hitboxRadius": 60.0,
+        "hitboxHeight": 100.0,
+        "hitboxDownOffset": 8.0,
+        "scale": [
+          0.4000000059604645,
+          0.4000000059604645,
+          0.4000000059604645
+        ]
+      },
+      "topAction": 0,
+      "topTimer": 800,
+      "pillars": 0,
+      "completedInput": 1147,
+      "HOLP": [
+        3393.86279296875,
+        605.234619140625,
+        4491.33935546875
+      ]
+    }
+  ],
+  "maximumHOLPY": 1501.6251220703125,
+  "maximumHOLPSample": {
+    "timer": 464,
+    "level": 8,
+    "area": 1,
+    "marioPresent": true,
+    "M": [
+      3258.90234375,
+      1459.48779296875,
+      5332.384765625
+    ],
+    "C": [
+      3258.90234375,
+      1459.48779296875,
+      5332.384765625
+    ],
+    "D": [
+      3258.90234375,
+      1459.48779296875,
+      5332.384765625
+    ],
+    "action": 2222,
+    "actionName": "ACT_CRAZY_BOX_BOUNCE",
+    "actionState": 0,
+    "input": 13,
+    "held": 47,
+    "used": 47,
+    "floorY": 179.8826141357422,
+    "floorType": 19,
+    "floorOwner": -1,
+    "platform": -1,
+    "forward": 26.56934356689453,
+    "health": 2176,
+    "quicksand": 0.0,
+    "actor": {
+      "slot": 23,
+      "behavior": "bhvBreakableBoxSmall",
+      "owner": 1,
+      "xyz": [
+        5900.0,
+        51.0,
+        3440.0
+      ],
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "activeFlags": 769,
+      "oAction": 0,
+      "oTimer": 116,
+      "oHeldState": 0,
+      "oIntangibleTimer": 0,
+      "oInteractStatus": 0,
+      "oInteractionSubtype": 0,
+      "oInteractType": 2,
+      "oForwardVel": 0.0,
+      "hitboxRadius": 60.0,
+      "hitboxHeight": 100.0,
+      "hitboxDownOffset": 8.0,
+      "scale": [
+        0.4000000059604645,
+        0.4000000059604645,
+        0.4000000059604645
+      ]
+    },
+    "topAction": 0,
+    "topTimer": 116,
+    "pillars": 0,
+    "completedInput": 463,
+    "HOLP": [
+      3340.078857421875,
+      1501.6251220703125,
+      5329.43896484375
+    ]
+  },
+  "maximumActorY": 675.234619140625,
+  "maximumHeldMovementY": 493.27569580078125
+}

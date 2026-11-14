@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "evidence": "finite Wafel JP controller-only search; no original-ROM replay",
+  "startupGrant": "create_game debug level selection; thereafter controller writes only, A released",
+  "proofRevision": "1222ab0ee82b870ba5efe1a8afd7f3ea7e78b1bf",
+  "captureSha256": "9bcc451964025d9f0bb1344c45957b6bfd095451b44bfb9a01f8584a75db6a72",
+  "trials": 72,
+  "searchUpdates": 32695,
+  "releases": 0,
+  "selectedFreshReplays": [
+    0,
+    27,
+    62
+  ],
+  "matchedBoundaries": 1500,
+  "nearest": 889.0000799092417,
+  "observedMaxMarioY": 1471.48779296875,
+  "files": {
+    "search.py": "6282363ded6704a9251c0505d4d7c6ad42cae3e34e9300108dd0a8b01ae4e9d9",
+    "preserve.py": "c6b79fa6db7ce9b2ac155d113fca20a7f8e4585d3d74649965ab1ef92c6b5f73",
+    "approaches.json.gz": "f69d4cdc97440084ad6e32397886653a701ccadf27ec07a98dbf2d529b976e4d"
+  },
+  "dependencies": {
+    "instrumentation\\wafel-jp-pilot\\replay.py": "ea422b6478e40931c9d61aaa0e19c9d86a551a0219dbeaca85cd9a82e70df66d",
+    "instrumentation\\wafel-jp-pilot\\ink_crawl_predecessors.py": "c4f64df454ebb845788788dfa25eabebe96e1f7221b2bba66f441ed387576a0b"
+  },
+  "corrections": [
+    "Pilot inactive-object detector falsely labeled area-exit deletion as release; final run requires native shell-box action4.",
+    "Final menu stops at missing area/camera, area departure, low health or death action."
+  ],
+  "limit": "72 specified waypoint/prefix combinations; not a proof that the native shell box is unreachable without A"
+}
