@@ -20,6 +20,6 @@ remain explicit obligations. It is neither a global shell impossibility theorem
 nor a complete route. Main consumes the theorem through its named shell boundary.
 The detailed statement is docs/notes/ink-shell-bridge-proof.md.
 
-Source and audit hashes are preserved in verification.json. No new axiom or
+Source and audit hashes are preserved in verification.json. Source files use LF-normalized bytes so Git checkout line endings do not invalidate their identity; archived logs use exact bytes. No new axiom or
 Admitted was introduced. A clean assumptions report does not discharge explicit
 premises or prove every game's reachable history.

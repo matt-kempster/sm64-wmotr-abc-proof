@@ -6,10 +6,15 @@
     "instrumentation/ink-shell-bridge-proof/build.log": "99f8aca81f5a9fb1f7c743654cbcb11b6937f5dbee17ee1f65b4f0091141e138",
     "instrumentation/ink-shell-bridge-proof/summary.txt": "bb25dad86c727a80d0c28bba2a9ae7ccfae7819bfd44db2c15a30e2fdc9f196d",
     "instrumentation/ink-shell-bridge-proof/report.json": "f238010a308b52bb3ee3e81975b779dac9f24efc6628085b0c237971ec49e3a2",
-    "instrumentation/ink-shell-bridge-proof/README.md": "b7b6900f7b015a404c60eb214f057002cfb45d61eefcd60363edede9604a6a58",
+    "instrumentation/ink-shell-bridge-proof/README.md": "1cd461817f46e00b47c31d057dde086576cb2ef4be9aad9d7de12478361a8082",
     "proofs/InkShellBridge.v": "06ba39df661f5fbbe9a0b1cf208e55483671daa348c7b472fed3958d4895c6ea",
-    "proofs/MainTheorem.v": "7317059560b923ecf05a8519df2550af7e82faaf7ff1f5c5076501615a7497df",
-    "_CoqProject": "8b6de5f5d13e773367205730e622139cd99c1f808c2540bf5487eefc19593e3e",
+    "proofs/MainTheorem.v": "0e399d90912716900c5101db3df5822ec263cd0833d7f37663b5e32d86b41931",
+    "_CoqProject": "c76bd275c3ad7360b753d233fe96f17c14c21bba8bf1d0d3dc92d3094468c851",
     "docs/notes/ink-shell-bridge-proof.md": "a5b08bdfd0d4272dc83a8edcec59c2597facf4e9eaffc7d2f32a63cb87dfc22f"
-  }
+  },
+  "lfNormalizedSources": [
+    "proofs/InkShellBridge.v",
+    "proofs/MainTheorem.v",
+    "_CoqProject"
+  ]
 }
