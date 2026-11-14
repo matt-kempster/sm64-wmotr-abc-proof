@@ -1,12 +1,18 @@
 # Proof project videos
 
 The private [Ink handoff films site](https://ink-handoff-films.tra38.chatgpt.site)
-collects the original Crazy Box crawl explainer and the VPU actions film with
-new instrumental scores, plus their silent versions. The scored videos preserve
-the original pictures and captions; the music is newly composed presentation
-audio, not game audio. See the [film-site record](../notes/ink-handoff-film-site.md)
-for files, provenance and validation. These remain supplied-state demonstrations,
-with no new route or proof claim.
+collects the Crazy Box crawl explainer and the VPU actions film with new
+instrumental scores, plus their silent versions. The current crawl edition
+corrects its captions to identify Y1741 as stored graphics coordinates, not
+the drawn model's height; its gameplay selection and timing are retained,
+and the existing AAC music is copied exactly. The [corrected silent crawl](ink-films/crawl-caption-corrected.mp4)
+and [historical silent original](ink-films/original-crawl-silent.mp4) are both
+preserved. The second film and its music are unchanged. The music is newly
+composed presentation audio, not game audio. See the [film-site record](../notes/ink-handoff-film-site.md)
+and [caption-correction receipt](ink-films/caption-correction-receipt.json)
+for current provenance; the initial soundtrack receipt's crawl video hashes
+are historical. These remain supplied-state demonstrations, with no new
+route or proof claim.
 
 [VPU crawling, sliding and walking](ink-vpu-actions/ink-vpu-actions.mp4)
 is a 4:06.6 captioned explanation with six fresh original-Japanese-ROM

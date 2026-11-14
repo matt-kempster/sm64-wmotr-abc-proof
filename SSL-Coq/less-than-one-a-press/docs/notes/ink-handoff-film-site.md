@@ -1,9 +1,11 @@
 # Ink handoff films: private viewing site and music
 
 13 November 2026. The private [Ink handoff films site](https://ink-handoff-films.tra38.chatgpt.site)
-collects two existing visual explanations with newly composed instrumental
-tension music. Silent versions remain available. This is a presentation and
-publication update; it adds no gameplay run, height search or Coq proof.
+collects two visual explanations with newly composed instrumental tension
+music. The current first film corrects its graphics-position captions; both
+the corrected silent edition and historical silent original remain available.
+This is a presentation and publication update; it adds no gameplay run,
+height search or Coq proof.
 
 | Film | Existing evidence | Scope |
 | --- | --- | --- |
@@ -12,12 +14,19 @@ publication update; it adds no gameplay run, height search or Coq proof.
 
 The preserved viewing files are:
 
-- Original crawl: [with music](../media/ink-films/crawl-with-music.mp4) and
-  [silent original](../media/ink-films/original-crawl-silent.mp4).
+- Original crawl: [corrected with music](../media/ink-films/crawl-with-music.mp4),
+  [corrected silent](../media/ink-films/crawl-caption-corrected.mp4), and
+  [historical silent original](../media/ink-films/original-crawl-silent.mp4).
+  The [initial scored edition](../media/ink-films/crawl-before-caption-fix.mp4)
+  is archived as the exact AAC source for reproducing the correction.
 - VPU actions: [with music](../media/ink-films/vpu-with-music.mp4) and
   [silent original](../media/ink-vpu-actions/ink-vpu-actions.mp4).
-- [Soundtrack receipt](../media/ink-films/soundtrack-receipt.json), recording
-  source/output hashes, music seeds, tool versions and measured checks.
+- [Initial soundtrack receipt](../media/ink-films/soundtrack-receipt.json),
+  recording the first scored editions' source/output hashes, music seeds,
+  tool versions and measured checks. Its crawl video hashes are historical.
+- [Caption-correction receipt](../media/ink-films/caption-correction-receipt.json),
+  recording the current crawl edition, its retained gameplay selection and
+  timing, and its copied AAC soundtrack.
 
 The original film is the earlier workspace render
 `build/crazy-box-explainer/crazy-box-handoff.mp4`, with its `storyboard.md`,
@@ -39,10 +48,16 @@ recorded update endpoints from source/Wafel explanations of operations inside
 an update. The floor-query height is local even when the queried high Y aliases;
 the horizontal failure controls do not exclude every conceivable PU route.
 
-The older film's legend describes D as where Mario is drawn. Read D as
-**stored graphics position**: floor alignment can install a matrix that draws
-the model elsewhere. This clarification belongs beside the preserved film;
-the soundtrack edition does not revise or replace its video frames.
+The historical film's legend describes D as where Mario is drawn. The current
+crawl film corrects that wording in the film itself: D and its Y1741 label mean
+**stored graphics position**, not the drawn model's height. Floor alignment
+can install a matrix that draws the model elsewhere. The corrected render
+uses the same underlying gameplay images, card durations and 3742 frames
+over 124.733333 seconds; the visual stream has been rendered again and is
+not the historical H264 stream. Its source is
+`instrumentation/ink-crawl-caption-fix/`. The existing AAC music stream is
+copied exactly into this corrected edition. The second film and its music
+are unchanged, and the historical silent crawl remains preserved separately.
 
 The music, **Stored in the Dark**, is an original synthetic instrumental
 composition created for these films, with separate arrangements and ending
@@ -53,11 +68,14 @@ scripts live in `instrumentation/ink-film-soundtrack/`; build outputs are in
 the workspace's `build/ink-film-soundtrack/`. No ROM or conversation export is
 part of the film site.
 
-FFmpeg 6.1.1 copies each original H264 video stream and adds 48 kHz stereo
-AAC. The receipt verifies identical elementary video-stream hashes before
-and after muxing, unchanged video duration and frame counts, successful
-complete decoding, and matching audio duration. Both remain 1600×900 at
-30 frames per second. The measured outputs are:
+The initial soundtrack production used FFmpeg 6.1.1 to copy each original
+H264 video stream and add 48 kHz stereo AAC. Its receipt verifies identical
+elementary video-stream hashes before and after that initial muxing,
+unchanged video duration and frame counts, successful complete decoding,
+and matching audio duration. Those video hashes still describe the current
+VPU music edition; the caption-correction receipt supersedes them for the
+current crawl video. Both films remain 1600×900 at 30 frames per second.
+The initially measured soundtrack editions were:
 
 | Music edition | Video duration | Frames | Integrated loudness | True peak |
 | --- | ---: | ---: | ---: | ---: |
@@ -65,10 +83,12 @@ complete decoding, and matching audio duration. Both remain 1600×900 at
 | VPU actions | 246.6 seconds | 7398 | −19.01 LUFS | −3.68 dBTP |
 
 The composition is deterministic with NumPy 1.26.4 and seeds 20261113
-and 20261114. The final file hashes were independently rechecked against
-the soundtrack receipt. These are format, signal and provenance checks;
-no human listening assessment is claimed. The silent originals, including
-the newly archived original crawl film, remain available for comparison.
+and 20261114. The initial scored-file hashes were independently rechecked
+against the soundtrack receipt; they are historical for the crawl edition
+now that its captions have changed. The current crawl preserves the same
+AAC stream, so its music has not been recomposed or re-encoded. These are
+format, signal and provenance checks; no human listening assessment is
+claimed. The silent originals remain available for comparison.
 
 The site source is the separate workspace repository `ink-handoff-films-site`.
 It remains private, as does the existing Pyramid Fine Print site. Publishing

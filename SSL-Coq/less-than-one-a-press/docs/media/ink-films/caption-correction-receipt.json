@@ -1,0 +1,1543 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "scope": "Presentation-only caption correction. D means stored graphics coordinates; Y1741 does not establish where the model is drawn. No game run or Coq proof rerun.",
+  "evidenceLevel": "Same supplied-state original-JP handoff, not a continuous controller-reachable route.",
+  "sourceRevision": "4ec78449fe8be2fe194a8655041dc5e5e1f3f392",
+  "originalScoredSource": "docs/media/ink-films/crawl-before-caption-fix.mp4",
+  "correctedSilentFile": "crawl-caption-corrected.mp4",
+  "correctedScoredFile": "crawl-with-music.mp4",
+  "correctedStoryboardFile": "storyboard.md",
+  "historicalRendererSha256": "6dd9753b0e8589d6f923fed45b157a402c0b64b2ff9b424c7333933ef7ee905b",
+  "historicalSilentSha256": "da85feb2f1bd89dee9d5a78b0faba04b8ba6e8649d807820d7c372b0958e8eb9",
+  "correctedRendererSha256": "b5c794dbda9a80d1e2c8f5e4fc064e49d74f907cf9b0a53f4476b17c44c561ee",
+  "verifierSha256": "070c3c96ce94c2fe640f174bd5265877fe8576095813e4ff1376622bd78bae2d",
+  "pixelCheckerSha256": "ba1c00490b6e016a06e5fde050a56f696346a56be31005ffe69fccdd4f38e82a",
+  "storyboardSha256": "e68499116d4d1f42a75ba6230c8cde334bfe9e926a9b763a24ace0c318b2273e",
+  "sourceReceiptSha256": "e8f0ea852056ff16f790e7272d4f0c6d56ca744f27599f431efb4aff03b8b98c",
+  "ffmpegVersion": "ffmpeg version 7.0.2-full_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers",
+  "ffprobeVersion": "ffprobe version 7.0.2-full_build-www.gyan.dev Copyright (c) 2007-2024 the FFmpeg developers",
+  "videos": {
+    "oldScored": {
+      "sha256": "a841b5fd34c414d861b10f85ea354463a8ec60893e300c9edb44c6d901e67dc9",
+      "bytes": 7087396,
+      "durationSeconds": 124.733333,
+      "frameCount": 3742,
+      "width": 1600,
+      "height": 900,
+      "fps": "30/1",
+      "videoCodec": "h264",
+      "fullDecodePassed": true
+    },
+    "correctedSilent": {
+      "sha256": "3d582954c6f1df76dde118f925d83ea4845599eee90632321070185d6d71ced7",
+      "bytes": 3891260,
+      "durationSeconds": 124.733333,
+      "frameCount": 3742,
+      "width": 1600,
+      "height": 900,
+      "fps": "30/1",
+      "videoCodec": "h264",
+      "fullDecodePassed": true
+    },
+    "correctedScored": {
+      "sha256": "05e95712e7c5728b6cce453fbffe909bb8e4d550c73643dd0c3a099cafb3e4a1",
+      "bytes": 7078785,
+      "durationSeconds": 124.733333,
+      "frameCount": 3742,
+      "width": 1600,
+      "height": 900,
+      "fps": "30/1",
+      "videoCodec": "h264",
+      "fullDecodePassed": true
+    }
+  },
+  "audio": {
+    "policy": "Existing AAC track stream-copied with -c:a copy. No recomposition or re-encoding.",
+    "adtsElementarySha256Before": "8651748b3469e226731db38fac89dfcca887b29ddf1d42b0b6ef206484c05b76",
+    "adtsElementarySha256After": "8651748b3469e226731db38fac89dfcca887b29ddf1d42b0b6ef206484c05b76",
+    "identical": true,
+    "codec": "aac",
+    "sampleRate": "48000",
+    "channels": 2,
+    "startTimeSeconds": 0.0,
+    "startPTS": 0,
+    "timeBase": "1/48000",
+    "durationTicks": 5987184,
+    "durationSeconds": 124.733,
+    "packetTimingAndSkipMetadataIdentical": true,
+    "packetCount": 5848,
+    "canonicalPacketTimingSha256": "94498cf709282dfbc4a47b31aab525f97037cd10e6b0c90d6f40d663d36f2326"
+  },
+  "video": {
+    "oldH264ElementarySha256": "380f28bd8fbae3d189647675a083f353df9f2e411284b318335f2af301022cfd",
+    "correctedH264ElementarySha256": "4813d1904d6cb7415d13c4fd50ed285e1c3150db01fec6a3de9662251aa79dfc",
+    "oldVideoStreamIdentical": false,
+    "correctedSilentAndScoredVideoIdentical": true,
+    "reason": "Burned-in captions and diagram labels require rerendering; whole-video bytes are intentionally different."
+  },
+  "poster": {
+    "file": "ink-gap.png",
+    "sha256": "83f05376409481c969c9b0c3b1cb8489bd2585b6c17ddff5cba43eb770fb7bce"
+  },
+  "verification": {
+    "sourceCaptureBytesMatchArchivedReceipt": true,
+    "sourceSelectionAndCardDurationsUnchanged": true,
+    "concatManifestByteIdentical": true,
+    "all66GameplayPanelCropsPixelIdentical": true,
+    "uniqueTextMeasurements": 165,
+    "allTextFitsCanvas": true,
+    "allCorrectedTextFits1538PixelRightMargin": true,
+    "representativePanelReview": [
+      "panel-005.png at 0:53",
+      "panel-006.png at 1:03"
+    ],
+    "visualReview": "Correction panels inspected for readable captions and explicit stored-graphics/model distinction. No listening review or new gameplay claim."
+  },
+  "changedLabelMeasurements": [
+    {
+      "text": "Stored-position cutaway  /  X increases →",
+      "x": 778,
+      "y": 158,
+      "size": 23,
+      "bold": false,
+      "measuredWidth": 440.25305,
+      "measuredHeight": 33.466797,
+      "right": 1218.2530517578125,
+      "bottom": 191.466796875,
+      "canvasFits": true
+    },
+    {
+      "text": "D  Stored graphics",
+      "x": 648,
+      "y": 662,
+      "size": 22,
+      "bold": false,
+      "measuredWidth": 192.3675,
+      "measuredHeight": 32.01172,
+      "right": 840.3674926757812,
+      "bottom": 694.01171875,
+      "canvasFits": true
+    },
+    {
+      "text": "Stored graphics stay at Y 1741. This need not be where the model is drawn.",
+      "x": 61,
+      "y": 766,
+      "size": 33,
+      "bold": false,
+      "measuredWidth": 1135.852,
+      "measuredHeight": 48.01758,
+      "right": 1196.85205078125,
+      "bottom": 814.017578125,
+      "canvasFits": true
+    },
+    {
+      "text": "Retry at stored D  Y 1741",
+      "x": 1202,
+      "y": 311,
+      "size": 22,
+      "bold": true,
+      "measuredWidth": 273.44952,
+      "measuredHeight": 32.01172,
+      "right": 1475.4495239257812,
+      "bottom": 343.01171875,
+      "canvasFits": true
+    },
+    {
+      "text": "The low floor search misses past the pad edge. It retries at stored graphics Y.",
+      "x": 61,
+      "y": 766,
+      "size": 33,
+      "bold": false,
+      "measuredWidth": 1157.1699,
+      "measuredHeight": 48.01758,
+      "right": 1218.169921875,
+      "bottom": 814.017578125,
+      "canvasFits": true
+    },
+    {
+      "text": "Stored D  Y 1741",
+      "x": 1220,
+      "y": 307,
+      "size": 23,
+      "bold": true,
+      "measuredWidth": 194.02505,
+      "measuredHeight": 33.466797,
+      "right": 1414.0250549316406,
+      "bottom": 340.466796875,
+      "canvasFits": true
+    },
+    {
+      "text": "Store high graphics, then snap movement down",
+      "x": 60,
+      "y": 60,
+      "size": 52,
+      "bold": true,
+      "measuredWidth": 1225.013,
+      "measuredHeight": 75.66406,
+      "right": 1285.012939453125,
+      "bottom": 135.6640625,
+      "canvasFits": true
+    },
+    {
+      "text": "M + stored D match first",
+      "x": 1197,
+      "y": 310,
+      "size": 21,
+      "bold": false,
+      "measuredWidth": 241.98877,
+      "measuredHeight": 30.55664,
+      "right": 1438.98876953125,
+      "bottom": 340.556640625,
+      "canvasFits": true
+    },
+    {
+      "text": "First, the game stores the high movement position as graphics coordinates.",
+      "x": 61,
+      "y": 721,
+      "size": 33,
+      "bold": false,
+      "measuredWidth": 1136.1904,
+      "measuredHeight": 48.01758,
+      "right": 1197.1904296875,
+      "bottom": 769.017578125,
+      "canvasFits": true
+    },
+    {
+      "text": "D marks stored graphics coordinates, not necessarily the drawn model. Left: the same completed frame.",
+      "x": 61,
+      "y": 846,
+      "size": 20,
+      "bold": false,
+      "measuredWidth": 946.1881,
+      "measuredHeight": 29.101562,
+      "right": 1007.1881103515625,
+      "bottom": 875.1015625,
+      "canvasFits": true
+    }
+  ],
+  "sourceSelection": [
+    {
+      "panel": "panel-000.png",
+      "source": "super_mario_64-005.png",
+      "duration": 11,
+      "stage": 0,
+      "input": 5,
+      "sourceSha256": "7c17ef519c8ddd3dc033d53206cfa5e2cb892e0904f5344420d4c1bdd94a7b1d"
+    },
+    {
+      "panel": "panel-001.png",
+      "source": "super_mario_64-005.png",
+      "duration": 11,
+      "stage": 0,
+      "input": 5,
+      "sourceSha256": "7c17ef519c8ddd3dc033d53206cfa5e2cb892e0904f5344420d4c1bdd94a7b1d"
+    },
+    {
+      "panel": "panel-002.png",
+      "source": "super_mario_64-006.png",
+      "duration": 10,
+      "stage": 1,
+      "input": 6,
+      "sourceSha256": "7359eee4b02e0b15a5dd2cece8e6c3944b9097306da0fc8faf5be5fa8e60be10"
+    },
+    {
+      "panel": "panel-003.png",
+      "source": "super_mario_64-006.png",
+      "duration": 10,
+      "stage": 2,
+      "input": 6,
+      "sourceSha256": "7359eee4b02e0b15a5dd2cece8e6c3944b9097306da0fc8faf5be5fa8e60be10"
+    },
+    {
+      "panel": "panel-004.png",
+      "source": "super_mario_64-006.png",
+      "duration": 11,
+      "stage": 3,
+      "input": 6,
+      "sourceSha256": "7359eee4b02e0b15a5dd2cece8e6c3944b9097306da0fc8faf5be5fa8e60be10"
+    },
+    {
+      "panel": "panel-005.png",
+      "source": "super_mario_64-006.png",
+      "duration": 10,
+      "stage": 4,
+      "input": 6,
+      "sourceSha256": "7359eee4b02e0b15a5dd2cece8e6c3944b9097306da0fc8faf5be5fa8e60be10"
+    },
+    {
+      "panel": "panel-006.png",
+      "source": "super_mario_64-006.png",
+      "duration": 10,
+      "stage": 5,
+      "input": 6,
+      "sourceSha256": "7359eee4b02e0b15a5dd2cece8e6c3944b9097306da0fc8faf5be5fa8e60be10"
+    },
+    {
+      "panel": "panel-007.png",
+      "source": "super_mario_64-007.png",
+      "duration": 11,
+      "stage": 6,
+      "input": 7,
+      "sourceSha256": "4d14724e909d5de6ec981351cb7721cde7c644e3412bee1c67df23d2a8692e6b"
+    },
+    {
+      "panel": "panel-008.png",
+      "source": "super_mario_64-007.png",
+      "duration": 11,
+      "stage": 7,
+      "input": 7,
+      "sourceSha256": "4d14724e909d5de6ec981351cb7721cde7c644e3412bee1c67df23d2a8692e6b"
+    },
+    {
+      "panel": "panel-009.png",
+      "source": "super_mario_64-008.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 8,
+      "sourceSha256": "5b61a6dd0f264b5503b4966d2acfcd897bf55a95d6ae44e5572b22b57c2ace1b"
+    },
+    {
+      "panel": "panel-010.png",
+      "source": "super_mario_64-009.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 9,
+      "sourceSha256": "b7d0bd675d91db6b8be956f58ee4cffa3dacc59f695d3e534fbe3862ef14b55a"
+    },
+    {
+      "panel": "panel-011.png",
+      "source": "super_mario_64-010.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 10,
+      "sourceSha256": "1e5082bcaeede472e4eec7713e5ce2d79e3685c6ecc8b854f77b8dd11938e0cd"
+    },
+    {
+      "panel": "panel-012.png",
+      "source": "super_mario_64-011.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 11,
+      "sourceSha256": "cbd4acacabf8a4e9c8b4e71d30d86944fafd8a10e06eeb4c227bf5362fa15a01"
+    },
+    {
+      "panel": "panel-013.png",
+      "source": "super_mario_64-012.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 12,
+      "sourceSha256": "e7945b8a54bc034461d6e2101058d908dfae7a8e67cc058d6354220989537e59"
+    },
+    {
+      "panel": "panel-014.png",
+      "source": "super_mario_64-013.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 13,
+      "sourceSha256": "45804884a60e2543564c5ca30ffbc29da84e161a19ef0ba0cceeab97ea67bd46"
+    },
+    {
+      "panel": "panel-015.png",
+      "source": "super_mario_64-014.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 14,
+      "sourceSha256": "b065ec32d6c81c5a2d95986a7725b398384f67869c4fb623214eaa5774d87bf3"
+    },
+    {
+      "panel": "panel-016.png",
+      "source": "super_mario_64-015.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 15,
+      "sourceSha256": "9392fd6fc5815b4075c28a6c2d3c2db7555975c8358b47c9128b944282ce70f6"
+    },
+    {
+      "panel": "panel-017.png",
+      "source": "super_mario_64-016.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 16,
+      "sourceSha256": "789263a257f585dcc7289748860240ffd223c516734864048e59471579095a85"
+    },
+    {
+      "panel": "panel-018.png",
+      "source": "super_mario_64-017.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 17,
+      "sourceSha256": "af794954c1b1e09448844f368dc9094077651c7f0d172dc1f44011e56888bac5"
+    },
+    {
+      "panel": "panel-019.png",
+      "source": "super_mario_64-018.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 18,
+      "sourceSha256": "b140571b7a7b5a8df84f13b25700ca11570da14392c68a6b0ba7dfa4a29ea7a1"
+    },
+    {
+      "panel": "panel-020.png",
+      "source": "super_mario_64-019.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 19,
+      "sourceSha256": "e6cc0de16baed9dc529bd6a9a2cd5597648a0e510028208b9599195b2fd57bc2"
+    },
+    {
+      "panel": "panel-021.png",
+      "source": "super_mario_64-020.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 20,
+      "sourceSha256": "5b057eeb00501f54522a77e60e89aa878818e8c082be99d32f543d20f0a8bcdb"
+    },
+    {
+      "panel": "panel-022.png",
+      "source": "super_mario_64-021.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 21,
+      "sourceSha256": "e35dae55a475806a2223955fdfe74e03a39a525aadbdaf2103a23f640d5a88fc"
+    },
+    {
+      "panel": "panel-023.png",
+      "source": "super_mario_64-022.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 22,
+      "sourceSha256": "13adbbb04f04dc7a7444a287a89023a10ea7c6771812d2f2b9b61d6579cbc05e"
+    },
+    {
+      "panel": "panel-024.png",
+      "source": "super_mario_64-023.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 23,
+      "sourceSha256": "4cce178ce600eb919af94c4494233a22f48f98f9185d31c65a574e7dff00f105"
+    },
+    {
+      "panel": "panel-025.png",
+      "source": "super_mario_64-024.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 24,
+      "sourceSha256": "631e3127a8390e0a298d96b0a9706f4812be1cff8b46079301eeca42ac17ec40"
+    },
+    {
+      "panel": "panel-026.png",
+      "source": "super_mario_64-025.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 25,
+      "sourceSha256": "d1d3df6105849833b7f093a329cd6dd1581989a9d593228d316050c323209105"
+    },
+    {
+      "panel": "panel-027.png",
+      "source": "super_mario_64-026.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 26,
+      "sourceSha256": "c11104b816a0c52cb0586d5b54fc7e2a8b604254a1c1bf8a2b4ce8534ef34e1f"
+    },
+    {
+      "panel": "panel-028.png",
+      "source": "super_mario_64-027.png",
+      "duration": 0.2,
+      "stage": 7,
+      "input": 27,
+      "sourceSha256": "bc3d6893d2cd43c50978cf2585e5205d23623cf4dea4b80ba79f66e4a52791f2"
+    },
+    {
+      "panel": "panel-029.png",
+      "source": "super_mario_64-028.png",
+      "duration": 10,
+      "stage": 8,
+      "input": 30,
+      "sourceSha256": "bc3d6893d2cd43c50978cf2585e5205d23623cf4dea4b80ba79f66e4a52791f2"
+    },
+    {
+      "panel": "panel-030.png",
+      "source": "super_mario_64-029.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 31,
+      "sourceSha256": "668de06c9b33aca2a7e82ed6b8c33cc508b90d66ac14ebf45fbd0db141caddf0"
+    },
+    {
+      "panel": "panel-031.png",
+      "source": "super_mario_64-030.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 32,
+      "sourceSha256": "8e3745340ac0a32744dcf49d6d40fb833ff538eb5b8a16e5191f833a787d4796"
+    },
+    {
+      "panel": "panel-032.png",
+      "source": "super_mario_64-031.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 33,
+      "sourceSha256": "f827ff09a24d9ae306ca5a709bbc98045f2e97af61d9e2fb10b99df6560ac9b4"
+    },
+    {
+      "panel": "panel-033.png",
+      "source": "super_mario_64-032.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 34,
+      "sourceSha256": "267e438c9d63710fdaeded2a7dcf890122499c07ed23f3fe9d3814f043687154"
+    },
+    {
+      "panel": "panel-034.png",
+      "source": "super_mario_64-033.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 35,
+      "sourceSha256": "a3ce404433385388605920dd160dc82041a6439c9705fcfe5c6b367a35de08c9"
+    },
+    {
+      "panel": "panel-035.png",
+      "source": "super_mario_64-034.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 36,
+      "sourceSha256": "0200d38fab314fec87a93e5e961ddb1b71d85598dba45b5956e94a273de4d2d6"
+    },
+    {
+      "panel": "panel-036.png",
+      "source": "super_mario_64-035.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 37,
+      "sourceSha256": "a582169d8de980112386b5910dd8ea5e1b286806732a92637568f6ce62eacd01"
+    },
+    {
+      "panel": "panel-037.png",
+      "source": "super_mario_64-036.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 38,
+      "sourceSha256": "96f2540d424a9bfac67f13a7c123ccb70531c441c60bef8c78210144b928c10b"
+    },
+    {
+      "panel": "panel-038.png",
+      "source": "super_mario_64-037.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 39,
+      "sourceSha256": "e9ac6e8056abc0fd1ed10e164071cdaa8a3c218234f0ac51401b21aafb299524"
+    },
+    {
+      "panel": "panel-039.png",
+      "source": "super_mario_64-038.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 40,
+      "sourceSha256": "4a7bd58c468784583baac35b5b84dc7ba48b785cc352043653dc370e0b9136bd"
+    },
+    {
+      "panel": "panel-040.png",
+      "source": "super_mario_64-039.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 41,
+      "sourceSha256": "69ae6b8a711da508148374fd118596aeaea77c24be427ea14347c396db27c951"
+    },
+    {
+      "panel": "panel-041.png",
+      "source": "super_mario_64-040.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 42,
+      "sourceSha256": "d7f74a89614fb9461a64420577433563487ba5796662eab113b19afc38f9670a"
+    },
+    {
+      "panel": "panel-042.png",
+      "source": "super_mario_64-041.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 43,
+      "sourceSha256": "a58d43a8d0f808e97b72b9449add23b2ed38af890b7bad189cf5b7e6a66aa3b5"
+    },
+    {
+      "panel": "panel-043.png",
+      "source": "super_mario_64-042.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 44,
+      "sourceSha256": "4346b9fb6e3774651fd42523d75b261751d3d08f8507e99aec56c8d24520abf0"
+    },
+    {
+      "panel": "panel-044.png",
+      "source": "super_mario_64-043.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 45,
+      "sourceSha256": "5690e0e19cfc31e702599b1656541ea7402f77c201789c371b2ab1a867b15d26"
+    },
+    {
+      "panel": "panel-045.png",
+      "source": "super_mario_64-044.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 46,
+      "sourceSha256": "51a3726630a7b4dee6dadde7f4aa76c17de93087df9e498f59f86cada7db2aa3"
+    },
+    {
+      "panel": "panel-046.png",
+      "source": "super_mario_64-045.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 47,
+      "sourceSha256": "94d439cab903aabf5d7b0dd930879d9f0c5efc7cc97c1ed813efeed85b29de8c"
+    },
+    {
+      "panel": "panel-047.png",
+      "source": "super_mario_64-046.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 48,
+      "sourceSha256": "14f50bf7caec489d605ce0845f2bbe61ab94c502089e868236d58a67423f2d9f"
+    },
+    {
+      "panel": "panel-048.png",
+      "source": "super_mario_64-047.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 49,
+      "sourceSha256": "6460b1ace10fb26390153bf008d7472ee3792746612292ef4443195437cb35be"
+    },
+    {
+      "panel": "panel-049.png",
+      "source": "super_mario_64-048.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 50,
+      "sourceSha256": "e2d53ed9249aac28b7a008ce2327ab6808b35ba561b5d5c02d374e61d42e84db"
+    },
+    {
+      "panel": "panel-050.png",
+      "source": "super_mario_64-049.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 51,
+      "sourceSha256": "8fa72db41845bff4fc4d7f300bb4302bb6ca461cdae06fa457ec74349a073734"
+    },
+    {
+      "panel": "panel-051.png",
+      "source": "super_mario_64-050.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 52,
+      "sourceSha256": "81a1c9ebe384909d102fc93545ef953a58ebf00911351a70eca117a68bb5f46a"
+    },
+    {
+      "panel": "panel-052.png",
+      "source": "super_mario_64-051.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 53,
+      "sourceSha256": "ac8e64a3472e32c57b1caeba186ea22ea1275481c50af3ab3694d5f90265ad29"
+    },
+    {
+      "panel": "panel-053.png",
+      "source": "super_mario_64-052.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 54,
+      "sourceSha256": "e6bb637e61a5a3391594994d71f70df1e4d5768505efb77fbe62497310020f71"
+    },
+    {
+      "panel": "panel-054.png",
+      "source": "super_mario_64-053.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 55,
+      "sourceSha256": "502214039474839a47e6ff3e21a2d086c9a52bd4ab359f00d6347ed837c6d972"
+    },
+    {
+      "panel": "panel-055.png",
+      "source": "super_mario_64-054.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 56,
+      "sourceSha256": "dc09945b67bf955722fb90c650ea7f9c924cd79fbe4d23073792137f45357172"
+    },
+    {
+      "panel": "panel-056.png",
+      "source": "super_mario_64-055.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 57,
+      "sourceSha256": "15d78a53fa09e6ec84c44dfb66eec9e6d76a42c10af618d7c8befe61dc81d510"
+    },
+    {
+      "panel": "panel-057.png",
+      "source": "super_mario_64-056.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 58,
+      "sourceSha256": "12475f241209c630d9a87490d6d03a739d7d11a322efd4747c5e5c90e064097f"
+    },
+    {
+      "panel": "panel-058.png",
+      "source": "super_mario_64-057.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 59,
+      "sourceSha256": "13f0bdda1e3b1b584aa735bca0e89e06daeb5a3b15b27652f3c1fac2ea17951d"
+    },
+    {
+      "panel": "panel-059.png",
+      "source": "super_mario_64-058.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 60,
+      "sourceSha256": "510eb780b7cbdf3c7bf70efc80db0f0e1796d6bfbb5aee93c3dac6783beb65ce"
+    },
+    {
+      "panel": "panel-060.png",
+      "source": "super_mario_64-059.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 61,
+      "sourceSha256": "322b3ee5e6870afe4ee3005ff42bf91627a5a1324b6c49a5c8963381de3acebb"
+    },
+    {
+      "panel": "panel-061.png",
+      "source": "super_mario_64-060.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 62,
+      "sourceSha256": "093f01fb34790678557cea0e91741ea950e2a1aab59ec8b3e1de382840e62311"
+    },
+    {
+      "panel": "panel-062.png",
+      "source": "super_mario_64-061.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 63,
+      "sourceSha256": "0278c49a1adf1091141b22381c86725412b062de5cf46b9c34413559a057e032"
+    },
+    {
+      "panel": "panel-063.png",
+      "source": "super_mario_64-062.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 64,
+      "sourceSha256": "cb35a6732130f0cef546de6789256802799740a89ae413d36b6802ac477751dc"
+    },
+    {
+      "panel": "panel-064.png",
+      "source": "super_mario_64-063.png",
+      "duration": 0.133333,
+      "stage": 8,
+      "input": 65,
+      "sourceSha256": "1301b39bea28e1488c8a15497e4cc84e2257fb686c05fd81c4efb3970d2729a3"
+    },
+    {
+      "panel": "panel-065.png",
+      "source": "super_mario_64-063.png",
+      "duration": 11,
+      "stage": 8,
+      "input": 65,
+      "sourceSha256": "1301b39bea28e1488c8a15497e4cc84e2257fb686c05fd81c4efb3970d2729a3"
+    }
+  ],
+  "gameplayPixelChecks": [
+    {
+      "panel": "panel-000.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "93bb1cd7a9ca4f8ca335f20d4a5213166d17a41fe7cbe27657da6a1ef90031e0",
+      "identical": true
+    },
+    {
+      "panel": "panel-001.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "93bb1cd7a9ca4f8ca335f20d4a5213166d17a41fe7cbe27657da6a1ef90031e0",
+      "identical": true
+    },
+    {
+      "panel": "panel-002.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "316e7bb40877ec76ce6d3af35eb69877e79a22b0a4d8444eca8b21770801186f",
+      "identical": true
+    },
+    {
+      "panel": "panel-003.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "316e7bb40877ec76ce6d3af35eb69877e79a22b0a4d8444eca8b21770801186f",
+      "identical": true
+    },
+    {
+      "panel": "panel-004.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "316e7bb40877ec76ce6d3af35eb69877e79a22b0a4d8444eca8b21770801186f",
+      "identical": true
+    },
+    {
+      "panel": "panel-005.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "316e7bb40877ec76ce6d3af35eb69877e79a22b0a4d8444eca8b21770801186f",
+      "identical": true
+    },
+    {
+      "panel": "panel-006.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "316e7bb40877ec76ce6d3af35eb69877e79a22b0a4d8444eca8b21770801186f",
+      "identical": true
+    },
+    {
+      "panel": "panel-007.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "b7f2ebf5cca1afa23c34201cba29a6f952724595fcb009f74602bfdbe755c9f6",
+      "identical": true
+    },
+    {
+      "panel": "panel-008.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "b7f2ebf5cca1afa23c34201cba29a6f952724595fcb009f74602bfdbe755c9f6",
+      "identical": true
+    },
+    {
+      "panel": "panel-009.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "17d731f4e094558625e123dd46bbe34fa1789faa94dc590ea6f8a4d9de136549",
+      "identical": true
+    },
+    {
+      "panel": "panel-010.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "d27a4bbe76d12e9689cd1a0c8d93365680427c3259ef234e545665b2746ed5b0",
+      "identical": true
+    },
+    {
+      "panel": "panel-011.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "aa6a7efed077916f77c615355c4c9251fd96f74fd03a6c459f8aa148f902e6e0",
+      "identical": true
+    },
+    {
+      "panel": "panel-012.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "6a0da979614230989a7302dfa08cc81d9060d862a97977e0f5bc8c45fd2ddf89",
+      "identical": true
+    },
+    {
+      "panel": "panel-013.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "a870d2765061a38c959bf2be9199622ba0574f45329928fb8fa917a8f3b681fa",
+      "identical": true
+    },
+    {
+      "panel": "panel-014.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "60a1922c94406409dc7b18c5532a3b2d724529b0a390404c3a641906023555ee",
+      "identical": true
+    },
+    {
+      "panel": "panel-015.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "bdfcc4e2c0cc8d631083b12159f140fd9014fd3f0939651e26ec1f8653a1fbac",
+      "identical": true
+    },
+    {
+      "panel": "panel-016.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "aabad161400c0cacd22f10c163e8e2d56776346bbf8db0a56c5a0d08a7b6e372",
+      "identical": true
+    },
+    {
+      "panel": "panel-017.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "2a037df6e46bcf1e240fb4f542c6dace613ab176edffaa86e97474ae224ae4ec",
+      "identical": true
+    },
+    {
+      "panel": "panel-018.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "90135d026b23b1baffd74315602186fd005eb61a35640771934844342a7e0dd5",
+      "identical": true
+    },
+    {
+      "panel": "panel-019.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "14326947e251a9024adb2c452a4687a1e1f51fe2fa4c9802ded68f3397628c1a",
+      "identical": true
+    },
+    {
+      "panel": "panel-020.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "099a79ef83c429e0847df4d399d8f83b3f7d4469e3b5c1d66ee0d51c64f7549c",
+      "identical": true
+    },
+    {
+      "panel": "panel-021.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "5e2625508fb1cfd5c00c10347ac38f1bee55052a818940dce56819cb7a09bed0",
+      "identical": true
+    },
+    {
+      "panel": "panel-022.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "9c61ff6967af8c72901533e4c486bd64841bfb4914f287306d73fd61eda62bfc",
+      "identical": true
+    },
+    {
+      "panel": "panel-023.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "a05429d5c1d14cc1f28e75db131b931496f850ee28138272c5387c6b065e1f70",
+      "identical": true
+    },
+    {
+      "panel": "panel-024.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "ab76e934bf2cc47eca496fb4bbd49a515ade50bc55ff1033efa2afa2d538a1a3",
+      "identical": true
+    },
+    {
+      "panel": "panel-025.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "603a184359f4f67a0bb0481ff4799591983df777a86b758ccc53c81b7b7d8321",
+      "identical": true
+    },
+    {
+      "panel": "panel-026.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "c3b068d254dea5e7bcf132d2e0998f6a577ac40e64e0c7de72bbe2bce6aa2378",
+      "identical": true
+    },
+    {
+      "panel": "panel-027.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "15a81f06c6ba5740be9ae8efe07b21d840f746ac5c34584a8f161ced417df480",
+      "identical": true
+    },
+    {
+      "panel": "panel-028.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "6e3fa989c8799e3275b532466aa8180fd6c757a8f13c3311179b7688dbbbed94",
+      "identical": true
+    },
+    {
+      "panel": "panel-029.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "6e3fa989c8799e3275b532466aa8180fd6c757a8f13c3311179b7688dbbbed94",
+      "identical": true
+    },
+    {
+      "panel": "panel-030.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "5b3791994a658938bd788d6bd595659f6fd2f94e0dc6116529ca938f28215682",
+      "identical": true
+    },
+    {
+      "panel": "panel-031.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "2f7394d05f2429b8742d4994f8d62d8552f5fcc2cdc9c9ffd377a5b17e395370",
+      "identical": true
+    },
+    {
+      "panel": "panel-032.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "c270f089bfde21ee52f32e98df1e1b5708a00adb5eb0acf495fc76059a39f294",
+      "identical": true
+    },
+    {
+      "panel": "panel-033.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "cc1e82dfe356a0e373ea12db060b7ae950d33b1fa130057e2fc87fa718ab765a",
+      "identical": true
+    },
+    {
+      "panel": "panel-034.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "bcd186957b872958ec62243535bada9063aa0b5efff499f241884b98ce9b2148",
+      "identical": true
+    },
+    {
+      "panel": "panel-035.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "3d90d6969c8268a03d6b90d8b6f997ac740fc0289db883a6b7374c9e803725a9",
+      "identical": true
+    },
+    {
+      "panel": "panel-036.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "d75d381ad77fecafc5394374de5725971cf143b4dbd6da60249b9e94bbc7fee9",
+      "identical": true
+    },
+    {
+      "panel": "panel-037.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "edb5e2d5f88dd3fb24209d2e1d25d1b827d4ccb92b5528940285e802507e44c0",
+      "identical": true
+    },
+    {
+      "panel": "panel-038.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "1a72171def7cdd00f057c90628907ffaeaabcdd0d331313882e75341a13c79e7",
+      "identical": true
+    },
+    {
+      "panel": "panel-039.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "fbd658d98f858459296a49d9d286bb52d9eff4941eac00bc2ccf10c4b364a542",
+      "identical": true
+    },
+    {
+      "panel": "panel-040.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "6dc77550f8dbff7a435431215db44e4471cb540abccd480fc620c14dd0350abd",
+      "identical": true
+    },
+    {
+      "panel": "panel-041.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "32473fd725437f47a47d970c52178876b80ad57a6d91b084fcfa6c957ec58805",
+      "identical": true
+    },
+    {
+      "panel": "panel-042.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "c1a298c01b290e8db53f4329e3a82e992463c83146fd371e365f9719e5fae7d0",
+      "identical": true
+    },
+    {
+      "panel": "panel-043.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "320ff10e09037ac178346029cf8aa1c36ff3023a1f37030b683809bf31f57668",
+      "identical": true
+    },
+    {
+      "panel": "panel-044.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "c1b70d4da6708453fd33e7e55493987504dba7e944062365238c724bd16b20d9",
+      "identical": true
+    },
+    {
+      "panel": "panel-045.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "dc860cf508806f342d058193463b2228a63bf0cb1641eb0ec156331a1e1abdcb",
+      "identical": true
+    },
+    {
+      "panel": "panel-046.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "2db79c3f0b1f562edf9efa5f263f103169411542b402813f50373676e0b4d12a",
+      "identical": true
+    },
+    {
+      "panel": "panel-047.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "0fc2f925ea1e7ff2ef0ec5cda2364e57224913a48a2e5ef8a971d11cf8216025",
+      "identical": true
+    },
+    {
+      "panel": "panel-048.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "12b54d2a1f3536443e3cfd43523103483dd1e6878f4289290315d7ef35f04e54",
+      "identical": true
+    },
+    {
+      "panel": "panel-049.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "500d6d00143fbd35e6a046aa12ded25fabf40691a93d86be69bd80e8afa540fd",
+      "identical": true
+    },
+    {
+      "panel": "panel-050.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "71d8a29642a35fd19b8a294b0709b22cec32b0804b9fa81fa5ec2879521ca5ce",
+      "identical": true
+    },
+    {
+      "panel": "panel-051.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "b0970cfcd7011605c7b544a90ee13b6fc00f287969f5bc69dffb44c2f97c6b8d",
+      "identical": true
+    },
+    {
+      "panel": "panel-052.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "1d80d12275d3b60f804a0a1326462544911cad45c016cc61c0c15cca213ddbc9",
+      "identical": true
+    },
+    {
+      "panel": "panel-053.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "72e8424895899e57d40b8e976957384b37e11ce721fc8e0a9e144aba355e4dba",
+      "identical": true
+    },
+    {
+      "panel": "panel-054.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "00f25731438e59ac54c46dc85c3ae4a5267a5cbb83dd7bb23ed4fc062359fa89",
+      "identical": true
+    },
+    {
+      "panel": "panel-055.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "73f1975a6ffde917784f58328742610af4acf99ddccc8d08fdfd6b2bd80c09f8",
+      "identical": true
+    },
+    {
+      "panel": "panel-056.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "6eea47ef1f4144efbe145b61c92a6a8df72acb9358018633d89fd5fa79fec535",
+      "identical": true
+    },
+    {
+      "panel": "panel-057.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "289355b3954635fc0e3ba41e9973eca3b41a5f3185d4d68e7f1eb95c8e14471f",
+      "identical": true
+    },
+    {
+      "panel": "panel-058.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "849a80e2be1945aa3ab6fc9eccd13f0892c88d8a9041ae49c1c58de66c81addd",
+      "identical": true
+    },
+    {
+      "panel": "panel-059.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "f551a926daabcd4df0490f424acf21a22774bb0d66edce6c3a472cebc6d3ca96",
+      "identical": true
+    },
+    {
+      "panel": "panel-060.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "3e5aebe17ea8411fae24932d4272328956e69a752902995457ff9914f9201482",
+      "identical": true
+    },
+    {
+      "panel": "panel-061.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "227373fdfe367601850038e723685cea5a72d6607e4c90821ff19bdc0b939190",
+      "identical": true
+    },
+    {
+      "panel": "panel-062.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "423d7922daa45a2627a3c96e0452861a7c8812b3e2178420c4cb8bc2348b1242",
+      "identical": true
+    },
+    {
+      "panel": "panel-063.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "b68f5da3b6edb710b6cb4c81e03d40d48ae4367d34a8ad9874cfa1dd6f2fae57",
+      "identical": true
+    },
+    {
+      "panel": "panel-064.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "81a5feb163cc6c3f8b5a175c653d9dfcf010d92e1d838854ffe31ca3d7b5d7dd",
+      "identical": true
+    },
+    {
+      "panel": "panel-065.png",
+      "crop": [
+        109,
+        199,
+        560,
+        420
+      ],
+      "pixelFormat": "Format32bppArgb",
+      "sha256": "81a5feb163cc6c3f8b5a175c653d9dfcf010d92e1d838854ffe31ca3d7b5d7dd",
+      "identical": true
+    }
+  ]
+}
