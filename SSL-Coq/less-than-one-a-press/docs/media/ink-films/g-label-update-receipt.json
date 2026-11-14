@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "date": "2026-11-14",
+  "scope": "Presentation only: D is renamed G = Stored Graphics in the two current films. Native images, input histories, timing and music are unchanged. Historical traces may retain the key D. No new gameplay or proof result.",
+  "sourceProofCommit": "c1b643cab2963f8b7af18fd71a6089b24c847f44",
+  "films": {
+    "crawl": {
+      "oldScoredSha256": "05e95712e7c5728b6cce453fbffe909bb8e4d550c73643dd0c3a099cafb3e4a1",
+      "silentSha256": "5293d9260ae8834ff8c6172c28cd053896c9f5b1ca5e9282698b80b592ca8478",
+      "scoredSha256": "d4763a241ed93a59b9337a0076f36bc64493e1e64cbbfacbdcc830b5284224c1",
+      "frameCount": 3742,
+      "durationSeconds": 124.733333,
+      "width": 1600,
+      "height": 900,
+      "fullDecodePassed": true,
+      "exactPreviousAACPreserved": true,
+      "aacElementarySha256": "8651748b3469e226731db38fac89dfcca887b29ddf1d42b0b6ef206484c05b76",
+      "audioPacketTimingIdentical": true,
+      "audioPacketCount": 5848,
+      "newSilentAndScoredVideoIdentical": true,
+      "newVideoDiffersFromPrevious": true,
+      "gameplayCropsPixelIdentical": 66
+    },
+    "vpu": {
+      "oldScoredSha256": "e9ad1add20d2b4736385470dca919944aeaabc5ba2ab3fbd81dcc4fa09afdd12",
+      "silentSha256": "f436e048f4cf029dacf6f70673c0342890fda116dff70cf19c54d3a57f68a3e2",
+      "scoredSha256": "0f14ec6233f72a4fa707db5837a22def94ed10608c87272ab7d796f8cdefb2a4",
+      "frameCount": 7398,
+      "durationSeconds": 246.6,
+      "width": 1600,
+      "height": 900,
+      "fullDecodePassed": true,
+      "exactPreviousAACPreserved": true,
+      "aacElementarySha256": "271e46df3d15bffe4f71b3723f219c7b0c4936241ee723148ec3d253258b0d8a",
+      "audioPacketTimingIdentical": true,
+      "audioPacketCount": 11561,
+      "newSilentAndScoredVideoIdentical": true,
+      "newVideoDiffersFromPrevious": true,
+      "gameplayCropsPixelIdentical": 562,
+      "visibleGameplayCrop": [
+        109,
+        199,
+        560,
+        398
+      ],
+      "captionBadgeExcluded": true,
+      "concatTimingIdentical": true,
+      "sourceFramesAndInputJoinsIdentical": true,
+      "uniqueNativeFrames": 544,
+      "sourceReceipts": 6,
+      "textFitChecks": 11530
+    }
+  },
+  "currentRenderersAndCommentaryUseG": true,
+  "visualReview": "Inspected full-size crawl gap and VPU gap panels; G legend, explanatory labels, source gameplay panel, and stored-graphics-versus-rendering caveat are legible. No listening review claimed.",
+  "verifierSha256": "eb308c5ca7439da1e484a621224e6bff52d0bf8cb086da09ef2632e3556f6a69",
+  "ffmpegVersion": "ffmpeg version 7.0.2-full_build-www.gyan.dev Copyright (c) 2000-2024 the FFmpeg developers"
+}

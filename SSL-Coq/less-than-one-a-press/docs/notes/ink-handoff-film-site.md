@@ -1,5 +1,40 @@
 # Ink handoff films: private viewing site and music
 
+## Current three-film edition — 14 November 2026
+
+The private [Ink Handoff Films site](https://ink-handoff-films.tra38.chatgpt.site)
+now presents three films. **All current film captions use M / C / G**:
+movement, raw collision, and **G = Stored Graphics** (`gfx.pos`). G is not a
+claim about where the rendered model appears. The original two films retain
+their gameplay image selection, duration and existing instrumental audio;
+their captions and diagrams have been rendered again. Historical D-labeled
+films and raw trace fields remain preserved for provenance.
+
+| Current film | Viewing file | Evidence boundary |
+| --- | --- | --- |
+| Original crawl, 2:04.733 | [G edition with music](../media/ink-films/crawl-g-with-music.mp4) | Supplied crawler and Crazy Box; useful downstream handoff. |
+| VPU actions, 4:06.6 | [G edition with music](../media/ink-films/vpu-g-with-music.mp4) | Supplied crawl/slide/walking cuts; horizontal failure comparisons remain bounded. |
+| Live large-box landing | [New film with music](../media/ink-high-solid-video/live-box-handoff.mp4) | Supplied high FREEFALL and actors; game creates DIVE_SLIDE, then shell shove completes useful displacement. |
+
+The [G-label receipt](../media/ink-films/g-label-update-receipt.json) supersedes
+older visual-stream hashes for the first two current editions. The
+[live-box film note](ink-live-box-film.md) identifies the third film's
+source replay, state cuts, frame joins and native-comparison limits.
+The first two preserve their exact original AAC music; the third uses the
+original procedural score with its own documented edit. All commentary is
+on screen; there is no spoken narration.
+
+This update creates presentation assets from existing evidence. It adds no
+new gameplay test or theorem and does not establish a complete no-new-A route.
+Both sites retain their private audience. All45 route estimates remain
+unchanged, including Rank1 **1–2%** and Ink Rank2 **<1%**.
+
+## Historical publication record — 13 November 2026
+
+The following dated record describes the earlier two-film editions. Its
+references to the then-current D-captioned movies and stream hashes are
+historical; use the current G editions and receipts linked above.
+
 13 November 2026. The private [Ink handoff films site](https://ink-handoff-films.tra38.chatgpt.site)
 collects two visual explanations with newly composed instrumental tension
 music. The current first film corrects its graphics-position captions; both

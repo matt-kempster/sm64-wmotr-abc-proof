@@ -1,10 +1,10 @@
-param([Parameter(Mandatory=$true)][string]$OriginalPanels, [Parameter(Mandatory=$true)][string]$CorrectedPanels)
+param([Parameter(Mandatory=$true)][string]$OriginalPanels, [Parameter(Mandatory=$true)][string]$CorrectedPanels, [ValidateRange(1,420)][int]$CropHeight=420)
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.Drawing
 function PixelHash([string]$Path) {
     $image=[Drawing.Bitmap]::FromFile($Path)
-    $crop=$image.Clone([Drawing.Rectangle]::new(109,199,560,420),[Drawing.Imaging.PixelFormat]::Format32bppArgb)
-    $data=$crop.LockBits([Drawing.Rectangle]::new(0,0,560,420),[Drawing.Imaging.ImageLockMode]::ReadOnly,[Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $crop=$image.Clone([Drawing.Rectangle]::new(109,199,560,$CropHeight),[Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $data=$crop.LockBits([Drawing.Rectangle]::new(0,0,560,$CropHeight),[Drawing.Imaging.ImageLockMode]::ReadOnly,[Drawing.Imaging.PixelFormat]::Format32bppArgb)
     $bytes=[byte[]]::new([Math]::Abs($data.Stride)*$data.Height)
     [Runtime.InteropServices.Marshal]::Copy($data.Scan0,$bytes,0,$bytes.Length)
     $crop.UnlockBits($data)
@@ -17,6 +17,6 @@ $results=foreach($panel in (Get-ChildItem -LiteralPath $CorrectedPanels -Filter 
     $before=PixelHash (Join-Path $OriginalPanels $panel.Name)
     $after=PixelHash $panel.FullName
     if ($before -ne $after) { throw "Gameplay crop changed: $($panel.Name)" }
-    [ordered]@{panel=$panel.Name;crop=@(109,199,560,420);pixelFormat='Format32bppArgb';sha256=$after;identical=$true}
+    [ordered]@{panel=$panel.Name;crop=@(109,199,560,$CropHeight);pixelFormat='Format32bppArgb';sha256=$after;identical=$true}
 }
 $results | ConvertTo-Json -Depth 4

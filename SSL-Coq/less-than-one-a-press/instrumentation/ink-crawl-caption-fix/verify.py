@@ -116,8 +116,8 @@ def main():
         assert bad not in renderer_text
     shutil.copyfile(HERE / 'storyboard.md', out / 'storyboard.md')
     receipt = {
-        'schema': 1, 'date': '2026-11-13',
-        'scope': 'Presentation-only caption correction. D means stored graphics coordinates; Y1741 does not establish where the model is drawn. No game run or Coq proof rerun.',
+        'schema': 1, 'date': '2026-11-14',
+        'scope': 'Presentation-only caption correction. G means stored graphics coordinates; Y1741 does not establish where the model is drawn. No game run or Coq proof rerun.',
         'evidenceLevel': 'Same supplied-state original-JP handoff, not a continuous controller-reachable route.',
         'sourceRevision': run('git', '-C', PROOF, 'rev-parse', 'HEAD').stdout.decode().strip(),
         'originalScoredSource': old.relative_to(PROOF).as_posix() if old.is_relative_to(PROOF) else str(old),

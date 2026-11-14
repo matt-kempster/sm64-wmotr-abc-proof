@@ -6,7 +6,7 @@ The 4:06.6 silent film uses the earlier crawl video's visual language: 1600×900
 
 The floor retry, top loading, source branch explanation and retained-pointer result have different evidence scopes. The cards state those differences. The input 27 retention card deliberately holds the mapped input 26 framebuffer while displaying explicitly labeled input 27 telemetry. The unjoined transition screenshot 027 is omitted. The first Area 2 image, 028/input 30, is black during the fade. Later consecutive frames and image 085/input 87 visibly show the upper interior walkway; the arrival diagram describes the separately logged first Area 2 position.
 
-No AI-generated game image, camera write, fake transition, image interpolation, or synthesized voice is used. Native captures are scaled with nearest-neighbor sampling. Paused panels explain the process; moving portions repeat native frames for quarter-speed or half-speed playback. D means **stored graphics position**, not necessarily where the floor-alignment render matrix draws Mario. Coordinate arrows are store changes or comparisons, not paths travelled through space.
+No AI-generated game image, camera write, fake transition, image interpolation, or synthesized voice is used. Native captures are scaled with nearest-neighbor sampling. Paused panels explain the process; moving portions repeat native frames for quarter-speed or half-speed playback. G means **stored graphics position**, not necessarily where the floor-alignment render matrix draws Mario. Coordinate arrows are store changes or comparisons, not paths travelled through space.
 
 ## Regenerate
 
@@ -36,3 +36,5 @@ The completed output is `build/ink-vpu-actions-video` at the workspace root:
 - `panel-*.png` and `frames.txt`: composed native-image panels and FFmpeg concat input.
 
 The renderer measures every text item and fails on width or canvas overflow. It also performs a full decode of the MP4 after encoding. Inspect the contact sheet and representative full-size cards when changing wording or layout. The final timeline was independently audited against all six native receipts; all selected screenshots have known input joins. No proof compilation is needed for this media-only renderer.
+
+The 14 November 2026 notation update uses **G = Stored Graphics** throughout the current renderer, timeline, transcript and film. The two-film checker under `../ink-g-label-update/` verifies unchanged native images/input joins, timing and the exact previous AAC score. Historical telemetry may still call gfx.pos D.

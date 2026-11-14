@@ -33,7 +33,7 @@ function Dot($x,$y,$r,$c,$ring=$false){
 }
 function Marker($x,$y,$mode){
     if($mode.Contains('C')){Dot $x $y 15 $blue $true}
-    if($mode.Contains('D')){Dot $x $y 10 $pink $true}
+    if($mode.Contains('G')){Dot $x $y 10 $pink $true}
     if($mode.Contains('M')){Dot $x $y 5 $teal}
 }
 function Poly($coords,$c,$fill){
@@ -68,14 +68,14 @@ function Draw-Cutaway($stage){
         Line 890 323 919 327 $wood
     }
     switch($stage){
-        0 { Marker 1018 327 'MCD'; Write-Label 'Mario  M/C/D overlap' 1050 308 21 $ink; Write-Label 'Y 1741' 1050 338 22 $pink }
-        1 { Marker 1018 327 'MCD'; Line 1018 348 1018 562 $gold 2 $true $true; Write-Label 'Floor lookup → remember 768' 1060 486 22 $gold }
-        2 { Marker 1018 327 'CD'; Marker 1174 327 'M'; Line 1040 327 1157 327 $teal 3 $false $true; Write-Label '+68 X' 1066 293 22 $teal; Write-Label 'M stays at Y 1741' 1196 314 22 $teal; Write-Label 'Remembered floor still 768' 1070 541 21 $gold }
-        3 { Marker 1018 327 'CD'; Marker 1174 327 'M'; Line 1174 347 1174 376 $gold 3 $true $true; Write-Label 'Underside  Y 1523' 1193 385 21 $gold; Write-Label 'Remembered floor still 768' 1070 541 21 $gold }
-        4 { Marker 1018 327 'C'; Marker 1174 327 'M'; Marker 1174 327 'D'; Line 1174 348 1174 556 $teal 3 $true $true; Write-Label 'M + stored D match first' 1197 310 21 $pink; Write-Label 'Then M snaps to 768' 1197 492 21 $teal }
-        5 { Marker 1174 327 'D'; Marker 1174 568 'MC'; Line 1199 328 1199 566 $ink 2 $true; Write-Label 'Stored D  Y 1741' 1220 307 23 $pink $true; Write-Label '973 units' 1220 476 26 $ink $true; Write-Label 'M + C  Y 768' 1220 551 23 $teal $true }
-        6 { Marker 1174 327 'D'; Marker 1174 568 'MC'; Line 892 568 1150 568 $warp 3 $true; Write-Label 'Low overlap logged by collision pass' 1040 613 20 $warp; Line 1174 550 1174 350 $pink 3 $true $true; Write-Label 'Low floor lookup misses' 1202 510 20 $teal; Write-Label 'Retry at stored D  Y 1741' 1202 311 22 $pink $true }
-        7 { Dot 1174 327 10 $pink $true; Marker 1174 299 'MCD'; Line 1132 300 1157 300 $teal 3 $false $true; Write-Label 'Top surface selected' 1200 301 22 $teal $true; Write-Label 'Y 1818.96  /  M, C and D' 1200 332 20 $ink; Write-Label 'Top saved as Mario''s platform' 1056 515 23 $gold }
+        0 { Marker 1018 327 'MCG'; Write-Label 'Mario  M/C/G overlap' 1050 308 21 $ink; Write-Label 'Y 1741' 1050 338 22 $pink }
+        1 { Marker 1018 327 'MCG'; Line 1018 348 1018 562 $gold 2 $true $true; Write-Label 'Floor lookup → remember 768' 1060 486 22 $gold }
+        2 { Marker 1018 327 'CG'; Marker 1174 327 'M'; Line 1040 327 1157 327 $teal 3 $false $true; Write-Label '+68 X' 1066 293 22 $teal; Write-Label 'M stays at Y 1741' 1196 314 22 $teal; Write-Label 'Remembered floor still 768' 1070 541 21 $gold }
+        3 { Marker 1018 327 'CG'; Marker 1174 327 'M'; Line 1174 347 1174 376 $gold 3 $true $true; Write-Label 'Underside  Y 1523' 1193 385 21 $gold; Write-Label 'Remembered floor still 768' 1070 541 21 $gold }
+        4 { Marker 1018 327 'C'; Marker 1174 327 'M'; Marker 1174 327 'G'; Line 1174 348 1174 556 $teal 3 $true $true; Write-Label 'M + stored G match first' 1197 310 21 $pink; Write-Label 'Then M snaps to 768' 1197 492 21 $teal }
+        5 { Marker 1174 327 'G'; Marker 1174 568 'MC'; Line 1199 328 1199 566 $ink 2 $true; Write-Label 'Stored G  Y 1741' 1220 307 23 $pink $true; Write-Label '973 units' 1220 476 26 $ink $true; Write-Label 'M + C  Y 768' 1220 551 23 $teal $true }
+        6 { Marker 1174 327 'G'; Marker 1174 568 'MC'; Line 892 568 1150 568 $warp 3 $true; Write-Label 'Low overlap logged by collision pass' 1040 613 20 $warp; Line 1174 550 1174 350 $pink 3 $true $true; Write-Label 'Low floor lookup misses' 1202 510 20 $teal; Write-Label 'Retry at stored G  Y 1741' 1202 311 22 $pink $true }
+        7 { Dot 1174 327 10 $pink $true; Marker 1174 299 'MCG'; Line 1132 300 1157 300 $teal 3 $false $true; Write-Label 'Top surface selected' 1200 301 22 $teal $true; Write-Label 'Y 1818.96  /  M, C and G' 1200 332 20 $ink; Write-Label 'Top saved as Mario''s platform' 1056 515 23 $gold }
     }
 }
 function Draw-Arrival {
@@ -89,7 +89,7 @@ function Draw-Arrival {
     Write-Label 'Elevator footprint' 947 526 23 $warp
     Dot 1112 492 7 $warp; Write-Label 'Usual entry' 1127 477 21 $muted
     Line 1124 480 1250 281 $teal 3 $true $true
-    Marker 1258 268 'MCD'
+    Marker 1258 268 'MCG'
     Write-Label 'Recorded entry' 1282 239 23 $teal $true
     Write-Label 'Y 5500' 1282 271 22 $ink
     Write-Label 'The arrow compares entry points.' 809 614 21 $muted
@@ -120,7 +120,7 @@ function Card($index,$duration,$stage,$tag,$title,$lines,$credit){
     Rect 44 652 1512 48 '#19273C'
     Marker 74 676 'M'; Write-Label 'M  Movement' 87 662 22 $teal
     Dot 301 676 9 $blue $true; Write-Label 'C  Collision / object contact' 319 662 22 $blue
-    Dot 628 676 9 $pink $true; Write-Label 'D  Stored graphics' 648 662 22 $pink
+    Dot 628 676 9 $pink $true; Write-Label 'G  Stored graphics' 648 662 22 $pink
     Line 954 676 977 676 $gold 4; Write-Label 'Remembered floor' 985 662 22 $gold
     Dot 1268 676 9 $warp $true; Write-Label 'Warp' 1285 662 22 $warp
     Rect 1396 668 16 16 $wood; Write-Label 'Box' 1421 662 22 $wood
@@ -160,7 +160,7 @@ Card 6 11 3 'INPUT 6  /  SAME UPDATE · 3 OF 4' 'The crawl step stops' @(
 Card 6 10 4 'INPUT 6  /  SAME UPDATE · 4 OF 4' 'Store high graphics, then snap movement down' @(
     'First, the game stores the high movement position as graphics coordinates.',
     'Then it snaps movement to the remembered pad height. Collision copies movement.'
-) 'D marks stored graphics coordinates, not necessarily the drawn model. Left: the same completed frame.'
+) 'G marks stored graphics coordinates, not necessarily the drawn model. Left: the same completed frame.'
 Card 6 10 5 'INPUT 6 COMPLETE  /  TRACE MARKERS' 'The Ink gap is 973 units' @(
     'Movement and collision now share the same point at Y 768, beyond the pad edge.',
     'Stored graphics stay at Y 1741. This need not be where the model is drawn.'

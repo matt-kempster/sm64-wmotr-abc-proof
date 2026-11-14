@@ -50,7 +50,7 @@ function Dot($x,$y,$r,$c,$ring=$false){
 }
 function Marker($x,$y,[string]$kind){
     if($kind.Contains('C')){Dot $x $y 15 $blue $true}
-    if($kind.Contains('D')){Dot $x $y 10 $pink $true}
+    if($kind.Contains('G')){Dot $x $y 10 $pink $true}
     if($kind.Contains('M')){Dot $x $y 5 $teal}
 }
 function Poly($coordinates,$stroke,$fill,$dash=$false){
@@ -87,17 +87,17 @@ function VerticalDiagram([string]$stage){
     switch($stage){
         'start' {
             Rect 927 231 23 23 $wood;Text 'Box' 887 265 20 $wood $true 80
-            Marker 1010 242 'MCD';Text 'M = C = D  /  Y 67277' 1050 218 28 $ink $true 470
+            Marker 1010 242 'MCG';Text 'M = C = G  /  Y 67277' 1050 218 28 $ink $true 470
             Text 'The whole pose is supplied here.' 1050 262 22 $muted $false 470
         }
         'query' {
-            Marker 1010 242 'MCD';Text 'Actual Y 67277' 1050 213 27 $ink $true 440
+            Marker 1010 242 'MCG';Text 'Actual Y 67277' 1050 213 27 $ink $true 440
             Text 'Floor-query Y = 1741' 1050 254 27 $gold $true 460
             Line 1010 270 1010 305 $gold 2 $true $true
             Text 'Query wraps; the floor stays at 768.' 800 477 21 $gold $false 690
         }
         'push' {
-            Rect 898 231 23 23 $wood;Marker 981 242 'CD';Marker 1148 242 'M'
+            Rect 898 231 23 23 $wood;Marker 981 242 'CG';Marker 1148 242 'M'
             Line 1006 242 1125 242 $teal 3 $false $true
             Text '+68 X' 1015 202 25 $teal $true 140
             Text 'M stays high at Y 67277' 1174 233 23 $teal $true 360
@@ -110,25 +110,25 @@ function VerticalDiagram([string]$stage){
             Text 'No physical ceiling is required.' 1020 287 21 $muted $false 500
         }
         'copy' {
-            Marker 1148 242 'MD';Text 'Save high M into D' 1190 225 25 $pink $true 340
+            Marker 1148 242 'MG';Text 'Save high M into G' 1190 225 25 $pink $true 340
             Line 1148 266 1148 552 $teal 3 $true $true
             Marker 1148 570 'MC';Text 'Then snap M to 768' 1180 552 25 $teal $true 350
             Text 'Immediate store, not a fall' 1173 471 20 $muted $false 340
         }
         'gap' {
-            Marker 1148 242 'D';Text 'D  Y 67277' 1190 222 28 $pink $true 345
+            Marker 1148 242 'G';Text 'G  Y 67277' 1190 222 28 $pink $true 345
             Marker 1148 570 'MC';Text 'M + C  Y 768' 1188 551 28 $teal $true 340
             Line 1167 256 1167 554 $ink 2 $true
             Rect 1178 472 350 45 '#132137';Text '66509-unit gap' 1191 477 27 $ink $true 330
         }
         'retry' {
-            Marker 1148 242 'D';Text 'D query aliases to 1741' 1180 228 23 $pink $true 360
+            Marker 1148 242 'G';Text 'G query aliases to 1741' 1180 228 23 $pink $true 360
             Marker 1148 570 'MC';Line 1148 548 1148 264 $pink 3 $true $true
             Line 883 570 1121 570 $purple 3 $true
             Text 'Low contact + failed low lookup' 804 477 22 $purple $true 700
         }
         'capture' {
-            Marker 1130 420 'MCD';Text 'M = C = D  /  Y 1818.9613' 800 209 28 $teal $true 710
+            Marker 1130 420 'MCG';Text 'M = C = G  /  Y 1818.9613' 800 209 28 $teal $true 710
             Text 'Input 7: floor owner = platform = top' 800 256 25 $gold $true 700
             Text 'Local surface height; no VPU offset added.' 804 477 21 $muted $false 700
         }
@@ -144,7 +144,7 @@ function ActionDiagram([string]$stage){
         Text 'This is a low preparation state.' 832 493 27 $muted $false 635
         Text 'It does not travel up into a VPU.' 832 535 27 $muted $false 635
     } elseif($stage -eq 'walkcut'){
-        Rect 809 219 679 92 '#46363B';Text 'CUT 2: supply high M / C / D and box' 832 238 27 $pink $true 640
+        Rect 809 219 679 92 '#46363B';Text 'CUT 2: supply high M / C / G and box' 832 238 27 $pink $true 640
         Text 'Y 67277; keep native action and speeds' 834 277 23 $muted $false 640
         Line 1145 321 1145 364 $teal 3 $false $true
         Rect 809 377 679 155 '#263B43';Text 'Z + stick  →  WALKING' 834 389 26 $ink $true 640
@@ -167,7 +167,7 @@ function ArrivalDiagram {
     Line 912 410 912 564 $purple;Line 1278 410 1278 564 $purple
     Text 'Elevator footprint' 930 527 24 $purple $true 330
     Dot 1094 483 8 $purple;Text 'Usual entry (0, 256)' 1112 468 22 $muted $false 390
-    Line 1105 465 1225 285 $teal 3 $true $true;Marker 1236 268 'MCD'
+    Line 1105 465 1225 285 $teal 3 $true $true;Marker 1236 268 'MCG'
     Text 'Useful entry' 1275 230 27 $teal $true 260
     Text 'Y 5500' 1275 272 25 $ink $true 250
     Text 'X 365.593 / Z −1096.803' 815 591 25 $ink $false 700
@@ -193,9 +193,9 @@ function HorizontalDiagram([string]$stage){
     Text 'Warp + top live here' 811 482 21 $purple $true 285
     Line 1224 460 1505 460 $gold 3 $true
     Text 'Terrain query aliases' 1222 481 21 $gold $true 290
-    Marker 1381 $(if($stage -eq 'horizontal_gap'){460}else{334}) $(if($stage -eq 'horizontal_gap'){'MC'}else{'MCD'})
+    Marker 1381 $(if($stage -eq 'horizontal_gap'){460}else{334}) $(if($stage -eq 'horizontal_gap'){'MC'}else{'MCG'})
     if($stage -eq 'horizontal_gap'){
-        Marker 1381 304 'D';Line 1381 328 1381 439 $teal 3 $true $true
+        Marker 1381 304 'G';Line 1381 328 1381 439 $teal 3 $true $true
         Text 'Y snaps; X stays far away' 1219 530 20 $teal $true 300
     } else {Text 'Mario + supplied box' 1221 386 21 $teal $true 295}
     Line 1109 363 1193 363 $edge 2 $true
@@ -235,7 +235,7 @@ function MakePanel($segment,$shot,$number,$nativeEntry){
     Rect 44 652 1512 48 '#19273C'
     Marker 74 676 'M';Text 'M  Movement' 89 662 22 $teal $false 207
     Dot 303 676 10 $blue $true;Text 'C  Collision' 322 662 22 $blue $false 245
-    Dot 554 676 10 $pink $true;Text 'D  Stored graphics' 573 662 22 $pink $false 320
+    Dot 554 676 10 $pink $true;Text 'G  Stored graphics' 573 662 22 $pink $false 320
     Line 928 676 956 676 $gold 4;Text 'Cached floor' 968 662 22 $gold $false 235
     Dot 1245 676 10 $purple $true;Text 'Warp' 1263 662 22 $purple $false 115
     Rect 1393 668 16 16 $wood;Text 'Box' 1421 662 22 $wood $false 100

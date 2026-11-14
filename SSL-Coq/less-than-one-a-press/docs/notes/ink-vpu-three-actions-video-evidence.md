@@ -1,5 +1,11 @@
 # Three vertical-PU handoffs: selected evidence for the video
 
+14 November presentation update: the current film uses **G = Stored Graphics**
+in all captions and diagrams. The raw source records and historical notation
+below retain D for the same `gfx.pos` field. Gameplay images, timing and music
+are unchanged; see the [current-film record](ink-handoff-film-site.md) and its
+G-label receipt. This adds no new replay or reachability result.
+
 13 November 2026. This record selects the existing native-JP witnesses and
 reviews six new original-JP ROM recordings for a visual explanation of
 crawling, sliding and walking-to-slide at **Y67277**. All three vertical

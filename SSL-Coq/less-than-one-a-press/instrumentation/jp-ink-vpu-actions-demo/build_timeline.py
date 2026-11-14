@@ -72,9 +72,9 @@ card("crawl",85,8,"summary","VPU crawl, slides and walking",
 card("crawl",5,8,"query","A VPU repeats queries, not the whole world",
      "Here, VPU means +65536 in Y: actual height 67277 queries as 1741.",
      "The floor still returns a local height. The real warp and top stay below.",
-     tag="READING THE DIAGRAM / M, C AND D ARE DIFFERENT STORES",
+     tag="READING THE DIAGRAM / M, C AND G ARE DIFFERENT STORES",
      badge="Native frame before the supplied high cut",
-     footer="D means stored graphics position; the floor-alignment matrix can draw Mario elsewhere. Broken axis, not to scale.")
+     footer="G means stored graphics position; the floor-alignment matrix can draw Mario elsewhere. Broken axis, not to scale.")
 
 crawl="1 / 4  VPU CRAWL / INDEPENDENT SUPPLIED TEST"
 card("crawl",5,7,"start","Start with a high crawler and a high box",
@@ -94,17 +94,17 @@ card("crawl",6,8,"stop","The high quarter-step stops before installing a floor",
      "Raw Y 67277 + 160 reaches that value, so the old floor cache survives.",
      tag=crawl,badge="Top collision is unloaded here / zero top faces",footer=WITHIN)
 card("crawl",6,7,"copy","Save high graphics, then snap movement low",
-     "The ground step copies high movement into stored graphics D.",
+     "The ground step copies high movement into stored graphics G.",
      "Floor alignment sets M to cached Y 768; collision C then copies low M.",
      tag=crawl,badge="Instantaneous assignments / not a fall through space",footer=WITHIN)
 card("crawl",6,7,"gap","The end of input 6 contains the 66509-unit split",
-     "M and C are (-1882, 768, -939). Stored graphics D is still at Y 67277.",
-     "Low C is near the real warp; high D is available for the next floor retry.",
+     "M and C are (-1882, 768, -939). Stored graphics G is still at Y 67277.",
+     "Low C is near the real warp; high G is available for the next floor retry.",
      tag=crawl,badge="Native receipt: crawl / floor 768 / no platform",
-     footer="Native end-update coordinates are measured. Stock camera may not show the high stored pose; use the M/C/D diagram.")
+     footer="Native end-update coordinates are measured. Stock camera may not show the high stored pose; use the M/C/G diagram.")
 card("crawl",7,8,"retry","Next update: low contact, high retry",
      "Low C reaches the warp and permits the real top collision to load again.",
-     "The low floor lookup fails; retrying from D aliases 67277 to 1741.",
+     "The low floor lookup fails; retrying from G aliases 67277 to 1741.",
      tag=crawl,badge="Top collision: zero to six faces in Wafel trace",footer=WITHIN)
 card("crawl",7,8,"capture","Warp accepted; the spinning top is captured",
      "Mario disappears for the warp. Floor owner and platform both name the top.",
@@ -126,7 +126,7 @@ card("slide",6,8,"slide","A ground bonk does not prevent this alignment",
      "The common slide helper still aligns with the old floor after that change.",
      tag=slide,badge="Within one input / bonk then floor alignment",footer=WITHIN)
 card("slide",6,7,"gap","The slide makes the same recorded split",
-     "Input 6 ends with M/C at 768 and D at 67277: a gap of 66509.",
+     "Input 6 ends with M/C at 768 and G at 67277: a gap of 66509.",
      "The end action is GROUND_BONK; that alone does not defeat the handoff.",
      tag=slide,badge="Native receipt: ground bonk / floor 768")
 card("slide",7,7,"capture","The separate slide run captures the top too",
@@ -146,12 +146,12 @@ card("walk",5,8,"walkprep","Walking supplies the slide speed locally",
      tag=walk,badge="Input 5 / native walking on the low roof",
      footer="Preparation starts from a supplied low walking state. No climb or transport to the VPU is demonstrated.")
 card("walk",6,9,"walkcut","A second cut moves the prepared walker high",
-     "Supply high synchronized M/C/D and the high box; retain native walking speeds.",
+     "Supply high synchronized M/C/G and the high box; retain native walking speeds.",
      "Z selects CROUCH_SLIDE; its stopped step bonks and still aligns with the floor.",
      tag=walk,badge="Input 6 / second supplied relocation, then Z",
      footer="This is walking-to-crouch-slide after a supplied high cut. Ordinary walking does not itself make the split.")
 card("walk",6,7,"gap","The walking-to-slide update produces the gap",
-     "M/C again end at 768 while D remains at 67277; the gap is 66509.",
+     "M/C again end at 768 while G remains at 67277; the gap is 66509.",
      "The native end action is GROUND_BONK, just as in the butt-slide replay.",
      tag=walk,badge="Native record after the Z transition")
 card("walk",7,7,"capture","The next update completes the same local handoff",
@@ -171,7 +171,7 @@ card("x-slide",6,7,"horizontal","Now move X by 65536 instead of Y",
      tag=pu,badge="Original JP ROM / X-only supplied slide",
      footer="Horizontal PU means an X offset here. This finite comparison does not establish impossibility for every horizontal route.")
 card("x-slide",6,7,"horizontal","Horizontal slide: no gap and no handoff",
-     "The ground slide leaves the floor: M = C = D at Y 1741 after input 6.",
+     "The ground slide leaves the floor: M = C = G at Y 1741 after input 6.",
      "Its floor cache is 1280; raw X remains about 63659, far from the real warp.",
      tag=pu,badge="Input 6 / gap 0 / no top platform",
      footer="Native X-only butt-slide replay: no accepted warp, no top capture, no Area 2 handoff in the observed run.")
@@ -194,9 +194,9 @@ card("xy-slide",6,8,"horizontal_gap","Both offsets: a huge gap can still fail",
      "At X +65536 and Y +65536, the slide makes the same 66509-unit Y split.",
      "But low C is still at X 63654. Snapping Y does not move X back to the warp.",
      tag=pu,badge="Native XY slide / gap 66509 / no warp",
-     footer="Supplied XY butt-slide test: M/C=(63654,768,-939), D=(63654,67277,-939) after input 6.")
+     footer="Supplied XY butt-slide test: M/C=(63654,768,-939), G=(63654,67277,-939) after input 6.")
 card("xy-slide",7,7,"horizontal","On the next update, the failed split disappears",
-     "The retry restores M/C/D to Y 67277; the new floor cache is 1280.",
+     "The retry restores M/C/G to Y 67277; the new floor cache is 1280.",
      "The real top is not captured, and no useful Area 2 arrival follows.",
      tag=pu,badge="Native input 7 / X 63654 / no platform",
      footer="This XY failure separates a position gap from a completed handoff. Terrain aliasing alone is insufficient.")

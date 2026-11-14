@@ -1,2 +1,3 @@
 # Preserve emitted provenance bytes.
 *.json -text whitespace=cr-at-eol
+vpu-g-transcript.md -text whitespace=cr-at-eol,-blank-at-eof

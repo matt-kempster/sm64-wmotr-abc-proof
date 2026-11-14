@@ -1,0 +1,74 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:09.000
+This time, Mario starts airborne. The game creates DIVE_SLIDE.
+A later shell shove completes Ink and changes the Area 2 spawn.
+
+00:00:09.000 --> 00:00:20.000
+Mario is supplied in FREEFALL at Y 25001, with eastward speed 32.
+The large box is live at Y 24800. Its solid top reaches Y 25000.
+
+00:00:20.000 --> 00:00:30.000
+Mario starts at X -1950. The west edge of the box is X -1949.
+The next air-step candidate crosses the edge and encounters its floor.
+
+00:00:30.000 --> 00:00:40.000
+Press B once, with neutral stick. A remains released.
+FREEFALL enters DIVE, then the landing result selects DIVE_SLIDE.
+
+00:00:40.000 --> 00:00:52.000
+The high box floor triggers LANDED, but the clearance test rejects X/Z.
+Mario gets the high Y while his earlier low floor cache stays at 768.
+
+00:00:52.000 --> 00:01:02.000
+M, C and G all have Y 25000. The action is now DIVE_SLIDE.
+X remains -1950, outside the box. This is not ordinary standing on top.
+
+00:01:02.000 --> 00:01:12.000
+Place the shell at (-1971, 25000, -939), then give neutral input.
+Mario is not edited again. The large box stays live and fixed.
+
+00:01:12.000 --> 00:01:21.000
+A fresh floor lookup keeps 768. Contact pushes Mario 68 units east.
+The nonmounting shell shove reaches the slide and floor-alignment code.
+
+00:01:21.000 --> 00:01:32.000
+The stopped ground step saves high movement into G: Stored Graphics.
+Floor alignment then snaps movement Y to the cached low floor.
+
+00:01:32.000 --> 00:01:41.000
+Movement and collision are now (-1882, 768, -939).
+Stored Graphics is (-1882, 25000, -939): a 24232-unit Y gap.
+
+00:01:41.000 --> 00:01:52.000
+Low collision contacts the real upper warp. The failed floor lookup retries at G.
+The spinning top is loaded now, so the retry selects its surface.
+
+00:01:52.000 --> 00:02:01.000
+The warp is accepted. Floor owner and platform both name the spinning top.
+M, C and G reunite at Y 1818.9613 while Mario is DISAPPEARED.
+
+00:02:01.000 --> 00:02:07.966
+The recorded Area 1 samples keep the top as Mario's platform.
+Its inactive reference remains at the last observed Area 1 boundary.
+
+00:02:07.966 --> 00:02:16.966
+Native step 27 records the inactive top and retained platform.
+Steps 28 and 29 have no camera observations; we do not fill them in.
+
+00:02:16.966 --> 00:02:27.966
+The first Area 2 position is (365.593, 5500, -1096.803).
+That differs from the ordinary warp spawn (0, 5500, 256).
+
+00:02:27.966 --> 00:02:33.033
+The camera reveals the arrival while the recorded neutral inputs continue.
+The comparison arrow marks two spawn locations, not a travelled path.
+
+00:02:33.033 --> 00:02:44.033
+A supplied frozen carry-script box loads no high solid mesh and fails to land.
+Moving raw object XYZ does not, by itself, rebuild collision triangles there.
+
+00:02:44.033 --> 00:02:56.033
+One original-JP positive creates the ground slide and useful displacement.
+Getting Mario, a live high box and the timed shell here through play is still open.
+
