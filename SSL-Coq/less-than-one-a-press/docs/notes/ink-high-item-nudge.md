@@ -2,7 +2,7 @@
 
 14 November 2026. **Crazy Boxes, small breakable boxes, ordinary black Bob-ombs and non-mounting shells can all move Mario sideways at high Y. The tested nudges do not supply the missing ground action from high freefall.** A conditional already-riding state does work: after a native low shell mount, explicitly relocating the rider to high Y lets one grabbable push before Z cancels riding into the floor-aligning slide. This completes useful spawning displacement with each of the three grabbables at Y25000 and67277. The high relocation is still supplied; this is not a continuous allowed route or a solution to high-state delivery.
 
-The bounded menu contains **82 recipes /2950 suffix updates /3044 independently matched boundary observations**. It starts at proof revision `3772fb57701ad0074c9a2016c366bed7e7e3ea24`. Wafel JP results, inputs, every write, actor snapshots and action/step events are preserved in `instrumentation/ink-high-item-nudge/`. No new original-ROM replay or Coq theorem is claimed.
+The bounded menu contains **82 recipes /2950 suffix updates /3044 independently matched boundary observations**. It starts at proof revision `3772fb57701ad0074c9a2016c366bed7e7e3ea24`. Wafel JP results, inputs, every write, actor snapshots and action/step events are preserved in `instrumentation/ink-high-item-nudge/`. This component is Wafel evidence. The subsequent [supplied-state original-JP validation](ink-high-item-nudge-rom.md) confirms two selected useful handoffs, with its comparison limits recorded separately. No new Coq theorem is claimed.
 
 ## Actors and exact grants
 

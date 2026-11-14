@@ -1,0 +1,14 @@
+{
+  "sourceDirectory": "build\\jp-high-item-bobomb-20261114-a",
+  "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+  "files": {
+    "checker-source.py": "ad09b5d29d5ab374ecac2b79d6f19872d80201e173d16a498840b0e86c16fb5d",
+    "prefix-source.c": "7ebe3672f71bb596610b6b3b3fe2804a451ca74e3a5bcd48a94ff864e2bdc8b5",
+    "probe-source.c": "ecaf6d5426eef5eab653d75512cc40054db562887c4607d9141072ffe8d6441d",
+    "raw.log.gz": "70feae696acfcdd80444d4b367fd27465b90ebf020ffc9896d90f273c8b9ba5e",
+    "receipt.json": "211a02efaaa7c8fc6e1bc767baa37e5beb3a67a8356a251263e781c71baf0b09",
+    "run-source.sh": "ee61a5fe0057dd07520ceebf671aca6b654ba0b270b34c9002c7fd186998370d",
+    "trace.txt": "73bab3c098514c13ffd32de74c6eaeb183db7a868163111c2fc72f3d3ffde96b"
+  },
+  "scope": "Original-JP conditional high rider compatibility; explicit low air and high relocation cuts remain."
+}

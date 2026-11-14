@@ -1,0 +1,14 @@
+{
+  "sourceDirectory": "build\\jp-high-item-small-20261114-a",
+  "romSha256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+  "files": {
+    "checker-source.py": "ad09b5d29d5ab374ecac2b79d6f19872d80201e173d16a498840b0e86c16fb5d",
+    "prefix-source.c": "7ebe3672f71bb596610b6b3b3fe2804a451ca74e3a5bcd48a94ff864e2bdc8b5",
+    "probe-source.c": "ecaf6d5426eef5eab653d75512cc40054db562887c4607d9141072ffe8d6441d",
+    "raw.log.gz": "b58500e8ff2c7f75c2e55534195a8de75ee5c8fba9d36304428162f93717d56b",
+    "receipt.json": "0bf146af29f3fe770ff3cdb1147513f9cbde5963dd156f357280464a6223547d",
+    "run-source.sh": "ee61a5fe0057dd07520ceebf671aca6b654ba0b270b34c9002c7fd186998370d",
+    "trace.txt": "4e25655ad95690cce8ec70114ff2f0ad2d19f51dc25c40f913309d9ca9899922"
+  },
+  "scope": "Original-JP conditional high rider compatibility; explicit low air and high relocation cuts remain."
+}

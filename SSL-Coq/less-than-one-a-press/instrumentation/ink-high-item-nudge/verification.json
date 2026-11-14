@@ -19,7 +19,7 @@
   "positiveSuffixUpdates": 25,
   "positiveRetentionChecked": true,
   "suffixAOff": true,
-  "noteSha256": "aad9162b36b22acb3520b645890b3caf39520b73461b34d50ff0420474cc6951",
+  "noteSha256": "accc1d4b24ff9125e8804c357e13c1deedd518ba1343e324dc74596ab97d54cd",
   "helpersSha256": {
     "instrumentation/ink-high-action-entry/prelude.py": "1b5d30c06ac9f8721770ef23ab0980cd645d9f592ff8dfd80b208505d20f818d",
     "instrumentation/ink-item-clone-controls/fixtures.py": "62a380c440360bfae642288c558f5e6aae6ac3987dca7c37d2bd66e821a373a8",
@@ -32,13 +32,13 @@
     ".gitattributes": "abeba78466be388a1c5f3cb4ad595b915a0aa9402d1d87e37dfe42762e5b91c5",
     "initial-snapshot-metadata-pilot-82.json.gz": "1aaaeb02b4f8696d9e64eb00ed0df18860a85079f4ece99b61672f77251683db",
     "prefix.jsonl.gz": "92fe78f908354ca3c47afad0e31e8d34fef6f3bef6981761add363b3e7e61c01",
-    "README.md": "d2edbb7267348d37fab7fe7c278a3519e986956d3ede11703e9264359b41b3e5",
+    "README.md": "94f53a5ab3b121af8f29d56b62a09db4b34c3cf9f2f8fcf60c8916d15d61c4d5",
     "results.json.gz": "fedffccfb1b48ade51b8617fde054dfd0969d0d830df48324418efc28146c1e1",
     "test.py": "8815b23b47d4289257d4ecaea79f2048b8762cc85922e98df34d9e9dca8b9561",
     "timing-calibration-78.json.gz": "9a53423dde4aff116ef5c0c8e4a5951c3c72c89c8542bdfaf9ddf66530a9c1e9",
     "timing-pilot.json.gz": "12bc769c3c88496321f0d09b2f3fd03d36b8f18e6e1f4c38b6ba1e8fee925693"
   },
-  "scope": "Finite supplied-state Wafel diagnostics. High rider relocation/supplied butt-slide controls do not solve high action entry or actor delivery. No original-ROM replay or Coq claim.",
+  "scope": "Finite supplied-state Wafel diagnostics. High rider relocation/supplied butt-slide controls do not solve high action entry or actor delivery. Subsequent original-JP validation is archived separately; no new Coq claim.",
   "initialSnapshotMetadataCorrection": {
     "changedTrials": [
       24,
