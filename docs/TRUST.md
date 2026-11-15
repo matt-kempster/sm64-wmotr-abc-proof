@@ -738,6 +738,15 @@ without pressing A".*
   `FrameSplit.fc_null_returns` and used by `hs_fc`) makes a NULL-floor frame dispatch-free.
   Mario is frozen until the DEATH warp, and every dispatch case still sees a fresh floor. The
   NULL-floor reader audit, including one UB-coverage point (`mario.c:427`), is in row 3.2.
+  **FOUND 2026-11-15 (OPEN, the B'' repair is void inside the seg rows):** `fworld` still
+  carries `WMotRWorld.wmotr_world`, whose floor clause says any value loaded from the floor
+  cell is a surface pointer (`surface_nonnull_ok`). So `fworld m /\ floor_null bm m` is
+  False (machine-checked in scratch: `fworld_not_null`), and every seg row's post
+  `floor_null \/ fresh` collapses to `fresh`. The open umi row asks `fworld m'`, so it again
+  claims no double-miss NULL floor: false on any double-miss state its premises admit (none
+  exhibited; `pos` x/z is still not pinned). Repair option (RESTATE, no new premise, not
+  started): weaken that clause to surface-or-NULL and let readers take non-NULL from `fresh`.
+  Large: touches most Mario-side row files and the frame invariant.
 - **level_trigger_warp's contract (2026-10-26, PROVED, no trust added, `LtwFrame`):** for the
   two Mario-side ops that reach it in WMotR (DEATH from the double miss above, WARP_FLOOR from
   `check_death_barrier`), proved from the real body and its callees' real bodies

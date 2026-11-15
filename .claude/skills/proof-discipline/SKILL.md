@@ -24,6 +24,12 @@ all in `Unwired/`, and the theorem moved nowhere. See
   carried globals. Coverage only (no row discharged). Open: `m->input` (MWF window [2,4), needs
   its own store lemma), `gGlobalTimer`, castle residue vs R7, S7. `docs/wmotr-entry-census.md` §4d.
 
+- **FOUND 2026-11-15 (OPEN): the NULL-floor repair (B'') is void inside seg rows.** `fworld`
+  carries `wmotr_world`, whose floor clause forces a surface pointer, so `fworld m` and
+  `floor_null bm m` contradict; posts `floor_null \/ fresh` collapse to `fresh`, and the open
+  umi row again claims no double-miss NULL floor. Repair option (RESTATE, large, not started):
+  make that clause surface-or-NULL; readers take non-NULL from `fresh`. TRUST row 3.2 text.
+
 - **GOAL 1 over the whole frame** (2026-10-26, skeleton): `NoAImpliesNoFly/NoAImpliesNoFlyFrame.v`,
   `noA_never_flying_frame_linked12`: the step is GOAL 2's real `frame_step`; open rows = GOAL 2's
   capstone rows (shared invariant: the level slices' mem_ok carries read PhiW). The header lists
