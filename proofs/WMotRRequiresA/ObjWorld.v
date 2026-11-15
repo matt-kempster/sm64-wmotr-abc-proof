@@ -613,17 +613,13 @@ Definition is_bhv_b (ge : genv) (pool : block) (m : mem) (id : ident) (k : Z) : 
   | _, _ => false
   end.
 
-Definition box_pos_ok (pool : block) (m : mem) (k : Z) : Prop :=
-  exists x y z, In (x, y, z) box_xyz
-    /\ Mem.load Mfloat32 m pool (k * OSZ + O_POSX) = Some (f32z x)
-    /\ Mem.load Mfloat32 m pool (k * OSZ + O_POSY) = Some (f32z y)
-    /\ Mem.load Mfloat32 m pool (k * OSZ + O_POSZ) = Some (f32z z).
-
+(* No box POSITION pin (2026-11-14): a hit box moves (bhv_exclamation_box_loop
+   act 3: oVelY, oForwardVel) and act 2 resets only oPosY, so "a box sits at
+   a level-data box position" is false in the real game.  The clause's only
+   reader was the lid ghost's "not a box", needed only to re-prove it. *)
 Definition coll_ok (ge : genv) (pool : block) (m : mem) (rs : list (list Z)) : Prop :=
   Z.of_nat (List.length (filter (is_bhv_b ge pool m macro_special_objects._bhvExclamationBox) (concat rs))) <= N_BOX
-  /\ Z.of_nat (List.length (filter (is_bhv_b ge pool m macro_special_objects._bhvCannonClosed) (concat rs))) <= N_LID
-  /\ forall k, In k (concat rs) -> is_bhv_b ge pool m macro_special_objects._bhvExclamationBox k = true ->
-       box_pos_ok pool m k.
+  /\ Z.of_nat (List.length (filter (is_bhv_b ge pool m macro_special_objects._bhvCannonClosed) (concat rs))) <= N_LID.
 
 (* THE FRAME-BOUNDARY COUNTER FACT (not in ow_core: see 3b).  In a frame
    without time stop, clear_dynamic_surfaces resets both counters to the
@@ -895,6 +891,111 @@ Proof.
   intros b o' Hb L'. exists o'. rewrite <- C. exact (conj L' eq_refl).
 Qed.
 
+(* THE SLOT TABLE (2026-11-13, the native_res sweep's repair shape; docs/
+   TRUST.md row 0.7).  One table of per-script field pins: a row names a
+   script, the cells it reads, and a boolean check over the command offset
+   and the loaded cells.  tab_at IS its checker (row_b), so the boot check
+   (ow_chk) is the clause itself.  Keyed by the SCRIPT a slot runs (the
+   command pointer's block), as native_res's sites are, not by oBehavior.
+   A FLAT row (tab_flat: the check ignores the command offset) whose cells
+   are off the VM cells, oPosY and the home is kept by every obj_w keeper
+   through the one lemma tab_at_scr; a new flat row costs its entry here,
+   in tab_scripts / tab_cells, and a class bit in ObjFamily.clsw.
+   Row 1, bhvHiddenRedCoinStar: oAction = 0 and oHiddenStarTriggerCounter
+   < 8.  bhv_hidden_red_coin_star_loop at oAction 1 spawns a
+   bhvStarSpawnCoordinates (red_ok forbids it); it leaves action 0 only at
+   counter = 8.  red_ok's own counter bound is keyed by oBehavior, which no
+   clause ties to the script, so the row restates it by script. *)
+Record trow : Type := {
+  tr_s : ident;
+  tr_cells : list (memory_chunk * Z);
+  tr_chk : Z -> list (option val) -> bool
+}.
+
+Definition HSTARS : ident := behavior_data._bhvHiddenRedCoinStar.
+
+Definition hstar_chk (_ : Z) (vs : list (option val)) : bool :=
+  match vs with
+  | [Some (Vint a); Some (Vint c)] => Int.eq a Int.zero && (Int.signed c <? 8)
+  | _ => false
+  end.
+
+Definition slot_tab : list trow :=
+  [ {| tr_s := HSTARS; tr_cells := [(Mint32, O_ACTION); (Mint32, O_HSCOUNT)]; tr_chk := hstar_chk |} ].
+
+Definition tab_scripts : list ident := [HSTARS].
+Definition tab_cells : list (memory_chunk * Z) := [(Mint32, O_ACTION); (Mint32, O_HSCOUNT)].
+
+Lemma tab_scripts_all : forall r, In r slot_tab -> In (tr_s r) tab_scripts.
+Proof. intros r Hr. change tab_scripts with (map tr_s slot_tab). exact (in_map tr_s _ _ Hr). Qed.
+
+Lemma tab_cells_all : forall r c, In r slot_tab -> In c (tr_cells r) -> In c tab_cells.
+Proof.
+  intros r c Hr Hc. change tab_cells with (flat_map tr_cells slot_tab).
+  apply in_flat_map. exists r. exact (conj Hr Hc).
+Qed.
+
+(* every row so far is flat: its check ignores the command offset *)
+Lemma tab_flat : forall r, In r slot_tab -> forall o o' vs, tr_chk r o vs = tr_chk r o' vs.
+Proof. intros r Hr o o' vs. cbn [slot_tab In] in Hr. destruct Hr as [<- | []]. reflexivity. Qed.
+
+Definition rd_cells (m : mem) (pool : block) (o : Z) (cs : list (memory_chunk * Z)) : list (option val) :=
+  map (fun c => CM.load (fst c) m pool (o + snd c)) cs.
+
+Definition row_b (ge : genv) (pool : block) (m : mem) (k : Z) (r : trow) : bool :=
+  match Genv.find_symbol ge (tr_s r), ld32 m pool (k * OSZ + O_CMD) with
+  | Some b, Some (Vptr b' o) =>
+      negb (Pos.eqb b' b) || tr_chk r (Ptrofs.unsigned o) (rd_cells m pool (k * OSZ) (tr_cells r))
+  | _, _ => true
+  end.
+
+Definition tab_at (ge : genv) (pool : block) (m : mem) (k : Z) : Prop :=
+  forallb (row_b ge pool m k) slot_tab = true.
+
+(* what a row says, unfolded: a slot running the row's script passes its check *)
+Lemma tab_at_row : forall ge pool m k r b o, tab_at ge pool m k -> In r slot_tab ->
+  Genv.find_symbol ge (tr_s r) = Some b -> ld32 m pool (k * OSZ + O_CMD) = Some (Vptr b o) ->
+  tr_chk r (Ptrofs.unsigned o) (rd_cells m pool (k * OSZ) (tr_cells r)) = true.
+Proof.
+  intros ge pool m k r b o H Hr Hs L. unfold tab_at in H. rewrite forallb_forall in H.
+  specialize (H r Hr). unfold row_b in H. rewrite Hs, L, Pos.eqb_refl in H. exact H.
+Qed.
+
+Lemma hstar_at : forall ge pool m k b o, tab_at ge pool m k ->
+  Genv.find_symbol ge HSTARS = Some b -> ld32 m pool (k * OSZ + O_CMD) = Some (Vptr b o) ->
+  Mem.load Mint32 m pool (k * OSZ + O_ACTION) = Some (Vint Int.zero)
+  /\ exists c, Mem.load Mint32 m pool (k * OSZ + O_HSCOUNT) = Some (Vint c) /\ Int.signed c < 8.
+Proof.
+  intros ge pool m k b o H Hs L.
+  pose proof (tab_at_row ge pool m k _ b o H (or_introl eq_refl) Hs L) as C.
+  cbn [tr_chk tr_cells rd_cells map fst snd hstar_chk] in C. rewrite !CM.load_eq in C.
+  destruct (Mem.load Mint32 m pool (k * OSZ + O_ACTION)) as [[| a | | | |] |]; try discriminate C.
+  destruct (Mem.load Mint32 m pool (k * OSZ + O_HSCOUNT)) as [[| c | | | |] |]; try discriminate C.
+  apply andb_prop in C as [C1 C2]. pose proof (Int.eq_spec a Int.zero) as E. rewrite C1 in E. subst a.
+  split; [ reflexivity | exists c; split; [ reflexivity | apply Z.ltb_lt; exact C2 ] ].
+Qed.
+
+(* THE KEEPER: the table's cells kept and the table scripts' "runs" kept
+   (the command pointer may move inside its script: the rows are flat) *)
+Lemma tab_at_scr : forall ge pool m m' k,
+  (forall id, In id tab_scripts -> runs ge pool m' k id = runs ge pool m k id) ->
+  (forall c, In c tab_cells ->
+     Mem.load (fst c) m' pool (k * OSZ + snd c) = Mem.load (fst c) m pool (k * OSZ + snd c)) ->
+  tab_at ge pool m k -> tab_at ge pool m' k.
+Proof.
+  intros ge pool m m' k R L H. unfold tab_at in *. rewrite forallb_forall in *. intros r Hr.
+  specialize (H r Hr). pose proof (R (tr_s r) (tab_scripts_all r Hr)) as Rr.
+  assert (Ec : rd_cells m' pool (k * OSZ) (tr_cells r) = rd_cells m pool (k * OSZ) (tr_cells r)).
+  { unfold rd_cells. apply map_ext_in. intros c Hc. rewrite !CM.load_eq. exact (L c (tab_cells_all r c Hr Hc)). }
+  unfold row_b in *. unfold runs, sym_is in Rr.
+  destruct (Genv.find_symbol ge (tr_s r)) as [b |]; [ | reflexivity ].
+  destruct (ld32 m' pool (k * OSZ + O_CMD)) as [[| | | | | b' o'] |]; try reflexivity.
+  destruct (Pos.eqb b' b) eqn:Eb; [ cbn [negb orb] | reflexivity ].
+  destruct (ld32 m pool (k * OSZ + O_CMD)) as [[| | | | | b2 o2] |]; try discriminate Rr.
+  rewrite <- Rr in H. cbn [negb orb] in H.
+  rewrite Ec, (tab_flat r Hr (Ptrofs.unsigned o') (Ptrofs.unsigned o2)). exact H.
+Qed.
+
 Definition pin_at (ge : genv) (pool : block) (m : mem) (k : Z) : Prop :=
   (forall t, Mem.load Mint32 m pool (k * OSZ + O_INTERACT_TYPE) = Some (Vint t) ->
      (Int.unsigned t = INTERACT_POLE -> runs ge pool m k POLES = true)
@@ -902,7 +1003,8 @@ Definition pin_at (ge : genv) (pool : block) (m : mem) (k : Z) : Prop :=
      /\ (runs ge pool m k CANS = true -> Int.unsigned t <> INTERACT_CANNON_BASE -> cannon_xz_ok m pool (k * OSZ)))
   /\ (runs ge pool m k POLES = true -> pole_pin m pool (k * OSZ))
   /\ can_pin ge pool m k
-  /\ can_traj ge pool m k.
+  /\ can_traj ge pool m k
+  /\ tab_at ge pool m k.
 
 Definition pin_ok (ge : genv) (pool : block) (m : mem) (rs : list (list Z)) : Prop :=
   forall k, In k (concat rs) -> pin_at ge pool m k.
@@ -913,7 +1015,15 @@ Definition pin_offs0 : list Z :=
   [O_INTERACT_TYPE; O_POSX; O_POSY; O_POSZ; HITBOX_DOWN_OFF; O_BPARAMS].
 Definition pin_offs : list Z :=
   [O_INTERACT_TYPE; O_POSX; O_POSY; O_POSZ; HITBOX_DOWN_OFF; O_BPARAMS;
-   O_ACTION; O_PREVACT; O_TIMER; O_HOMEX; O_HOMEY; O_HOMEZ].
+   O_ACTION; O_PREVACT; O_TIMER; O_HOMEX; O_HOMEY; O_HOMEZ; O_HSCOUNT].
+
+(* the table's cells are pin_offs cells, int or float *)
+Lemma tab_cells_pin : forall c, In c tab_cells ->
+  In (snd c) pin_offs /\ (fst c = Mint32 \/ fst c = Mfloat32).
+Proof.
+  intros c Hc. unfold tab_cells in Hc. cbn [In] in Hc. unfold pin_offs.
+  repeat (destruct Hc as [<- | Hc]; [ cbn [fst snd In]; tauto | ]). destruct Hc.
+Qed.
 
 Lemma traj_pin_offs : forall off, In off traj_offs -> In off pin_offs.
 Proof. intros off H. unfold traj_offs in H. unfold pin_offs. cbn [In] in H |- *. tauto. Qed.
@@ -929,16 +1039,17 @@ Lemma pin_at_eq : forall ge pool m m' k,
      Mem.load ch m' pool (k * OSZ + off) = Mem.load ch m pool (k * OSZ + off)) ->
   (can_pin ge pool m k -> can_pin ge pool m' k) ->
   (can_traj ge pool m k -> can_traj ge pool m' k) ->
+  (tab_at ge pool m k -> tab_at ge pool m' k) ->
   pin_at ge pool m k -> pin_at ge pool m' k.
 Proof.
-  intros ge pool m m' k R L Dk Ct (T & P & D & Tr).
+  intros ge pool m m' k R L Dk Ct Tk (T & P & D & Tr & Tb).
   assert (Lt0 := L Mint32 O_INTERACT_TYPE ltac:(unfold pin_offs0; cbn [In]; tauto) ltac:(tauto)).
   assert (Lx0 := L Mfloat32 O_POSX ltac:(unfold pin_offs0; cbn [In]; tauto) ltac:(tauto)).
   assert (Ly0 := L Mfloat32 O_POSY ltac:(unfold pin_offs0; cbn [In]; tauto) ltac:(tauto)).
   assert (Lz0 := L Mfloat32 O_POSZ ltac:(unfold pin_offs0; cbn [In]; tauto) ltac:(tauto)).
   assert (Ld0 := L Mfloat32 HITBOX_DOWN_OFF ltac:(unfold pin_offs0; cbn [In]; tauto) ltac:(tauto)).
   assert (Lp0 := L Mint32 O_BPARAMS ltac:(unfold pin_offs0; cbn [In]; tauto) ltac:(tauto)).
-  split; [ | split; [ | split; [ exact (Dk D) | exact (Ct Tr) ] ] ].
+  split; [ | split; [ | split; [ exact (Dk D) | split; [ exact (Ct Tr) | exact (Tk Tb) ] ] ] ].
   - intros t Lt. rewrite Lt0 in Lt. destruct (T t Lt) as (T1 & T2 & T3).
     rewrite (R POLES (or_introl eq_refl)), (R CANS (or_intror (or_introl eq_refl))). split; [ exact T1 | split; [ exact T2 | ] ].
     intros Hc Ht. destruct (T3 Hc Ht) as (x & z & y & dj & Hin & Hdj & Lx & Ly & Lz).
@@ -950,18 +1061,22 @@ Qed.
 
 (* the same when the command pointer and every pinned cell are kept *)
 Lemma pin_at_eq' : forall ge pool m m' k,
-  (forall id, In id [POLES; CANS] -> runs ge pool m' k id = runs ge pool m k id) ->
+  (forall id, In id (POLES :: CANS :: tab_scripts) -> runs ge pool m' k id = runs ge pool m k id) ->
   (forall ch off, In off pin_offs -> ch = Mint32 \/ ch = Mfloat32 ->
      Mem.load ch m' pool (k * OSZ + off) = Mem.load ch m pool (k * OSZ + off)) ->
   ld32 m' pool (k * OSZ + O_CMD) = ld32 m pool (k * OSZ + O_CMD) ->
   pin_at ge pool m k -> pin_at ge pool m' k.
 Proof.
-  intros ge pool m m' k R L C. apply (pin_at_eq ge pool m m' k R).
+  intros ge pool m m' k R L C. apply (pin_at_eq ge pool m m' k).
+  - intros id Hid. apply R. cbn [In] in Hid |- *. tauto.
   - intros ch off Hoff Hch. exact (L ch off (pin_offs0_offs off Hoff) Hch).
   - apply (can_pin_eq ge pool m m' k C).
     exact (L Mfloat32 O_POSY ltac:(unfold pin_offs; cbn [In]; tauto) ltac:(tauto)).
   - apply (can_traj_eq ge pool m m' k); [ | exact C ].
     intros ch off Hoff Hch. exact (L ch off (traj_pin_offs off Hoff) Hch).
+  - apply (tab_at_scr ge pool m m' k).
+    + intros id Hid. apply R. right. right. exact Hid.
+    + intros c Hc. destruct (tab_cells_pin c Hc) as (Ho & Hch). exact (L (fst c) (snd c) Ho Hch).
 Qed.
 
 Definition sdyn (ge : genv) (pool : block) (m : mem) (k : Z) : Z :=
@@ -2106,32 +2221,14 @@ Proof.
   exact (surf_obj_at_b_sound _ _ _ _ (proj1 (forallb_forall _ _) H5 s Hs')).
 Qed.
 
-Definition box_pos_b (pool : block) (m : mem) (k : Z) : bool :=
-  existsb (fun '(x, y, z) => f32_at_b pool m (k * OSZ + O_POSX) (f32z x)
-                             && f32_at_b pool m (k * OSZ + O_POSY) (f32z y)
-                             && f32_at_b pool m (k * OSZ + O_POSZ) (f32z z)) box_xyz.
-
-Lemma box_pos_b_sound : forall pool m k, box_pos_b pool m k = true -> box_pos_ok pool m k.
-Proof.
-  intros pool m k H. apply existsb_exists in H as ([[x y] z] & Hin & H).
-  apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
-  exists x, y, z. split; [ exact Hin | ].
-  exact (conj (f32_at_b_sound _ _ _ _ H1) (conj (f32_at_b_sound _ _ _ _ H2) (f32_at_b_sound _ _ _ _ H3))).
-Qed.
-
 Definition coll_b (ge : genv) (pool : block) (m : mem) (rs : list (list Z)) : bool :=
   (Z.of_nat (List.length (filter (is_bhv_b ge pool m macro_special_objects._bhvExclamationBox) (concat rs))) <=? N_BOX)
-  && (Z.of_nat (List.length (filter (is_bhv_b ge pool m macro_special_objects._bhvCannonClosed) (concat rs))) <=? N_LID)
-  && forallb (fun k => negb (is_bhv_b ge pool m macro_special_objects._bhvExclamationBox k) || box_pos_b pool m k)
-       (concat rs).
+  && (Z.of_nat (List.length (filter (is_bhv_b ge pool m macro_special_objects._bhvCannonClosed) (concat rs))) <=? N_LID).
 
 Lemma coll_b_sound : forall ge pool m rs, coll_b ge pool m rs = true -> coll_ok ge pool m rs.
 Proof.
-  intros ge pool m rs H. apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
-  apply Z.leb_le in H1. apply Z.leb_le in H2.
-  split; [ exact H1 | split; [ exact H2 | ] ]. intros k Hk Hb.
-  pose proof (proj1 (forallb_forall _ _) H3 k Hk) as E. cbv beta in E. rewrite Hb in E.
-  exact (box_pos_b_sound _ _ _ E).
+  intros ge pool m rs H. apply andb_prop in H as [H1 H2].
+  apply Z.leb_le in H1. apply Z.leb_le in H2. exact (conj H1 H2).
 Qed.
 
 Definition ctr_b (ge : genv) (m : mem) : bool :=
@@ -2989,12 +3086,14 @@ Section ChkPin.
     exact (can_cl_b_sound _ _ H).
   Qed.
 
-  Definition can_pin_b (k : Z) : bool := can_pin_b0 k && can_traj_b k.
+  (* the slot table (2026-11-13) is its own checker *)
+  Definition can_pin_b (k : Z) : bool :=
+    can_pin_b0 k && can_traj_b k && forallb (row_b ge pool m k) slot_tab.
 
   Lemma pin_b_sound : forall k, pin_b k = true -> can_pin_b k = true -> pin_at ge pool m k.
   Proof.
-    intros k H Hcb. unfold can_pin_b in Hcb. apply andb_prop in Hcb as [Hcb Hct].
-    split; [ | split; [ | split; [ exact (can_pin_b0_sound k Hcb) | exact (can_traj_b_sound k Hct) ] ] ].
+    intros k H Hcb. unfold can_pin_b in Hcb. apply andb_prop in Hcb as [Hcb Htb]. apply andb_prop in Hcb as [Hcb Hct].
+    split; [ | split; [ | split; [ exact (can_pin_b0_sound k Hcb) | split; [ exact (can_traj_b_sound k Hct) | exact Htb ] ] ] ].
     all: unfold pin_b in H; apply andb_prop in H as [H Hp].
     2: { intros Hr. rewrite Hr in Hp. cbn [negb orb] in Hp. exact (pole_pin_b_sound _ Hp). }
     - intros t Lt. unfold ld32 in H. rewrite CM.load_eq, Lt in H.

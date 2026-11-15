@@ -270,7 +270,7 @@ Section AN.
     destruct How as (pool' & la & fl & gol & gmo' & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
     rewrite Hpool in S1. injection S1 as <-.
     pose proof (HXr g HX la rs S2 (OW.ow_rings _ _ _ _ _ _ _ _ _ _ _ _ C)) as Hkr.
-    destruct (OW.ow_pin _ _ _ _ _ _ _ _ _ _ _ _ C k Hkr) as (_ & _ & _ & T).
+    destruct (OW.ow_pin _ _ _ _ _ _ _ _ _ _ _ _ C k Hkr) as (_ & _ & _ & T & _).
     assert (Lc' : OW.ld32 g pool (k * OW.OSZ + OW.O_CMD) = Some (Vptr bC (Ptrofs.repr (4 * Z.of_nat (v_i st0)))))
       by (unfold OW.ld32; rewrite CM.load_eq; exact Lc).
     pose proof (T bC _ HbC Lc') as T0.
@@ -424,7 +424,7 @@ Section AN.
     destruct How as (pool' & la & fl & gol & gmo' & sdp & gdi & rs & fs & W1 & W2 & W3 & W4 & W5 & W6 & W7 & C).
     rewrite Hpool in W1. injection W1 as <-.
     pose proof (HXr g HX la rs W2 (OW.ow_rings _ _ _ _ _ _ _ _ _ _ _ _ C)) as Hkr.
-    destruct (OW.ow_pin _ _ _ _ _ _ _ _ _ _ _ _ C k Hkr) as (_ & _ & _ & T).
+    destruct (OW.ow_pin _ _ _ _ _ _ _ _ _ _ _ _ C k Hkr) as (_ & _ & _ & T & _).
     assert (Lc' : OW.ld32 g pool (k * OW.OSZ + OW.O_CMD) = Some (Vptr bC (Ptrofs.repr 28)))
       by (unfold OW.ld32; rewrite CM.load_eq; exact Lc).
     assert (H28 : forall b o, Genv.find_symbol G OW.CANS = Some b ->

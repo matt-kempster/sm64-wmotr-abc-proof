@@ -80,3 +80,74 @@ close the window by itself.
 Rejected this round: starting the generic table before the sweep (would have built
 kind (a) only); weakening box_pos_ok (its one consumer, CannonKeep.lid_not_box, has no
 other way to tell a lid from a box: oBehavior is not tied to the script).
+
+## 2026-11-13 (third round): the slot table -- choice, written before executing
+
+**Chosen: ONE boolean table inside `pin_at`, flat rows first.**
+
+- `ObjWorld.slot_tab : list trow`, a row = (script, cell list, boolean check over the
+  command offset and the loaded cells). `tab_at k := forallb (row_b k) slot_tab = true`
+  is a new conjunct of `pin_at`. The clause IS its checker, so the boot check
+  (`ow_chk`) costs one `&&` and no soundness proof per row.
+- Keyed by the SCRIPT a slot runs (command-pointer block), not by oBehavior: the
+  native_res sites are (script, word, native), and nothing ties script -> behavior.
+- One generic keeper, `tab_at_scr`: cells of `tab_cells` equal + `runs` equal for
+  `tab_scripts` => kept. Every proved obj_w keeper (PollKeep.obj_w_slots_h,
+  ObjVmSwap.obj_w_vm_swap, UnloadOw) already has both facts for any cell off the VM
+  cells / oPosY / home, so a FLAT row (check independent of the command offset, cells
+  off those three) costs: the row, `tab_scripts` / `tab_cells` entries, one bit in
+  ObjFamily's class (so a VM step keeps "runs this script"), and nothing per keeper.
+- First row: bhvHiddenRedCoinStar -> oAction = 0 and oHiddenStarTriggerCounter < 8
+  (the hidden-star loop FOUND: oAction = 1 was not excluded; the counter is restated
+  by script because red_ok's is keyed by oBehavior).
+
+Measured against the cannon trajectory (~2,000 lines, 28 files): the flat-row route
+touches the 4 keeper sites once, for the table.
+
+Not covered by flat rows, so NOT attempted this round (each needs the carrier shape
+can_traj has, i.e. a re-anchored ghost at the script word that moves the pin):
+lid oHome (pos pinned before SET_HOME, home after), box position by action, box
+byte (field 47 is a FieldWin script window). Next step for those: migrate can_traj
+into the table as an offset-class row and generalize ObjAnchor's re-anchor once.
+Cross-slot (red coins 7 -> 8, star init with no coin) and global guards stay open.
+
+Rejected: a new ow_core field (breaks every constructor); narrowing `live_bhvs` first
+(removes no FOUND case: the box's cut contents are already dead sites, the rest are
+field pins); keying by oBehavior (the loop site would stay false at a slot that runs
+the script under another behavior).
+
+## 2026-11-14 (fourth round): choices, written before executing
+
+Kept from the interrupted third round (7839647b WIP): the boolean slot table inside
+`pin_at` and its first flat row (hidden star: oAction = 0, counter < 8). It is small,
+its boot check is the clause itself, and it is the right carrier for per-slot pins.
+
+**Changed / added, and why:**
+
+1. **box_pos_ok is DROPPED from coll_ok, not strengthened by action.** The clause is
+   false in the real game: a hit box (act 3) moves by oVelY and oForwardVel, and act 2
+   resets only oPosY. A by-action pin is not inductive either (oForwardVel is an
+   unpinned window field, so x/z in act 3 is unbounded). Its only reader is
+   CannonKeep's "the lid ghost is not a box", which exists only to feed ObjVmSwap's
+   Hy0, which needs it only to re-prove box_pos_ok. So the clause supports nothing
+   but itself. Removing it RESTATES the row (INV says less, the two FOUND cases go
+   away) at ~5 edit sites. The third round rejected this on the grounds that the lid
+   keep needs it; that need is circular.
+2. **Window-cell rows (box byte, field 47).** A table row may read a FieldWin window
+   cell only if the window is taken out of the script-writable set for obj_w. Plan:
+   remove (324,328) from `ucl_h`, carry a table-keep hypothesis next to `KT`, and
+   one generic "store into slot k off every row's cells or at a slot not running the
+   row's script" lemma (the shape of kt_off). Census: no script word writes field 47.
+   Row: BOXS -> byte in BoxCensus.box_ids. Second milestone; stop if the keepers'
+   churn exceeds ~400 lines.
+3. **Lid oHome**: needs an offset-class row + a SET_HOME re-anchor (ObjAnchor shape).
+   Third, only if 2 lands cheaply; otherwise logged open with its exact cost.
+4. **Red coins (7 -> 8; star init with no coin)**: NOT attempted per-slot. Both are
+   true only through Mario (a coin is collected only by contact). They need row kind
+   (c), a guard on Mario's phase/height, which is GOAL 2's own conclusion: closing
+   them is a joint induction with the height capstone, not an objects-local repair.
+   Reported as needing a decision.
+5. **Undecided sites** are decided by census where a computation can (reference
+   closure, written cells), after milestone 1.
+
+Order: green first (1 + the WIP row) -> 2 -> undecided sites -> 3.
