@@ -694,6 +694,7 @@ Section STEP.
     (136 <= d /\ d <= n <= 460
      /\ forall off e, (e <= 156 \/ 160 <= off) -> (e <= 400 \/ 404 <= off) -> FieldWin.ucl off e ->
           e <= d \/ n <= off) ->
+    (n <= 324 \/ 328 <= d) ->
     js * OW.OSZ + d <= z0 /\ z0 + size_chunk ch <= js * OW.OSZ + n ->
     BhvStep.cvok (fun _ => False) ch v ->
     ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k) m ->
@@ -701,7 +702,7 @@ Section STEP.
     (forall k', OW.can_traj G pool m k' -> OW.can_traj G pool m1 k') ->
     ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k) m1.
   Proof.
-    intros XF Hxs pool hd k js st0 m m1 ch z0 v d n Hp Hk Hj Hd Hdn Hz Hv (HP & HV & HX) S KT.
+    intros XF Hxs pool hd k js st0 m m1 ch z0 v d n Hp Hk Hj Hd Hdn H47 Hz Hv (HP & HV & HX) S KT.
     pose proof (pc_of_P _ HP) as Hpc.
     assert (HP1 : Pobjl m1) by (apply P_of_pc; eapply ObjFld.fld_pc_t; eassumption).
     split; [ exact HP1 | split ].
@@ -733,7 +734,9 @@ Section STEP.
     assert (Hdn : 136 <= d /\ d <= n <= 460
      /\ forall off e, (e <= 156 \/ 160 <= off) -> (e <= 400 \/ 404 <= off) -> FieldWin.ucl off e ->
           e <= d \/ n <= off) by exact (conj D1 (conj D2 (ObjFld.dn_weak d n Dh))).
-    apply (fld_gt XF Hxs pool hd k js st0 m m1 ch z0 v d n Hp Hk Hj Hd Hdn Hz Hv HG S).
+    assert (H47 : n <= 324 \/ 328 <= d).
+    { destruct (Dh 324 328 ltac:(lia) ltac:(lia) ltac:(unfold FieldWin.ucl_h; lia)) as [L | L]; [ right | left ]; exact L. }
+    apply (fld_gt XF Hxs pool hd k js st0 m m1 ch z0 v d n Hp Hk Hj Hd Hdn H47 Hz Hv HG S).
     pose proof (pc_of_P _ (proj1 HG)) as Hpc.
     eapply ObjFld.kt_win; eassumption.
   Qed.
@@ -757,7 +760,7 @@ Section STEP.
   Lemma win_ops_ok :
     forallb (fun st => if existsb (Z.eqb (opc st)) [14; 15; 17; 19; 51; 52]
                        then existsb (Z.eqb (byte2 (w0 st)))
-                              [1; 3; 10; 12; 16; 18; 19; 20; 21; 22; 23; 26; 28; 29; 38; 40; 41; 47; 52;
+                              [1; 3; 10; 12; 16; 18; 19; 20; 21; 22; 23; 26; 28; 29; 38; 40; 41; 52;
                                58; 59; 61; 67]
                        else true) vm_tab = true.
   Proof. vm_compute. reflexivity. Qed.
@@ -773,23 +776,41 @@ Section STEP.
     rewrite FieldWinCensus.win_fields_ow_value, Ef. exact Hf.
   Qed.
 
-  (* SET_INT's reachable fields: 5, 42, or a window *)
+  (* SET_INT's reachable fields: 5, 42, or a window -- or (2026-11-14) the
+     box byte 47, which obj_w's slot table reads: its one writer
+     (bhvSpawnedStar word 2) is in no live script *)
+  Lemma set47_dead :
+    (fun lv => forallb (fun st => if (opc st =? 16) && (byte2 (w0 st) =? 47)
+                                  then negb (existsb (Pos.eqb (v_s st)) lv) else true) vm_tab) OW.live_bhvs = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma set47_live : forall st w, In st vm_tab -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 16 ->
+    byte2 w = 47 -> In (v_s st) OW.live_bhvs -> False.
+  Proof.
+    intros st w Hst Hw Ho E47 Hl. pose proof set47_dead as A. cbv beta in A. rewrite forallb_forall in A.
+    specialize (A st Hst). unfold opc, w0 in A. rewrite Hw, Ho, E47 in A. cbn [Z.eqb Pos.eqb andb] in A.
+    assert (E : existsb (Pos.eqb (v_s st)) OW.live_bhvs = true)
+      by (apply existsb_exists; exists (v_s st); split; [ exact Hl | apply Pos.eqb_refl ]).
+    rewrite E in A. discriminate A.
+  Qed.
+
   Lemma set_ops_ok :
     forallb (fun st => if opc st =? 16
                        then existsb (Z.eqb (byte2 (w0 st)))
-                              [5; 42; 1; 3; 10; 12; 16; 18; 19; 20; 21; 22; 23; 26; 28; 29; 38; 40; 41; 47; 52;
+                              [5; 42; 47; 1; 3; 10; 12; 16; 18; 19; 20; 21; 22; 23; 26; 28; 29; 38; 40; 41; 52;
                                58; 59; 61; 67]
                        else true) vm_tab = true.
   Proof. vm_compute. reflexivity. Qed.
 
   Lemma set_op : forall st w, In st vm_tab -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 16 ->
-    byte2 w = 5 \/ byte2 w = 42 \/ In (byte2 w) FieldWinCensus.win_fields_ow.
+    byte2 w = 5 \/ byte2 w = 42 \/ byte2 w = 47 \/ In (byte2 w) FieldWinCensus.win_fields_ow.
   Proof.
     intros st w Hst Hw Ho. pose proof set_ops_ok as A. rewrite forallb_forall in A. specialize (A st Hst).
     unfold opc, w0 in A. rewrite Hw, Ho in A. cbn [Z.eqb] in A.
     apply existsb_exists in A as (f & Hf & Ef). apply Z.eqb_eq in Ef.
     rewrite FieldWinCensus.win_fields_ow_value, Ef.
-    cbn [In] in Hf. destruct Hf as [<- | [<- | Hf]]; [ left; reflexivity | right; left; reflexivity | right; right; exact Hf ].
+    cbn [In] in Hf. destruct Hf as [<- | [<- | [<- | Hf]]];
+      [ left; reflexivity | right; left; reflexivity | right; right; left; reflexivity | right; right; right; exact Hf ].
   Qed.
 
   Ltac wf_side := first [ rewrite FieldWinCensus.win_fields_ow_value; cbn [In]; repeat (first [ left; reflexivity | right ])
@@ -846,7 +867,8 @@ Section STEP.
   Proof.
     intros XF Hxs pool hd k st0 Hp Hk H0 K42 m st w m1 (Hnw & HG) Hst HQ Hw Ho S.
     split; [ exact Hnw | ].
-    destruct (set_op st w Hst Hw Ho) as [E5 | [E42 | Hf]].
+    destruct (set_op st w Hst Hw Ho) as [E5 | [E42 | [E47 | Hf]]].
+    3: { exfalso. exact (set47_live st w Hst Hw Ho E47 (ObjFamily.Qfam_live _ _ HQ)). }
     - rewrite E5 in S.
       refine (fld_g XF Hxs pool hd k k st0 m m1 _ _ _ 156 160 Hp Hk Hk (PK.vm_depth st0 H0) _ _ _ HG S);
         [ | cbn [size_chunk]; lia | exact I ].
@@ -928,7 +950,7 @@ Section STEP.
               ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k) ga).
     { intros g ga i v HGg Hi S.
       exact (fld_gt XF Hxs pool hd k k st0 g ga Mfloat32 (k * OW.OSZ + 136 + 4 * i) v 356 368 Hp Hk Hk Hd Hdn
-               ltac:(cbn [size_chunk]; lia) I HGg S
+               ltac:(right; lia) ltac:(cbn [size_chunk]; lia) I HGg S
                (kt_off pool k st0 g ga Mfloat32 (k * OW.OSZ + 136 + 4 * i) v S ltac:(lia) ltac:(cbn [size_chunk]; lia) Nc (proj1 (proj2 HGg)))). }
     exact (Hst _ _ 57 _ (Hst _ _ 56 _ (Hst _ _ 55 _ HG ltac:(lia) S1) ltac:(lia) S2) ltac:(lia) S3).
   Qed.

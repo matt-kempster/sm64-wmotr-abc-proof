@@ -21,6 +21,9 @@
 (*     by the box's oBehParams2ndByte, which obj_w does NOT pin (BoxCensus *)
 (*     resolves the real boxes' ids, a census).  FOUND: an INV-state with  *)
 (*     a box slot in act 4 whose byte is 3 spawns bhvKoopaShell.           *)
+(*     REPAIRED 2026-11-14 (INV strengthened, no transfer proof): the slot *)
+(*     table's row 2 (ObjWorld.box_at) pins the byte of a slot running the *)
+(*     box script to BoxCensus.box_ids (box_row_census below).             *)
 (*   For the other 60 natives no spawn can leave live_bhvs.                *)
 (* 3 red_ok's "no slot is a bhvStarSpawnCoordinates": only two live        *)
 (*   residual natives reach that behavior (star_reach_value):              *)
@@ -33,7 +36,7 @@
 From Coq Require Import ZArith List Bool String.
 From compcert Require Import Integers AST Ctypesdefs.
 From SM64.Proofs.WMotRRequiresA Require Import BhvVM BehaviorScripts.
-From SM64.Proofs.WMotRRequiresA Require ObjWorld BhvStep ObjFamily ObjFrame.
+From SM64.Proofs.WMotRRequiresA Require ObjWorld BhvStep ObjFamily ObjFrame BoxCensus.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -117,3 +120,12 @@ Lemma star_reach_value :
   map string_of_ident (filter (fun f => existsb (Pos.eqb SSC) (closure_of [f])) live_res_natives)
   = ["bhv_hidden_red_coin_star_loop"; "bhv_mario_update"]%string.
 Proof. vm_compute. reflexivity. Qed.
+
+(* 2, REPAIRED 2026-11-14: obj_w's slot table pins a box slot's contents
+   byte (ObjWorld.box_at) to exactly the census's ids of WMotR's boxes *)
+Lemma box_row_census : forall p, (p = Int.zero \/ p = Int.repr 7) <-> In (Int.signed p) BoxCensus.box_ids.
+Proof.
+  intros p. rewrite BoxCensus.box_ids_value. cbn [In]. split.
+  - intros [-> | ->]; [ right; left | left ]; reflexivity.
+  - intros [E | [E | []]]; [ right | left ]; rewrite <- (Int.repr_signed p), <- E; reflexivity.
+Qed.

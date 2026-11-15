@@ -61,7 +61,6 @@ Proof.
             | wtac 248 256
             | wtac 288 292
             | wtac 296 304
-            | wtac 324 328
             | wtac 344 348
             | wtac 368 376
             | wtac 380 384
@@ -108,6 +107,9 @@ Section FLD.
   Hypothesis Hdn : 136 <= d /\ d <= n <= 460
     /\ forall off e, (e <= 156 \/ 160 <= off) -> (e <= 400 \/ 404 <= off) -> FieldWin.ucl off e ->
          e <= d \/ n <= off.
+  (* 2026-11-14: and the box byte (field 47, [324, 328)): obj_w's slot table
+     reads it (OW.slot_tab row 2), so it is no window of ucl_h *)
+  Hypothesis H47 : n <= 324 \/ 328 <= d.
 
   Variables (g m1 : mem) (ch : memory_chunk) (z0 : Z) (v0 : val).
   Hypothesis Hg : Pc g.
@@ -332,8 +334,13 @@ Section FLD.
   Proof.
     intros ch' k off A B _ Cc Hh. pose proof (size_chunk_pos ch').
     destruct Cc as (_ & _ & C3 & C4 & U).
-    pose proof (Dw _ _ C3 C4 (FieldWin.ucl_h_ucl off (off + size_chunk ch') ltac:(lia) U Hh)) as Dd.
-    apply LPs; [ lia | exact B | right; exact Dd ].
+    pose proof (size_chunk_pos ch) as Pch.
+    destruct (FieldWin.ucl_h_split off (off + size_chunk ch') ltac:(lia) U Hh) as (Ua & Ub).
+    assert (Da : off < 324 -> Z.min (off + size_chunk ch') 324 <= d \/ n <= off).
+    { intros L. apply (Dw _ _); [ lia | lia | exact (Ua L) ]. }
+    assert (Db : 328 < off + size_chunk ch' -> off + size_chunk ch' <= d \/ n <= Z.max off 328).
+    { intros L. apply (Dw _ _); [ lia | lia | exact (Ub L) ]. }
+    apply LPs; [ lia | exact B | right; lia ].
   Qed.
 
   Section KT.

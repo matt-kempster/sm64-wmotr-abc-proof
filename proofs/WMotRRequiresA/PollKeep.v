@@ -363,7 +363,7 @@ Section OWK.
   Lemma SKc_h : forall pool, SKc pool -> SKh pool.
   Proof. intros pool K ch k off H1 H2 H3 H4 _. exact (K ch k off H1 H2 H3 H4). Qed.
 
-  Ltac sk_side := unfold OW.O_BHV, OW.O_CMD, OW.O_SIDX, OW.O_STK, OW.O_ACTION, OW.O_HSCOUNT,
+  Ltac sk_side := unfold OW.O_BHV, OW.O_CMD, OW.O_SIDX, OW.O_STK, OW.O_ACTION, OW.O_HSCOUNT, OW.O_BP2,
     OW.O_FLAGS, OW.O_NEXT, OW.O_PREV, OW.OSZ, O_INTERACT_TYPE, O_POSX, O_POSY, O_POSZ, HITBOX_DOWN_OFF,
     HITBOX_H_OFF, OW.O_RTYPE, OW.O_RINFO, OW.G_PREV, OW.G_NEXT, OW.G_PAR, OW.ccl, FieldWin.ucl_h,
     OW.O_TIMER, OW.O_PREVACT, OW.O_HOMEX, OW.O_HOMEY, OW.O_HOMEZ, RAW_OFF in *; cbn [size_chunk]; lia.

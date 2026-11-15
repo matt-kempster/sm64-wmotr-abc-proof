@@ -62,12 +62,15 @@ Proof. unfold win_fields. rewrite vm_written_value. vm_compute. reflexivity. Qed
    obj_w's windows are the rest; PhiW's stay win_fields.  Only SET_HOME
    (a fixed-field handler) writes the home: no byte2-addressed command does
    (vm_written above has no 55-57) *)
-Definition read_fields_ow : list Z := [5; 6; 7; 8; 27; 42; 55; 56; 57].
+(* 2026-11-14: and a box's contents byte (47, oBehParams2ndByte; ObjWorld's
+   slot table row BOXS).  The one byte2-addressed command that writes it
+   (bhvSpawnedStar word 2, SET_INT) is in no live script (ObjStep.set47_dead) *)
+Definition read_fields_ow : list Z := [5; 6; 7; 8; 27; 42; 47; 55; 56; 57].
 
 Definition win_fields_ow : list Z :=
   filter (fun f => negb (existsb (Z.eqb f) read_fields_ow)) (zset (vm_written ++ fixed_written)).
 Lemma win_fields_ow_value :
-  win_fields_ow = [1; 3; 10; 12; 16; 18; 19; 20; 21; 22; 23; 26; 28; 29; 38; 40; 41; 47; 52;
+  win_fields_ow = [1; 3; 10; 12; 16; 18; 19; 20; 21; 22; 23; 26; 28; 29; 38; 40; 41; 52;
                    58; 59; 61; 67].
 Proof. unfold win_fields_ow. rewrite vm_written_value. vm_compute. reflexivity. Qed.
 

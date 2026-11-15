@@ -77,6 +77,7 @@ Definition O_SIDX : Z := 464.  (* bhvStackIndex (u32) *)
 Definition O_STK : Z := 468.   (* bhvStack[8] (uintptr_t) *)
 Definition O_ACTION : Z := RAW_OFF + 4 * 49.   (* oAction, 0x14C *)
 Definition O_HSCOUNT : Z := RAW_OFF + 4 * 27.  (* oHiddenStarTriggerCounter, 0xF4 *)
+Definition O_BP2 : Z := RAW_OFF + 4 * 47.      (* oBehParams2ndByte, 0x144 *)
 Definition DBG_ENEMY7 : Z := 2 * (5 * 8 + 7).  (* gDebugInfo[5][7], s16 *)
 
 Definition oce : composite_env := prog_comp_env object_helpers.prog.
@@ -905,7 +906,13 @@ Qed.
    < 8.  bhv_hidden_red_coin_star_loop at oAction 1 spawns a
    bhvStarSpawnCoordinates (red_ok forbids it); it leaves action 0 only at
    counter = 8.  red_ok's own counter bound is keyed by oBehavior, which no
-   clause ties to the script, so the row restates it by script. *)
+   clause ties to the script, so the row restates it by script.
+   Row 2 (2026-11-14), bhvExclamationBox: oBehParams2ndByte (the contents
+   id) is 0 or 7, the ids of WMotR's boxes (BoxCensus.box_ids: six wing-cap
+   boxes and the 1-up box).  exclamation_box_spawn_contents walks
+   sExclamationBoxContents by this id; another id spawns another object
+   (or, unlisted, none).  No live script command writes the field (ObjStep.
+   set47_dead: only bhvSpawnedStar's word 2 does). *)
 Record trow : Type := {
   tr_s : ident;
   tr_cells : list (memory_chunk * Z);
@@ -920,11 +927,18 @@ Definition hstar_chk (_ : Z) (vs : list (option val)) : bool :=
   | _ => false
   end.
 
-Definition slot_tab : list trow :=
-  [ {| tr_s := HSTARS; tr_cells := [(Mint32, O_ACTION); (Mint32, O_HSCOUNT)]; tr_chk := hstar_chk |} ].
+Definition box_chk (_ : Z) (vs : list (option val)) : bool :=
+  match vs with
+  | [Some (Vint p)] => Int.eq p Int.zero || Int.eq p (Int.repr 7)
+  | _ => false
+  end.
 
-Definition tab_scripts : list ident := [HSTARS].
-Definition tab_cells : list (memory_chunk * Z) := [(Mint32, O_ACTION); (Mint32, O_HSCOUNT)].
+Definition slot_tab : list trow :=
+  [ {| tr_s := HSTARS; tr_cells := [(Mint32, O_ACTION); (Mint32, O_HSCOUNT)]; tr_chk := hstar_chk |};
+    {| tr_s := BOXS; tr_cells := [(Mint32, O_BP2)]; tr_chk := box_chk |} ].
+
+Definition tab_scripts : list ident := [HSTARS; BOXS].
+Definition tab_cells : list (memory_chunk * Z) := [(Mint32, O_ACTION); (Mint32, O_HSCOUNT); (Mint32, O_BP2)].
 
 Lemma tab_scripts_all : forall r, In r slot_tab -> In (tr_s r) tab_scripts.
 Proof. intros r Hr. change tab_scripts with (map tr_s slot_tab). exact (in_map tr_s _ _ Hr). Qed.
@@ -937,7 +951,7 @@ Qed.
 
 (* every row so far is flat: its check ignores the command offset *)
 Lemma tab_flat : forall r, In r slot_tab -> forall o o' vs, tr_chk r o vs = tr_chk r o' vs.
-Proof. intros r Hr o o' vs. cbn [slot_tab In] in Hr. destruct Hr as [<- | []]. reflexivity. Qed.
+Proof. intros r Hr o o' vs. cbn [slot_tab In] in Hr. destruct Hr as [<- | [<- | []]]; reflexivity. Qed.
 
 Definition rd_cells (m : mem) (pool : block) (o : Z) (cs : list (memory_chunk * Z)) : list (option val) :=
   map (fun c => CM.load (fst c) m pool (o + snd c)) cs.
@@ -973,6 +987,20 @@ Proof.
   destruct (Mem.load Mint32 m pool (k * OSZ + O_HSCOUNT)) as [[| c | | | |] |]; try discriminate C.
   apply andb_prop in C as [C1 C2]. pose proof (Int.eq_spec a Int.zero) as E. rewrite C1 in E. subst a.
   split; [ reflexivity | exists c; split; [ reflexivity | apply Z.ltb_lt; exact C2 ] ].
+Qed.
+
+(* row 2, unfolded: a slot running the box script holds contents id 0 or 7 *)
+Lemma box_at : forall ge pool m k b o, tab_at ge pool m k ->
+  Genv.find_symbol ge BOXS = Some b -> ld32 m pool (k * OSZ + O_CMD) = Some (Vptr b o) ->
+  exists p, Mem.load Mint32 m pool (k * OSZ + O_BP2) = Some (Vint p) /\ (p = Int.zero \/ p = Int.repr 7).
+Proof.
+  intros ge pool m k b o H Hs L.
+  pose proof (tab_at_row ge pool m k _ b o H (or_intror (or_introl eq_refl)) Hs L) as C.
+  cbn [tr_chk tr_cells rd_cells map fst snd box_chk] in C. rewrite !CM.load_eq in C.
+  destruct (Mem.load Mint32 m pool (k * OSZ + O_BP2)) as [[| p | | | |] |]; try discriminate C.
+  exists p. split; [ reflexivity | ]. apply orb_prop in C as [C | C]; [ left | right ].
+  - pose proof (Int.eq_spec p Int.zero) as E. rewrite C in E. exact E.
+  - pose proof (Int.eq_spec p (Int.repr 7)) as E. rewrite C in E. exact E.
 Qed.
 
 (* THE KEEPER: the table's cells kept and the table scripts' "runs" kept
@@ -1015,7 +1043,7 @@ Definition pin_offs0 : list Z :=
   [O_INTERACT_TYPE; O_POSX; O_POSY; O_POSZ; HITBOX_DOWN_OFF; O_BPARAMS].
 Definition pin_offs : list Z :=
   [O_INTERACT_TYPE; O_POSX; O_POSY; O_POSZ; HITBOX_DOWN_OFF; O_BPARAMS;
-   O_ACTION; O_PREVACT; O_TIMER; O_HOMEX; O_HOMEY; O_HOMEZ; O_HSCOUNT].
+   O_ACTION; O_PREVACT; O_TIMER; O_HOMEX; O_HOMEY; O_HOMEZ; O_HSCOUNT; O_BP2].
 
 (* the table's cells are pin_offs cells, int or float *)
 Lemma tab_cells_pin : forall c, In c tab_cells ->

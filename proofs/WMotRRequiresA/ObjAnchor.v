@@ -401,7 +401,7 @@ Section AN.
        Ptrofs.unsigned o = 28).
   Proof.
     intros g ga i v Hg Hi H28 S. split.
-    - refine (ObjFld.fld_pc_t lp bm Hbm_sym bc oc0 SafeB Hbc_sym pool k Hpool 356 368 _ g ga Mfloat32 _ _ Hg _ I S
+    - refine (ObjFld.fld_pc_t lp bm Hbm_sym bc oc0 SafeB Hbc_sym pool k Hpool 356 368 _ ltac:(right; lia) g ga Mfloat32 _ _ Hg _ I S
                 (kt_home g ga Mfloat32 _ _ S ltac:(lia) ltac:(cbn [size_chunk]; lia) H28)).
       + split; [ lia | split; [ lia | ] ]. intros off e _ _ Hu. unfold FieldWin.ucl in Hu. lia.
       + cbn [size_chunk]. lia.
