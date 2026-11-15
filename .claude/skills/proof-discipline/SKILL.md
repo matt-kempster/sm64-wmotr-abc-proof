@@ -1102,8 +1102,7 @@ all in `Unwired/`, and the theorem moved nowhere. See
        kinds -- per-slot field pin by offset class (box byte / pos by action,
        hidden-star oAction, lid oHome), cross-slot count (red coins + counter),
        guard on a global / Mario's phase (coin #2, cannon-unlocked bit).
-       box_pos_ok cannot simply be dropped: CannonKeep.lid_not_box is its one
-       reader and oBehavior is not tied to the script (cur_obj_set_behavior).
+       (box_pos_ok: dropped 2026-11-14, see below.)
        SLOT TABLE 2026-11-13 (window STILL OPEN, no row discharged, no premise):
        pin_at's 5th conjunct ObjWorld.tab_at = forallb over slot_tab (script,
        cells, bool check), keyed by `runs` (cmd block).  Boot: ow_chk runs it.
@@ -1120,6 +1119,15 @@ all in `Unwired/`, and the theorem moved nowhere. See
        - Still FOUND, flat rows cannot express: lid oHome, box pos by action,
          box byte (pin moves at a script word).  NEXT: move can_traj into the
          table as an offset-class row; generalize ObjAnchor's re-anchor once.
+       2026-11-14 box_pos_ok DROPPED from coll_ok (RESTATED; window STILL OPEN):
+       the clause was false in the real game (a hit box moves in act 3; act 2
+       resets only oPosY).  Its one reader (lid ghost "not a box") only fed
+       ObjVmSwap's re-proof of box_pos_ok itself, so nothing else changed.
+       Box acts 2 / 3 are no longer FOUND cases.  obj_w pins no box position.
+       Still FOUND: box byte (field 47 is a script window; SET_INT writes it in
+       other scripts), lid oHome + cannon-unlocked bit, red coin 7 -> 8,
+       hidden-star init (the two red-coin cases need a guard on Mario, i.e.
+       GOAL 2's own height conclusion: a joint induction, not a local pin).
        Probe tools: playground/Sweep2.v, Sweep3.v, decode_ident.py, native_scan.py.
        TRAP: `tauto` in a section with a Qfam hypothesis hangs (ObjInv / ObjVmSwap);
        prove `In CANS [POLES; CANS]` by `right; left; reflexivity`.

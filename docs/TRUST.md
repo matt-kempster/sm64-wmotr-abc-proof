@@ -1073,6 +1073,14 @@ without pressing A".*
     action, box byte (each moves at a script word: needs an offset-class row
     and a re-anchor, as the cannon trajectory has), the cross-slot count,
     the cannon-unlocked bit.
+  **BOX POSITION 2026-11-14 (RESTATED, no new premise, window still OPEN).**
+  `coll_ok` no longer says a box sits at a level-data box position
+  (`box_pos_ok` removed). The clause was false in the real game: a hit box
+  moves (act 3) and act 2 resets only oPosY. Its only reader was the lid
+  ghost's "not a box" step, which only served to re-prove the clause. The
+  objects rows now claim less; box acts 2 / 3 are no longer false cases.
+  `obj_w` pins no box position. Still FOUND: box byte, lid oHome and the
+  cannon-unlocked bit, red coin 7 -> 8, hidden-star init.
 - **Objects (2026-10-26): one real call.** `HeightFrame.play_frame_step` is now poll ; PRE ;
   `seg_objects_spec` ; POST ; render walk, and `seg_objects_spec` is `ObjPhase.objects_call`:
   the generated `area_update_objects` as one `eval_funcall`. The old `seg_platform` / action /

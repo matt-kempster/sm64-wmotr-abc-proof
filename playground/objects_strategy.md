@@ -115,3 +115,39 @@ Rejected: a new ow_core field (breaks every constructor); narrowing `live_bhvs` 
 (removes no FOUND case: the box's cut contents are already dead sites, the rest are
 field pins); keying by oBehavior (the loop site would stay false at a slot that runs
 the script under another behavior).
+
+## 2026-11-14 (fourth round): choices, written before executing
+
+Kept from the interrupted third round (7839647b WIP): the boolean slot table inside
+`pin_at` and its first flat row (hidden star: oAction = 0, counter < 8). It is small,
+its boot check is the clause itself, and it is the right carrier for per-slot pins.
+
+**Changed / added, and why:**
+
+1. **box_pos_ok is DROPPED from coll_ok, not strengthened by action.** The clause is
+   false in the real game: a hit box (act 3) moves by oVelY and oForwardVel, and act 2
+   resets only oPosY. A by-action pin is not inductive either (oForwardVel is an
+   unpinned window field, so x/z in act 3 is unbounded). Its only reader is
+   CannonKeep's "the lid ghost is not a box", which exists only to feed ObjVmSwap's
+   Hy0, which needs it only to re-prove box_pos_ok. So the clause supports nothing
+   but itself. Removing it RESTATES the row (INV says less, the two FOUND cases go
+   away) at ~5 edit sites. The third round rejected this on the grounds that the lid
+   keep needs it; that need is circular.
+2. **Window-cell rows (box byte, field 47).** A table row may read a FieldWin window
+   cell only if the window is taken out of the script-writable set for obj_w. Plan:
+   remove (324,328) from `ucl_h`, carry a table-keep hypothesis next to `KT`, and
+   one generic "store into slot k off every row's cells or at a slot not running the
+   row's script" lemma (the shape of kt_off). Census: no script word writes field 47.
+   Row: BOXS -> byte in BoxCensus.box_ids. Second milestone; stop if the keepers'
+   churn exceeds ~400 lines.
+3. **Lid oHome**: needs an offset-class row + a SET_HOME re-anchor (ObjAnchor shape).
+   Third, only if 2 lands cheaply; otherwise logged open with its exact cost.
+4. **Red coins (7 -> 8; star init with no coin)**: NOT attempted per-slot. Both are
+   true only through Mario (a coin is collected only by contact). They need row kind
+   (c), a guard on Mario's phase/height, which is GOAL 2's own conclusion: closing
+   them is a joint induction with the height capstone, not an objects-local repair.
+   Reported as needing a decision.
+5. **Undecided sites** are decided by census where a computation can (reference
+   closure, written cells), after milestone 1.
+
+Order: green first (1 + the WIP row) -> 2 -> undecided sites -> 3.

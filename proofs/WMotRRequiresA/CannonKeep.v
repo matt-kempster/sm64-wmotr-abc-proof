@@ -108,13 +108,6 @@ Section LID.
     rewrite E, veqb_refl in A. discriminate A.
   Qed.
 
-  Lemma lid_not_box : forall x y z, In (x, y, z) OW.box_xyz -> f32z lid <> f32z y.
-  Proof.
-    intros x y z Hin E. destruct lid_parts as (_ & _ & H & _).
-    pose proof (proj1 (forallb_forall _ _) H _ Hin) as A. cbn [fst snd] in A.
-    rewrite E, veqb_refl in A. discriminate A.
-  Qed.
-
   Lemma lid_xz : forall x z y, In (x, z, y) wmotr_cannon_xzy -> f32z (y - CANNON_SEAT) = f32z lid ->
     In (x, z, y - 340) wmotr_cannon_xzy /\ f32z (y - 340 - CANNON_SEAT) = f32z (lid - 340).
   Proof.
@@ -557,19 +550,12 @@ Section CK.
     (* the VM's script: CANS, not POLES *)
     assert (RP : OW.runs G pool g k0 OW.POLES = false).
     { rewrite (ObjVmSwap.runs_vm_at G pool g k0 st OW.POLES V0), Ecs. vm_compute. reflexivity. }
-    (* no box: a box sits at a box's y, a lid's y is none *)
-    assert (NBx : OW.is_bhv_b G pool g macro_special_objects._bhvExclamationBox k0 = false).
-    { destruct (OW.is_bhv_b G pool g macro_special_objects._bhvExclamationBox k0) eqn:Eb; [ exfalso | reflexivity ].
-      destruct (OW.ow_coll _ _ _ _ _ _ _ _ _ _ _ _ C) as (_ & _ & C3).
-      destruct (C3 k0 Hkr Eb) as (x & y & z & Hin & _ & L & _). rewrite Ly in L. injection L as E.
-      exact (lid_not_box lid Hlid x y z Hin (f_equal Vsingle E)). }
     assert (Hy0 : (forall ch, Mem.load ch m1 pool (k0 * OW.OSZ + O_POSY) = Mem.load ch g pool (k0 * OW.OSZ + O_POSY))
       \/ (OW.kind_ok pool m1 k0 /\ OW.runs G pool g k0 OW.POLES = false
-          /\ OW.is_bhv_b G pool g macro_special_objects._bhvExclamationBox k0 = false
           /\ (forall t, Mem.load Mint32 g pool (k0 * OW.OSZ + O_INTERACT_TYPE) = Some (Vint t) ->
                 OW.runs G pool g k0 OW.CANS = true -> Int.unsigned t <> INTERACT_CANNON_BASE ->
                 cannon_xz_ok m1 pool (k0 * OW.OSZ)))).
-    { right. split; [ exact (kind1 Kk) | split; [ exact RP | split; [ exact NBx | ] ] ].
+    { right. split; [ exact (kind1 Kk) | split; [ exact RP | ] ].
       intros t Lt Hc Ht. destruct (T0 t Lt) as (_ & _ & T3). exact (xz1 (T3 Hc Ht)). }
     assert (Kv : forall ch k off, (96 <= off \/ (4 <= off /\ off + size_chunk ch <= 16)) ->
               off + size_chunk ch <= OW.OSZ -> (off + size_chunk ch <= 532 \/ 536 <= off) ->

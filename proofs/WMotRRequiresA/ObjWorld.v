@@ -613,17 +613,13 @@ Definition is_bhv_b (ge : genv) (pool : block) (m : mem) (id : ident) (k : Z) : 
   | _, _ => false
   end.
 
-Definition box_pos_ok (pool : block) (m : mem) (k : Z) : Prop :=
-  exists x y z, In (x, y, z) box_xyz
-    /\ Mem.load Mfloat32 m pool (k * OSZ + O_POSX) = Some (f32z x)
-    /\ Mem.load Mfloat32 m pool (k * OSZ + O_POSY) = Some (f32z y)
-    /\ Mem.load Mfloat32 m pool (k * OSZ + O_POSZ) = Some (f32z z).
-
+(* No box POSITION pin (2026-11-14): a hit box moves (bhv_exclamation_box_loop
+   act 3: oVelY, oForwardVel) and act 2 resets only oPosY, so "a box sits at
+   a level-data box position" is false in the real game.  The clause's only
+   reader was the lid ghost's "not a box", needed only to re-prove it. *)
 Definition coll_ok (ge : genv) (pool : block) (m : mem) (rs : list (list Z)) : Prop :=
   Z.of_nat (List.length (filter (is_bhv_b ge pool m macro_special_objects._bhvExclamationBox) (concat rs))) <= N_BOX
-  /\ Z.of_nat (List.length (filter (is_bhv_b ge pool m macro_special_objects._bhvCannonClosed) (concat rs))) <= N_LID
-  /\ forall k, In k (concat rs) -> is_bhv_b ge pool m macro_special_objects._bhvExclamationBox k = true ->
-       box_pos_ok pool m k.
+  /\ Z.of_nat (List.length (filter (is_bhv_b ge pool m macro_special_objects._bhvCannonClosed) (concat rs))) <= N_LID.
 
 (* THE FRAME-BOUNDARY COUNTER FACT (not in ow_core: see 3b).  In a frame
    without time stop, clear_dynamic_surfaces resets both counters to the
@@ -2225,32 +2221,14 @@ Proof.
   exact (surf_obj_at_b_sound _ _ _ _ (proj1 (forallb_forall _ _) H5 s Hs')).
 Qed.
 
-Definition box_pos_b (pool : block) (m : mem) (k : Z) : bool :=
-  existsb (fun '(x, y, z) => f32_at_b pool m (k * OSZ + O_POSX) (f32z x)
-                             && f32_at_b pool m (k * OSZ + O_POSY) (f32z y)
-                             && f32_at_b pool m (k * OSZ + O_POSZ) (f32z z)) box_xyz.
-
-Lemma box_pos_b_sound : forall pool m k, box_pos_b pool m k = true -> box_pos_ok pool m k.
-Proof.
-  intros pool m k H. apply existsb_exists in H as ([[x y] z] & Hin & H).
-  apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
-  exists x, y, z. split; [ exact Hin | ].
-  exact (conj (f32_at_b_sound _ _ _ _ H1) (conj (f32_at_b_sound _ _ _ _ H2) (f32_at_b_sound _ _ _ _ H3))).
-Qed.
-
 Definition coll_b (ge : genv) (pool : block) (m : mem) (rs : list (list Z)) : bool :=
   (Z.of_nat (List.length (filter (is_bhv_b ge pool m macro_special_objects._bhvExclamationBox) (concat rs))) <=? N_BOX)
-  && (Z.of_nat (List.length (filter (is_bhv_b ge pool m macro_special_objects._bhvCannonClosed) (concat rs))) <=? N_LID)
-  && forallb (fun k => negb (is_bhv_b ge pool m macro_special_objects._bhvExclamationBox k) || box_pos_b pool m k)
-       (concat rs).
+  && (Z.of_nat (List.length (filter (is_bhv_b ge pool m macro_special_objects._bhvCannonClosed) (concat rs))) <=? N_LID).
 
 Lemma coll_b_sound : forall ge pool m rs, coll_b ge pool m rs = true -> coll_ok ge pool m rs.
 Proof.
-  intros ge pool m rs H. apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
-  apply Z.leb_le in H1. apply Z.leb_le in H2.
-  split; [ exact H1 | split; [ exact H2 | ] ]. intros k Hk Hb.
-  pose proof (proj1 (forallb_forall _ _) H3 k Hk) as E. cbv beta in E. rewrite Hb in E.
-  exact (box_pos_b_sound _ _ _ E).
+  intros ge pool m rs H. apply andb_prop in H as [H1 H2].
+  apply Z.leb_le in H1. apply Z.leb_le in H2. exact (conj H1 H2).
 Qed.
 
 Definition ctr_b (ge : genv) (m : mem) : bool :=

@@ -326,7 +326,7 @@ Proof.
         first [ solve [ unfold PollKeep.ow_ids; cbn [In]; repeat (first [ left; reflexivity | right ]) ]
               | vm_compute; reflexivity ].
     + intros P HP _ _ ch z _. exact (KN P HP ch z).
-  - destruct Cco as (C1 & C2 & C3).
+  - destruct Cco as (C1 & C2).
     assert (Sub : forall id, (List.length (filter (OW.is_bhv_b ge pool m' id) (concat rs'))
                               <= List.length (filter (OW.is_bhv_b ge pool m id) (concat rs)))%nat).
     { intros id. unfold rs'. rewrite (concat_new rs l1 l2 i Hlen'), (concat_old rs l1 l2 i k Hlen' El).
@@ -340,11 +340,7 @@ Proof.
       rewrite !filter_app, !app_length. cbn [filter].
       destruct (OW.is_bhv_b ge pool m id k); cbn [List.length]; lia. }
     split; [ pose proof (Sub macro_special_objects._bhvExclamationBox); lia | ].
-    split; [ pose proof (Sub macro_special_objects._bhvCannonClosed); lia | ].
-    intros j Hj Hb. rewrite (is_bhv_b_u ge pool k m m' Ku j (Nn j Hj)) in Hb.
-    destruct (C3 j (Inw j Hj) Hb) as (x & y & z & Hin & L1 & L2 & L3).
-    unfold OW.box_pos_ok. exists x, y, z. rewrite !(SK pool k m m' Ku j (Nn j Hj)) by ks.
-    exact (conj Hin (conj L1 (conj L2 L3))).
+    pose proof (Sub macro_special_objects._bhvCannonClosed); lia.
   - destruct Cctr as (a & Ga & Ra). exists a. split; [ | exact Ra ].
     apply (PollKeep.gcell_K m m'); [ | exact Ga ].
     apply (KG surface_load._gSurfacesAllocated); [ unfold PollKeep.ow_ids; cbn [In]; auto 30 | vm_compute; reflexivity ].

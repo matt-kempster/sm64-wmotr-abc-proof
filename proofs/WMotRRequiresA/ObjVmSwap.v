@@ -117,10 +117,9 @@ Section VS.
   Hypothesis HQ : OF.Qfam (v_s st0) st'.
 
   (* slot k0's oPosY: kept (the exit), or (CannonKeep) moved with k0's
-     kind re-made: not a pole, not a box, its cannon pins at m' *)
+     kind re-made: not a pole, its cannon pins at m' *)
   Hypothesis Hy0 : (forall ch, Mem.load ch m' pool (k0 * OW.OSZ + O_POSY) = Mem.load ch m pool (k0 * OW.OSZ + O_POSY))
     \/ (OW.kind_ok pool m' k0 /\ OW.runs ge pool m k0 OW.POLES = false
-        /\ OW.is_bhv_b ge pool m macro_special_objects._bhvExclamationBox k0 = false
         /\ (forall t, Mem.load Mint32 m pool (k0 * OW.OSZ + O_INTERACT_TYPE) = Some (Vint t) ->
               OW.runs ge pool m k0 OW.CANS = true -> Int.unsigned t <> INTERACT_CANNON_BASE ->
               cannon_xz_ok m' pool (k0 * OW.OSZ))).
@@ -498,17 +497,10 @@ Section VS.
       split; [ | split; [ | split; [ | split ] ] ];
         (apply Kc; [ iow | vm_compute; reflexivity | assumption ]).
     - exact (proj1 (KS pool Hpool) Cso).
-    - destruct Cco as (C1 & C2 & C3).
+    - destruct Cco as (C1 & C2).
       assert (Ef : forall id, filter (OW.is_bhv_b ge pool m' id) (concat rs) = filter (OW.is_bhv_b ge pool m id) (concat rs))
         by (intros id; apply filter_ext; intros k; exact (is_bhv_b_v id k)).
-      split; [ rewrite Ef; exact C1 | split; [ rewrite Ef; exact C2 | ] ].
-      intros k Hk Hb. rewrite (is_bhv_b_v _ k) in Hb.
-      destruct (C3 k Hk Hb) as (x & y & z & Hin & L1 & L2 & L3).
-      unfold OW.box_pos_ok. exists x, y, z.
-      destruct (Z.eq_dec k k0) as [-> | Ne].
-      + destruct Hy0 as [E | (_ & _ & Nb & _)]; [ | rewrite Nb in Hb; discriminate Hb ].
-        rewrite (E Mfloat32). rewrite !Kv by sv. exact (conj Hin (conj L1 (conj L2 L3))).
-      + rewrite !Kv by sv. exact (conj Hin (conj L1 (conj L2 L3))).
+      split; [ rewrite Ef; exact C1 | rewrite Ef; exact C2 ].
     - exact (KC Cctr).
     - destruct Cter as (T1 & T2 & T3 & T4 & T5 & T6).
       assert (Kme : forall id l, In id PK.ow_ids -> existsb (Pos.eqb id) PK.ow_xc = false ->
@@ -605,7 +597,7 @@ Section VS.
       { intros id Hid. destruct (Z.eq_dec k k0) as [-> | Ne]; [ exact (runs_k0' id Hid) | exact (runs_ne k Ne id) ]. }
       destruct (Z.eq_dec k k0) as [-> | Ne].
       + (* k0 *)
-        destruct Hy0 as [E | (_ & Np & _ & Hx)].
+        destruct Hy0 as [E | (_ & Np & Hx)].
         * apply (OW.pin_at_eq ge pool m m' k0 R); [ | | exact (fun _ => HCt (proj1 (proj2 (proj2 (proj2 (Cpin k0 Hk)))))) | exact (tab_v k0) | exact (Cpin k0 Hk) ].
           -- intros ch off Hoff Hch.
              assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).

@@ -631,13 +631,10 @@ Section OWK.
       split; [ | split; [ | split; [ | split ] ] ];
         (apply Kc; [ unfold ow_ids; cbn [In]; auto 20 | vm_compute; reflexivity | assumption ]).
     - exact (proj1 (KS pool S1) Cso).
-    - destruct Cco as (C1 & C2 & C3).
+    - destruct Cco as (C1 & C2).
       assert (Ef : forall id, filter (OW.is_bhv_b ge pool m' id) (concat rs) = filter (OW.is_bhv_b ge pool m id) (concat rs))
         by (intros id; apply filter_ext; intros k; exact (is_bhv_b_eq ge pool id k Kp)).
-      split; [ rewrite Ef; exact C1 | split; [ rewrite Ef; exact C2 | ] ].
-      intros k Hk Hb. rewrite (is_bhv_b_eq ge pool _ k Kp) in Hb.
-      destruct (C3 k Hk Hb) as (x & y & z & Hin & L1 & L2 & L3).
-      unfold OW.box_pos_ok. exists x, y, z. rewrite !Kp by sk_side. exact (conj Hin (conj L1 (conj L2 L3))).
+      split; [ rewrite Ef; exact C1 | rewrite Ef; exact C2 ].
     - exact (KC Cctr).
     - destruct Cter as (T1 & T2 & T3 & T4 & T5 & T6).
       assert (Kme : forall id l, In id ow_ids -> existsb (Pos.eqb id) ow_xc = false ->
