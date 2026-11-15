@@ -157,6 +157,21 @@ S2 (`gCurrActNum := 1`) stays as the witness's act.
 
    Shrinking each means running the real code from the boot memory.
 4. `m->input`: the A bits are the ABC premise. The other bits are free (§3).
+   Still open after 2026-11-14: `input` is the only never-written Mario field
+   `StartCarry` does not cover. It sits in MWF's protected window [2,4), so it
+   needs its own store lemma (value with `& 0x882 = 0`), not `mwf_real_window`.
+
+**2026-11-14 (track 2).** `StartCarry` now covers every other field of §3
+(`unk00`, `particleFlags`, `terrainSoundAddend`, `intendedMag`, `intendedYaw`,
+`doubleJumpTimer`, `slideYaw`, `twirlYaw`, `ceilHeight`, `floorAngle`,
+`collidedObjInteractTypes`, `fadeWarpOpacity`, `gettingBlownGravity`), with any
+non-pointer value (floats included), and these globals of §4: `gSaveBuffer`,
+`gRandomSeed16`, `gAreaUpdateCounter`, `sSelectionFlags`, `gNeverEnteredCastle`,
+`gHudDisplay`, `gSaveFileModified`, `gMainMenuDataModified`,
+`gLastCompletedCourseNum`, `gLastCompletedStarNum`, `gSpecialTripleJump`.
+`gGlobalTimer` is not covered: it is one of MWF's globals (R8), so the generic
+store lemma rejects it. This is coverage of the start premise only; B5 / B6
+(cannon open, wing-cap switch) are still not run on the witness.
 
 ## 5. Parametrisation (chunk 2) and status
 

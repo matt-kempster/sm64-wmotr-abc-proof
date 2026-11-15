@@ -19,6 +19,11 @@ all in `Unwired/`, and the theorem moved nowhere. See
 
 ## Where the bottom line is (keep this current)
 
+- **Entry coverage (2026-11-14, track 2):** `StartCarry.goal2_start_carried` now covers every
+  Mario field the entry never writes except `m->input`, with any non-pointer value, and 14
+  carried globals. Coverage only (no row discharged). Open: `m->input` (MWF window [2,4), needs
+  its own store lemma), `gGlobalTimer`, castle residue vs R7, S7. `docs/wmotr-entry-census.md` §4d.
+
 - **GOAL 1 over the whole frame** (2026-10-26, skeleton): `NoAImpliesNoFly/NoAImpliesNoFlyFrame.v`,
   `noA_never_flying_frame_linked12`: the step is GOAL 2's real `frame_step`; open rows = GOAL 2's
   capstone rows (shared invariant: the level slices' mem_ok carries read PhiW). The header lists
