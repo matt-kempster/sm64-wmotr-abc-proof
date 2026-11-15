@@ -114,9 +114,23 @@ Qed.
    the level phase, LevelKeep), minus the cells the entry carries in from
    the castle (Mario's flags, the HUD counters, the dialog counter;
    StartCarry).  PhiW reads none of them. *)
+(* 2026-11-14: the rest of the fields the entry never writes (census §3):
+   unk00 [0,2), particleFlags [8,12), terrainSoundAddend [20,24),
+   intendedMag / intendedYaw [32,38), doubleJumpTimer 43, slideYaw /
+   twirlYaw [56,60), ceilHeight [108,112), floorAngle [116,118),
+   collidedObjInteractTypes [164,168), fadeWarpOpacity 181,
+   gettingBlownGravity (unkC4) [196,200).  PhiW reads none of them. *)
+Definition carried_rs2 : list (Z * Z) :=
+  [(0, 2); (8, 12); (20, 24); (32, 38); (43, 44); (56, 60); (108, 112); (116, 118);
+   (164, 168); (181, 182); (196, 200)].
+Definition apart_rs (rs : list (Z * Z)) (ch : memory_chunk) (z : Z) : bool :=
+  forallb (fun r => (z + size_chunk ch <=? fst r) || (snd r <=? z)) rs.
+Definition carried_apart2 (ch : memory_chunk) (z : Z) : Prop := apart_rs carried_rs2 ch z = true.
+
 Definition carried_apart (ch : memory_chunk) (z : Z) : Prop :=
   (z + size_chunk ch <= 4 \/ 8 <= z) /\ (z + size_chunk ch <= 168 \/ 178 <= z)
-  /\ (z + size_chunk ch <= 184 \/ 186 <= z).
+  /\ (z + size_chunk ch <= 184 \/ 186 <= z)
+  /\ carried_apart2 ch z.
 
 Definition bmk (ch : memory_chunk) (z : Z) : Prop :=
   bmw ch z /\ (z + size_chunk ch <= 168 \/ 170 <= z) /\ (z + size_chunk ch <= 173 \/ 174 <= z)
@@ -127,15 +141,17 @@ Definition bmkb (ch : memory_chunk) (z : Z) : bool :=
   && ((z + size_chunk ch <=? 173) || (174 <=? z))
   && ((z + size_chunk ch <=? 4) || (8 <=? z))
   && ((z + size_chunk ch <=? 168) || (178 <=? z))
-  && ((z + size_chunk ch <=? 184) || (186 <=? z)).
+  && ((z + size_chunk ch <=? 184) || (186 <=? z))
+  && apart_rs carried_rs2 ch z.
 
 Lemma bmkb_ok : forall ch z, bmkb ch z = true -> bmk ch z.
 Proof.
   intros ch z H. unfold bmkb in H.
+  apply andb_prop in H as [H H7].
   apply andb_prop in H as [H H6]. apply andb_prop in H as [H H5]. apply andb_prop in H as [H H4].
   apply andb_prop in H as [H H3]. apply andb_prop in H as [H1 H2].
   rewrite orb_true_iff, !Z.leb_le in H2, H3, H4, H5, H6.
-  unfold bmk, carried_apart. split; [ exact (bmwb_ok ch z H1) | tauto ].
+  unfold bmk, carried_apart, carried_apart2. split; [ exact (bmwb_ok ch z H1) | tauto ].
 Qed.
 
 Lemma bmk_bmw : forall ch z, bmk ch z -> bmw ch z.

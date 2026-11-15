@@ -17,6 +17,10 @@
 (* values, not only the boot image's (lives 4, health 0x880, act 1, an    *)
 (* empty save).                                                           *)
 (*                                                                        *)
+(* 2026-11-14: every Mario field the entry never writes except m->input  *)
+(* (census §3) is a carried cell, with any non-pointer value (the float  *)
+(* fields too), and eleven more globals of census §4 are carried.        *)
+(*                                                                        *)
 (* m->wall / m->ceil: the premise says nothing of them (2026-11-08).    *)
 (* Not covered here (census §4d, open): the castle's residue in free     *)
 (* object / pool slots, the anim buffer's block (S7), and m->input       *)
@@ -28,6 +32,7 @@ From Coq Require Import ZArith Lia List Bool.
 From compcert Require Import Coqlib Integers Floats Values AST Ctypes Cop Clight Clightdefs Memory Maps Globalenvs.
 From SM64.Generated Require level_update mario object_list_processor area platform_displacement
   sound_init game_init wmotr_script level_script.
+From SM64.Generated Require save_file behavior_script camera.
 From SM64.Proofs Require Import SymbolicLinking RealFrameLinked LinkedTwelve CensusV2 MWFReal
   SpawnInit ActionValueFrame NoAImpliesNoFlyLinked AGates.
 From SM64.Proofs Require NoAImpliesNoFlyTwelve ObjExtBodies.
@@ -48,44 +53,67 @@ Module OW := ObjWorld.
 (*      173       numLives      [174,176) health     [176,178) unkB0       *)
 (*      [184,186) prevNumStarsForDialog                                     *)
 (* ---------------------------------------------------------------------- *)
+(*    2026-11-14, the rest of census §3 (RenderKeep.carried_rs2):          *)
+(*      [0,2) unk00   [8,12) particleFlags   [20,24) terrainSoundAddend    *)
+(*      [32,36) intendedMag   [36,38) intendedYaw   43 doubleJumpTimer     *)
+(*      [56,58) slideYaw   [58,60) twirlYaw   [108,112) ceilHeight         *)
+(*      [116,118) floorAngle   [164,168) collidedObjInteractTypes          *)
+(*      181 fadeWarpOpacity   [196,200) gettingBlownGravity                *)
+Definition carried_rs : list (Z * Z) := [(4, 8); (168, 178); (184, 186)] ++ carried_rs2.
+
 Definition carried_cell (ch : memory_chunk) (z : Z) : bool :=
-  ((4 <=? z) && (z + size_chunk ch <=? 8))
-  || ((168 <=? z) && (z + size_chunk ch <=? 178))
-  || ((184 <=? z) && (z + size_chunk ch <=? 186)).
+  existsb (fun r => (fst r <=? z) && (z + size_chunk ch <=? snd r)) carried_rs.
 
 Lemma carried_cell_spec : forall ch z, carried_cell ch z = true ->
   (4 <= z /\ z + size_chunk ch <= 8) \/ (168 <= z /\ z + size_chunk ch <= 178)
-  \/ (184 <= z /\ z + size_chunk ch <= 186).
+  \/ (184 <= z /\ z + size_chunk ch <= 186)
+  \/ (0 <= z /\ z + size_chunk ch <= 2) \/ (8 <= z /\ z + size_chunk ch <= 12)
+  \/ (20 <= z /\ z + size_chunk ch <= 24) \/ (32 <= z /\ z + size_chunk ch <= 38)
+  \/ (43 <= z /\ z + size_chunk ch <= 44) \/ (56 <= z /\ z + size_chunk ch <= 60)
+  \/ (108 <= z /\ z + size_chunk ch <= 112) \/ (116 <= z /\ z + size_chunk ch <= 118)
+  \/ (164 <= z /\ z + size_chunk ch <= 168) \/ (181 <= z /\ z + size_chunk ch <= 182)
+  \/ (196 <= z /\ z + size_chunk ch <= 200).
 Proof.
-  intros ch z H. unfold carried_cell in H.
+  intros ch z H. unfold carried_cell, carried_rs, carried_rs2 in H. cbn [app existsb fst snd] in H.
   repeat rewrite orb_true_iff in H. repeat rewrite andb_true_iff in H.
-  rewrite !Z.leb_le in H. tauto.
+  rewrite !Z.leb_le in H.
+  assert (F : false = true -> False) by discriminate. tauto.
 Qed.
 
 Lemma field_offsets_pinned :
   map (fun f => match field_offset (prog_comp_env mario.prog) f mario_state_members with
                 | Errors.OK (d, _) => d | _ => -1 end)
       [mario._flags; mario._numCoins; mario._numStars; mario._numKeys; mario._numLives;
-       mario._health; mario._unkB0; mario._prevNumStarsForDialog]
-  = [4; 168; 170; 172; 173; 174; 176; 184].
+       mario._health; mario._unkB0; mario._prevNumStarsForDialog;
+       mario._unk00; mario._particleFlags; mario._terrainSoundAddend; mario._intendedMag;
+       mario._intendedYaw; mario._doubleJumpTimer; mario._slideYaw; mario._twirlYaw;
+       mario._ceilHeight; mario._floorAngle; mario._collidedObjInteractTypes;
+       mario._fadeWarpOpacity; mario._gettingBlownGravity]
+  = [4; 168; 170; 172; 173; 174; 176; 184;
+     0; 8; 20; 32; 36; 43; 56; 58; 108; 116; 164; 181; 196].
 Proof. vm_compute. reflexivity. Qed.
 
 (* a carried cell is apart from every cell the PhiW carry keeps *)
 Lemma carried_bmk : forall ch z ch' z', carried_cell ch z = true -> bmk ch' z' ->
   z' + size_chunk ch' <= z \/ z + size_chunk ch <= z'.
 Proof.
-  intros ch z ch' z' H (_ & _ & _ & W3). apply carried_cell_spec in H.
-  pose proof (size_chunk_pos ch'). unfold carried_apart in W3. lia.
+  intros ch z ch' z' H (_ & _ & _ & W1 & W2 & W3 & W4).
+  pose proof (size_chunk_pos ch'). pose proof (size_chunk_pos ch).
+  unfold carried_cell in H. apply existsb_exists in H as (r & Hin & Hr).
+  apply andb_prop in Hr as [Hlo Hhi]. apply Z.leb_le in Hlo. apply Z.leb_le in Hhi.
+  unfold carried_rs in Hin. apply in_app_or in Hin as [Hin | Hin].
+  - cbn [In] in Hin. destruct Hin as [<- | [<- | [<- | []]]]; cbn [fst snd] in Hlo, Hhi; lia.
+  - unfold carried_apart2, apart_rs in W4. rewrite forallb_forall in W4. specialize (W4 r Hin).
+    apply orb_true_iff in W4. rewrite !Z.leb_le in W4. lia.
 Qed.
 
 Lemma carried_window : forall ch z, carried_cell ch z = true -> store_window_ok z (size_chunk ch) = true.
 Proof.
   intros ch z H. apply carried_cell_spec in H. pose proof (size_chunk_pos ch) as Hs.
-  assert (Mx : 186 <= Ptrofs.max_unsigned) by (vm_compute; intro E; discriminate E).
+  assert (Mx : 200 <= Ptrofs.max_unsigned) by (vm_compute; intro E; discriminate E).
   unfold store_window_ok.
-  repeat match goal with |- context [?a <=? ?b] => destruct (Z.leb_spec a b) end;
-  repeat match goal with |- context [?a <? ?b] => destruct (Z.ltb_spec a b) end;
-  cbn; try reflexivity; lia.
+  repeat rewrite andb_true_iff. repeat rewrite orb_true_iff. rewrite !Z.leb_le, Z.ltb_lt.
+  lia.
 Qed.
 
 (* ---------------------------------------------------------------------- *)
@@ -166,10 +194,12 @@ Section CARRY.
   Proof. exact (Hsp lp H12 bm Hbm_sym bc oc0 Hbc_sym Hoc0). Qed.
 
   (* ---- 2. one int store into a carried cell of gMarioStates ---- *)
-  Theorem mstore_keep : forall ch z i m m2, carried_cell ch z = true ->
-    Mem.store ch m bm z (Vint i) = Some m2 -> start_premise m -> start_premise m2.
+  (* any non-pointer value: ints, and the float fields' singles *)
+  Theorem mstore_keep : forall ch z v m m2, carried_cell ch z = true ->
+    (forall b o, v <> Vptr b o) ->
+    Mem.store ch m bm z v = Some m2 -> start_premise m -> start_premise m2.
   Proof.
-    intros ch z i m m2 Hc St (Ok & Hphi & Hst & How).
+    intros ch z v m m2 Hc Hnp St (Ok & Hphi & Hst & How).
     pose proof (carried_cell_spec ch z Hc) as Hcz.
     assert (LO : forall ch' b z', b <> bm -> Mem.load ch' m2 b z' = Mem.load ch' m b z')
       by (intros ch' b z' Ne; apply (Mem.load_store_other _ _ _ _ _ _ St); left; exact Ne).
@@ -215,8 +245,8 @@ Section CARRY.
                 (forall id0 b, Genv.find_symbol G id0 = Some b -> gp0 b <> None) ->
                 exists gp', (forall b, gp0 b <> None -> gp' b <> None) /\ closed_by gp' m2).
       { intros gp0 HC0 _ HS0. exists gp0. split; [ intros b H; exact H | ].
-        exact (store_mapped_closed gp0 m ch bm z (Vint i) m2 HC0 (flat_bg gp0 m bm HC0 (HS0 _ _ Hbm_sym))
-                 (inj_nonptr gp0 _ (vint_np i)) St). }
+        exact (store_mapped_closed gp0 m ch bm z v m2 HC0 (flat_bg gp0 m bm HC0 (HS0 _ _ Hbm_sym))
+                 (inj_nonptr gp0 _ Hnp) St). }
       assert (FR : forall bt0 ot0 k0, In k0 hs_ids ->
                 Mem.load Mint32 m (fw_bo d) (Ptrofs.unsigned (fw_oo d) + 60) = Some (Vptr bt0 ot0) ->
                 Mem.load Mint32 m (fw_bo d) (Ptrofs.unsigned (fw_oo d) + 72) = Some (Vint Int.zero) ->
@@ -260,7 +290,15 @@ Section CARRY.
      clocks: read by the entry (B1-B6) or by later frames, never by the
      start premise *)
   Definition carried_gids : list ident :=
-    [level_update._gCurrActNum; level_update._gCurrSaveFileNum; level_update._gCurrCourseStarFlags].
+    [level_update._gCurrActNum; level_update._gCurrSaveFileNum; level_update._gCurrCourseStarFlags;
+     (* 2026-11-14, census §4: the save buffer (B2-B6: cap, cannon, wing-cap
+        switch, star flags), the RNG seed, the area clock, the camera mode
+        (R button), and the castle / menu flags *)
+     save_file._gSaveBuffer; behavior_script._gRandomSeed16; area._gAreaUpdateCounter;
+     camera._sSelectionFlags; level_update._gNeverEnteredCastle; level_update._gHudDisplay;
+     save_file._gSaveFileModified; save_file._gMainMenuDataModified;
+     save_file._gLastCompletedCourseNum; save_file._gLastCompletedStarNum;
+     save_file._gSpecialTripleJump].
 
   Lemma carried_gids_ok : forallb (fun id => gs_ok id
       && negb (existsb (Pos.eqb id) PollKeep.ow_ids)
@@ -313,8 +351,9 @@ End CARRY.
 (* 4. Any sequence of carried writes keeps the premise.                   *)
 (* ---------------------------------------------------------------------- *)
 Inductive carried_step (lp : Clight.program) (bm : block) : mem -> mem -> Prop :=
-  | cs_mario : forall ch z i m m2, carried_cell ch z = true ->
-      Mem.store ch m bm z (Vint i) = Some m2 -> carried_step lp bm m m2
+  | cs_mario : forall ch z v m m2, carried_cell ch z = true ->
+      (forall b o, v <> Vptr b o) ->
+      Mem.store ch m bm z v = Some m2 -> carried_step lp bm m m2
   | cs_glob : forall id bg ch z i m m2, In id carried_gids ->
       Genv.find_symbol (lp_ge lp) id = Some bg -> Mem.store ch m bg z (Vint i) = Some m2 ->
       carried_step lp bm m m2.
@@ -331,8 +370,8 @@ Theorem carried_keep : forall lp, linked12 lp -> forall bm bc SafeB,
       start_premise lp bm bc Ptrofs.zero SafeB m -> start_premise lp bm bc Ptrofs.zero SafeB m'.
 Proof.
   intros lp H12 bm bc SafeB Hbm Hbc Hsy m m' Hc. induction Hc as [m | m1 m2 m3 Hs _ IH]; [ tauto | ].
-  intros P. apply IH. destruct Hs as [ch z i m m2' Hcc St | id bg ch z i m m2' Hin Hg St].
-  - exact (mstore_keep lp H12 bm Hbm bc Ptrofs.zero SafeB Hsy Hbc eq_refl ch z i m m2' Hcc St P).
+  intros P. apply IH. destruct Hs as [ch z v m m2' Hcc Hnp St | id bg ch z i m m2' Hin Hg St].
+  - exact (mstore_keep lp H12 bm Hbm bc Ptrofs.zero SafeB Hsy Hbc eq_refl ch z v m m2' Hcc Hnp St P).
   - exact (gstore_carried lp H12 bm Hbm bc Ptrofs.zero SafeB Hbc eq_refl id bg ch z i m m2' Hin Hg St P).
 Qed.
 
