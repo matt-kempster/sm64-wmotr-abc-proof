@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "scope": "Pin the real hands-free HOLP control, accepted inputs and native render source.",
+  "files": [
+    {
+      "path": "instrumentation/ink-handsfree-holp-check/.gitattributes",
+      "bytes": 92,
+      "sha256": "efb293d17a716d72ffb572ff7b3d3b280dd9a7364e3ec84df30fe5265d7230ff"
+    },
+    {
+      "path": "instrumentation/ink-handsfree-holp-check/archive.py",
+      "bytes": 1265,
+      "sha256": "2992e4741a56903decbc6417317a7be1fe38f091dc4c456f0d932a4a2e06950c"
+    },
+    {
+      "path": "instrumentation/ink-handsfree-holp-check/check.py",
+      "bytes": 3674,
+      "sha256": "59b626fe367012059e697666b27b677b0d616067c1d16ae008e000dce5224a73"
+    },
+    {
+      "path": "instrumentation/ink-handsfree-holp-check/README.md",
+      "bytes": 4065,
+      "sha256": "7930f831007370912df93da32d20042cc8ac8534c88d8d6137f56978bcbe605a"
+    },
+    {
+      "path": "instrumentation/ink-handsfree-holp-check/results.json.gz",
+      "bytes": 3857,
+      "sha256": "0e68387b927ac562fc32bbcda94615c147ddcd33198fc0bead2bc09bfb8db939"
+    },
+    {
+      "path": "docs/notes/ink-clean-handsfree-receipt.json",
+      "bytes": 564627,
+      "sha256": "e18bdf61cc1bf5cacc7886a734ffb620691c7b0af703e497f46dbeb9a1404963"
+    },
+    {
+      "path": "instrumentation/wafel-jp-pilot/replay.py",
+      "bytes": 5471,
+      "sha256": "ea422b6478e40931c9d61aaa0e19c9d86a551a0219dbeaca85cd9a82e70df66d"
+    },
+    {
+      "path": "instrumentation/wafel-jp-pilot/ink_box_delivery.py",
+      "bytes": 13352,
+      "sha256": "c473407831ae794d647905a954bf563b8cdc9be1ebddc5afb1a28d3808c37634"
+    },
+    {
+      "path": "instrumentation/wafel-jp-pilot/ink_clean_handsfree.py",
+      "bytes": 9627,
+      "sha256": "5382fbd54214958b5547f5e77081bbe5a9c0c29b728720bf5521aea1c577b82f"
+    }
+  ],
+  "native": {
+    "path": "../../../reference-sm64-decomp/src/game/mario_misc.c",
+    "bytes": 26069,
+    "sha256": "2b2c5a95fa3da3a2b495fcc521b79dbcd67908e643c25d1fed93d4401f4ea9e1"
+  }
+}

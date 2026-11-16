@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "cases": 5,
+  "boundaries": 225,
+  "freshRoots": 2,
+  "capHOLPPreservations": 4,
+  "ordinaryHOLPOverwrite": 1,
+  "useful": 0,
+  "files": {
+    "cap-control.py": "ef2c694298745427b8146122023cfe9abc480a573215f3bc5cf07f313dec75f5",
+    "cap-results.json.gz": "0d8f252f99f91338f5ba30c920ae5486ac046cd14e186df533684ccb6bfe0828",
+    "CAP-CONTROL.md": "3d659822cfc7862569b2065b90e8306a9c19065b10dcbeb7d00bc4fcae3cd5e8",
+    "analyze-cap.py": "759418fafd895c88f3122ab7364d3e6d6fc1d957dccdaf7a23352258a3d0d63e",
+    "check.py": "006c1da462c2b1b8b1f9ba1a967c15a547086ba2f9eab51b69213c7da27f3ad8"
+  },
+  "sources": {
+    "src/game/mario.c": "832c5301d3eda065310db5e5e429f6448eeeebcf7226a7e0bf2ac132556b8b1d",
+    "src/game/mario_misc.c": "2b2c5a95fa3da3a2b495fcc521b79dbcd67908e643c25d1fed93d4401f4ea9e1",
+    "src/game/rendering_graph_node.c": "67afd7b4892e8dc1ed3d9fbf285fc29580f0d8ca8be30efbef80a6702c32a864",
+    "actors/mario/geo.inc.c": "833b771e7f33f444eed917839e330c4d14ebff3b33e5a64c22b4673bcdfa412b"
+  }
+}

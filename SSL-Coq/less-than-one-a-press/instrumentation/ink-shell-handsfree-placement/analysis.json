@@ -1,0 +1,1045 @@
+{
+  "schema": 1,
+  "scope": "Check hands-free HOLP observations, actual release kinds and finite limits.",
+  "counts": {
+    "cases": 48,
+    "distinctInitialAndControlHistories": 44,
+    "boundaries": 2016,
+    "freshRoots": 2,
+    "heldAfterFirstUpdate": 24,
+    "firstUpdateHOLPOverwrites": 24,
+    "releaseKinds": {
+      "drop": 45,
+      "throw": 2,
+      "stillHeld": 1
+    },
+    "useful": 0,
+    "capture": 0,
+    "ordinary": 8
+  },
+  "initialActionCases": [
+    {
+      "recipe": {
+        "phase": 128,
+        "y": 1810,
+        "action": "ACT_FREEFALL",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_BUTT_SLIDE",
+      "firstHeld": -1,
+      "firstRelease": 128
+    },
+    {
+      "recipe": {
+        "phase": 128,
+        "y": 1810,
+        "action": "ACT_FREEFALL",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_BUTT_SLIDE",
+      "firstHeld": -1,
+      "firstRelease": 128
+    },
+    {
+      "recipe": {
+        "phase": 128,
+        "y": 1810,
+        "action": "ACT_DIVE",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_BUTT_SLIDE",
+      "firstHeld": -1,
+      "firstRelease": 128
+    },
+    {
+      "recipe": {
+        "phase": 128,
+        "y": 1810,
+        "action": "ACT_DIVE",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_BUTT_SLIDE",
+      "firstHeld": -1,
+      "firstRelease": 128
+    },
+    {
+      "recipe": {
+        "phase": 128,
+        "y": 1810,
+        "action": "ACT_BUTT_SLIDE_AIR",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_BUTT_SLIDE",
+      "firstHeld": -1,
+      "firstRelease": 128
+    },
+    {
+      "recipe": {
+        "phase": 128,
+        "y": 1810,
+        "action": "ACT_BUTT_SLIDE_AIR",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_BUTT_SLIDE",
+      "firstHeld": -1,
+      "firstRelease": 128
+    },
+    {
+      "recipe": {
+        "phase": 128,
+        "y": 1810,
+        "action": "ACT_HOLD_FREEFALL",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_BUTT_SLIDE",
+      "firstHeld": -1,
+      "firstRelease": 128
+    },
+    {
+      "recipe": {
+        "phase": 128,
+        "y": 1810,
+        "action": "ACT_HOLD_FREEFALL",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_BUTT_SLIDE",
+      "firstHeld": -1,
+      "firstRelease": 128
+    },
+    {
+      "recipe": {
+        "phase": 127,
+        "y": 1830,
+        "action": "ACT_FREEFALL",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_RIDING_SHELL_GROUND",
+      "firstHeld": -1,
+      "firstRelease": 127
+    },
+    {
+      "recipe": {
+        "phase": 127,
+        "y": 1830,
+        "action": "ACT_FREEFALL",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_RIDING_SHELL_GROUND",
+      "firstHeld": -1,
+      "firstRelease": 127
+    },
+    {
+      "recipe": {
+        "phase": 127,
+        "y": 1830,
+        "action": "ACT_DIVE",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_RIDING_SHELL_GROUND",
+      "firstHeld": -1,
+      "firstRelease": 127
+    },
+    {
+      "recipe": {
+        "phase": 127,
+        "y": 1830,
+        "action": "ACT_DIVE",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_RIDING_SHELL_GROUND",
+      "firstHeld": -1,
+      "firstRelease": 127
+    },
+    {
+      "recipe": {
+        "phase": 127,
+        "y": 1830,
+        "action": "ACT_BUTT_SLIDE_AIR",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_RIDING_SHELL_GROUND",
+      "firstHeld": -1,
+      "firstRelease": 127
+    },
+    {
+      "recipe": {
+        "phase": 127,
+        "y": 1830,
+        "action": "ACT_BUTT_SLIDE_AIR",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_RIDING_SHELL_GROUND",
+      "firstHeld": -1,
+      "firstRelease": 127
+    },
+    {
+      "recipe": {
+        "phase": 127,
+        "y": 1830,
+        "action": "ACT_HOLD_FREEFALL",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_RIDING_SHELL_GROUND",
+      "firstHeld": -1,
+      "firstRelease": 127
+    },
+    {
+      "recipe": {
+        "phase": 127,
+        "y": 1830,
+        "action": "ACT_HOLD_FREEFALL",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_RIDING_SHELL_GROUND",
+      "firstHeld": -1,
+      "firstRelease": 127
+    },
+    {
+      "recipe": {
+        "phase": 126,
+        "y": 1850,
+        "action": "ACT_FREEFALL",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_RIDING_SHELL_GROUND",
+      "firstHeld": -1,
+      "firstRelease": 126
+    },
+    {
+      "recipe": {
+        "phase": 126,
+        "y": 1850,
+        "action": "ACT_FREEFALL",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_RIDING_SHELL_GROUND",
+      "firstHeld": -1,
+      "firstRelease": 126
+    },
+    {
+      "recipe": {
+        "phase": 126,
+        "y": 1850,
+        "action": "ACT_DIVE",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_RIDING_SHELL_GROUND",
+      "firstHeld": -1,
+      "firstRelease": 126
+    },
+    {
+      "recipe": {
+        "phase": 126,
+        "y": 1850,
+        "action": "ACT_DIVE",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_RIDING_SHELL_GROUND",
+      "firstHeld": -1,
+      "firstRelease": 126
+    },
+    {
+      "recipe": {
+        "phase": 126,
+        "y": 1850,
+        "action": "ACT_BUTT_SLIDE_AIR",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_RIDING_SHELL_GROUND",
+      "firstHeld": -1,
+      "firstRelease": 126
+    },
+    {
+      "recipe": {
+        "phase": 126,
+        "y": 1850,
+        "action": "ACT_BUTT_SLIDE_AIR",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_RIDING_SHELL_GROUND",
+      "firstHeld": -1,
+      "firstRelease": 126
+    },
+    {
+      "recipe": {
+        "phase": 126,
+        "y": 1850,
+        "action": "ACT_HOLD_FREEFALL",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_RIDING_SHELL_GROUND",
+      "firstHeld": -1,
+      "firstRelease": 126
+    },
+    {
+      "recipe": {
+        "phase": 126,
+        "y": 1850,
+        "action": "ACT_HOLD_FREEFALL",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstAction": "ACT_RIDING_SHELL_GROUND",
+      "firstHeld": -1,
+      "firstRelease": 126
+    },
+    {
+      "recipe": {
+        "phase": 124,
+        "y": 1890,
+        "action": "ACT_FREEFALL",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1995.11962890625,
+        1963.7677001953125,
+        -1208.8822021484375
+      ],
+      "firstAction": "ACT_FREEFALL",
+      "firstHeld": 49,
+      "firstRelease": 127
+    },
+    {
+      "recipe": {
+        "phase": 124,
+        "y": 1890,
+        "action": "ACT_FREEFALL",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1992.3798828125,
+        1948.744140625,
+        -1168.9483642578125
+      ],
+      "firstAction": "ACT_DIVE",
+      "firstHeld": 49,
+      "firstRelease": 127
+    },
+    {
+      "recipe": {
+        "phase": 124,
+        "y": 1890,
+        "action": "ACT_DIVE",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1992.3798828125,
+        1948.743896484375,
+        -1176.5985107421875
+      ],
+      "firstAction": "ACT_DIVE",
+      "firstHeld": 49,
+      "firstRelease": 127
+    },
+    {
+      "recipe": {
+        "phase": 124,
+        "y": 1890,
+        "action": "ACT_DIVE",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1992.3798828125,
+        1948.743896484375,
+        -1176.5985107421875
+      ],
+      "firstAction": "ACT_DIVE",
+      "firstHeld": 49,
+      "firstRelease": 127
+    },
+    {
+      "recipe": {
+        "phase": 124,
+        "y": 1890,
+        "action": "ACT_BUTT_SLIDE_AIR",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1996.3173828125,
+        1913.48583984375,
+        -1244.6439208984375
+      ],
+      "firstAction": "ACT_BUTT_SLIDE_AIR",
+      "firstHeld": 49,
+      "firstRelease": 127
+    },
+    {
+      "recipe": {
+        "phase": 124,
+        "y": 1890,
+        "action": "ACT_BUTT_SLIDE_AIR",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1996.3173828125,
+        1913.48583984375,
+        -1244.6439208984375
+      ],
+      "firstAction": "ACT_BUTT_SLIDE_AIR",
+      "firstHeld": 49,
+      "firstRelease": 127
+    },
+    {
+      "recipe": {
+        "phase": 124,
+        "y": 1890,
+        "action": "ACT_HOLD_FREEFALL",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1981.0205078125,
+        1941.016845703125,
+        -1203.3087158203125
+      ],
+      "firstAction": "ACT_HOLD_FREEFALL",
+      "firstHeld": 49,
+      "firstRelease": 127
+    },
+    {
+      "recipe": {
+        "phase": 124,
+        "y": 1890,
+        "action": "ACT_HOLD_FREEFALL",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1910.35888671875,
+        1939.927734375,
+        -1291.3770751953125
+      ],
+      "firstAction": "ACT_AIR_THROW",
+      "firstHeld": 49,
+      "firstRelease": 127
+    },
+    {
+      "recipe": {
+        "phase": 120,
+        "y": 1930,
+        "action": "ACT_FREEFALL",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1995.11962890625,
+        2003.767578125,
+        -1208.882080078125
+      ],
+      "firstAction": "ACT_FREEFALL",
+      "firstHeld": 49,
+      "firstRelease": 124
+    },
+    {
+      "recipe": {
+        "phase": 120,
+        "y": 1930,
+        "action": "ACT_FREEFALL",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1992.37890625,
+        1988.743896484375,
+        -1168.9482421875
+      ],
+      "firstAction": "ACT_DIVE",
+      "firstHeld": 49,
+      "firstRelease": 124
+    },
+    {
+      "recipe": {
+        "phase": 120,
+        "y": 1930,
+        "action": "ACT_DIVE",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1992.38037109375,
+        1988.7440185546875,
+        -1176.5987548828125
+      ],
+      "firstAction": "ACT_DIVE",
+      "firstHeld": 49,
+      "firstRelease": 124
+    },
+    {
+      "recipe": {
+        "phase": 120,
+        "y": 1930,
+        "action": "ACT_DIVE",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1992.38037109375,
+        1988.7440185546875,
+        -1176.5987548828125
+      ],
+      "firstAction": "ACT_DIVE",
+      "firstHeld": 49,
+      "firstRelease": 124
+    },
+    {
+      "recipe": {
+        "phase": 120,
+        "y": 1930,
+        "action": "ACT_BUTT_SLIDE_AIR",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1996.3173828125,
+        1953.48583984375,
+        -1244.643798828125
+      ],
+      "firstAction": "ACT_BUTT_SLIDE_AIR",
+      "firstHeld": 49,
+      "firstRelease": 124
+    },
+    {
+      "recipe": {
+        "phase": 120,
+        "y": 1930,
+        "action": "ACT_BUTT_SLIDE_AIR",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1996.3173828125,
+        1953.48583984375,
+        -1244.643798828125
+      ],
+      "firstAction": "ACT_BUTT_SLIDE_AIR",
+      "firstHeld": 49,
+      "firstRelease": 124
+    },
+    {
+      "recipe": {
+        "phase": 120,
+        "y": 1930,
+        "action": "ACT_HOLD_FREEFALL",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1981.0205078125,
+        1981.016845703125,
+        -1203.308837890625
+      ],
+      "firstAction": "ACT_HOLD_FREEFALL",
+      "firstHeld": 49,
+      "firstRelease": 124
+    },
+    {
+      "recipe": {
+        "phase": 120,
+        "y": 1930,
+        "action": "ACT_HOLD_FREEFALL",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1910.35888671875,
+        1979.927490234375,
+        -1291.376953125
+      ],
+      "firstAction": "ACT_AIR_THROW",
+      "firstHeld": 49,
+      "firstRelease": 123
+    },
+    {
+      "recipe": {
+        "phase": 124,
+        "y": 1970,
+        "action": "ACT_FREEFALL",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1995.11962890625,
+        2043.767822265625,
+        -1208.882080078125
+      ],
+      "firstAction": "ACT_FREEFALL",
+      "firstHeld": 49,
+      "firstRelease": null
+    },
+    {
+      "recipe": {
+        "phase": 124,
+        "y": 1970,
+        "action": "ACT_FREEFALL",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1992.38037109375,
+        2028.744384765625,
+        -1168.9483642578125
+      ],
+      "firstAction": "ACT_DIVE",
+      "firstHeld": 49,
+      "firstRelease": 129
+    },
+    {
+      "recipe": {
+        "phase": 124,
+        "y": 1970,
+        "action": "ACT_DIVE",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1992.38037109375,
+        2028.74365234375,
+        -1176.59814453125
+      ],
+      "firstAction": "ACT_DIVE",
+      "firstHeld": 49,
+      "firstRelease": 129
+    },
+    {
+      "recipe": {
+        "phase": 124,
+        "y": 1970,
+        "action": "ACT_DIVE",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1992.38037109375,
+        2028.74365234375,
+        -1176.59814453125
+      ],
+      "firstAction": "ACT_DIVE",
+      "firstHeld": 49,
+      "firstRelease": 129
+    },
+    {
+      "recipe": {
+        "phase": 124,
+        "y": 1970,
+        "action": "ACT_BUTT_SLIDE_AIR",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1996.3173828125,
+        1993.4864501953125,
+        -1244.644287109375
+      ],
+      "firstAction": "ACT_BUTT_SLIDE_AIR",
+      "firstHeld": 49,
+      "firstRelease": 129
+    },
+    {
+      "recipe": {
+        "phase": 124,
+        "y": 1970,
+        "action": "ACT_BUTT_SLIDE_AIR",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1996.3173828125,
+        1993.4864501953125,
+        -1244.644287109375
+      ],
+      "firstAction": "ACT_BUTT_SLIDE_AIR",
+      "firstHeld": 49,
+      "firstRelease": 129
+    },
+    {
+      "recipe": {
+        "phase": 124,
+        "y": 1970,
+        "action": "ACT_HOLD_FREEFALL",
+        "first": "neutral"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1981.021484375,
+        2021.017578125,
+        -1203.309326171875
+      ],
+      "firstAction": "ACT_HOLD_FREEFALL",
+      "firstHeld": 49,
+      "firstRelease": 128
+    },
+    {
+      "recipe": {
+        "phase": 124,
+        "y": 1970,
+        "action": "ACT_HOLD_FREEFALL",
+        "first": "B"
+      },
+      "initialHOLP": [
+        -2102.720703125,
+        1920.0,
+        -1119.5618896484375
+      ],
+      "firstHOLP": [
+        -1910.35888671875,
+        2019.927734375,
+        -1291.376953125
+      ],
+      "firstAction": "ACT_AIR_THROW",
+      "firstHeld": 49,
+      "firstRelease": 127
+    }
+  ],
+  "sourceSha256": {
+    "src/game/mario_misc.c": "2b2c5a95fa3da3a2b495fcc521b79dbcd67908e643c25d1fed93d4401f4ea9e1",
+    "src/game/rendering_graph_node.c": "67afd7b4892e8dc1ed3d9fbf285fc29580f0d8ca8be30efbef80a6702c32a864",
+    "actors/mario/geo.inc.c": "833b771e7f33f444eed917839e330c4d14ebff3b33e5a64c22b4673bcdfa412b",
+    "src/game/mario_actions_airborne.c": "49a1df4e42e169a745e7c91c592bb6139ca1aa43ad27d6e7f1fb3d9cdc6f812f",
+    "src/game/interaction.c": "a327202d33612821f884f01b5e4692aa5cfe2003f3b9a2eeb1452ad72725ea00",
+    "src/game/behaviors/jumping_box.inc.c": "38ac532512361af15f5e78d89afc02ac349e5a74a6779db27e03cdf1b27545b8"
+  },
+  "files": {
+    "check.py": "006c1da462c2b1b8b1f9ba1a967c15a547086ba2f9eab51b69213c7da27f3ad8",
+    "results.json.gz": "37d53f3230830263a8b981aa0b4c7f2dd454046b8b2310063c21b34c37983d50",
+    "README.md": "fc7e3a41b16d8ff1628dc747188f8477581c476402b3050f383cdb296a14c0c0",
+    "analyze.py": "74c6e22e73fd30ee46820fc81dc659e71ca6cf059e56c1587ae5101eb9e67c31",
+    ".gitattributes": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da"
+  }
+}
