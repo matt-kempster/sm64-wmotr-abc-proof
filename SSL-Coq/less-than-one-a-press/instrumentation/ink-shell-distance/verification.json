@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "scope": "Bind finite shell distance/status evidence and actual source dependencies.",
+  "local": [
+    {
+      "path": "instrumentation/ink-shell-distance/.gitattributes",
+      "bytes": 92,
+      "sha256": "d66223dc4808a91605e28a0e584a856dcc14263b18bdb8550bf9461b030b9324"
+    },
+    {
+      "path": "instrumentation/ink-shell-distance/archive.py",
+      "bytes": 1381,
+      "sha256": "bc6bcc2d972ec21cb975fb03459e453644a7c1a4c27f3c6100e5674d7fc5bb69"
+    },
+    {
+      "path": "instrumentation/ink-shell-distance/check.py",
+      "bytes": 5207,
+      "sha256": "715e4bc2a2d2d13b46a0f35c5d1d7f3473292047c0c8f625f842bc9d936b446e"
+    },
+    {
+      "path": "instrumentation/ink-shell-distance/README.md",
+      "bytes": 9282,
+      "sha256": "5d0a058cca3bf97ccd0958b549ed9e4c403971783b2e18026f4bcc7295a497ea"
+    },
+    {
+      "path": "instrumentation/ink-shell-distance/results.json.gz",
+      "bytes": 82491,
+      "sha256": "754c69cf3dc36ed5341a84d8e9e62cfbc28a574826e69da2ef14d05b48a10064"
+    },
+    {
+      "path": "instrumentation/ink-shell-distance/status-results.json.gz",
+      "bytes": 8810,
+      "sha256": "645247b1fce68acbcd61efffdeba374448c4d22eafacc30943e7ba61975d0816"
+    },
+    {
+      "path": "instrumentation/ink-shell-distance/status.py",
+      "bytes": 2875,
+      "sha256": "441f1b3d5f6f64a418929020aa233107e8e75caa08130629b1786d01e8d64efa"
+    }
+  ],
+  "inputs": [
+    {
+      "path": "instrumentation/ink-shell-clone-isolation/test.py",
+      "bytes": 9641,
+      "sha256": "28130311248a478bea060872a8404e36b73ce0dc740228dae6fcd1962dad6528"
+    },
+    {
+      "path": "instrumentation/ink-item-clone-controls/fixtures.py",
+      "bytes": 4029,
+      "sha256": "62a380c440360bfae642288c558f5e6aae6ac3987dca7c37d2bd66e821a373a8"
+    },
+    {
+      "path": "instrumentation/ink-high-item-nudge/prefix.jsonl.gz",
+      "bytes": 70302,
+      "sha256": "92fe78f908354ca3c47afad0e31e8d34fef6f3bef6981761add363b3e7e61c01"
+    }
+  ],
+  "source": [
+    {
+      "path": "data/behavior_data.c",
+      "bytes": 212174,
+      "sha256": "da1aad6e3982bc3a35b195480157330e2cd98e909503e2100d2072d3be265f6a"
+    },
+    {
+      "path": "src/engine/behavior_script.c",
+      "bytes": 33712,
+      "sha256": "941bbbdcda2767d8b3ea33f49ca401c6ce6576754c7ee6ea392792562520738d"
+    },
+    {
+      "path": "src/game/behaviors/koopa_shell.inc.c",
+      "bytes": 3236,
+      "sha256": "75e12279e3275258a1e6cac99f689515ae2e1bbcb149607038e32a77d424ad3f"
+    },
+    {
+      "path": "src/game/object_helpers.c",
+      "bytes": 92602,
+      "sha256": "a603370892b2589a97343be38a6fafd86b84279b8413e75ab94cada3719f5818"
+    },
+    {
+      "path": "src/game/object_collision.c",
+      "bytes": 6965,
+      "sha256": "4bdbe3bd3acd72c16738ec93638395a2f0daac4f69f905b76da8eae3384dc234"
+    },
+    {
+      "path": "src/game/interaction.c",
+      "bytes": 63778,
+      "sha256": "a327202d33612821f884f01b5e4692aa5cfe2003f3b9a2eeb1452ad72725ea00"
+    },
+    {
+      "path": "src/game/mario_actions_moving.c",
+      "bytes": 65436,
+      "sha256": "63364abba7cd12cb89e47614f901c933334a26654183896448f309fa2d847cfb"
+    }
+  ]
+}

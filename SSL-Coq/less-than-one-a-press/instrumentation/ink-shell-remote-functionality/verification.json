@@ -1,0 +1,118 @@
+{
+  "schema": 1,
+  "scope": "Pin remote-release experiments and their exact direct predecessor inputs.",
+  "files": [
+    {
+      "path": "instrumentation/ink-shell-remote-functionality/.gitattributes",
+      "bytes": 92,
+      "sha256": "efb293d17a716d72ffb572ff7b3d3b280dd9a7364e3ec84df30fe5265d7230ff"
+    },
+    {
+      "path": "instrumentation/ink-shell-remote-functionality/archive.py",
+      "bytes": 1638,
+      "sha256": "c8e772ca4ce3607abdfd3faa472e96874c81acf1230a062f1a746f6574610190"
+    },
+    {
+      "path": "instrumentation/ink-shell-remote-functionality/check.py",
+      "bytes": 5721,
+      "sha256": "335c6e550f93e2c52717aebf13be15e5c51d284ada82c0580e1012349bd85f67"
+    },
+    {
+      "path": "instrumentation/ink-shell-remote-functionality/handoff-results.json.gz",
+      "bytes": 35015,
+      "sha256": "d72d3b2773ccb3dc15ad9f3ab66f9cd12bec648bb0bfdafc56d2c4a119fb0c63"
+    },
+    {
+      "path": "instrumentation/ink-shell-remote-functionality/handoff.py",
+      "bytes": 5535,
+      "sha256": "64e8a3031594475992204f7ddf01083ddeb111e4d87f7a8f9e64d0e7fb136233"
+    },
+    {
+      "path": "instrumentation/ink-shell-remote-functionality/high-positive.json",
+      "bytes": 397207,
+      "sha256": "e6209510d529fa4ba16ee47b406e6841819df734c5d1f1a51c423098b3ba07a5"
+    },
+    {
+      "path": "instrumentation/ink-shell-remote-functionality/low-positive.json",
+      "bytes": 399342,
+      "sha256": "2058bde33a68b2f8e58cffbe28d11b23c4089460c98697ace5d62f56839638fb"
+    },
+    {
+      "path": "instrumentation/ink-shell-remote-functionality/no-box.json",
+      "bytes": 390063,
+      "sha256": "0320f0159998c71caa68c6da84f77c73ca3611a189965f6a55b6ad1fd41dc093"
+    },
+    {
+      "path": "instrumentation/ink-shell-remote-functionality/README.md",
+      "bytes": 9348,
+      "sha256": "b7f23095fc11eb51266f40c58553317419667c2877dbcbc7a26e8560493e4923"
+    },
+    {
+      "path": "instrumentation/ink-shell-remote-functionality/results.json.gz",
+      "bytes": 89197,
+      "sha256": "8804ec7161f2247a8494fa62958ce32b9c71e35c1c88192b84d648ca43b3a0b1"
+    },
+    {
+      "path": "instrumentation/ink-shell-delivery/pending_slot.py",
+      "bytes": 8281,
+      "sha256": "e8c0423e1178193267fd2ef69bc8ab66c71f04b8f8f19a56d137df23a44db021"
+    },
+    {
+      "path": "instrumentation/ink-buddy-replacement-delivery/inputs.jsonl",
+      "bytes": 34870,
+      "sha256": "7b0b562355ec0c336487907e11cad16822d9f022526b5daff2c0a1d7edbb501b"
+    },
+    {
+      "path": "instrumentation/ink-shell-clone-isolation/test.py",
+      "bytes": 9641,
+      "sha256": "28130311248a478bea060872a8404e36b73ce0dc740228dae6fcd1962dad6528"
+    },
+    {
+      "path": "instrumentation/ink-high-item-nudge/prefix.jsonl.gz",
+      "bytes": 70302,
+      "sha256": "92fe78f908354ca3c47afad0e31e8d34fef6f3bef6981761add363b3e7e61c01"
+    },
+    {
+      "path": "instrumentation/ink-enlarged-bob-handoff/search.py",
+      "bytes": 3167,
+      "sha256": "306147d99bee01bad16c199dad3c14af653c2ba4246e92524a44d78aa6502e46"
+    },
+    {
+      "path": "instrumentation/ink-bobomb-retimed-shoves/search.py",
+      "bytes": 9875,
+      "sha256": "c4cad710d3fc87b0a28082f5d414282dfdabe6979abe1b169f4bd343e22bd64c"
+    },
+    {
+      "path": "instrumentation/ink-enlarged-bob-profile/profile.py",
+      "bytes": 4603,
+      "sha256": "cafbbe6429a37b689f5fce5a1c1c0590d0b70f6f5fa7ad0201510990500b3ea2"
+    }
+  ],
+  "sources": [
+    {
+      "path": "../../../reference-sm64-decomp/src/game/interaction.c",
+      "bytes": 63778,
+      "sha256": "a327202d33612821f884f01b5e4692aa5cfe2003f3b9a2eeb1452ad72725ea00"
+    },
+    {
+      "path": "../../../reference-sm64-decomp/src/game/mario_actions_moving.c",
+      "bytes": 65436,
+      "sha256": "63364abba7cd12cb89e47614f901c933334a26654183896448f309fa2d847cfb"
+    },
+    {
+      "path": "../../../reference-sm64-decomp/src/game/behaviors/koopa_shell.inc.c",
+      "bytes": 3236,
+      "sha256": "75e12279e3275258a1e6cac99f689515ae2e1bbcb149607038e32a77d424ad3f"
+    },
+    {
+      "path": "../../../reference-sm64-decomp/src/game/object_helpers.c",
+      "bytes": 92602,
+      "sha256": "a603370892b2589a97343be38a6fafd86b84279b8413e75ab94cada3719f5818"
+    },
+    {
+      "path": "../../../reference-sm64-decomp/data/behavior_data.c",
+      "bytes": 212174,
+      "sha256": "da1aad6e3982bc3a35b195480157330e2cd98e909503e2100d2072d3be265f6a"
+    }
+  ]
+}

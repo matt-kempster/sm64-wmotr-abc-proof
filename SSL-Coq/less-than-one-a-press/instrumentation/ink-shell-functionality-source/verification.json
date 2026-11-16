@@ -1,0 +1,140 @@
+{
+  "schema": 1,
+  "scope": "Pin this source review and its actual C, generated AST and proof references.\n\nHash verification is evidence provenance, not a new semantic proof or build.\n",
+  "proofStart": "4adf8faf311d1d271c57f288f51b06bf357874d1",
+  "stockJP": "9921382a68bb0c865e5e45eb594d9c64db59b1af",
+  "localDecompile": "36fbf8d693a9fc2bdec0c77402f8e96d07d2f461",
+  "local": [
+    {
+      "path": "README.md",
+      "bytes": 12023,
+      "sha256": "9cb5dda978b29da849f84038d9be98b73e723b881ffc0a6abe04f766321f6b09"
+    },
+    {
+      "path": ".gitattributes",
+      "bytes": 80,
+      "sha256": "baa4dac807f547af53511ea7a7f2336b25a9fab372479ff309bd39ca3009d5fd"
+    },
+    {
+      "path": "verify.py",
+      "bytes": 1852,
+      "sha256": "5eacd3d1e7bd10e327f6d40c35b89a0ace9bb9c7b3629753c3b225ba515fa50c"
+    }
+  ],
+  "nativeSource": [
+    {
+      "path": "data/behavior_data.c",
+      "bytes": 212174,
+      "sha256": "da1aad6e3982bc3a35b195480157330e2cd98e909503e2100d2072d3be265f6a"
+    },
+    {
+      "path": "src/game/behaviors/koopa_shell.inc.c",
+      "bytes": 3236,
+      "sha256": "75e12279e3275258a1e6cac99f689515ae2e1bbcb149607038e32a77d424ad3f"
+    },
+    {
+      "path": "src/game/object_helpers.c",
+      "bytes": 92602,
+      "sha256": "a603370892b2589a97343be38a6fafd86b84279b8413e75ab94cada3719f5818"
+    },
+    {
+      "path": "src/game/interaction.c",
+      "bytes": 63778,
+      "sha256": "a327202d33612821f884f01b5e4692aa5cfe2003f3b9a2eeb1452ad72725ea00"
+    },
+    {
+      "path": "src/game/interaction.h",
+      "bytes": 5880,
+      "sha256": "5afba77f49d1273edefc9946f3df60fe1de44d63db7a484ad6aa57136f743c33"
+    },
+    {
+      "path": "src/game/object_collision.c",
+      "bytes": 6965,
+      "sha256": "4bdbe3bd3acd72c16738ec93638395a2f0daac4f69f905b76da8eae3384dc234"
+    },
+    {
+      "path": "src/game/mario_actions_moving.c",
+      "bytes": 65436,
+      "sha256": "63364abba7cd12cb89e47614f901c933334a26654183896448f309fa2d847cfb"
+    },
+    {
+      "path": "src/engine/behavior_script.c",
+      "bytes": 33712,
+      "sha256": "941bbbdcda2767d8b3ea33f49ca401c6ce6576754c7ee6ea392792562520738d"
+    },
+    {
+      "path": "src/game/spawn_object.c",
+      "bytes": 11064,
+      "sha256": "7d824f02a3430f17f9b1002138cd58034215163016fcbfc1708a9cb2de42506c"
+    },
+    {
+      "path": "include/object_constants.h",
+      "bytes": 47069,
+      "sha256": "0aeaad9bb95bfa0164f51fb63b9f98030eeb6de40cd82740fa8fa36533b3cdf2"
+    }
+  ],
+  "generated": [
+    {
+      "path": "generated/jp_behavior_data.v",
+      "bytes": 690226,
+      "sha256": "b5e582077d9fcc080d5424c4986fa224d33e98a6e2dcff685ff7e805eb3d217f"
+    },
+    {
+      "path": "generated/jp_behavior_actions.v",
+      "bytes": 5638649,
+      "sha256": "fff0885dafa95a72a5b9694ab808080bf4de0bfe06cc996836784ca143c37810"
+    },
+    {
+      "path": "generated/jp_behavior_script.v",
+      "bytes": 272311,
+      "sha256": "40112629e7f618bbfd352f8be8786fd70450dc8266930c1196552b6df383cf57"
+    },
+    {
+      "path": "generated/jp_interaction.v",
+      "bytes": 614518,
+      "sha256": "39223e59a53a700e36c6e08f63b280889c3e25aef40dce66a063588467ae16e1"
+    },
+    {
+      "path": "generated/jp_object_helpers.v",
+      "bytes": 1254057,
+      "sha256": "982b494d1a975d14851cbf6e6bdcea3c162764d104ecc477550f3b81fdcf917b"
+    },
+    {
+      "path": "generated/jp_object_collision.v",
+      "bytes": 120526,
+      "sha256": "39ef3070008ab2f4a5e057456e148e3063a4fd0e2ddb441a7f1dcc7e0ff38f70"
+    },
+    {
+      "path": "generated/jp_mario_actions_moving.v",
+      "bytes": 711779,
+      "sha256": "be1314c3ff8ea5ab33015e20a20344e7360d7b44533ba059d5c2b5b35d9084a7"
+    }
+  ],
+  "existingProofs": [
+    {
+      "path": "proofs/InkBoxFloor.v",
+      "bytes": 11105,
+      "sha256": "ff201c2cd812c92eaecd15b4b4ce1427ec4c4a915d504a42f3a9c6f89e9c2bdc"
+    },
+    {
+      "path": "proofs/InkBoxFloorFrame.v",
+      "bytes": 11188,
+      "sha256": "26b0928d8c07e0a8487608dd0458f121b2d2ed2a12fab1c5a4b28e51e446a458"
+    },
+    {
+      "path": "proofs/InkShellBridge.v",
+      "bytes": 19392,
+      "sha256": "06ba39df661f5fbbe9a0b1cf208e55483671daa348c7b472fed3958d4895c6ea"
+    },
+    {
+      "path": "proofs/InkMarioEntryGuards.v",
+      "bytes": 17133,
+      "sha256": "bcca2123ad550424d04ca10206b85f635e0007dfe260e2f4366cc9cbf58fc717"
+    },
+    {
+      "path": "proofs/MainTheorem.v",
+      "bytes": 115683,
+      "sha256": "7317059560b923ecf05a8519df2550af7e82faaf7ff1f5c5076501615a7497df"
+    }
+  ]
+}

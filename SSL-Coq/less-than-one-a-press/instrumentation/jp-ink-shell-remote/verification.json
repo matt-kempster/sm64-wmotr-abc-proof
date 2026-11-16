@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "scope": "Original-JP conditional remote-shell throw plus supplied Mario/pushers; no continuous route",
+  "runs": [
+    {
+      "name": "low-positive",
+      "checked": 25,
+      "differences": 27,
+      "stationaryShellObservations": 104,
+      "noPostThrowShellXYZWrites": true,
+      "arrival": "(365.592773,5500,-1096.80261)"
+    },
+    {
+      "name": "no-box",
+      "checked": 25,
+      "differences": 50,
+      "stationaryShellObservations": 104,
+      "noPostThrowShellXYZWrites": true,
+      "arrival": "(0,5500,256)"
+    }
+  ],
+  "noteSha256": "767ad02738d1173d4624686a1b63b2683046ed3d7ce7203f6efbd60f6655ef66",
+  "files": {
+    ".gitattributes": "d61eb26cefc883f70db37563bdefd3f8f6bd6c69a4c76538171c325781d2f060",
+    "archive.py": "2cfcd413986c9b9711b079e7634615d76189bf5302c59a890570cd4333055afe",
+    "check.py": "d7136c38d3543d0363edcd7ab25e635b34641c067cb4f40611c63518dcb3eb59",
+    "generate.py": "5501107f04065f8db2bde44f99d89b57be2d82250e0cba50607189a4d457164a",
+    "high-positive.c": "781e576f481e83c3bc0a16aa0b9af1e5fac945178e6106e95c71dd3d2c602517",
+    "high-positive.json": "e6209510d529fa4ba16ee47b406e6841819df734c5d1f1a51c423098b3ba07a5",
+    "low-positive.c": "5259dcfd5b1924f6ce2d76085c478f1e0316993bd44c7de36654d20bc8462d0a",
+    "low-positive.json": "2058bde33a68b2f8e58cffbe28d11b23c4089460c98697ace5d62f56839638fb",
+    "no-box.c": "9420f03828f142a57cae050e09c8bed318e1c47f51009c24558f037aabb28c0c",
+    "no-box.json": "0320f0159998c71caa68c6da84f77c73ca3611a189965f6a55b6ad1fd41dc093",
+    "README.md": "04f354050cf3dddf100e74e4eeba9a901e7f4d88d06bf010d6a156596ed35694",
+    "records/low-positive/archive-hashes.json": "3bc5fafa59502ddc5245fe82f2b8cca2337e9b9f8477b31246e6361826eec0dc",
+    "records/low-positive/case.json.gz": "99bafd0ef595ca01f0a36931de7bd9000672e3d42ac51604cdb3d599d7622fbc",
+    "records/low-positive/checker-source.py.gz": "e6aa9c1f688322fbfb6a19200e017a370fdf938e14577f304b6903f8521a57a8",
+    "records/low-positive/comparator-source.py.gz": "fe1bae16568c98f87aa24000af00a8a7d79de3968bfccd3b781a9b2160e50fef",
+    "records/low-positive/prefix-source.c.gz": "12fba15844709b6fb96babc7610f0e97444e90bfb91fa043d3979b16e5b4c779",
+    "records/low-positive/probe-source.c.gz": "837019229a65a09750f92a451dbf1f40bb512b8c23057a820f0452345dc85374",
+    "records/low-positive/raw.log.gz": "f6cf62134bdaa0a77a2e5664d12d7748de3857fa52a9379a8e59b66068f6b377",
+    "records/low-positive/receipt.json.gz": "f2c7f4f21ccc4b68bdccf8a5beb04381417faa6c8d7d959a61dab05db1297951",
+    "records/low-positive/remote-receipt.json.gz": "ba73d0fd008b5561e8171870cb0e9c2457e4b7b29d6bf47d9b44563405062599",
+    "records/low-positive/run-source.sh.gz": "b2ebb63dc1d79d7be35aa3edf23b5ba4bacbeba464e7ddade408712475fc0b5d",
+    "records/low-positive/trace.txt.gz": "7e1d9d1e29ccbdd0b191c5c9f42a74c6d60194f693989317e586fb409b68eae4",
+    "records/no-box/archive-hashes.json": "584f94acf8a6bd9b03bd1118aa0fdc3c28f00a13463cbe5a4d8210d2bf9358cb",
+    "records/no-box/case.json.gz": "94ee160cff770d7e96bea933bc51b28822f8b4962740782da5733add6d55c431",
+    "records/no-box/checker-source.py.gz": "e6aa9c1f688322fbfb6a19200e017a370fdf938e14577f304b6903f8521a57a8",
+    "records/no-box/comparator-source.py.gz": "fe1bae16568c98f87aa24000af00a8a7d79de3968bfccd3b781a9b2160e50fef",
+    "records/no-box/prefix-source.c.gz": "12fba15844709b6fb96babc7610f0e97444e90bfb91fa043d3979b16e5b4c779",
+    "records/no-box/probe-source.c.gz": "4f16fcfb10a08cb5e29b5fa5f52c62d12412ca48379c563402487365eb2eb00a",
+    "records/no-box/raw.log.gz": "5851580d3333aeaeaf91857802c5802b14a10c95360ec1917ef46b2fdd30750b",
+    "records/no-box/receipt.json.gz": "976e0913bb4baf8381b1e9f4718e2e5d1f6410e8569244b4f1257093d4c73e03",
+    "records/no-box/remote-receipt.json.gz": "c738ea8bbf6e1cb31f150c25fa0813966c8d690ec861220c5c7b20942c70358e",
+    "records/no-box/run-source.sh.gz": "b2ebb63dc1d79d7be35aa3edf23b5ba4bacbeba464e7ddade408712475fc0b5d",
+    "records/no-box/trace.txt.gz": "c35240b35739d6841063c368ff9955406ee3e637f39feeb3424caecf6b937378",
+    "run.sh": "15f4a39d9f51cab28f4fe05ed9fbe986872f80c54a34d6ebe4146e3a05abe3f6",
+    "verify.py": "7697443d71fb985d83c4d621bc6da6a722bfcd558d4e190d227498ed41547288"
+  },
+  "dependencies": {
+    "jp-ink-mario-pusher-release/generate.py": "9bd4f10f68074f26c63261270a71f783265f9f100d0572590ec91138395938f0",
+    "jp-ink-mario-pusher-release/check.py": "60192251e844bc1eb6d3ef1d7aa1384c89af409597d3744d2262ceb7890d5bfb",
+    "jp-ink-preplaced-pushers/generate.py": "d4c9589f632867ef8c1c1bbfcc5b017a9ab4845e438392034032d43353829a82",
+    "jp-ink-enlarged-bob-handoff/generate.py": "2b42b5fc4551c0b74482a3843b407e84c7cfa3171c3b014ad74f8ae4c3682376",
+    "ink-floor768-diagnosis/probe.c": "22bdb45e17f9fa25e41f041f35c3cece38920c0f95b080b45d43275d35d2d9bb",
+    "jp-clean-gap-search/jp_clean_gap_search_probe.c": "7ebe3672f71bb596610b6b3b3fe2804a451ca74e3a5bcd48a94ff864e2bdc8b5"
+  }
+}

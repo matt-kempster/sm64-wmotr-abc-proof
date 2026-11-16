@@ -1,0 +1,12 @@
+{
+  "case.json.gz": "99bafd0ef595ca01f0a36931de7bd9000672e3d42ac51604cdb3d599d7622fbc",
+  "checker-source.py.gz": "e6aa9c1f688322fbfb6a19200e017a370fdf938e14577f304b6903f8521a57a8",
+  "comparator-source.py.gz": "fe1bae16568c98f87aa24000af00a8a7d79de3968bfccd3b781a9b2160e50fef",
+  "prefix-source.c.gz": "12fba15844709b6fb96babc7610f0e97444e90bfb91fa043d3979b16e5b4c779",
+  "probe-source.c.gz": "837019229a65a09750f92a451dbf1f40bb512b8c23057a820f0452345dc85374",
+  "raw.log.gz": "f6cf62134bdaa0a77a2e5664d12d7748de3857fa52a9379a8e59b66068f6b377",
+  "receipt.json.gz": "f2c7f4f21ccc4b68bdccf8a5beb04381417faa6c8d7d959a61dab05db1297951",
+  "remote-receipt.json.gz": "ba73d0fd008b5561e8171870cb0e9c2457e4b7b29d6bf47d9b44563405062599",
+  "run-source.sh.gz": "b2ebb63dc1d79d7be35aa3edf23b5ba4bacbeba464e7ddade408712475fc0b5d",
+  "trace.txt.gz": "7e1d9d1e29ccbdd0b191c5c9f42a74c6d60194f693989317e586fb409b68eae4"
+}
