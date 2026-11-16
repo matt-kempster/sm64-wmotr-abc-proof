@@ -1,0 +1,148 @@
+{
+  "schema": 1,
+  "scope": "Pin the final carried-Bob approach tests and exact direct predecessors.",
+  "files": [
+    {
+      "path": "instrumentation/ink-shell-carried-bob-mount/.gitattributes",
+      "bytes": 115,
+      "sha256": "42124f56d0a32f5853436e645a600eeaa0c3fd276e1562f7f39085fb208381e1"
+    },
+    {
+      "path": "instrumentation/ink-shell-carried-bob-mount/.gitignore",
+      "bytes": 27,
+      "sha256": "050b3aba6b8f08b2c8594f00b9966bd169576b875854542fe85c7ab31f6eb447"
+    },
+    {
+      "path": "instrumentation/ink-shell-carried-bob-mount/archive.py",
+      "bytes": 1917,
+      "sha256": "3b5ed2247058b05cb484e7e08dfd4355a77768ad466a9a50468bbdde20dfec87"
+    },
+    {
+      "path": "instrumentation/ink-shell-carried-bob-mount/check.py",
+      "bytes": 6300,
+      "sha256": "c2930cd8ac6df42647ce6cd6b529068c0536493a1477690e954fcf4f97ab9e24"
+    },
+    {
+      "path": "instrumentation/ink-shell-carried-bob-mount/frontier-results.json.gz",
+      "bytes": 28520,
+      "sha256": "560938990aa370210cb950bb99ca9a135849c9e18e60d5dda1202fce700704a2"
+    },
+    {
+      "path": "instrumentation/ink-shell-carried-bob-mount/frontier.py",
+      "bytes": 2083,
+      "sha256": "899b31f75fd6d8fb57822bb39b3370a112712c6d68cf832f9ab3e07fa07b2bd6"
+    },
+    {
+      "path": "instrumentation/ink-shell-carried-bob-mount/no-box.json",
+      "bytes": 430721,
+      "sha256": "cc6847b475b8ab215998d7e69eac5f019210e8f8be45a75b26ec40b01a5a5b2f"
+    },
+    {
+      "path": "instrumentation/ink-shell-carried-bob-mount/positive.json",
+      "bytes": 438902,
+      "sha256": "e6eeaea3f7509491b49186de33cbabf29cc244005a03d5d45a443f06752e84a5"
+    },
+    {
+      "path": "instrumentation/ink-shell-carried-bob-mount/README.md",
+      "bytes": 7526,
+      "sha256": "4091bd0b81bf5d919edc41053a3eb4595e9fb6cb39ab02d23d33290198e8169c"
+    },
+    {
+      "path": "instrumentation/ink-shell-carried-bob-mount/refine-results.json.gz",
+      "bytes": 543398,
+      "sha256": "948bfc76c45838c786734ec4312b484f22561f74baef39bf263a5d6d2e6cce33"
+    },
+    {
+      "path": "instrumentation/ink-shell-carried-bob-mount/refine.py",
+      "bytes": 1349,
+      "sha256": "c13f0b643ffb1f8b7fd45886fbbd1c1ff352384bc861f77d360d9e1ac9c5aed1"
+    },
+    {
+      "path": "instrumentation/ink-shell-carried-bob-mount/results.json.gz",
+      "bytes": 765331,
+      "sha256": "314f399e3fc5cdbce1b65e301f4a41d5f808886f20b10270f81bc66b4fe26ba0"
+    },
+    {
+      "path": "instrumentation/ink-shell-remote-functionality/handoff.py",
+      "bytes": 5535,
+      "sha256": "64e8a3031594475992204f7ddf01083ddeb111e4d87f7a8f9e64d0e7fb136233"
+    },
+    {
+      "path": "instrumentation/ink-mario-pusher-delivery/controlled-bob/joint.py",
+      "bytes": 5023,
+      "sha256": "36a6ffa494cc8c2c7b939f1da668e9ff17317ea58ad226758689d22a038260f8"
+    },
+    {
+      "path": "instrumentation/ink-mario-pusher-delivery/controlled-bob/test.py",
+      "bytes": 4601,
+      "sha256": "06f0d026d635c0cd3fc0301576e8e362deb9c04eaaf429ed5f808911470695fc"
+    },
+    {
+      "path": "instrumentation/ink-mario-pusher-delivery/controlled-box/check.py",
+      "bytes": 4998,
+      "sha256": "31f61a6ded1d980af1021dc23dc5ff30b8554168cdcca307a1c209c2562a48fc"
+    },
+    {
+      "path": "instrumentation/ink-enlarged-bob-handoff/search.py",
+      "bytes": 3167,
+      "sha256": "306147d99bee01bad16c199dad3c14af653c2ba4246e92524a44d78aa6502e46"
+    },
+    {
+      "path": "instrumentation/ink-bobomb-retimed-shoves/search.py",
+      "bytes": 9875,
+      "sha256": "c4cad710d3fc87b0a28082f5d414282dfdabe6979abe1b169f4bd343e22bd64c"
+    },
+    {
+      "path": "instrumentation/ink-shell-clone-isolation/test.py",
+      "bytes": 9641,
+      "sha256": "28130311248a478bea060872a8404e36b73ce0dc740228dae6fcd1962dad6528"
+    },
+    {
+      "path": "instrumentation/ink-enlarged-bob-target/native.py",
+      "bytes": 5786,
+      "sha256": "bef095b0c8b3a718edd3babd6d9625b296986fca1721dd42c97e68d885af0f06"
+    },
+    {
+      "path": "instrumentation/ink-enlarged-bob-profile/profile.py",
+      "bytes": 4603,
+      "sha256": "cafbbe6429a37b689f5fce5a1c1c0590d0b70f6f5fa7ad0201510990500b3ea2"
+    },
+    {
+      "path": "instrumentation/ink-high-item-nudge/prefix.jsonl.gz",
+      "bytes": 70302,
+      "sha256": "92fe78f908354ca3c47afad0e31e8d34fef6f3bef6981761add363b3e7e61c01"
+    }
+  ],
+  "sources": [
+    {
+      "path": "../../../reference-sm64-decomp/src/game/interaction.c",
+      "bytes": 63778,
+      "sha256": "a327202d33612821f884f01b5e4692aa5cfe2003f3b9a2eeb1452ad72725ea00"
+    },
+    {
+      "path": "../../../reference-sm64-decomp/src/game/mario_actions_moving.c",
+      "bytes": 65436,
+      "sha256": "63364abba7cd12cb89e47614f901c933334a26654183896448f309fa2d847cfb"
+    },
+    {
+      "path": "../../../reference-sm64-decomp/src/game/mario_actions_airborne.c",
+      "bytes": 67842,
+      "sha256": "49a1df4e42e169a745e7c91c592bb6139ca1aa43ad27d6e7f1fb3d9cdc6f812f"
+    },
+    {
+      "path": "../../../reference-sm64-decomp/src/game/behaviors/bobomb.inc.c",
+      "bytes": 13321,
+      "sha256": "fa71e00c4983f2ee0795bda430c5f2ede352e278d0ee81f636df682d0d11ace1"
+    },
+    {
+      "path": "../../../reference-sm64-decomp/src/game/behaviors/jumping_box.inc.c",
+      "bytes": 2218,
+      "sha256": "38ac532512361af15f5e78d89afc02ac349e5a74a6779db27e03cdf1b27545b8"
+    },
+    {
+      "path": "../../../reference-sm64-decomp/src/game/object_helpers.c",
+      "bytes": 92602,
+      "sha256": "a603370892b2589a97343be38a6fafd86b84279b8413e75ab94cada3719f5818"
+    }
+  ]
+}

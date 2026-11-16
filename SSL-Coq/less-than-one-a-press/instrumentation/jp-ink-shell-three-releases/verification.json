@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "scope": "Original-JP remote shell throw, actual Box drop and shell-contact Bob drop, with two supplied carrying/approach cuts; no continuous route",
+  "runs": [
+    {
+      "name": "positive",
+      "checked": 27,
+      "differences": 31,
+      "stationaryShellObservations": 102,
+      "noPostThrowShellXYZWrites": true,
+      "arrival": "(365.592773,5500,-1096.80261)"
+    },
+    {
+      "name": "no-box",
+      "checked": 27,
+      "differences": 54,
+      "stationaryShellObservations": 102,
+      "noPostThrowShellXYZWrites": true,
+      "arrival": "(0,5500,256)"
+    }
+  ],
+  "files": {
+    ".gitattributes": "d61eb26cefc883f70db37563bdefd3f8f6bd6c69a4c76538171c325781d2f060",
+    "archive.py": "dc911dcd267630cb30316ddf7c690bf6fbb84db342b872cd803082467545143a",
+    "check.py": "2a0431e9a3f23a3ae6ab0dfc7f4e32458ba103576e50d05e69ea81b830bbb27f",
+    "compare.py": "4411311623dc64cd7c0045e2601e9a078343268387df9d7913e312db8d086f50",
+    "generate.py": "c32ae53af3283ac28bad0db8edc5b2c0a9dbec5acaea23d1494fbe81de07c82c",
+    "no-box.c": "111b6951364fff39bc73d937dd98bec2fb8b46ed4f84d5cbdf10f85c2ab71238",
+    "no-box.json": "cc6847b475b8ab215998d7e69eac5f019210e8f8be45a75b26ec40b01a5a5b2f",
+    "positive.c": "bc9e29bd01d54049071eb2eaa902bcf05794ac80269d57e2125871103f3174ec",
+    "positive.json": "e6eeaea3f7509491b49186de33cbabf29cc244005a03d5d45a443f06752e84a5",
+    "README.md": "04e905d35b3ecb21a1dcd09a2d97ac5f690dc8b5ef60d6790ddc26f0f22a64dd",
+    "records/no-box/archive-hashes.json": "2bbcb18be8a145a435f57f6be0f77336b56dab7d14f29c7405f512f4e5b74b2e",
+    "records/no-box/case.json.gz": "4899b69f4c3f105cd3c5c53b37ea5f55b200c3c3271a3127461fc04362f50fee",
+    "records/no-box/checker-source.py.gz": "9b662e81e0838b43e4626cb42417311b50a659b58b4afe179a8d27c46481aaaa",
+    "records/no-box/comparator-source.py.gz": "71943ccbfd0f2e05856a67e4189d7c48c424f7a9b413db01d8089bbaa0e97460",
+    "records/no-box/prefix-source.c.gz": "358c366222f65ce5e3053d7bc83a7d41bb0813a8e482cc7b239ea16156651a3f",
+    "records/no-box/probe-source.c.gz": "6cf0f742694ef73babdfd99853fc7783d09c292aaabf3fa99bf56a8dad2bdd48",
+    "records/no-box/raw.log.gz": "92e507e1dbe1f57cf9a84fd2024216cf0f335f8fa6e969bf47ca062b547856e5",
+    "records/no-box/receipt.json.gz": "c057f42fe9785229008f3fe69279120e7ae945c7d18a92564fd49a573e0fef5d",
+    "records/no-box/remote-receipt.json.gz": "01b3657d48a09ef0fc448a62d7b40bf819fb3416a8d8946da1762e4657f0c93a",
+    "records/no-box/run-source.sh.gz": "6e01094fea86bdb4c23f7b6ac88ba960c0d08b0208d4efcb9ce4ed7f8ee65a81",
+    "records/no-box/trace.txt.gz": "29ea7d5b4c1dd14ed2ced841e6de61184987a82036d11ca71368bcb0b3f9e829",
+    "records/positive/archive-hashes.json": "4e2439777c72d729ba0602249fa698f68855dcd74069e2aeba9548e413e4174d",
+    "records/positive/case.json.gz": "95ba688e0a16d5b1f6a78c65f1b6d09c3a77ecc22010af57c875bd329e9a349f",
+    "records/positive/checker-source.py.gz": "9b662e81e0838b43e4626cb42417311b50a659b58b4afe179a8d27c46481aaaa",
+    "records/positive/comparator-source.py.gz": "71943ccbfd0f2e05856a67e4189d7c48c424f7a9b413db01d8089bbaa0e97460",
+    "records/positive/prefix-source.c.gz": "358c366222f65ce5e3053d7bc83a7d41bb0813a8e482cc7b239ea16156651a3f",
+    "records/positive/probe-source.c.gz": "9f52ed19eb108f71fe00ffdc1b9a539975ad096e045bd49b8de505377e8c9111",
+    "records/positive/raw.log.gz": "92acebf5878f003bf32802afd405787a881e80ba36f42d32f4cfd51d34391d84",
+    "records/positive/receipt.json.gz": "e5e90a21091dd90acad26f7b745b7c3b6092565f6211065a37fff318b724ce3e",
+    "records/positive/remote-receipt.json.gz": "c5b486bfa9ec6865622525682464161f24a9f42ecd15d5b13dc7c3efd7e2668e",
+    "records/positive/run-source.sh.gz": "6e01094fea86bdb4c23f7b6ac88ba960c0d08b0208d4efcb9ce4ed7f8ee65a81",
+    "records/positive/trace.txt.gz": "0be77df2b2b28fe813065984f7cf8cee8df4cd25fd4b41b334e710f5b98d8102",
+    "run.sh": "cd5ac0362856c32007cb6dc28db5e543359f237d82f3b2382e3d2a264d05e4c9",
+    "verify.py": "7aba8f2993634ad7a0e077cd89725b2e0d4a8793d30ba53232c4ed04e3c2d159"
+  },
+  "dependencies": {
+    "jp-ink-mario-pusher-release/generate.py": "9bd4f10f68074f26c63261270a71f783265f9f100d0572590ec91138395938f0",
+    "jp-ink-mario-pusher-release/check.py": "60192251e844bc1eb6d3ef1d7aa1384c89af409597d3744d2262ceb7890d5bfb",
+    "jp-ink-preplaced-pushers/generate.py": "d4c9589f632867ef8c1c1bbfcc5b017a9ab4845e438392034032d43353829a82",
+    "jp-ink-enlarged-bob-handoff/generate.py": "2b42b5fc4551c0b74482a3843b407e84c7cfa3171c3b014ad74f8ae4c3682376",
+    "ink-floor768-diagnosis/probe.c": "22bdb45e17f9fa25e41f041f35c3cece38920c0f95b080b45d43275d35d2d9bb",
+    "jp-clean-gap-search/jp_clean_gap_search_probe.c": "7ebe3672f71bb596610b6b3b3fe2804a451ca74e3a5bcd48a94ff864e2bdc8b5",
+    "ink-shell-carried-bob-mount/check.py": "c2930cd8ac6df42647ce6cd6b529068c0536493a1477690e954fcf4f97ab9e24"
+  }
+}

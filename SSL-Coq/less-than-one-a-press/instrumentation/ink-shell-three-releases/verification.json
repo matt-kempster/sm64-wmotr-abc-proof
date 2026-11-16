@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "scope": "Artifact hashes, not a gameplay or proof theorem",
+  "sha256": {
+    "instrumentation/ink-shell-three-releases/check.py": "8cede39d16ffefe3d943e23b429b7eff2bc7e82eefd1c0ca683b953073fa260a",
+    "instrumentation/ink-shell-three-releases/README.md": "d0b94b30c3ed60a9ba1fd3c32ba153429d121558e2e65296e9f2a3f3ab90e535",
+    "instrumentation/ink-shell-three-releases/archive.py": "1c7bea31ff782f9db3c8df11024ea7f0723d04f18d944037607e3e1348de9ba2",
+    "instrumentation/ink-shell-three-releases/results.json.gz": "89c3a6eb16078d4bdcf375a878c564fa9dc703ff219fa6d2562141812d4b5fc6",
+    "instrumentation/ink-shell-three-releases/positive.json": "c70ba33ef29b5795ebdba184e11e9d7324386aa0da7fd5039a37999ad90242d6",
+    "instrumentation/ink-shell-three-releases/no-box.json": "8c1c8fe2bbb79fc99616c6576b63468f08e890ce36e3c05dbc369289d80132ed",
+    "instrumentation/ink-shell-three-releases/no-entry.json": "5c7498d7b5b5868a8b7ef4ed750361fd37040943dd0b0de914213e27dae81978",
+    "instrumentation/ink-shell-three-releases/.gitattributes": "705fd4d6451a31d36b3df7de96f83f30ac976c9b4a6d1e51671d8e2f33e2d0da",
+    "instrumentation/ink-shell-remote-functionality/handoff.py": "64e8a3031594475992204f7ddf01083ddeb111e4d87f7a8f9e64d0e7fb136233",
+    "instrumentation/ink-mario-pusher-delivery/controlled-bob/joint.py": "36a6ffa494cc8c2c7b939f1da668e9ff17317ea58ad226758689d22a038260f8",
+    "instrumentation/ink-mario-pusher-delivery/controlled-bob/test.py": "06f0d026d635c0cd3fc0301576e8e362deb9c04eaaf429ed5f808911470695fc",
+    "instrumentation/ink-mario-pusher-delivery/controlled-box/check.py": "31f61a6ded1d980af1021dc23dc5ff30b8554168cdcca307a1c209c2562a48fc",
+    "instrumentation/ink-shell-clone-isolation/test.py": "28130311248a478bea060872a8404e36b73ce0dc740228dae6fcd1962dad6528",
+    "instrumentation/ink-bobomb-retimed-shoves/search.py": "c4cad710d3fc87b0a28082f5d414282dfdabe6979abe1b169f4bd343e22bd64c",
+    "instrumentation/ink-enlarged-bob-handoff/search.py": "306147d99bee01bad16c199dad3c14af653c2ba4246e92524a44d78aa6502e46",
+    "instrumentation/ink-enlarged-bob-profile/profile.py": "cafbbe6429a37b689f5fce5a1c1c0590d0b70f6f5fa7ad0201510990500b3ea2"
+  }
+}
