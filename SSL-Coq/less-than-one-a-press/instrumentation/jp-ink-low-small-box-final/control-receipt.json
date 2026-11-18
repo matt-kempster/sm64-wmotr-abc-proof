@@ -1,0 +1,68 @@
+{
+  "case": "control",
+  "romSHA256": "9cf7a80db321b07a8d461fe536c02c87b7412433953891cdec9191bfad2db317",
+  "rawLogSHA256": "39a8e84f257586a2d5661793ecd381932972f9c8c0c3fbc6e869105db29c0884",
+  "recipeSHA256": "b29d4f581c6bf42463961bbece7faa433927bec3590d4a3d722204f573a913fb",
+  "comparedCameraUpdates": 27,
+  "missingCameraBoundaries": [
+    27,
+    28
+  ],
+  "comparisons": 1080,
+  "gameplayWrites": 125,
+  "lastWriteBeforeUpdate": 128,
+  "pushes": [
+    {
+      "update": 129,
+      "slot": 39,
+      "actor": "(-2080.06006,1867.13062,-1230.32202)",
+      "radius": 91.0,
+      "before": "(-2082.92407,1809.20667,-1221.22595)",
+      "after": "(-2117.02686,1809.20667,-1113.00854)"
+    },
+    {
+      "update": 130,
+      "slot": 23,
+      "actor": "(-2108.65771,1920.50037,-1126.91797)",
+      "radius": 60.0,
+      "before": "(-2117.02686,1839.44727,-1113.00854)",
+      "after": "(-2156.19702,1839.44727,-1048.15247)"
+    }
+  ],
+  "freshFloor": {
+    "bridge": "5",
+    "timer": "2679",
+    "caller": "802538a0",
+    "current": "80346038",
+    "query": "(-2117.02686,1839.44727,-1113.00854)",
+    "result": "768",
+    "surface": "80195db0",
+    "owner": "00000000",
+    "cache": "1839.44727",
+    "M": "(-2117.02686,1839.44727,-1113.00854)"
+  },
+  "warpQueries": [
+    {
+      "bridge": "6",
+      "timer": "2680",
+      "caller": "802538a0",
+      "current": "80346038",
+      "query": "(-2099,768,-1048.15247)",
+      "result": "768",
+      "surface": "80195ea0",
+      "owner": "00000000",
+      "cache": "768",
+      "M": "(-2099,768,-1048.15247)"
+    }
+  ],
+  "producer": {
+    "M": "(-2156.19702,768,-1048.15247)",
+    "C": "(-2156.19702,768,-1048.15247)",
+    "G": "(-2156.19702,1839.44727,-1048.15247)",
+    "floorY": "768"
+  },
+  "capturedOnUpdate": null,
+  "topRetainedToWarp": false,
+  "arrival": "(0,5500,256)",
+  "useful": false
+}
