@@ -151,3 +151,33 @@ its boot check is the clause itself, and it is the right carrier for per-slot pi
    closure, written cells), after milestone 1.
 
 Order: green first (1 + the WIP row) -> 2 -> undecided sites -> 3.
+
+## 2026-11-24 (fifth round): choices, written before executing
+
+State: master af5b951a merged. WIP row 2 (box byte) compiles through ObjFld; frontier ObjStep.
+
+Read before choosing:
+- `red_ok` and table row 1 have NO reader outside their own keepers. What is load-bearing
+  is `kind_ok` (no INTERACT_STAR slot), which feeds `wmotr_objects`. So the red-coin pair
+  cannot be dropped the way box_pos_ok was: "no star slot" must stay, and it is true only
+  through "coin #2 not touched", i.e. Mario's height (Pobj already holds Phi, so the
+  induction is statable inside the rows).
+- What the red-coin repair really needs (not objects-local): (i) obj_w pins a coin-#2
+  slot (script, position, hitbox, active, INTERACTED clear) and a count
+  (star counter + live red coins <= 8); (ii) the PROVED collision stage must show Mario's
+  collided list never holds that slot (the f32 overlap test against PhiW's height: new
+  geometry in CollWalk); (iii) Mario's frame must keep INTERACTED clear on non-collided
+  slots. (ii)/(iii) are Mario-side / proved-stage files. No cheaper true restatement
+  found: any clause that makes the two sites true must exclude "coin interacted at
+  counter 7", and only Mario's height does that. => reported as a cross-track item.
+
+**Order chosen:**
+1. Land row 2 (box byte) green: milestone 1.
+2. Census the undecided sites (Sweep4-style reach classes on the spine), so every
+   NOT DECIDED site gets a computed class instead of a reading.
+3. Lid oHome. NOT a third hand-built re-anchor: add a state-keyed clause to GPs
+   (`v_s st0 = LIDS -> past SET_HOME -> home pinned in the ghost`) fed by a row that
+   pins pos before word 4 and home after; only the home_keep step establishes it.
+   Stop if it reaches the cannon's cost shape (3 failed rounds => redesign).
+4. Split native_res by site class so that discharged classes leave the row
+   (dead sites first: provable now from dead_site_no_Q).

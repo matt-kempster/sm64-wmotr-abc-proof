@@ -788,10 +788,16 @@ Section STEP.
     byte2 w = 47 -> In (v_s st) OW.live_bhvs -> False.
   Proof.
     intros st w Hst Hw Ho E47 Hl. pose proof set47_dead as A. cbv beta in A. rewrite forallb_forall in A.
-    specialize (A st Hst). unfold opc, w0 in A. rewrite Hw, Ho, E47 in A. cbn [Z.eqb Pos.eqb andb] in A.
+    specialize (A st Hst). cbv beta in A.
+    (* rewrite the guard and the lookup by closed equations: no reduction on A
+       (a cbn there made the kernel compare the guard with existsb over
+       live_bhvs and evaluate the closure at Qed) *)
+    assert (C : andb (Z.eqb (opc st) 16) (Z.eqb (byte2 (w0 st)) 47) = true).
+    { assert (W : w0 st = w) by (unfold w0; rewrite Hw; reflexivity).
+      unfold opc. rewrite W, Ho, E47. reflexivity. }
     assert (E : existsb (Pos.eqb (v_s st)) OW.live_bhvs = true)
       by (apply existsb_exists; exists (v_s st); split; [ exact Hl | apply Pos.eqb_refl ]).
-    rewrite E in A. discriminate A.
+    rewrite C, E in A. discriminate A.
   Qed.
 
   Lemma set_ops_ok :

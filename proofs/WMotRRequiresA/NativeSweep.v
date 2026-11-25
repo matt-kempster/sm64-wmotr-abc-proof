@@ -129,3 +129,65 @@ Proof.
   - intros [-> | ->]; [ right; left | left ]; reflexivity.
   - intros [E | [E | []]]; [ right | left ]; rewrite <- (Int.repr_signed p), <- E; reflexivity.
 Qed.
+
+(* 4 (2026-11-24): the NOT DECIDED live natives, classed by what their
+   reference closure (generated ASTs) reaches.  A census: it names which
+   sites can create / free a slot or read Mario at all; it proves no site. *)
+Definition reach (x : string) (f : ident) : bool :=
+  existsb (Pos.eqb (ident_of_string x)) (closure_of [f]).
+Definition spawns (f : ident) : bool := reach "allocate_object" f || reach "unload_object" f.
+Definition sees_mario (f : ident) : bool := reach "gMarioStates" f || reach "gMarioObject" f.
+Definition closed_native (f : ident) : bool :=
+  negb (spawns f || sees_mario f || reach "load_object_collision_model" f || reach "gMarioPlatform" f
+        || reach "cur_obj_nearest_object_with_behavior" f || reach "save_file_set_flags" f).
+
+Lemma reach_counts :
+  (List.length (filter closed_native live_res_natives),
+   List.length (filter spawns live_res_natives),
+   List.length (filter sees_mario live_res_natives)) = (12, 42, 22)%nat.
+Proof. vm_compute. reflexivity. Qed.
+
+(* the 12 live residual natives that reach none of those: no slot is
+   created or freed, Mario is not read *)
+Lemma closed_natives_value : map string_of_ident (filter closed_native live_res_natives) =
+  ["bhv_tree_snow_or_leaf_loop"; "bhv_pole_init"; "bhv_bowser_key_course_exit_loop";
+   "bhv_bowser_key_unlock_door_loop"; "bhv_init_room"; "bhv_star_spawn_init"; "bhv_collect_star_init";
+   "bhv_cannon_base_loop"; "bhv_white_puff_exploding_loop"; "bhv_end_toad_loop"; "bhv_end_peach_loop";
+   "try_print_debug_mario_level_info"]%string.
+Proof. vm_compute. reflexivity. Qed.
+
+(* 5 (2026-11-24) FOUND: live_bhvs still holds the star family.  script_ok
+   admits a slot that runs bhvStar / bhvStarSpawnCoordinates, and at such a
+   slot native_res asks bhv_collect_star_init, which stores INTERACT_STAR:
+   KIND breaks.  The family's 13 live sites, and the only bodies / scripts
+   of the closure that mention a member (so the only spawners). *)
+Definition star_fam : list ident := map ident_of_string
+  ["bhvStar"; "bhvStarSpawnCoordinates"; "bhvCelebrationStar"; "bhvSpawnedStarNoLevelExit";
+   "bhvBowserKeyUnlockDoor"; "bhvBowserKeyCourseExit"; "bhvEndToad"; "bhvEndPeach"; "bhvUnlockDoorStar"]%string.
+Definition in_fam (x : ident) : bool := existsb (Pos.eqb x) star_fam.
+
+Lemma star_fam_live : forallb live star_fam = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma star_fam_sites_value : map sname (filter (fun x => in_fam (fst (fst x))) live_sites) =
+  [("bhvBowserKeyCourseExit", 5%nat, "bhv_bowser_key_course_exit_loop");
+   ("bhvBowserKeyUnlockDoor", 5%nat, "bhv_bowser_key_unlock_door_loop");
+   ("bhvStar", 4%nat, "bhv_collect_star_init");
+   ("bhvStar", 2%nat, "bhv_init_room");
+   ("bhvStarSpawnCoordinates", 7%nat, "bhv_star_spawn_loop");
+   ("bhvStarSpawnCoordinates", 4%nat, "bhv_star_spawn_init");
+   ("bhvStarSpawnCoordinates", 2%nat, "bhv_collect_star_init");
+   ("bhvSpawnedStarNoLevelExit", 6%nat, "bhv_spawned_star_loop");
+   ("bhvCelebrationStar", 5%nat, "bhv_celebration_star_loop");
+   ("bhvUnlockDoorStar", 5%nat, "bhv_unlock_door_star_loop");
+   ("bhvUnlockDoorStar", 2%nat, "bhv_unlock_door_star_init");
+   ("bhvEndToad", 6%nat, "bhv_end_toad_loop");
+   ("bhvEndPeach", 6%nat, "bhv_end_peach_loop")]%string.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma star_fam_referrers :
+  map string_of_ident (filter (fun x => existsb in_fam (refs_of x)) wmotr_closure) =
+  ["general_star_dance_handler"; "spawn_star"; "act_exit_land_save_dialog"; "act_end_waving_cutscene";
+   "act_unlocking_key_door"; "act_unlocking_star_door"; "end_peach_cutscene_spawn_peach"; "bhvSpawnedStar";
+   "bhv_spawn_star_no_level_exit"; "bhv_hidden_red_coin_star_init"]%string.
+Proof. vm_compute. reflexivity. Qed.
