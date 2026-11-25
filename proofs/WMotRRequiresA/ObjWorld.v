@@ -77,6 +77,7 @@ Definition O_SIDX : Z := 464.  (* bhvStackIndex (u32) *)
 Definition O_STK : Z := 468.   (* bhvStack[8] (uintptr_t) *)
 Definition O_ACTION : Z := RAW_OFF + 4 * 49.   (* oAction, 0x14C *)
 Definition O_HSCOUNT : Z := RAW_OFF + 4 * 27.  (* oHiddenStarTriggerCounter, 0xF4 *)
+Definition O_BP2 : Z := RAW_OFF + 4 * 47.      (* oBehParams2ndByte, 0x144 *)
 Definition DBG_ENEMY7 : Z := 2 * (5 * 8 + 7).  (* gDebugInfo[5][7], s16 *)
 
 Definition oce : composite_env := prog_comp_env object_helpers.prog.
@@ -905,7 +906,13 @@ Qed.
    < 8.  bhv_hidden_red_coin_star_loop at oAction 1 spawns a
    bhvStarSpawnCoordinates (red_ok forbids it); it leaves action 0 only at
    counter = 8.  red_ok's own counter bound is keyed by oBehavior, which no
-   clause ties to the script, so the row restates it by script. *)
+   clause ties to the script, so the row restates it by script.
+   Row 2 (2026-11-14), bhvExclamationBox: oBehParams2ndByte (the contents
+   id) is 0 or 7, the ids of WMotR's boxes (BoxCensus.box_ids: six wing-cap
+   boxes and the 1-up box).  exclamation_box_spawn_contents walks
+   sExclamationBoxContents by this id; another id spawns another object
+   (or, unlisted, none).  No live script command writes the field (ObjStep.
+   set47_dead: only bhvSpawnedStar's word 2 does). *)
 Record trow : Type := {
   tr_s : ident;
   tr_cells : list (memory_chunk * Z);
@@ -920,24 +927,65 @@ Definition hstar_chk (_ : Z) (vs : list (option val)) : bool :=
   | _ => false
   end.
 
+Definition box_chk (_ : Z) (vs : list (option val)) : bool :=
+  match vs with
+  | [Some (Vint p)] => Int.eq p Int.zero || Int.eq p (Int.repr 7)
+  | _ => false
+  end.
+
+(* Row 3 (2026-11-25), bhvCannonClosed (the cannon lid), NOT flat: keyed
+   by the command offset.  At or before byte 16 (word 4, SET_HOME) the
+   lid's position is one of cannon_lid_xyz (a lid's macro position: the
+   level's spawn); past it, its HOME is.  bhv_cannon_closed_init (word 5,
+   and again from the loop's opening action at timer 80) spawns the cannon
+   base at oHome; the opening action moves oPos, never oHome.  The lid's
+   first update runs words 0..12 in one frame, so between SET_HOME and
+   that frame's end the slot is past word 4 while its frame-start ghost is
+   at word 0: INV_k carries the home for that window (ObjInv.HLk).  A
+   keeper that moves a lid's position, home or command offset keeps the row
+   through lid_at (tab_at_scr's third premise). *)
+Definition oveq (a : option val) (v : val) : bool := match a with Some u => veqb u v | None => false end.
+
+Definition lid3 (a b c : option val) : bool :=
+  existsb (fun t => match t with (x, y, z) => oveq a (f32z x) && oveq b (f32z y) && oveq c (f32z z) end)
+    cannon_lid_xyz.
+
+Definition LID_OFF : Z := 16.
+
+Definition lid_chk (o : Z) (vs : list (option val)) : bool :=
+  match vs with
+  | [px; py; pz; hx; hy; hz] => if o <=? LID_OFF then lid3 px py pz else lid3 hx hy hz
+  | _ => false
+  end.
+
+Definition lid_cells : list (memory_chunk * Z) :=
+  [(Mfloat32, O_POSX); (Mfloat32, O_POSY); (Mfloat32, O_POSZ);
+   (Mfloat32, O_HOMEX); (Mfloat32, O_HOMEY); (Mfloat32, O_HOMEZ)].
+
+Definition LID_ROW : trow := {| tr_s := LIDS; tr_cells := lid_cells; tr_chk := lid_chk |}.
+
 Definition slot_tab : list trow :=
-  [ {| tr_s := HSTARS; tr_cells := [(Mint32, O_ACTION); (Mint32, O_HSCOUNT)]; tr_chk := hstar_chk |} ].
+  [ {| tr_s := HSTARS; tr_cells := [(Mint32, O_ACTION); (Mint32, O_HSCOUNT)]; tr_chk := hstar_chk |};
+    {| tr_s := BOXS; tr_cells := [(Mint32, O_BP2)]; tr_chk := box_chk |};
+    LID_ROW ].
 
-Definition tab_scripts : list ident := [HSTARS].
-Definition tab_cells : list (memory_chunk * Z) := [(Mint32, O_ACTION); (Mint32, O_HSCOUNT)].
+(* the FLAT rows' scripts and cells (rows 1, 2) *)
+Definition tab_scripts : list ident := [HSTARS; BOXS].
+Definition tab_cells : list (memory_chunk * Z) := [(Mint32, O_ACTION); (Mint32, O_HSCOUNT); (Mint32, O_BP2)].
 
-Lemma tab_scripts_all : forall r, In r slot_tab -> In (tr_s r) tab_scripts.
-Proof. intros r Hr. change tab_scripts with (map tr_s slot_tab). exact (in_map tr_s _ _ Hr). Qed.
-
-Lemma tab_cells_all : forall r c, In r slot_tab -> In c (tr_cells r) -> In c tab_cells.
+(* a row is the lid's, or flat: its script and cells listed, its check
+   ignoring the command offset *)
+Lemma tab_rows : forall r, In r slot_tab -> r = LID_ROW \/
+  (In (tr_s r) tab_scripts /\ (forall c, In c (tr_cells r) -> In c tab_cells)
+   /\ forall o o' vs, tr_chk r o vs = tr_chk r o' vs).
 Proof.
-  intros r c Hr Hc. change tab_cells with (flat_map tr_cells slot_tab).
-  apply in_flat_map. exists r. exact (conj Hr Hc).
+  intros r Hr. unfold slot_tab in Hr. destruct Hr as [<- | [<- | [<- | []]]].
+  - right. split; [ left; reflexivity | split; [ | reflexivity ] ].
+    intros c [<- | [<- | []]]; [ left; reflexivity | right; left; reflexivity ].
+  - right. split; [ right; left; reflexivity | split; [ | reflexivity ] ].
+    intros c [<- | []]. right; right; left; reflexivity.
+  - left. reflexivity.
 Qed.
-
-(* every row so far is flat: its check ignores the command offset *)
-Lemma tab_flat : forall r, In r slot_tab -> forall o o' vs, tr_chk r o vs = tr_chk r o' vs.
-Proof. intros r Hr o o' vs. cbn [slot_tab In] in Hr. destruct Hr as [<- | []]. reflexivity. Qed.
 
 Definition rd_cells (m : mem) (pool : block) (o : Z) (cs : list (memory_chunk * Z)) : list (option val) :=
   map (fun c => CM.load (fst c) m pool (o + snd c)) cs.
@@ -975,25 +1023,150 @@ Proof.
   split; [ reflexivity | exists c; split; [ reflexivity | apply Z.ltb_lt; exact C2 ] ].
 Qed.
 
-(* THE KEEPER: the table's cells kept and the table scripts' "runs" kept
-   (the command pointer may move inside its script: the rows are flat) *)
+(* row 2, unfolded: a slot running the box script holds contents id 0 or 7 *)
+Lemma box_at : forall ge pool m k b o, tab_at ge pool m k ->
+  Genv.find_symbol ge BOXS = Some b -> ld32 m pool (k * OSZ + O_CMD) = Some (Vptr b o) ->
+  exists p, Mem.load Mint32 m pool (k * OSZ + O_BP2) = Some (Vint p) /\ (p = Int.zero \/ p = Int.repr 7).
+Proof.
+  intros ge pool m k b o H Hs L.
+  pose proof (tab_at_row ge pool m k _ b o H (or_intror (or_introl eq_refl)) Hs L) as C.
+  cbn [tr_chk tr_cells rd_cells map fst snd box_chk] in C. rewrite !CM.load_eq in C.
+  destruct (Mem.load Mint32 m pool (k * OSZ + O_BP2)) as [[| p | | | |] |]; try discriminate C.
+  exists p. split; [ reflexivity | ]. apply orb_prop in C as [C | C]; [ left | right ].
+  - pose proof (Int.eq_spec p Int.zero) as E. rewrite C in E. exact E.
+  - pose proof (Int.eq_spec p (Int.repr 7)) as E. rewrite C in E. exact E.
+Qed.
+
+(* ROW 3, the lid: its own clause, and its keepers *)
+Definition lid_at (ge : genv) (pool : block) (m : mem) (k : Z) : Prop := row_b ge pool m k LID_ROW = true.
+
+Definition lid_pos (m : mem) (pool : block) (o : Z) : Prop :=
+  exists x y z, In (x, y, z) cannon_lid_xyz /\ can_pos m pool o x y z.
+Definition lid_home (m : mem) (pool : block) (o : Z) : Prop :=
+  exists x y z, In (x, y, z) cannon_lid_xyz /\ can_home m pool o x y z.
+
+Lemma tab_lid : forall (ge : genv) pool m k, tab_at ge pool m k -> lid_at ge pool m k.
+Proof.
+  intros ge pool m k H. unfold tab_at in H. rewrite forallb_forall in H. unfold lid_at.
+  apply H. unfold slot_tab. right; right; left; reflexivity.
+Qed.
+
+Lemma oveq_eq : forall a v, oveq a v = true -> a = Some v.
+Proof.
+  intros [u |] v H; [ | discriminate H ]. unfold oveq, veqb in H.
+  destruct (Val.eq u v) as [-> | _]; [ reflexivity | discriminate H ].
+Qed.
+
+Lemma oveq_refl : forall v, oveq (Some v) v = true.
+Proof. intros v. unfold oveq, veqb. destruct (Val.eq v v) as [_ | N]; [ reflexivity | exfalso; exact (N eq_refl) ]. Qed.
+
+Lemma lid3_iff : forall m pool o a b c,
+  lid3 (CM.load Mfloat32 m pool (o + a)) (CM.load Mfloat32 m pool (o + b)) (CM.load Mfloat32 m pool (o + c)) = true
+  <-> exists x y z, In (x, y, z) cannon_lid_xyz /\ Mem.load Mfloat32 m pool (o + a) = Some (f32z x)
+        /\ Mem.load Mfloat32 m pool (o + b) = Some (f32z y) /\ Mem.load Mfloat32 m pool (o + c) = Some (f32z z).
+Proof.
+  intros m pool o a b c. unfold lid3. rewrite existsb_exists, !CM.load_eq. split.
+  - intros (((x & y) & z) & Hin & E). apply andb_prop in E as [E E3]. apply andb_prop in E as [E1 E2].
+    exists x, y, z. exact (conj Hin (conj (oveq_eq _ _ E1) (conj (oveq_eq _ _ E2) (oveq_eq _ _ E3)))).
+  - intros (x & y & z & Hin & L1 & L2 & L3). exists (x, y, z). split; [ exact Hin | ].
+    rewrite L1, L2, L3, !oveq_refl. reflexivity.
+Qed.
+
+Lemma lid_cells_rd : forall m pool o, rd_cells m pool o lid_cells =
+  [CM.load Mfloat32 m pool (o + O_POSX); CM.load Mfloat32 m pool (o + O_POSY); CM.load Mfloat32 m pool (o + O_POSZ);
+   CM.load Mfloat32 m pool (o + O_HOMEX); CM.load Mfloat32 m pool (o + O_HOMEY); CM.load Mfloat32 m pool (o + O_HOMEZ)].
+Proof. reflexivity. Qed.
+
+(* what the row says at a lid slot: by its command offset, pos or home *)
+Lemma lid_at_off : forall (ge : genv) pool m k b o, lid_at ge pool m k ->
+  Genv.find_symbol ge LIDS = Some b -> ld32 m pool (k * OSZ + O_CMD) = Some (Vptr b o) ->
+  (Ptrofs.unsigned o <= LID_OFF -> lid_pos m pool (k * OSZ)) /\ (LID_OFF < Ptrofs.unsigned o -> lid_home m pool (k * OSZ)).
+Proof.
+  intros ge pool m k b o H Hs L. unfold lid_at, row_b in H.
+  change (tr_s LID_ROW) with LIDS in H. change (tr_cells LID_ROW) with lid_cells in H.
+  change (tr_chk LID_ROW) with lid_chk in H. rewrite Hs, L, Pos.eqb_refl, lid_cells_rd in H.
+  cbn [negb orb lid_chk] in H. split; intros Ho.
+  - rewrite (proj2 (Z.leb_le _ _) Ho) in H. apply lid3_iff in H as (x & y & z & Hin & L1 & L2 & L3).
+    exists x, y, z. exact (conj Hin (conj L1 (conj L2 L3))).
+  - rewrite (proj2 (Z.leb_gt _ _) Ho) in H. apply lid3_iff in H as (x & y & z & Hin & L1 & L2 & L3).
+    exists x, y, z. exact (conj Hin (conj L1 (conj L2 L3))).
+Qed.
+
+(* ... and back: the clause from the pos / home by the offset *)
+Lemma lid_at_mk : forall (ge : genv) pool m k,
+  (forall b o, Genv.find_symbol ge LIDS = Some b -> ld32 m pool (k * OSZ + O_CMD) = Some (Vptr b o) ->
+     (Ptrofs.unsigned o <= LID_OFF -> lid_pos m pool (k * OSZ)) /\ (LID_OFF < Ptrofs.unsigned o -> lid_home m pool (k * OSZ))) ->
+  lid_at ge pool m k.
+Proof.
+  intros ge pool m k H. unfold lid_at, row_b.
+  change (tr_s LID_ROW) with LIDS. change (tr_cells LID_ROW) with lid_cells.
+  change (tr_chk LID_ROW) with lid_chk. rewrite lid_cells_rd.
+  destruct (Genv.find_symbol ge LIDS) as [b |] eqn:Hs; [ | reflexivity ].
+  destruct (ld32 m pool (k * OSZ + O_CMD)) as [[| | | | | b' o] |] eqn:L; try reflexivity.
+  destruct (Pos.eqb_spec b' b) as [-> | _]; [ cbn [negb orb lid_chk] | reflexivity ].
+  destruct (H b o eq_refl eq_refl) as (H1 & H2).
+  destruct (Z.leb_spec (Ptrofs.unsigned o) LID_OFF) as [Ho | Ho].
+  - destruct (H1 Ho) as (x & y & z & Hin & L1 & L2 & L3). apply lid3_iff. exists x, y, z. exact (conj Hin (conj L1 (conj L2 L3))).
+  - destruct (H2 Ho) as (x & y & z & Hin & L1 & L2 & L3). apply lid3_iff. exists x, y, z. exact (conj Hin (conj L1 (conj L2 L3))).
+Qed.
+
+(* a slot not running the lid script passes the row *)
+Lemma lid_at_nr : forall (ge : genv) pool m k, runs ge pool m k LIDS = false -> lid_at ge pool m k.
+Proof.
+  intros ge pool m k R. apply lid_at_mk. intros b o Hs L. exfalso.
+  unfold runs, sym_is in R. rewrite L, Hs, Pos.eqb_refl in R. discriminate R.
+Qed.
+
+(* the command cell and the six cells kept *)
+Lemma lid_at_eq : forall (ge : genv) pool m m' k,
+  ld32 m' pool (k * OSZ + O_CMD) = ld32 m pool (k * OSZ + O_CMD) ->
+  (forall c, In c lid_cells -> Mem.load (fst c) m' pool (k * OSZ + snd c) = Mem.load (fst c) m pool (k * OSZ + snd c)) ->
+  lid_at ge pool m k -> lid_at ge pool m' k.
+Proof.
+  intros ge pool m m' k C L H. unfold lid_at, row_b in *. rewrite C.
+  assert (E : rd_cells m' pool (k * OSZ) (tr_cells LID_ROW) = rd_cells m pool (k * OSZ) (tr_cells LID_ROW)).
+  { unfold rd_cells. apply map_ext_in. intros c Hc. rewrite !CM.load_eq. exact (L c Hc). }
+  rewrite E. exact H.
+Qed.
+
+(* the command cell and the position kept, at a lid slot whose offset is
+   at or before SET_HOME (the home is not read there) *)
+Lemma lid_at_pos : forall (ge : genv) pool m m' k,
+  ld32 m' pool (k * OSZ + O_CMD) = ld32 m pool (k * OSZ + O_CMD) ->
+  (forall off, In off [O_POSX; O_POSY; O_POSZ] -> Mem.load Mfloat32 m' pool (k * OSZ + off) = Mem.load Mfloat32 m pool (k * OSZ + off)) ->
+  (forall b o, Genv.find_symbol ge LIDS = Some b -> ld32 m pool (k * OSZ + O_CMD) = Some (Vptr b o) -> Ptrofs.unsigned o <= LID_OFF) ->
+  lid_at ge pool m k -> lid_at ge pool m' k.
+Proof.
+  intros ge pool m m' k C L Lo H. apply lid_at_mk. intros b o Hs L'. rewrite C in L'.
+  pose proof (Lo b o Hs L') as Ho. split; [ intros _ | intros Hg; exfalso; lia ].
+  destruct (proj1 (lid_at_off ge pool m k b o H Hs L') Ho) as (x & y & z & Hin & L1 & L2 & L3).
+  exists x, y, z. split; [ exact Hin | ]. unfold can_pos.
+  rewrite (L O_POSX ltac:(left; reflexivity)), (L O_POSY ltac:(right; left; reflexivity)),
+    (L O_POSZ ltac:(right; right; left; reflexivity)).
+  exact (conj L1 (conj L2 L3)).
+Qed.
+
+(* THE KEEPER: the flat rows' cells and scripts' "runs" kept (the command
+   pointer may move inside its script), and the lid row by its own keep *)
 Lemma tab_at_scr : forall ge pool m m' k,
   (forall id, In id tab_scripts -> runs ge pool m' k id = runs ge pool m k id) ->
   (forall c, In c tab_cells ->
      Mem.load (fst c) m' pool (k * OSZ + snd c) = Mem.load (fst c) m pool (k * OSZ + snd c)) ->
+  (lid_at ge pool m k -> lid_at ge pool m' k) ->
   tab_at ge pool m k -> tab_at ge pool m' k.
 Proof.
-  intros ge pool m m' k R L H. unfold tab_at in *. rewrite forallb_forall in *. intros r Hr.
-  specialize (H r Hr). pose proof (R (tr_s r) (tab_scripts_all r Hr)) as Rr.
+  intros ge pool m m' k R L LL H. unfold tab_at in *. rewrite forallb_forall in *. intros r Hr.
+  specialize (H r Hr). destruct (tab_rows r Hr) as [-> | (Hsr & Hcr & Hfr)]; [ exact (LL H) | ].
+  pose proof (R (tr_s r) Hsr) as Rr.
   assert (Ec : rd_cells m' pool (k * OSZ) (tr_cells r) = rd_cells m pool (k * OSZ) (tr_cells r)).
-  { unfold rd_cells. apply map_ext_in. intros c Hc. rewrite !CM.load_eq. exact (L c (tab_cells_all r c Hr Hc)). }
+  { unfold rd_cells. apply map_ext_in. intros c Hc. rewrite !CM.load_eq. exact (L c (Hcr c Hc)). }
   unfold row_b in *. unfold runs, sym_is in Rr.
   destruct (Genv.find_symbol ge (tr_s r)) as [b |]; [ | reflexivity ].
   destruct (ld32 m' pool (k * OSZ + O_CMD)) as [[| | | | | b' o'] |]; try reflexivity.
   destruct (Pos.eqb b' b) eqn:Eb; [ cbn [negb orb] | reflexivity ].
   destruct (ld32 m pool (k * OSZ + O_CMD)) as [[| | | | | b2 o2] |]; try discriminate Rr.
   rewrite <- Rr in H. cbn [negb orb] in H.
-  rewrite Ec, (tab_flat r Hr (Ptrofs.unsigned o') (Ptrofs.unsigned o2)). exact H.
+  rewrite Ec, (Hfr (Ptrofs.unsigned o') (Ptrofs.unsigned o2)). exact H.
 Qed.
 
 Definition pin_at (ge : genv) (pool : block) (m : mem) (k : Z) : Prop :=
@@ -1015,7 +1188,7 @@ Definition pin_offs0 : list Z :=
   [O_INTERACT_TYPE; O_POSX; O_POSY; O_POSZ; HITBOX_DOWN_OFF; O_BPARAMS].
 Definition pin_offs : list Z :=
   [O_INTERACT_TYPE; O_POSX; O_POSY; O_POSZ; HITBOX_DOWN_OFF; O_BPARAMS;
-   O_ACTION; O_PREVACT; O_TIMER; O_HOMEX; O_HOMEY; O_HOMEZ; O_HSCOUNT].
+   O_ACTION; O_PREVACT; O_TIMER; O_HOMEX; O_HOMEY; O_HOMEZ; O_HSCOUNT; O_BP2].
 
 (* the table's cells are pin_offs cells, int or float *)
 Lemma tab_cells_pin : forall c, In c tab_cells ->
@@ -1077,6 +1250,10 @@ Proof.
   - apply (tab_at_scr ge pool m m' k).
     + intros id Hid. apply R. right. right. exact Hid.
     + intros c Hc. destruct (tab_cells_pin c Hc) as (Ho & Hch). exact (L (fst c) (snd c) Ho Hch).
+    + apply (lid_at_eq ge pool m m' k C). intros c Hc.
+      unfold lid_cells in Hc. cbn [In] in Hc.
+      repeat (destruct Hc as [<- | Hc]; [ cbn [fst snd]; apply L; [ unfold pin_offs; cbn [In]; tauto | right; reflexivity ] | ]).
+      destruct Hc.
 Qed.
 
 Definition sdyn (ge : genv) (pool : block) (m : mem) (k : Z) : Z :=

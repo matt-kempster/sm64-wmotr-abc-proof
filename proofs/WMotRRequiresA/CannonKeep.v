@@ -609,8 +609,14 @@ Section CK.
     { apply (ObjFamily.Qfam_start (v_s st) st' (eq_trans Ecs' (eq_sym Ecs))). rewrite Ecs.
       apply (proj1 (ObjFamily.memi_in _ _)). vm_compute. reflexivity. }
     assert (HCn : v_s st' = OW.CANS -> (7 <= v_i st' /\ v_i st' < 1000)%nat) by (intros _; exact Hvi).
+    (* obj_w's lid row: slot k0 runs bhvCannon, not the lid *)
+    assert (HLt : OW.lid_at G pool g k0 -> OW.lid_at G pool m1 k0).
+    { intros _. apply OW.lid_at_mk. intros b o Hs L. exfalso.
+      destruct V1 as ((b1 & Hb1 & L1) & _).
+      unfold OW.ld32 in L. rewrite CM.load_eq, L1 in L. injection L as <- _.
+      rewrite Ecs' in Hb1. assert (E := Genv.genv_vars_inj _ _ _ Hb1 Hs). vm_compute in E. discriminate E. }
     exact (ObjVmSwap.obj_w_vm_swap g m1 G pool k0 Kv st st' Hst' V0 V1 HQ Hy0 Hpool
-             bm HCn HCt K KS KC Kbm KSc KNC KMC How).
+             bm HCn HCt HLt K KS KC Kbm KSc KNC KMC How).
   Qed.
 
   Theorem can_drop_pc : Pc m1.

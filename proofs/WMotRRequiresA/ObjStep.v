@@ -694,14 +694,16 @@ Section STEP.
     (136 <= d /\ d <= n <= 460
      /\ forall off e, (e <= 156 \/ 160 <= off) -> (e <= 400 \/ 404 <= off) -> FieldWin.ucl off e ->
           e <= d \/ n <= off) ->
+    (n <= 324 \/ 328 <= d) ->
     js * OW.OSZ + d <= z0 /\ z0 + size_chunk ch <= js * OW.OSZ + n ->
     BhvStep.cvok (fun _ => False) ch v ->
     ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k) m ->
     Mem.store ch m pool z0 v = Some m1 ->
     (forall k', OW.can_traj G pool m k' -> OW.can_traj G pool m1 k') ->
+    (forall k', OW.lid_at G pool m k' -> OW.lid_at G pool m1 k') ->
     ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k) m1.
   Proof.
-    intros XF Hxs pool hd k js st0 m m1 ch z0 v d n Hp Hk Hj Hd Hdn Hz Hv (HP & HV & HX) S KT.
+    intros XF Hxs pool hd k js st0 m m1 ch z0 v d n Hp Hk Hj Hd Hdn H47 Hz Hv (HP & HV & HX) S KT KL.
     pose proof (pc_of_P _ HP) as Hpc.
     assert (HP1 : Pobjl m1) by (apply P_of_pc; eapply ObjFld.fld_pc_t; eassumption).
     split; [ exact HP1 | split ].
@@ -733,9 +735,11 @@ Section STEP.
     assert (Hdn : 136 <= d /\ d <= n <= 460
      /\ forall off e, (e <= 156 \/ 160 <= off) -> (e <= 400 \/ 404 <= off) -> FieldWin.ucl off e ->
           e <= d \/ n <= off) by exact (conj D1 (conj D2 (ObjFld.dn_weak d n Dh))).
-    apply (fld_gt XF Hxs pool hd k js st0 m m1 ch z0 v d n Hp Hk Hj Hd Hdn Hz Hv HG S).
+    assert (H47 : n <= 324 \/ 328 <= d).
+    { destruct (Dh 324 328 ltac:(lia) ltac:(lia) ltac:(unfold FieldWin.ucl_h; lia)) as [L | L]; [ right | left ]; exact L. }
     pose proof (pc_of_P _ (proj1 HG)) as Hpc.
-    eapply ObjFld.kt_win; eassumption.
+    apply (fld_gt XF Hxs pool hd k js st0 m m1 ch z0 v d n Hp Hk Hj Hd Hdn H47 Hz Hv HG S);
+      [ eapply ObjFld.kt_win | eapply ObjFld.kl_win ]; eassumption.
   Qed.
 
   (* a census window field's 4 bytes *)
@@ -757,7 +761,7 @@ Section STEP.
   Lemma win_ops_ok :
     forallb (fun st => if existsb (Z.eqb (opc st)) [14; 15; 17; 19; 51; 52]
                        then existsb (Z.eqb (byte2 (w0 st)))
-                              [1; 3; 10; 12; 16; 18; 19; 20; 21; 22; 23; 26; 28; 29; 38; 40; 41; 47; 52;
+                              [1; 3; 10; 12; 16; 18; 19; 20; 21; 22; 23; 26; 28; 29; 38; 40; 41; 52;
                                58; 59; 61; 67]
                        else true) vm_tab = true.
   Proof. vm_compute. reflexivity. Qed.
@@ -773,23 +777,47 @@ Section STEP.
     rewrite FieldWinCensus.win_fields_ow_value, Ef. exact Hf.
   Qed.
 
-  (* SET_INT's reachable fields: 5, 42, or a window *)
+  (* SET_INT's reachable fields: 5, 42, or a window -- or (2026-11-14) the
+     box byte 47, which obj_w's slot table reads: its one writer
+     (bhvSpawnedStar word 2) is in no live script *)
+  Lemma set47_dead :
+    (fun lv => forallb (fun st => if (opc st =? 16) && (byte2 (w0 st) =? 47)
+                                  then negb (existsb (Pos.eqb (v_s st)) lv) else true) vm_tab) OW.live_bhvs = true.
+  Proof. vm_compute. reflexivity. Qed.
+
+  Lemma set47_live : forall st w, In st vm_tab -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 16 ->
+    byte2 w = 47 -> In (v_s st) OW.live_bhvs -> False.
+  Proof.
+    intros st w Hst Hw Ho E47 Hl. pose proof set47_dead as A. cbv beta in A. rewrite forallb_forall in A.
+    specialize (A st Hst). cbv beta in A.
+    (* rewrite the guard and the lookup by closed equations: no reduction on A
+       (a cbn there made the kernel compare the guard with existsb over
+       live_bhvs and evaluate the closure at Qed) *)
+    assert (C : andb (Z.eqb (opc st) 16) (Z.eqb (byte2 (w0 st)) 47) = true).
+    { assert (W : w0 st = w) by (unfold w0; rewrite Hw; reflexivity).
+      unfold opc. rewrite W, Ho, E47. reflexivity. }
+    assert (E : existsb (Pos.eqb (v_s st)) OW.live_bhvs = true)
+      by (apply existsb_exists; exists (v_s st); split; [ exact Hl | apply Pos.eqb_refl ]).
+    rewrite C, E in A. discriminate A.
+  Qed.
+
   Lemma set_ops_ok :
     forallb (fun st => if opc st =? 16
                        then existsb (Z.eqb (byte2 (w0 st)))
-                              [5; 42; 1; 3; 10; 12; 16; 18; 19; 20; 21; 22; 23; 26; 28; 29; 38; 40; 41; 47; 52;
+                              [5; 42; 47; 1; 3; 10; 12; 16; 18; 19; 20; 21; 22; 23; 26; 28; 29; 38; 40; 41; 52;
                                58; 59; 61; 67]
                        else true) vm_tab = true.
   Proof. vm_compute. reflexivity. Qed.
 
   Lemma set_op : forall st w, In st vm_tab -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 = 16 ->
-    byte2 w = 5 \/ byte2 w = 42 \/ In (byte2 w) FieldWinCensus.win_fields_ow.
+    byte2 w = 5 \/ byte2 w = 42 \/ byte2 w = 47 \/ In (byte2 w) FieldWinCensus.win_fields_ow.
   Proof.
     intros st w Hst Hw Ho. pose proof set_ops_ok as A. rewrite forallb_forall in A. specialize (A st Hst).
     unfold opc, w0 in A. rewrite Hw, Ho in A. cbn [Z.eqb] in A.
     apply existsb_exists in A as (f & Hf & Ef). apply Z.eqb_eq in Ef.
     rewrite FieldWinCensus.win_fields_ow_value, Ef.
-    cbn [In] in Hf. destruct Hf as [<- | [<- | Hf]]; [ left; reflexivity | right; left; reflexivity | right; right; exact Hf ].
+    cbn [In] in Hf. destruct Hf as [<- | [<- | [<- | Hf]]];
+      [ left; reflexivity | right; left; reflexivity | right; right; left; reflexivity | right; right; right; exact Hf ].
   Qed.
 
   Ltac wf_side := first [ rewrite FieldWinCensus.win_fields_ow_value; cbn [In]; repeat (first [ left; reflexivity | right ])
@@ -846,7 +874,8 @@ Section STEP.
   Proof.
     intros XF Hxs pool hd k st0 Hp Hk H0 K42 m st w m1 (Hnw & HG) Hst HQ Hw Ho S.
     split; [ exact Hnw | ].
-    destruct (set_op st w Hst Hw Ho) as [E5 | [E42 | Hf]].
+    destruct (set_op st w Hst Hw Ho) as [E5 | [E42 | [E47 | Hf]]].
+    3: { exfalso. exact (set47_live st w Hst Hw Ho E47 (ObjFamily.Qfam_live _ _ HQ)). }
     - rewrite E5 in S.
       refine (fld_g XF Hxs pool hd k k st0 m m1 _ _ _ 156 160 Hp Hk Hk (PK.vm_depth st0 H0) _ _ _ HG S);
         [ | cbn [size_chunk]; lia | exact I ].
@@ -911,13 +940,53 @@ Section STEP.
           OW.O_HOMEX, OW.O_HOMEY, OW.O_HOMEZ, WMotRWorld.RAW_OFF, OW.OSZ; lia.
   Qed.
 
-  (* SET_HOME outside the cannon (the cannon's: ObjAnchor.home8) *)
+  (* the same store keeps every slot's lid row (OW.LID_ROW): slot k's
+     command is its own script's; the lid's only at or before word 4
+     (cursor <= 16), where the row reads oPos, not oHome *)
+  Lemma kl_off : forall pool k st0 g ga ch z0 v, Mem.store ch g pool z0 v = Some ga ->
+    k * OW.OSZ + 356 <= z0 -> z0 + size_chunk ch <= k * OW.OSZ + 368 ->
+    (v_s st0 = OW.LIDS -> (v_i st0 <= 4)%nat) -> BhvStep.Vo lp pool (k * OW.OSZ) g st0 ->
+    forall k', OW.lid_at G pool g k' -> OW.lid_at G pool ga k'.
+  Proof.
+    intros pool k st0 g ga ch z0 v S A B L0 ((b0 & Hb0 & Lc0) & _) k' T. pose proof (size_chunk_pos ch).
+    assert (Lo : forall ch' off, 0 <= off -> off + size_chunk ch' <= OW.OSZ ->
+              (k' <> k \/ off + size_chunk ch' <= 356 \/ 368 <= off) ->
+              Mem.load ch' ga pool (k' * OW.OSZ + off) = Mem.load ch' g pool (k' * OW.OSZ + off)).
+    { intros ch' off C1 C2 C3. apply (Mem.load_store_other _ _ _ _ _ _ S). right.
+      pose proof (size_chunk_pos ch'). unfold OW.OSZ in *.
+      destruct (Z.lt_trichotomy k' k) as [L | [-> | L]]; [ left; nia | | right; nia ].
+      destruct C3 as [C3 | [C3 | C3]]; [ exfalso; exact (C3 eq_refl) | left; lia | right; lia ]. }
+    assert (Lc : OW.ld32 ga pool (k' * OW.OSZ + OW.O_CMD) = OW.ld32 g pool (k' * OW.OSZ + OW.O_CMD)).
+    { rewrite !ld32_load. apply Lo; unfold OW.O_CMD, OW.OSZ; cbn [size_chunk]; lia. }
+    destruct (Z.eq_dec k' k) as [-> | Nk].
+    - apply (OW.lid_at_pos G pool g ga k Lc); [ | | exact T ].
+      + intros off Hoff. cbn [In] in Hoff. apply Lo;
+          destruct Hoff as [<- | [<- | [<- | []]]];
+          unfold WMotRWorld.O_POSX, WMotRWorld.O_POSY, WMotRWorld.O_POSZ, WMotRWorld.RAW_OFF, OW.OSZ;
+          cbn [size_chunk]; lia.
+      + intros b o Hb L'. rewrite ld32_load, Lc0 in L'. injection L' as Eb Eo. subst b0 o.
+        assert (El : v_s st0 = OW.LIDS) by (eapply Genv.genv_vars_inj; [ exact Hb0 | exact Hb ]).
+        pose proof (L0 El) as H4. unfold OW.LID_OFF.
+        assert (U4 : Ptrofs.unsigned (Ptrofs.repr (4 * Z.of_nat (v_i st0))) <= 16)
+          by (rewrite Ptrofs.unsigned_repr; [ lia | change Ptrofs.max_unsigned with 4294967295; lia ]).
+        exact U4.
+    - apply (OW.lid_at_eq G pool g ga k' Lc); [ | exact T ].
+      intros c Hc. unfold OW.lid_cells in Hc. cbn [In] in Hc.
+      apply Lo; [ | | left; exact Nk ];
+        destruct Hc as [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]; cbn [fst snd size_chunk];
+        unfold WMotRWorld.O_POSX, WMotRWorld.O_POSY, WMotRWorld.O_POSZ, OW.O_HOMEX, OW.O_HOMEY, OW.O_HOMEZ,
+          WMotRWorld.RAW_OFF, OW.OSZ; lia.
+  Qed.
+
+  (* SET_HOME outside the cannon (the cannon's: ObjAnchor.home8); the
+     lid's, from an update started at or before it (INV_k's lid clause) *)
   Lemma home_g : forall XF, xf_st XF -> forall pool hd k st0,
     Genv.find_symbol G OLP._gObjectPool = Some pool -> 0 <= k < OW.NSLOT -> In st0 vm_tab -> v_s st0 <> OW.CANS ->
+    (v_s st0 = OW.LIDS -> (v_i st0 <= 4)%nat) ->
     BhvStep.home_keep pool (k * OW.OSZ) (fun _ : vst => ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k))
       (ObjFamily.Qfam (v_s st0)).
   Proof.
-    intros XF Hxs pool hd k st0 Hp Hk H0 Nc m st w f1 f2 f3 m1 m2 m3 HG _ _ _ _ _ S1 _ S2 _ S3 l st' _ _.
+    intros XF Hxs pool hd k st0 Hp Hk H0 Nc L0 m st w f1 f2 f3 m1 m2 m3 HG _ _ _ _ _ S1 _ S2 _ S3 l st' _ _.
     pose proof (PK.vm_depth st0 H0) as Hd.
     assert (Hdn : 136 <= 356 /\ 356 <= 368 <= 460
      /\ forall off e, (e <= 156 \/ 160 <= off) -> (e <= 400 \/ 404 <= off) -> FieldWin.ucl off e ->
@@ -928,8 +997,9 @@ Section STEP.
               ObjRows.GP lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k) ga).
     { intros g ga i v HGg Hi S.
       exact (fld_gt XF Hxs pool hd k k st0 g ga Mfloat32 (k * OW.OSZ + 136 + 4 * i) v 356 368 Hp Hk Hk Hd Hdn
-               ltac:(cbn [size_chunk]; lia) I HGg S
-               (kt_off pool k st0 g ga Mfloat32 (k * OW.OSZ + 136 + 4 * i) v S ltac:(lia) ltac:(cbn [size_chunk]; lia) Nc (proj1 (proj2 HGg)))). }
+               ltac:(right; lia) ltac:(cbn [size_chunk]; lia) I HGg S
+               (kt_off pool k st0 g ga Mfloat32 (k * OW.OSZ + 136 + 4 * i) v S ltac:(lia) ltac:(cbn [size_chunk]; lia) Nc (proj1 (proj2 HGg)))
+               (kl_off pool k st0 g ga Mfloat32 (k * OW.OSZ + 136 + 4 * i) v S ltac:(lia) ltac:(cbn [size_chunk]; lia) L0 (proj1 (proj2 HGg)))). }
     exact (Hst _ _ 57 _ (Hst _ _ 56 _ (Hst _ _ 55 _ HG ltac:(lia) S1) ltac:(lia) S2) ltac:(lia) S3).
   Qed.
 
@@ -1095,7 +1165,7 @@ Section STEP.
                   (setf_g XF Hxs pool hd k ObjInv.s8 Hp Hk ObjInv.s8_tab) (addi_g XF Hxs pool hd k ObjInv.s8 Hp Hk ObjInv.s8_tab)
                   (ori_g XF Hxs pool hd k ObjInv.s8 Hp Hk ObjInv.s8_tab) (atex_g XF Hxs pool hd k ObjInv.s8 Hp Hk ObjInv.s8_tab)
                   (pbc_g XF Hxs pool hd k ObjInv.s8 Hp Hk ObjInv.s8_tab)
-                  (fun N => False_ind _ (N eq_refl)) (phys_g XF Hxs pool hd k ObjInv.s8 Hp Hk ObjInv.s8_tab)
+                  (fun N _ => False_ind _ (N eq_refl)) (phys_g XF Hxs pool hd k ObjInv.s8 Hp Hk ObjInv.s8_tab)
                   (scale_g XF Hxs pool hd k ObjInv.s8 Hp Hk ObjInv.s8_tab) GKr8) as GK8.
     (* the re-anchors (ObjAnchor, PROVED): at the cannon's word 6 (to sL),
        and at its SET_HOME (to s8) *)
@@ -1115,9 +1185,23 @@ Section STEP.
       exact (T b0 _ Hb0 (eq_trans (ld32_load _ _ _) L0)). }
     pose proof (ObjInv.inv_entry lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc st0 (Mem.nextblock m) (XF hd pool k) m
                   eq_refl HP HV0 Hc HF H14) as HI.
+    (* the lid's position at its ghost, while its update started at or
+       before SET_HOME: obj_w's lid row (OW.LID_ROW) at the ghost's cursor *)
+    assert (LIDP : ObjRows.lidp_keep lp bm bc oc0 SafeB pool (k * OW.OSZ) st0 (XF hd pool k)).
+    { intros g (HPg & HVg & HXg) El L4.
+      pose proof HPg as (_ & _ & _ & _ & _ & How).
+      destruct How as (pool' & la' & fl' & gol' & gmo' & sdp' & gdi' & rs' & fs' & S1' & S2' & _ & _ & _ & _ & _ & C').
+      rewrite Hp in S1'. injection S1' as <-.
+      pose proof (Hxr pool hd k g Hp Hk HXg la' rs' S2' (OW.ow_rings _ _ _ _ _ _ _ _ _ _ _ _ C')) as Hkr.
+      destruct (OW.ow_pin _ _ _ _ _ _ _ _ _ _ _ _ C' k Hkr) as (_ & _ & _ & _ & TB).
+      pose proof HVg as ((bL & HbL & Lc) & _). rewrite El in HbL.
+      refine (proj1 (OW.lid_at_off G pool g k bL _ (OW.tab_lid G pool g k TB) HbL (eq_trans (ld32_load _ _ _) Lc)) _).
+      assert (U4 : Ptrofs.unsigned (Ptrofs.repr (4 * Z.of_nat (v_i st0))) <= 16)
+        by (rewrite Ptrofs.unsigned_repr; [ lia | change Ptrofs.max_unsigned with 4294967295; lia ]).
+      exact U4. }
     pose proof (ObjRows.rows_k lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc sb Hbcc Hp Hpg Hbp st0 (Mem.nextblock m)
                   (XF hd pool k) Hsp Hsc Hsg Hoc (PK.vm_depth st0 Hst0) Hst0 GK
-                  (fun E => ObjRows.gk_8 lp bm bc oc0 SafeB go pool (k * OW.OSZ) sb st0 (XF hd pool k) E GK8) ANC HOME RK) as KR.
+                  (fun E => ObjRows.gk_8 lp bm bc oc0 SafeB go pool (k * OW.OSZ) sb st0 (XF hd pool k) E GK8) ANC HOME LIDP RK) as KR.
     destruct (BhvStep.cou_real lp H12 go pool (k * OW.OSZ) Hgo Hoc Hpg bcc Hbcc Hbp Hbg Hps sb Hsb
                 (fun E => Hsp (eq_sym E))
                 (INV go pool (k * OW.OSZ) bcc st0 (Mem.nextblock m) (XF hd pool k))
@@ -1126,13 +1210,13 @@ Section STEP.
                 (ObjFamily.Qfam_closed (v_s st0))
                 (ObjInv.inv_scr lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc Hbcc Hp Hps st0 (Mem.nextblock m) (XF hd pool k))
                 (ObjInv.inv_cur lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc st0 (Mem.nextblock m) (XF hd pool k))
-                (ObjInv.inv_frame lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc Hpg Hbg st0 (Mem.nextblock m) (XF hd pool k))
+                (ObjInv.inv_frame lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc Hbcc Hp Hpg Hbg st0 (Mem.nextblock m) (XF hd pool k))
                 (ObjInv.inv_succ lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc st0 (Mem.nextblock m) (XF hd pool k))
                 (ObjInv.invx_succ lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc st0 (Mem.nextblock m) (XF hd pool k))
                 (ObjInv.invx_cur lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc st0 (Mem.nextblock m) (XF hd pool k))
-                (ObjInv.invx_frame lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc Hpg Hbg st0 (Mem.nextblock m) (XF hd pool k))
+                (ObjInv.invx_frame lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc Hbcc Hp Hpg Hbg st0 (Mem.nextblock m) (XF hd pool k))
                 Hsq Hp (fun _ => SafeB) KR KPRE KPOST
-                (ObjInv.inv_free lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc Hgo st0 (Mem.nextblock m) (XF hd pool k))
+                (ObjInv.inv_free lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc Hgo Hp st0 (Mem.nextblock m) (XF hd pool k))
                 m t m' vr st0 Hst0 HQ0 HV0 HI Hev) as (st' & Hst' & HQ' & HV' & HI' & Hx).
     (* the exit state follows a BREAK-type command: never in the pole window *)
     pose proof (ObjInv.ext_nW st' Hx) as Hnw.
@@ -1140,7 +1224,7 @@ Section STEP.
                   Hbm_sym Hbc_sym Hp Hbcc HSafeB_scr Hst0 Hst' HQ' HI' Hnw HV' Hx) as HP'.
     split; [ exact HP' | ].
     destruct (ObjInv.inv_out lp bm bc oc0 SafeB go pool (k * OW.OSZ) bcc st0 (Mem.nextblock m) (XF hd pool k) st' m' Hnw HI')
-      as (g & sg & Hg & HVg & HXg & Esg & _ & _ & U & _).
+      as (_ & g & sg & Hg & HVg & HXg & Esg & _ & _ & U & _).
     (* the ghost's start state: st0, or sL (re-anchored; same script) *)
     assert (HQg : ObjFamily.Qfam (v_s sg) st').
     { destruct Esg as [-> | (Ec & ->)]; [ exact HQ' | ]. rewrite Ec in HQ'. exact HQ'. }

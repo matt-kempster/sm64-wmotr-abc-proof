@@ -104,7 +104,7 @@ Definition KPu (pool : block) (k : Z) (m m' : mem) : Prop :=
     (j <> k \/ off + size_chunk ch <= 108 \/ (112 <= off /\ off + size_chunk ch <= 116) \/ 118 <= off) ->
     Mem.load ch m' pool (j * OW.OSZ + off) = Mem.load ch m pool (j * OW.OSZ + off).
 
-Ltac ks := unfold OW.O_BHV, OW.O_CMD, OW.O_SIDX, OW.O_STK, OW.O_ACTION, OW.O_HSCOUNT,
+Ltac ks := unfold OW.O_BHV, OW.O_CMD, OW.O_SIDX, OW.O_STK, OW.O_ACTION, OW.O_HSCOUNT, OW.O_BP2,
     OW.O_FLAGS, OW.OSZ, O_INTERACT_TYPE, O_POSX, O_POSY, O_POSZ, HITBOX_DOWN_OFF,
     HITBOX_H_OFF, OW.O_RTYPE, OW.O_RINFO, OW.O_PARENT, OW.O_COLL, OW.O_NCOLL, OW.O_COLLS,
     OW.O_TIMER, OW.O_PREVACT, OW.O_HOMEX, OW.O_HOMEY, OW.O_HOMEZ, RAW_OFF in *;
@@ -471,5 +471,5 @@ Proof.
     assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).
     unfold OW.pin_offs, OW.O_BPARAMS in Hoff. cbn [In] in Hoff.
     apply (SK pool k m m' Ku j Nj); try rewrite Hs;
-      destruct Hoff as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]; ks.
+      destruct Hoff as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]]]]]]; ks.
 Qed.

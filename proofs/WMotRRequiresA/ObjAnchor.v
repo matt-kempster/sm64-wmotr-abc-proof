@@ -392,21 +392,53 @@ Section AN.
           RAW_OFF, OW.OSZ; lia.
   Qed.
 
-  (* a home store keeps Pc and the word-7 command *)
+  (* and every slot's lid row (OW.LID_ROW): slot k does not run the lid *)
+  Lemma kl_home : forall g ga ch z0 v, Mem.store ch g pool z0 v = Some ga ->
+    k * OW.OSZ + 356 <= z0 -> z0 + size_chunk ch <= k * OW.OSZ + 368 ->
+    (forall b o, Genv.find_symbol G OW.LIDS = Some b -> OW.ld32 g pool (k * OW.OSZ + OW.O_CMD) = Some (Vptr b o) -> False) ->
+    forall k', OW.lid_at G pool g k' -> OW.lid_at G pool ga k'.
+  Proof.
+    intros g ga ch z0 v S A B NL k' T. pose proof (size_chunk_pos ch).
+    assert (Lo : forall ch' off, 0 <= off -> off + size_chunk ch' <= OW.OSZ ->
+              (k' <> k \/ off + size_chunk ch' <= 356 \/ 368 <= off) ->
+              Mem.load ch' ga pool (k' * OW.OSZ + off) = Mem.load ch' g pool (k' * OW.OSZ + off)).
+    { intros ch' off C1 C2 C3. apply (Mem.load_store_other _ _ _ _ _ _ S). right.
+      pose proof (size_chunk_pos ch'). unfold OW.OSZ in *.
+      destruct (Z.lt_trichotomy k' k) as [L | [-> | L]]; [ left; nia | | right; nia ].
+      destruct C3 as [C3 | [C3 | C3]]; [ exfalso; exact (C3 eq_refl) | left; lia | right; lia ]. }
+    assert (Lc : OW.ld32 ga pool (k' * OW.OSZ + OW.O_CMD) = OW.ld32 g pool (k' * OW.OSZ + OW.O_CMD)).
+    { unfold OW.ld32. rewrite !CM.load_eq. apply Lo; unfold OW.O_CMD, OW.OSZ; cbn [size_chunk]; lia. }
+    destruct (Z.eq_dec k' k) as [-> | Nk].
+    - apply OW.lid_at_mk. intros b o Hb L'. rewrite Lc in L'. exfalso. exact (NL b o Hb L').
+    - apply (OW.lid_at_eq G pool g ga k' Lc); [ | exact T ].
+      intros c Hc. unfold OW.lid_cells in Hc. cbn [In] in Hc.
+      apply Lo; [ | | left; exact Nk ];
+        destruct Hc as [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]; cbn [fst snd size_chunk];
+        unfold O_POSX, O_POSY, O_POSZ, OW.O_HOMEX, OW.O_HOMEY, OW.O_HOMEZ, RAW_OFF, OW.OSZ; lia.
+  Qed.
+
+  (* a home store keeps Pc, the word-7 command, and slot k off the lid *)
   Lemma home_st : forall g ga i v, Pc g -> 55 <= i <= 57 ->
     (forall b o, Genv.find_symbol G OW.CANS = Some b -> OW.ld32 g pool (k * OW.OSZ + OW.O_CMD) = Some (Vptr b o) ->
        Ptrofs.unsigned o = 28) ->
+    (forall b o, Genv.find_symbol G OW.LIDS = Some b -> OW.ld32 g pool (k * OW.OSZ + OW.O_CMD) = Some (Vptr b o) -> False) ->
     Mem.store Mfloat32 g pool (k * OW.OSZ + 136 + 4 * i) (Vsingle v) = Some ga ->
     Pc ga /\ (forall b o, Genv.find_symbol G OW.CANS = Some b -> OW.ld32 ga pool (k * OW.OSZ + OW.O_CMD) = Some (Vptr b o) ->
-       Ptrofs.unsigned o = 28).
+       Ptrofs.unsigned o = 28)
+    /\ (forall b o, Genv.find_symbol G OW.LIDS = Some b -> OW.ld32 ga pool (k * OW.OSZ + OW.O_CMD) = Some (Vptr b o) -> False).
   Proof.
-    intros g ga i v Hg Hi H28 S. split.
-    - refine (ObjFld.fld_pc_t lp bm Hbm_sym bc oc0 SafeB Hbc_sym pool k Hpool 356 368 _ g ga Mfloat32 _ _ Hg _ I S
-                (kt_home g ga Mfloat32 _ _ S ltac:(lia) ltac:(cbn [size_chunk]; lia) H28)).
+    intros g ga i v Hg Hi H28 NL S.
+    assert (Ec : OW.ld32 ga pool (k * OW.OSZ + OW.O_CMD) = OW.ld32 g pool (k * OW.OSZ + OW.O_CMD)).
+    { unfold OW.ld32. rewrite !CM.load_eq.
+      apply (Mem.load_store_other _ _ _ _ _ _ S). right. right. unfold OW.O_CMD. cbn [size_chunk]. lia. }
+    split; [ | split ].
+    - refine (ObjFld.fld_pc_t lp bm Hbm_sym bc oc0 SafeB Hbc_sym pool k Hpool 356 368 _ ltac:(right; lia) g ga Mfloat32 _ _ Hg _ I S
+                (kt_home g ga Mfloat32 _ _ S ltac:(lia) ltac:(cbn [size_chunk]; lia) H28)
+                (kl_home g ga Mfloat32 _ _ S ltac:(lia) ltac:(cbn [size_chunk]; lia) NL)).
       + split; [ lia | split; [ lia | ] ]. intros off e _ _ Hu. unfold FieldWin.ucl in Hu. lia.
       + cbn [size_chunk]. lia.
-    - intros b o Hb L. apply (H28 b o Hb). rewrite <- L. unfold OW.ld32. rewrite !CM.load_eq.
-      symmetry. apply (Mem.load_store_other _ _ _ _ _ _ S). right. right. unfold OW.O_CMD. cbn [size_chunk]. lia.
+    - intros b o Hb L. apply (H28 b o Hb). rewrite <- Ec. exact L.
+    - intros b o Hb L. apply (NL b o Hb). rewrite <- Ec. exact L.
   Qed.
 
   Theorem home8 : ObjRows.home8_keep lp bm bc oc0 SafeB pool (k * OW.OSZ) bcc nb0 X.
@@ -431,6 +463,10 @@ Section AN.
               OW.ld32 g pool (k * OW.OSZ + OW.O_CMD) = Some (Vptr b o) -> Ptrofs.unsigned o = 28).
     { intros b o _ L. rewrite Lc' in L. injection L as _ <-.
       rewrite Ptrofs.unsigned_repr by (change Ptrofs.max_unsigned with 4294967295; lia). reflexivity. }
+    assert (NL0 : forall b o, Genv.find_symbol G OW.LIDS = Some b ->
+              OW.ld32 g pool (k * OW.OSZ + OW.O_CMD) = Some (Vptr b o) -> False).
+    { intros b o Hb L. rewrite Lc' in L. injection L as <- _.
+      assert (E := Genv.genv_vars_inj _ _ _ HbC Hb). vm_compute in E. discriminate E. }
     pose proof (T bC _ HbC Lc') as T0.
     rewrite Ptrofs.unsigned_repr in T0 by (change Ptrofs.max_unsigned with 4294967295; lia).
     change (OW.can_cl (OW.ccls 28) g pool (k * OW.OSZ)) with (OW.can7 g pool (k * OW.OSZ)) in T0.
@@ -454,9 +490,9 @@ Section AN.
     replace (k * OW.OSZ + 136 + 4 * 8) with (k * OW.OSZ + O_POSZ) in L3 by (unfold O_POSZ, RAW_OFF; lia).
     rewrite Pz in L3. injection L3 as E3. subst f3.
     destruct (ObjRows.gr_store _ _ gb m2 Mfloat32 pool _ _ m3 Ub NVb Vb S3) as (gc & Sc & Uc & NVc).
-    destruct (home_st g ga 55 _ (pc_of_P g HP) ltac:(lia) H28 Sa) as (Pa & Ha).
-    destruct (home_st ga gb 56 _ Pa ltac:(lia) Ha Sb) as (Pb & Hb).
-    destruct (home_st gb gc 57 _ Pb ltac:(lia) Hb Sc) as (Pcc & _).
+    destruct (home_st g ga 55 _ (pc_of_P g HP) ltac:(lia) H28 NL0 Sa) as (Pa & Ha & Na).
+    destruct (home_st ga gb 56 _ Pa ltac:(lia) Ha Na Sb) as (Pb & Hb & Nb).
+    destruct (home_st gb gc 57 _ Pb ltac:(lia) Hb Nb Sc) as (Pcc & _).
     (* gc reads g's cells off the home cells *)
     assert (Lgc : forall ch z0, (z0 + size_chunk ch <= k * OW.OSZ + 356 \/ k * OW.OSZ + 368 <= z0) ->
               Mem.load ch gc pool z0 = Mem.load ch g pool z0).
@@ -521,9 +557,14 @@ Section AN.
       - rewrite L8 by (unfold OW.O_PREVACT, RAW_OFF, OW.O_CMD; cbn [size_chunk]; lia). exact Ap.
       - rewrite L8 by (unfold OW.O_TIMER, RAW_OFF, OW.O_CMD; cbn [size_chunk]; lia). exact At.
       - vm_compute. reflexivity. }
+    (* obj_w's lid row: slot k runs bhvCannon, not the lid *)
+    assert (HLt : OW.lid_at G pool gc k -> OW.lid_at G pool g8 k).
+    { intros _. apply OW.lid_at_mk. intros b o' Hb8 L'. exfalso.
+      unfold OW.ld32 in L'. rewrite CM.load_eq in L'. unfold g8 in L'. rewrite Lc8 in L'. injection L' as <- _.
+      assert (E := Genv.genv_vars_inj _ _ _ HbC Hb8). vm_compute in E. discriminate E. }
     pose proof (ObjExit.exit_pc lp bm Hbm_sym bc oc0 SafeB Hbc_sym pool bcc k Hpool Hbcc HSafeB_scr gc g8
                   Pcc (pk_unch gc bC 32) (pk_nv gc bC 32 ScrC) ObjInv.sL ObjInv.s8 ObjInv.sL_tab ObjInv.s8_tab
-                  Vgc V8 HQ8 ltac:(intros _; cbn; lia) HCt) as Pc8.
+                  Vgc V8 HQ8 ltac:(intros _; cbn; lia) HCt HLt) as Pc8.
     pose proof (P_of_pc _ Pc8) as Pg8.
     assert (Vo8 : Vo g8 ObjInv.s8).
     { destruct V8 as (Hc8 & Hs8 & _). split; [ exact Hc8 | split; [ exact Hs8 | ] ].

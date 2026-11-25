@@ -151,3 +151,87 @@ its boot check is the clause itself, and it is the right carrier for per-slot pi
    closure, written cells), after milestone 1.
 
 Order: green first (1 + the WIP row) -> 2 -> undecided sites -> 3.
+
+## 2026-11-24 (fifth round): choices, written before executing
+
+State: master af5b951a merged. WIP row 2 (box byte) compiles through ObjFld; frontier ObjStep.
+
+Read before choosing:
+- `red_ok` and table row 1 have NO reader outside their own keepers. What is load-bearing
+  is `kind_ok` (no INTERACT_STAR slot), which feeds `wmotr_objects`. So the red-coin pair
+  cannot be dropped the way box_pos_ok was: "no star slot" must stay, and it is true only
+  through "coin #2 not touched", i.e. Mario's height (Pobj already holds Phi, so the
+  induction is statable inside the rows).
+- What the red-coin repair really needs (not objects-local): (i) obj_w pins a coin-#2
+  slot (script, position, hitbox, active, INTERACTED clear) and a count
+  (star counter + live red coins <= 8); (ii) the PROVED collision stage must show Mario's
+  collided list never holds that slot (the f32 overlap test against PhiW's height: new
+  geometry in CollWalk); (iii) Mario's frame must keep INTERACTED clear on non-collided
+  slots. (ii)/(iii) are Mario-side / proved-stage files. No cheaper true restatement
+  found: any clause that makes the two sites true must exclude "coin interacted at
+  counter 7", and only Mario's height does that. => reported as a cross-track item.
+
+**Order chosen:**
+1. Land row 2 (box byte) green: milestone 1.
+2. Census the undecided sites (Sweep4-style reach classes on the spine), so every
+   NOT DECIDED site gets a computed class instead of a reading.
+3. Lid oHome. NOT a third hand-built re-anchor: add a state-keyed clause to GPs
+   (`v_s st0 = LIDS -> past SET_HOME -> home pinned in the ghost`) fed by a row that
+   pins pos before word 4 and home after; only the home_keep step establishes it.
+   Stop if it reaches the cannon's cost shape (3 failed rounds => redesign).
+4. Split native_res by site class so that discharged classes leave the row
+   (dead sites first: provable now from dead_site_no_Q).
+
+## 2026-11-25 (sixth round): the joint induction ("no star collected yet"), design
+
+Coordinator: this is an invariant strengthening proved from real code, owned here.
+Survey of what already exists (read-only pass, file:line in the session log):
+- Phi = PhiW contains `action_sat R_noA` (73 actions): star-dance, key-door, ending
+  actions ARE excluded at every Pobj state. (The fifth-round remark "mem_ok does not
+  exclude them" was about mem_ok only; Phi does.) wmotr_objects: Mario's collided
+  objects have WMotR kinds (no STAR_OR_KEY).
+- Height: pos[1] and gfx.pos[1] <= 2796 < 2980. NOT bounded: Mario's OBJECT oPosY
+  (offset 164), the cell detect_object_hitbox_overlap reads. TRUST.md:96 lists
+  "Mario object's y = pos[1] at collision time" as assumed.
+- Collision stage: proved, but with no geometry (any two listed slots may register).
+  The geometric lemma exists off the spine: CoinLink.overlap_no_contact /
+  mario_coin2_no_contact. Plug-in point: CollWalk.hit_ok's Mario-vs-slot call.
+- No red coin slot is pinned (position, hitbox, parent, status). Counter increment in
+  bhv_red_coin_loop: INTERACTED bit set and parent != NULL, parent's field 27 += 1.
+- Mario frame: no proved "INTERACTED is written only on collided objects";
+  mario_process_interactions sits in NaSplit.na_open (track 2's file).
+
+**Chosen steps, cheapest first (each a separate green milestone):**
+C1. Cut the star family (9 scripts) from `live_bhvs`. Objects-local. 13 sites become
+    dead. True in the real game given C2-C4; spawner guards: row 1, C3, R_noA.
+C2. obj_w: Mario's object oPosY <= 2796 at Pobj states (the copy at the end of
+    bhv_mario_update keeps it; boot-checked). Turns TRUST.md:96's assumed fact into
+    an invariant clause; the transfer obligation lands in bhvMario@9's native_res.
+C3. obj_w: coin-#2 clause. "A live slot running bhvRedCoin with the INTERACTED bit
+    set does not exist while ..." is too strong (other 7 coins are collectable).
+    Instead a COUNT: let R = live slots running bhvRedCoin, I = those with INTERACTED;
+    clause: HSTARS counter + |R| <= 8 ... and coin #2 (pinned: script bhvRedCoin, pos
+    (2735,3140,-3085), down offset 0, INTERACTED clear, active) is in R. Then
+    counter <= 8 - 1 < 8 (row 1's bound, now derived), init's count >= 1 (no bhvStar
+    spawn), and the 7 -> 8 site needs coin #2 INTERACTED, excluded by the pin.
+    Needs: red coin parent = the HSTARS slot (else the increment hits another slot).
+C4. Keeping C3's "coin #2 INTERACTED clear": (i) collision stage: put
+    overlap_no_contact on the spine at hit_ok, so coin #2 is never in Mario's list
+    (uses C2); (ii) Mario frame: INTERACTED stored only on collided objects / usedObj.
+    (ii) is Mario-side (NaSplit.na_open, track 2): PROPOSAL to the coordinator before
+    any edit there. Until (ii) is proved it stays an obligation inside native_res at
+    bhvMario@9, which is where Mario's object effects already sit, so NO HeightFrame
+    premise changes.
+Order with the rest: milestone 1 (box byte) -> lid oHome -> C1 -> C2 -> C3 -> C4(i).
+
+Coordinator conditions (2026-11-25), binding for every brief below:
+- C2 / C3 are new invariant clauses: boot-check each on the real WMotR start and name
+  the real code that keeps it (C2: the store copying Mario's pos into his object's
+  oPosY, and that nothing else writes that cell). A keep not proved in the same
+  milestone is logged BY NAME as an open obligation, never as REPAIRED. If C2 proves
+  TRUST.md:96's assumed equality, update that line in the same commit.
+- Moving a false case into an undischarged row obligation does NOT close the window:
+  closed only when no known phantom state falsifies a row. Percentage stays 77 until
+  a row is discharged or the window really closes.
+- Each milestone: green + audit clean on top of current master; report the hash.
+- C4(ii) goes to track 2 with mario_process_interactions.
