@@ -223,3 +223,15 @@ C4. Keeping C3's "coin #2 INTERACTED clear": (i) collision stage: put
     bhvMario@9, which is where Mario's object effects already sit, so NO HeightFrame
     premise changes.
 Order with the rest: milestone 1 (box byte) -> lid oHome -> C1 -> C2 -> C3 -> C4(i).
+
+Coordinator conditions (2026-11-25), binding for every brief below:
+- C2 / C3 are new invariant clauses: boot-check each on the real WMotR start and name
+  the real code that keeps it (C2: the store copying Mario's pos into his object's
+  oPosY, and that nothing else writes that cell). A keep not proved in the same
+  milestone is logged BY NAME as an open obligation, never as REPAIRED. If C2 proves
+  TRUST.md:96's assumed equality, update that line in the same commit.
+- Moving a false case into an undischarged row obligation does NOT close the window:
+  closed only when no known phantom state falsifies a row. Percentage stays 77 until
+  a row is discharged or the window really closes.
+- Each milestone: green + audit clean on top of current master; report the hash.
+- C4(ii) goes to track 2 with mario_process_interactions.
