@@ -2573,7 +2573,8 @@ without pressing A".*
   - **Repaired 2026-11-08: stale wall / ceil.** On a real entry `m->wall` / `m->ceil` are the castle's stale pointers. The start premise (`wmotr_world`'s `wall_ok` / `ceil_ok`) now leaves both cells unconstrained, which covers them: no frame proof read their type, every use was a keep.
   - **FOUND + REPAIRED 2026-11-08: ffw's `ff_Wc0` was false of a real entry.** It put `m->wall` / `m->ceil` off the region blocks, but on entry they are stale castle pointers into the main pool, which TRUST 3.6 models as one block that also holds the anim DMA buffer (a region, `fw_bt`). Repaired by dropping `ff_Wc0` and the wall / ceil parts of `ff_Spl`, `ffw_surf_ok` and `RenderKeep.surf_apart` (now floor only). The full build shows no proof needed them except to keep them. The capstone's start premise is weaker, so it claims more.
   - **Carried scalars covered** (`StartCarry.goal2_start_carried`): the start premise holds with any values in Mario's carried fields and in the act / save-slot / course-star globals.
-    **Widened 2026-11-14:** every Mario field the entry never writes except `m->input` (any non-pointer value, floats too; `RenderKeep.carried_rs2`), and eleven more globals (save buffer, RNG seed, area clock, camera mode, castle / menu flags). Still open: `m->input` (bits other than 0x882), `gGlobalTimer` (an MWF global). No trust moved: this only shows the start premise does not exclude those entries.
+    **Widened 2026-11-14:** every Mario field the entry never writes except `m->input` (any non-pointer value, floats too; `RenderKeep.carried_rs2`), and eleven more globals (save buffer, RNG seed, area clock, camera mode, castle / menu flags). Still open: `gGlobalTimer` (an MWF global). No trust moved: this only shows the start premise does not exclude those entries.
+    **Widened 2026-11-25:** `m->input` too (`StartCarry.istore_keep`, `cs_input`): any u16 with the 0x882 bits (A_PRESSED, A_DOWN, INTERACT_OBJ_GRABBABLE) clear. That is exactly what the frame-boundary invariant reads (ffw `ff_Ai`, MWF R1). No linked code reads `m->input` before frame 1's `update_mario_inputs` zeroes it (`mario.v`, its second statement; readers are only Mario-side code inside `execute_mario_action`, a grep, not a proof). So the 0x882 constraint comes from the invariant, not the game. Whether a real entry meets it is a castle-frame fact, not proved: the A bits by the ABC premise (no A press in the castle either), the grabbable bit by census §3 (last castle frames are `ACT_DISAPPEARED`).
   - **OPEN: residue and layout.** Free-slot and pool residue (MWF R7) and the anim buffer's block (S7) are not shown to meet the premise on a real entry.
 - **GOAL 1: proved satisfiable by the real boot path** (2026-10-19, `BootMWF.boot_init_ok`, used by
   `NoAImpliesNoFlyTwelve.noA_never_flying_from_boot`). The memory `Genv.init_mem lp` of any
@@ -2693,7 +2694,8 @@ without pressing A".*
     castle pointers into the reallocated surface pool, and `wmotr_world`'s ceil/wall clauses hold
     there only if that pool slot carries a WMotR surface type (the first frame's
     `update_mario_geometry_inputs` refreshes them before any read). `m->input` is the last castle
-    frame's; `ffw`'s input clause needs A neither pressed nor held then. Mario's object is fresh, so
+    frame's; `ffw`'s input clause needs A neither pressed nor held then (and the grabbable bit
+    clear). Covered since 2026-11-25 for every such value (`StartCarry.cs_input`). Mario's object is fresh, so
     `numCollidedObjs = 0` and `oInteractStatus = 0` do hold.
   - Fix path: link `area.c` (done, above) and later `surface_load.c` as further TUs. Remaining from
     this list: `gCurrCourseNum` is still 0 on the witness, and the collision partition is still empty
@@ -3005,6 +3007,10 @@ link grows.
     - The dispatch: none runs, because of the OOB guard.
     - The post-loop wind guards (`m->floor->type == 44 / 56`): after the OOB guard too
       (`FrameSplit.guard_mem` reads the pointer off Clight's dereference, RESTATED 2026-11-24).
+      Audited 2026-11-25: the guards are covered by inversion of the GIVEN execution (both
+      capstones quantify over `reachable` runs; no spine lemma needs a run of them to exist, and
+      the computed non-vacuity runs are built by the sound interpreter), and the generated
+      `f_execute_mario_action` reaches them only after the `floor == NULL` return.
     - The platform step: its own `find_floor`, guarded.
     - The camera: never reads Mario's floor pointer. Its own `find_floor` calls are height-checked
       (`camera.c:6836`), and `cutscene_enter_painting` is unreachable.
