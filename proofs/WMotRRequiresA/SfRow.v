@@ -420,8 +420,23 @@ Section SF.
     destruct (ev_fld lp H12 bm INT._m _ m _ INT._floor (tptr (Tstruct INT._Surface noattr)) Mint32 104 vf
                 Hle1 Hmarg fo_floor ltac:(lia) eq_refl Ef) as (_ & Lf).
     destruct HW as (_ & _ & HF & _).
-    destruct (HF vf Lf) as (sb & so & ty & -> & Lt & Hin).
-    apply x_if in H2 as (vc2 & bc2 & _ & _ & H2).
+    apply x_if in H2 as (vc2 & bc2 & Ec2 & Bc2 & H2).
+    destruct (HF vf Lf) as [Hnul | (sb & so & ty & -> & Lt & Hin)].
+    { (* a NULL floor (update_mario_inputs' double miss): the real test
+         `m->floor != NULL` is false and the body does nothing *)
+      assert (VN : Vnullptr = Vint Int.zero) by (unfold Vnullptr; cbv [Archi.ptr64]; reflexivity).
+      rewrite VN in Hnul. subst vf.
+      apply eval_expr_Ebinop_inv in Ec2 as (xa & xb & QEa & QEb & QSb).
+      apply eval_expr_Etempvar_val in QEa. rewrite PTree.gss in QEa. injection QEa as <-.
+      inv QEb; [| match goal with Hl : eval_lvalue _ _ _ _ (Ecast _ _) _ _ _ |- _ => inv Hl end].
+      match goal with He : eval_expr _ _ _ _ (Econst_int _ _) _ |- _ =>
+        apply eval_expr_Econst_int_val in He; subst end.
+      match goal with Hc : sem_cast _ _ _ _ = Some _ |- _ =>
+        cbv [sem_cast classify_cast Archi.ptr64] in Hc; cbn in Hc; injection Hc as <- end.
+      cbn [typeof] in QSb, Bc2.
+      cbv [sem_binary_operation sem_cmp classify_cmp cmp_ptr Archi.ptr64] in QSb. cbn in QSb.
+      injection QSb as <-. cbn in Bc2. injection Bc2 as <-.
+      apply x_skip in H2 as (_ & -> & _). left; reflexivity. }
     destruct bc2; [| apply x_skip in H2 as (_ & -> & _); left; reflexivity].
     apply seq_inv in H2 as [(t3 & le3 & m3 & t4 & H3 & H4) | (t3 & H3 & Hn)].
     2: { apply (seq_set_inv lp) in H3 as (v5 & _ & H3).

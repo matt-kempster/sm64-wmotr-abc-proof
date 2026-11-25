@@ -438,7 +438,7 @@ Section SI.
     split; [ | split; [ | split; [ | split; [ | split; [ | split ] ] ] ] ].
     - exact I.
     - exact I.
-    - intros v Hl. rewrite LB in Hl. destruct (Hfl v Hl) as (b & o & t & -> & Lt & Hin).
+    - intros v Hl. rewrite LB in Hl. destruct (Hfl v Hl) as [Hn0 | (b & o & t & -> & Lt & Hin)]; [left; exact Hn0 | right].
       exists b, o, t. rewrite (surf_tr FLOOR_OFF _ MS ltac:(cbn; auto) Hl b o eq_refl).
       exact (conj eq_refl (conj Lt Hin)).
     - rewrite LB. exact Hh.

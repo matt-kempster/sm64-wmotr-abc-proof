@@ -694,11 +694,6 @@ Proof.
   { intros v' Hr [Hn | (b & o & ty & -> & Hl & Hin)]; [left; exact Hn |].
     right. exists b, o, ty. split; [reflexivity |]. split; [| exact Hin].
     rewrite OFF; [exact Hl | exact (VB _ _ _ _ Hl) | exact (Hr b o eq_refl)]. }
-  assert (SNN : forall v, (forall sb so, v = Vptr sb so -> ~ rblk RL0 sb) ->
-             surface_nonnull_ok m v -> surface_nonnull_ok m' v).
-  { intros v' Hr (b & o & ty & -> & Hl & Hin).
-    exists b, o, ty. split; [reflexivity |]. split; [| exact Hin].
-    rewrite OFF; [exact Hl | exact (VB _ _ _ _ Hl) | exact (Hr b o eq_refl)]. }
   assert (STY : forall b o, Plt b (Mem.nextblock m) -> ~ rblk RL0 b -> styp m b o ->
              surface_nonnull_ok m' (Vptr b o)).
   { intros b o Hp Hr (ty & Hl & Hin). exists b, o, ty. split; [reflexivity |]. split; [| exact Hin].
@@ -766,13 +761,13 @@ Proof.
     - intros Hty. destruct (Hc Hty) as (y & Hy & Q1). exists y. rewrite SLOT by (first [exact Hco | cbn; auto]). auto. }
   (* the new floor *)
   assert (FLR : exists fl', Mem.load Mint32 m' bm FFW_FLOOR = Some fl' /\ wblk m RL0 fl' SZ_SURFACE
-                  /\ surface_nonnull_ok m' fl').
+                  /\ surface_ok m' fl').
   { destruct KF as [E0 | (p & v' & E0 & Hs)].
     - exists fl. change FFW_FLOOR with 104. rewrite E0. split; [exact Lf |]. split; [exact Wf |].
-      destruct HW as (_ & _ & Hf & _). apply SNN; [| exact (Hf fl Lf)].
+      destruct HW as (_ & _ & Hf & _). apply SOK; [| exact (Hf fl Lf)].
       destruct Wf as (b & o & -> & _ & _ & _ & Hr). intros sb so E1. injection E1 as <- _. exact Hr.
     - destruct (NEW p v' Hs) as (b & o & -> & Pb & Hsz & St & Hr & _). exists (Vptr b o).
-      split; [exact E0 |]. split; [| exact (STY b o Pb Hr St)].
+      split; [exact E0 |]. split; [| exact (surface_nn_ok _ _ (STY b o Pb Hr St))].
       exists b, o. split; [reflexivity |]. split; [exact Pb |]. split; [clear; unfold SZ_SURFACE; lia |].
       split; [exact Hsz | exact Hr]. }
   destruct FLR as (fl' & Lf' & Wf' & Sf').

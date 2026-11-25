@@ -455,7 +455,7 @@ Section HX.
       split; [| split; [| split; [| split; [| split; [| split]]]]].
       - exact I.
       - exact I.
-      - intros v Hl. hxm_in Hl. destruct (Hfl v Hl) as (b & o & t & -> & Lt & Hin).
+      - intros v Hl. hxm_in Hl. destruct (Hfl v Hl) as [Hn0 | (b & o & t & -> & Lt & Hin)]; [left; exact Hn0 | right].
         exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
         destruct (As b o Hl) as (N1 & N2 & N3).
         rewrite LXz by (first [assumption | apply ozx_ne; exact N3]). exact Lt.

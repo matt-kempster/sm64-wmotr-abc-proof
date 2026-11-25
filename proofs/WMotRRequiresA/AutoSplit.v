@@ -368,7 +368,7 @@ Section AutSplitS.
       split; [| split; [| split; [| split; [| split; [| split]]]]].
       - exact I.
       - exact I.
-      - intros v Hl. lqm_in Hl. destruct (Hfl v Hl) as (b & o & t & -> & Lt & Hin).
+      - intros v Hl. lqm_in Hl. destruct (Hfl v Hl) as [Hn0 | (b & o & t & -> & Lt & Hin)]; [left; exact Hn0 | right].
         exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
         rewrite LQb; [exact Lt | exact (As b o Hl)].
       - lqm. exact Hh.

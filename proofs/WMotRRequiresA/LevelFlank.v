@@ -224,15 +224,16 @@ End Steps.
 Definition level_pins (G : genv) (m : mem) : Prop := FfWorld.warp_w G m.
 
 (* What the instant / painting warp guards read: gMarioState points at
-   Mario (GOAL 1's MWF_real R5) and his floor is a surface of one of
-   WMotR's types (WMotRWorld.wmotr_world's floor clause,
+   Mario (GOAL 1's MWF_real R5) and his floor is NULL (update_mario_inputs'
+   double miss; both guards test it, level_update.c:539 / :659) or a
+   surface of one of WMotR's types (WMotRWorld.wmotr_world's floor clause,
    wmotr_surface_types = [5; 10; 21; 55; 0]): none is an instant-warp
    (0x1B..0x1E) or painting-warp (0xD3..) type.  LevelKeep derives it. *)
 Definition floor_safe (ge : genv) (bm : block) (m : mem) : Prop :=
   exists bs, Genv.find_symbol ge LU._gMarioState = Some bs
   /\ (forall b o, Mem.load Mint32 m bs 0 = Some (Vptr b o) -> b = bm /\ o = Ptrofs.zero)
   /\ (forall v, Mem.load Mint32 m bm 104 = Some v ->
-        exists fb fo t, v = Vptr fb fo
+        v = Vint Int.zero \/ exists fb fo t, v = Vptr fb fo
           /\ Mem.load Mint16signed m fb (Ptrofs.unsigned fo) = Some (Vint t)
           /\ In (Int.signed t) [5; 10; 21; 55; 0])
   /\ Mem.valid_block m bm.
@@ -414,14 +415,14 @@ Section Walks.
         destruct (Hpm b o Hl) as (-> & ->) end;
       let fb := fresh "fb" in let fo := fresh "fo" in let ft := fresh "ft" in
       let Hty := fresh "Hty" in let Hin := fresh "Hin" in
-      destruct (Hfl _ H1) as (fb & fo & ft & -> & Hty & Hin)
+      destruct (Hfl _ H1) as [-> | (fb & fo & ft & -> & Hty & Hin)]
     end.
 
   Ltac ty_ld :=
     match goal with H1 : eval_expr _ _ _ _ (Efield (Ederef (Etempvar _ _) _) LU._type _) _ |- _ =>
       eapply ev_fld in H1; [ | exact fo_stype | reflexivity ];
       let Ht := fresh in destruct H1 as (? & ? & Ht & H1);
-      getnorm Ht; injection Ht as <- <-;
+      getnorm Ht; first [ discriminate Ht | injection Ht as <- <- ];
       change (Ptrofs.repr 0) with Ptrofs.zero in H1; rewrite Ptrofs.add_zero in H1;
       cbn [Mem.loadv] in H1;
       match goal with Hty : Mem.load Mint16signed _ _ _ = Some (Vint ?t),
@@ -466,7 +467,7 @@ Section Walks.
       - intros b' o Hl. destruct (load_alloc_back _ _ _ _ _ _ _ _ _ Ha Hl) as [E | Hl'];
           [ discriminate E | exact (Hpm _ _ Hl') ].
       - intros v Hl. rewrite (Mem.load_alloc_unchanged _ _ _ _ _ Ha _ _ _ Hvb) in Hl.
-        destruct (Hfl _ Hl) as (fb & fo & t & -> & Ht & Hin).
+        destruct (Hfl _ Hl) as [Hn | (fb & fo & t & -> & Ht & Hin)]; [ left; exact Hn | right ].
         exists fb, fo, t. split; [ reflexivity | split; [ | exact Hin ] ].
         exact (Mem.load_alloc_other _ _ _ _ _ Ha _ _ _ _ Ht).
       - exact (Mem.valid_block_alloc _ _ _ _ _ Ha _ Hvb).

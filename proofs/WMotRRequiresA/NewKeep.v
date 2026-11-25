@@ -153,13 +153,6 @@ Section NK.
     exists x, o, t. rewrite (ld _ _ _ (Hm x o eq_refl)). auto.
   Qed.
 
-  Lemma surf_nn_k : forall sv, (forall sb so, sv = Vptr sb so -> g sb <> None) ->
-    surface_nonnull_ok m sv -> surface_nonnull_ok m' sv.
-  Proof.
-    intros sv Hm (x & o & t & -> & Hl & Hin).
-    exists x, o, t. rewrite (ld _ _ _ (Hm x o eq_refl)). auto.
-  Qed.
-
   Lemma coll_k : forall cv, (forall cb co, cv = Vptr cb co -> g cb <> None) -> coll_obj_ok m cv -> coll_obj_ok m' cv.
   Proof.
     intros cv Hm (x & o & t & -> & Hl & Hin & Hp & Hcn). pose proof (Hm x o eq_refl) as M.
@@ -179,7 +172,7 @@ Section NK.
     split; [ | split; [ | split; [ | split; [ | split; [ | split ] ] ] ] ].
     - exact I.
     - exact I.
-    - intros v L. rewrite (ld _ _ _ Mbm) in L. exact (surf_nn_k v (ptr_mp _ _ _ _ Mbm L) (W3 v L)).
+    - intros v L. rewrite (ld _ _ _ Mbm) in L. exact (surf_k v (ptr_mp _ _ _ _ Mbm L) (W3 v L)).
     - rewrite (ld _ _ _ Mbm). exact W4.
     - rewrite (ld _ _ _ Mbm). exact W5.
     - rewrite (ld _ _ _ Mbm). exact W6.
