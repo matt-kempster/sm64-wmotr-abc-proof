@@ -312,8 +312,10 @@ proofs/WMotRRequiresA/BodyFrame.v
 proofs/WMotRRequiresA/LsContract.v
 proofs/WMotRRequiresA/CapAudio.v
 proofs/WMotRRequiresA/LtwFrame.v
+proofs/WMotRRequiresA/LtwAudio.v
 proofs/WMotRRequiresA/HitboxFrame.v
 proofs/WMotRRequiresA/HoleX.v
+proofs/WMotRRequiresA/SfRow.v
 proofs/WMotRRequiresA/NaSplit.v
 proofs/WMotRRequiresA/RenderAnim.v
 proofs/WMotRRequiresA/RenderSet.v
