@@ -116,7 +116,7 @@ without pressing A".*
   step, ground-pound windup, E3 switches, attach, floor refresh, OOB) is proved
   (`HeightMoveCatalog.chain_keeps_budget`).
 - **The run carries `PhiW` = Φ ∧ `wmotr_world`** (`WMotRWorld.v`, 2026-09-29): (until 2026-11-08 Mario's wall/ceil were
-  NULL or surfaces of WMotR's own types; now unconstrained, see 0.4's entry census) and his floor is never NULL and of those types (computed
+  NULL or surfaces of WMotR's own types; now unconstrained, see 0.4's entry census) and his floor is NULL or of those types (RESTATED 2026-11-24, was "never NULL": see row 0.8's detail, FOUND D; computed
   from the generated collision data: DEFAULT, HANGABLE, DEATH_PLANE, NOT_SLIPPERY,
   HARD_NOT_SLIPPERY), nothing held or ridden, quicksandDepth 0. Without it both frame rows were
   false over phantom worlds (a BURNING floor → ACT_LAVA_BOOST; a quicksand depth lowers gfx).
@@ -738,15 +738,18 @@ without pressing A".*
   `FrameSplit.fc_null_returns` and used by `hs_fc`) makes a NULL-floor frame dispatch-free.
   Mario is frozen until the DEATH warp, and every dispatch case still sees a fresh floor. The
   NULL-floor reader audit, including one UB-coverage point (`mario.c:427`), is in row 3.2.
-  **FOUND 2026-11-15 (OPEN, the B'' repair is void inside the seg rows):** `fworld` still
-  carries `WMotRWorld.wmotr_world`, whose floor clause says any value loaded from the floor
-  cell is a surface pointer (`surface_nonnull_ok`). So `fworld m /\ floor_null bm m` is
-  False (machine-checked in scratch: `fworld_not_null`), and every seg row's post
-  `floor_null \/ fresh` collapses to `fresh`. The open umi row asks `fworld m'`, so it again
-  claims no double-miss NULL floor: false on any double-miss state its premises admit (none
-  exhibited; `pos` x/z is still not pinned). Repair option (RESTATE, no new premise, not
-  started): weaken that clause to surface-or-NULL and let readers take non-NULL from `fresh`.
-  Large: touches most Mario-side row files and the frame invariant.
+  **FOUND 2026-11-15, RESTATED 2026-11-24 (the B'' repair now reaches the seg rows):**
+  `fworld` carries `WMotRWorld.wmotr_world`, whose floor clause said any value loaded from the
+  floor cell is a surface pointer (`surface_nonnull_ok`), so `fworld m /\ floor_null bm m` was
+  False and every seg row's post `floor_null \/ fresh` collapsed to `fresh`: the open umi row
+  again claimed no double-miss NULL floor. The clause is now `surface_ok` (NULL or a typed
+  WMotR surface). Readers that need a pointer take it from a pre they already had (`fresh_at`'s
+  `floor_nn` in `ProRows.ccairc_row`, the rows' `wblk` floor in the six `*Row.v` files);
+  `SfRow.sf_shape` and `LevelFlank.floor_safe` gained NULL branches (both real guards test
+  NULL). `FrameSplit.guard_mem` (the post-loop wind guards) takes the pointer from Clight's own
+  dereference of `m->floor`: a NULL there has no Clight run, and the real code reaches it only
+  past the `floor == NULL` return (dispatch handlers store only `find_floor` hits). No premise
+  or trust row added.
 - **level_trigger_warp's contract (2026-10-26, PROVED, no trust added, `LtwFrame`):** for the
   two Mario-side ops that reach it in WMotR (DEATH from the double miss above, WARP_FLOOR from
   `check_death_barrier`), proved from the real body and its callees' real bodies
@@ -3000,6 +3003,8 @@ link grows.
     - The painting warp: `level_update.c:659`.
     - `play_infinite_stairs_music`: guarded, and runs after the OOB guard.
     - The dispatch: none runs, because of the OOB guard.
+    - The post-loop wind guards (`m->floor->type == 44 / 56`): after the OOB guard too
+      (`FrameSplit.guard_mem` reads the pointer off Clight's dereference, RESTATED 2026-11-24).
     - The platform step: its own `find_floor`, guarded.
     - The camera: never reads Mario's floor pointer. Its own `find_floor` calls are height-checked
       (`camera.c:6836`), and `cutscene_enter_painting` is unreachable.
