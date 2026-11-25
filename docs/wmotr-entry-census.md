@@ -160,6 +160,8 @@ S2 (`gCurrActNum := 1`) stays as the witness's act.
    Still open after 2026-11-14: `input` is the only never-written Mario field
    `StartCarry` does not cover. It sits in MWF's protected window [2,4), so it
    needs its own store lemma (value with `& 0x882 = 0`), not `mwf_real_window`.
+   **Done 2026-11-25:** `StartCarry.istore_keep` / `cs_input`, every u16 with `& 0x882 = 0`.
+   Left: that a real entry has those bits clear (castle frames, unproved).
 
 **2026-11-14 (track 2).** `StartCarry` now covers every other field of §3
 (`unk00`, `particleFlags`, `terrainSoundAddend`, `intendedMag`, `intendedYaw`,

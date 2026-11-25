@@ -19,10 +19,13 @@ all in `Unwired/`, and the theorem moved nowhere. See
 
 ## Where the bottom line is (keep this current)
 
-- **Entry coverage (2026-11-14, track 2):** `StartCarry.goal2_start_carried` now covers every
-  Mario field the entry never writes except `m->input`, with any non-pointer value, and 14
-  carried globals. Coverage only (no row discharged). Open: `m->input` (MWF window [2,4), needs
-  its own store lemma), `gGlobalTimer`, castle residue vs R7, S7. `docs/wmotr-entry-census.md` §4d.
+- **Entry coverage: m->input widened (2026-11-25, track 2):** `StartCarry.goal2_start_carried`
+  covers every Mario field the entry never writes (any non-pointer value; since 11-25 also
+  `m->input`: any u16 with 0x882 clear, `istore_keep` / `cs_input`) and 14 carried globals.
+  Coverage only (no row discharged). The 0x882 constraint is what the frame-boundary invariant
+  reads (ffw `ff_Ai`, MWF R1), not the game (frame 1's `update_mario_inputs` zeroes the field
+  before any reader); a real entry meeting it is a castle-frame fact, unproved. Open:
+  `gGlobalTimer`, castle residue vs R7, S7. `docs/wmotr-entry-census.md` §4d.
 
 - **PROVED 2026-11-24: `mario_handle_special_floors` row** (`NaSplit.sf_row`, out of `na_open`;
   6 named rows left). `SfRow.sf_shape` walks the real body: on a WMotR floor type its only call
