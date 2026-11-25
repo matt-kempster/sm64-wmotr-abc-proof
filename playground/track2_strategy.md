@@ -55,3 +55,18 @@ Prefer computed checks (vm_compute over id lists, the walker, symbolic
 execution) over hand proofs; prefer one lemma that removes a class of
 side conditions.  Every fact from `generated/`.  Each milestone: full
 build, audit, unwired check, SKILL + TRUST + finish-line entry, commit.
+
+## Round 2026-11-24
+
+- M2 done: `NaSplit.sf_row` (special floors out of `na_open`, 6 left).
+  The three obstacles were solved in `HoleX` (hole may name the two warp
+  cells, excludes bytes 38..39) and `LtwAudio`.
+- Next: the NULL-floor FOUND.  Plan: weaken the floor clause of
+  `wmotr_world` from `surface_nonnull_ok` to surface-or-NULL; readers that
+  need a real floor take it from `fresh` (`floor_nn`); `SfRow.sf_shape`
+  gets a NULL branch (the body returns at once on a NULL floor).  Probe
+  first: change the definition, check the consumers one file at a time,
+  count failures.  If an object-owner file (ObjWorld) breaks, stop and
+  report instead.  If three rounds fail the same way, restate the open
+  umi row instead (its post becomes `floor_null \/ fresh`, as for `is_fk`).
+- After that: `m->input` entry premise, then `update_mario_inputs`.

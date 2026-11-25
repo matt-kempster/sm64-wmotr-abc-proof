@@ -7,8 +7,8 @@
 (* rows are false (a BURNING floor sends Mario to ACT_LAVA_BOOST; a         *)
 (* quicksand depth lowers gfx.pos every frame; docs/goal2-value-walk-       *)
 (* plan.md §1).  `wmotr_world` says the world is WMotR's:                   *)
-(*   - m->wall / m->ceil are NULL or, like m->floor (never NULL), point at *)
-(*     a surface whose                                                      *)
+(*   - m->floor is NULL or points at a surface whose (wall / ceil: no      *)
+(*     constraint, below)                                                   *)
 (*     type is one of the types WMotR's collision data uses (computed from  *)
 (*     the generated terrain and object meshes, not listed by hand);        *)
 (*   - no held and no ridden object (WMotR has nothing grabbable or         *)
@@ -78,16 +78,27 @@ Definition surface_ok (m : mem) (v : val) : Prop :=
        /\ Mem.load Mint16signed m b (Ptrofs.unsigned o) = Some (Vint t)
        /\ In (Int.signed t) wmotr_surface_types.
 
-(* the floor is never NULL at a frame boundary: the frame dereferences it
-   (apply_vertical_wind reads m->floor->type), and every step that sets it
-   stores a find_floor hit; a NULL find_floor leaves m->floor as it was
-   (perform_air_quarter_step, update_mario_geometry_inputs' OOB branch).
-   Found by experiments/symexec; the write watch saw no NULL floor at a
-   frame end in 11,379 frames. *)
+(* a non-NULL WMotR surface.  RESTATED 2026-11-24: this used to be
+   wmotr_world's floor clause ("the floor is never NULL at a frame
+   boundary"), which is FALSE: update_mario_inputs leaves m->floor NULL
+   when both find_floor calls miss, execute_mario_action then returns
+   before the dispatch, and the frame ends with a NULL floor.  The world
+   clause is now surface_ok (NULL or a typed surface); a reader that needs
+   a pointer gets it from FfWorld.floor_nn / fresh, which the dispatch
+   carries past execute_mario_action's `floor == NULL` return. *)
 Definition surface_nonnull_ok (m : mem) (v : val) : Prop :=
   exists b o t, v = Vptr b o
     /\ Mem.load Mint16signed m b (Ptrofs.unsigned o) = Some (Vint t)
     /\ In (Int.signed t) wmotr_surface_types.
+
+Lemma surface_nn_ok : forall m v, surface_nonnull_ok m v -> surface_ok m v.
+Proof. intros m v H. right. exact H. Qed.
+
+Lemma surface_ok_ptr : forall m v b o, v = Vptr b o -> surface_ok m v -> surface_nonnull_ok m v.
+Proof.
+  intros m v b o -> [Hn | H]; [| exact H].
+  exfalso. unfold Vnullptr in Hn. destruct Archi.ptr64; discriminate Hn.
+Qed.
 
 (* ---- 3. object collisions (the frame reads them in                     *)
 (*      mario_process_interactions and update_mario_inputs).  The fields   *)
@@ -293,7 +304,7 @@ Proof. intros. exact I. Qed.
 Definition wmotr_world (bm : block) (m : mem) : Prop :=
   wall_ok bm m
   /\ ceil_ok bm m
-  /\ (forall v, Mem.load Mint32 m bm FLOOR_OFF = Some v -> surface_nonnull_ok m v)
+  /\ (forall v, Mem.load Mint32 m bm FLOOR_OFF = Some v -> surface_ok m v)
   /\ Mem.load Mint32 m bm HELD_OFF = Some Vnullptr
   /\ Mem.load Mint32 m bm RIDDEN_OFF = Some Vnullptr
   /\ Mem.load Mfloat32 m bm QSD_OFF = Some (Vsingle Float32.zero)

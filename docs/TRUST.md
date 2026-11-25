@@ -116,7 +116,7 @@ without pressing A".*
   step, ground-pound windup, E3 switches, attach, floor refresh, OOB) is proved
   (`HeightMoveCatalog.chain_keeps_budget`).
 - **The run carries `PhiW` = Φ ∧ `wmotr_world`** (`WMotRWorld.v`, 2026-09-29): (until 2026-11-08 Mario's wall/ceil were
-  NULL or surfaces of WMotR's own types; now unconstrained, see 0.4's entry census) and his floor is never NULL and of those types (computed
+  NULL or surfaces of WMotR's own types; now unconstrained, see 0.4's entry census) and his floor is NULL or of those types (RESTATED 2026-11-24, was "never NULL": see row 0.8's detail, FOUND D; computed
   from the generated collision data: DEFAULT, HANGABLE, DEATH_PLANE, NOT_SLIPPERY,
   HARD_NOT_SLIPPERY), nothing held or ridden, quicksandDepth 0. Without it both frame rows were
   false over phantom worlds (a BURNING floor → ACT_LAVA_BOOST; a quicksand depth lowers gfx).
@@ -738,15 +738,18 @@ without pressing A".*
   `FrameSplit.fc_null_returns` and used by `hs_fc`) makes a NULL-floor frame dispatch-free.
   Mario is frozen until the DEATH warp, and every dispatch case still sees a fresh floor. The
   NULL-floor reader audit, including one UB-coverage point (`mario.c:427`), is in row 3.2.
-  **FOUND 2026-11-15 (OPEN, the B'' repair is void inside the seg rows):** `fworld` still
-  carries `WMotRWorld.wmotr_world`, whose floor clause says any value loaded from the floor
-  cell is a surface pointer (`surface_nonnull_ok`). So `fworld m /\ floor_null bm m` is
-  False (machine-checked in scratch: `fworld_not_null`), and every seg row's post
-  `floor_null \/ fresh` collapses to `fresh`. The open umi row asks `fworld m'`, so it again
-  claims no double-miss NULL floor: false on any double-miss state its premises admit (none
-  exhibited; `pos` x/z is still not pinned). Repair option (RESTATE, no new premise, not
-  started): weaken that clause to surface-or-NULL and let readers take non-NULL from `fresh`.
-  Large: touches most Mario-side row files and the frame invariant.
+  **FOUND 2026-11-15, RESTATED 2026-11-24 (the B'' repair now reaches the seg rows):**
+  `fworld` carries `WMotRWorld.wmotr_world`, whose floor clause said any value loaded from the
+  floor cell is a surface pointer (`surface_nonnull_ok`), so `fworld m /\ floor_null bm m` was
+  False and every seg row's post `floor_null \/ fresh` collapsed to `fresh`: the open umi row
+  again claimed no double-miss NULL floor. The clause is now `surface_ok` (NULL or a typed
+  WMotR surface). Readers that need a pointer take it from a pre they already had (`fresh_at`'s
+  `floor_nn` in `ProRows.ccairc_row`, the rows' `wblk` floor in the six `*Row.v` files);
+  `SfRow.sf_shape` and `LevelFlank.floor_safe` gained NULL branches (both real guards test
+  NULL). `FrameSplit.guard_mem` (the post-loop wind guards) takes the pointer from Clight's own
+  dereference of `m->floor`: a NULL there has no Clight run, and the real code reaches it only
+  past the `floor == NULL` return (dispatch handlers store only `find_floor` hits). No premise
+  or trust row added.
 - **level_trigger_warp's contract (2026-10-26, PROVED, no trust added, `LtwFrame`):** for the
   two Mario-side ops that reach it in WMotR (DEATH from the double miss above, WARP_FLOOR from
   `check_death_barrier`), proved from the real body and its callees' real bodies
@@ -3024,6 +3027,8 @@ link grows.
     - The painting warp: `level_update.c:659`.
     - `play_infinite_stairs_music`: guarded, and runs after the OOB guard.
     - The dispatch: none runs, because of the OOB guard.
+    - The post-loop wind guards (`m->floor->type == 44 / 56`): after the OOB guard too
+      (`FrameSplit.guard_mem` reads the pointer off Clight's dereference, RESTATED 2026-11-24).
     - The platform step: its own `find_floor`, guarded.
     - The camera: never reads Mario's floor pointer. Its own `find_floor` calls are height-checked
       (`camera.c:6836`), and `cutscene_enter_painting` is unreachable.
@@ -4163,12 +4168,12 @@ result, the real declaration in every TU; no new trust); `BootRun` / `TerrainRun
 | GOAL 2 `Hsqrtf`, `Hsqrtf_float`, `Haudio` | SURVIVED | restrictions; consistent with the repaired oracles |
 | GOAL 2 `Hseg_any` | SUSPECT (phantom forall) | it asks the linked `spawn_wind_particles` at ANY args from ANY `fworld` memory. `fworld` says nothing of `gFreeObjectList`, and every object lives in `gObjectPool`'s one block. A free list heading into Mario's object or the `usedObj` pole re-initializes it (`geo_obj_init` zeroes `gfx.pos`; behavior becomes `bhvWind`). In WMotR the call is dead (no `SURFACE_HORIZONTAL_WIND`). Repair: gate the obligation on the wind branch, which `wmotr_world` refutes. Needs a path-sensitive `FrameCalls.cl` |
 | GOAL 2 `Hauto_rest` | SUSPECT at TOP_OF_POLE(_TRANSITION); **DISCHARGED 2026-10-23** (proved with the real animation data, (p)) | `set_pole_position` adds the anim Y translation read through `animList->bufTarget`. `fworld` / `ffw` carry no fact about the buffer's contents, and with `currentAddr` matching no DMA runs. A phantom buffer gives up to +8191, far past top + `POLE_UP`, unless a ceiling clamps it. So this row is FALSE as stated, not just unproved (0.8(f)). CLIMBING_POLE / IN_CANNON were read too: a phantom `stickY` is clamped at `poleTop` or makes the f32 to s32 cast undefined (no execution), and the cannon seat is `usedObj`'s, which `used_ok` fixes |
-| GOAL 2 `Hseg_call_na` | not refuted; **split 2026-10-23** (0.8(q)): now the lemma `NaSplit.naFA_of_open` over `Hseg_na_open` (7 named rows since 2026-10-25) | real bodies over `fworld` memories. No counterexample was built: that needs a modified StartSat witness. Since 2026-10-23 its posts carry `lvl_w` / `inputs_ok` (below) |
+| GOAL 2 `Hseg_call_na` | not refuted; **split 2026-10-23** (0.8(q)): now the lemma `NaSplit.naFA_of_open` over `Hseg_na_open` (7 named rows since 2026-10-25, 6 since 2026-11-24) | real bodies over `fworld` memories. No counterexample was built: that needs a modified StartSat witness. Since 2026-10-23 its posts carry `lvl_w` / `inputs_ok` (below) |
 | GOAL 2 `Hseg_na_open`: `mario_reset_bodystate`, `update_mario_info_for_cam` | **REPAIRED and proved 2026-10-24** (0.8(q)) | `ffw` now pins `m->marioBodyState = &gBodyStates[0]` and makes gBodyStates an `ff_rl` region (`RBS`). The pin alone was not enough: without the region, gBodyStates could alias a world surface. Both facts are proved at boot (`StartSat`) and kept by every proved row. `NaSplit.reset_row` / `cam_row` walk the real bodies |
 | GOAL 2 `Hseg_na_open`: `mario_update_hitbox_and_cap_model` | **PROVED 2026-10-25** (`NaSplit.hitbox_row`) | walked from the real body (`HitboxFrame`), the cap music path framed (`CapAudio`, load_sequence by the labeled `ls_frame`), the world kept by `HoleX`. FOUND on the way (phantom ∀): a collided object could be Mario's own object (`ff_Cd` repairs it in `ffw`) |
 | GOAL 2 `Hseg_na_open`: `update_mario_inputs` | SUSPECT (phantom forall); **the globals part REPAIRED 2026-10-26** (the row itself is still open) | its post `inputs_ok` (waterLevel = -11000) comes from `find_water_level`, which reads `gEnvironmentRegions`; `fworld` did not pin that table (or `gShowDebugText`, which it also reads). Repaired: `FfWorld.env_w` (in `lvl_w`, so in `fworld` and PhiW, kept by every row and flank through `lvl_ids`) says gEnvironmentRegions is NULL and gShowDebugText is FALSE, PROVED at boot (`StartSat.L_env` / `L_dbg`): the real `load_area_terrain` stores NULL over the .bss zero (WMotR's collision has no TERRAIN_LOAD_ENVIRONMENT block), gShowDebugText is main.c's FALSE and no linked code stores either (only surface_load.c stores gEnvironmentRegions). `gCameraMovementFlags` needs no pin: update_mario_inputs either sets INPUT_FIRST_PERSON or clears the flag, neither touching `inputs_ok`. Still open for the row: the double-miss NULL floor (`ff_Wf`; FOUND below) and INPUT_SQUISHED (dynamic surfaces) |
 | GOAL 2 `Hseg_na_open`: `sink_mario_in_quicksand` | **REPAIRED and proved 2026-10-24** (0.8(q)) | FOUND (phantom ∀): the row stored through Mario's object's `gfx.throwMatrix`, which `fworld` did not pin, so it ranged over memories whose throwMatrix pointed into Mario's state or a surface. `ffw` now pins it to NULL or `sFloorAlignMatrix` (ff_rl region `RFA`), proved at boot and kept by every row; `NaSplit.qs_row` walks the body (the gfx.pos[1] store writes Phi's cell back unchanged) |
-| GOAL 2 `Hseg_na_open`: `mario_handle_special_floors` | open | WMotR has floor type 10 (death plane), so the body reaches `check_death_barrier` → `level_trigger_warp`. Not walked |
+| GOAL 2 `Hseg_na_open`: `mario_handle_special_floors` | **PROVED 2026-11-24** (`NaSplit.sf_row`; 6 named rows left) | walked from the real body (`SfRow`): on WMotR's floor types the one call is `check_death_barrier` → `level_trigger_warp` (`LtwFrame` footprint, `LtwAudio`, `warp_w` kept); `HoleX` keeps the frame world. No trust added |
 | GOAL 2 `Hseg_na_open`: `squish_mario_model` | **proved 2026-10-24** (0.8(q)) | not a phantom ∀: `ffw` already pinned `m->marioObj`. Its footprint is `squishTimer` (in `ProRows`' hole) plus bytes 44..55 of Mario's object (`gfx.scale`, directly and via the real `vec3f_set`). `ProRows`' hole lemmas now take that object-side hole; `NaSplit.squish_row` walks the body |
 | GOAL 2 `Hair_pro` | **FOUND FALSE (phantom forall), REPAIRED + PROVED 2026-10-23** | below: `fresh_at` did not pin `waterLevel` / `INPUT_SQUISHED` |
 | GOAL 2 `Hseg_any` (narrowed) | **FOUND FALSE (phantom forall), REPAIRED + PROVED 2026-10-23** | below: `fworld` did not pin `sPlayingInfiniteStairs` / `gCurrLevelNum` |

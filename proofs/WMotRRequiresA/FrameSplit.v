@@ -986,14 +986,6 @@ Section FrameSplit.
       rewrite LD; [exact Hl | left; exact (Hne b o eq_refl)].
     Qed.
 
-    Lemma surface_nn_keep : forall sv, surface_nonnull_ok m sv ->
-      (forall sb so, sv = Vptr sb so -> sb <> mb) -> surface_nonnull_ok m' sv.
-    Proof.
-      intros sv (b & o & t & -> & Hl & Hin) Hne.
-      exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
-      rewrite LD; [exact Hl | left; exact (Hne b o eq_refl)].
-    Qed.
-
     Lemma mo_range : 0 <= Ptrofs.unsigned mo.
     Proof. apply Ptrofs.unsigned_range. Qed.
 
@@ -1071,7 +1063,7 @@ Section FrameSplit.
       { exact I. }
       { exact I. }
       repeat split; rewrite ?LDbm.
-      - intros v1 Hl. apply surface_nn_keep; [exact (Hf v1 Hl) |].
+      - intros v1 Hl. apply surface_keep; [exact (Hf v1 Hl) |].
         exact (Hne FLOOR_OFF (or_intror (or_intror eq_refl)) v1 Hl).
       - exact Hh.
       - exact Hr.
@@ -1471,14 +1463,17 @@ Section FrameSplit.
     match goal with Hl : Mem.loadv _ _ _ = Some v2 |- _ => rename Hl into Hl2 end.
     change (Ptrofs.add Ptrofs.zero (Ptrofs.repr (fst (104, Full)))) with (Ptrofs.repr 104) in Hl2.
     cbn [Mem.loadv] in Hl2. change (Ptrofs.unsigned (Ptrofs.repr 104)) with 104 in Hl2.
-    destruct Hw as (_ & _ & Hf & _).
-    destruct (Hf v2 Hl2) as (sb & so & ty & -> & Hty & Hin).
-    (* v3 = floor->type *)
+    (* v3 = floor->type: the guard dereferences m->floor, so v2 is a
+       pointer here (the real code reaches it only past the `floor == NULL`
+       return), and then a WMotR surface *)
     apply eval_expr_Efield_load in E3 as (l3 & o3 & bf3 & L3 & D3).
     destruct (lv_field _ _ _ _ _ _ _ _ _ _ L3 eq_refl Oty) as (o4 & B3 & -> & ->).
     destruct (ex_agg _ _ _ _ _ B3 (or_intror eq_refl) I) as (bf4 & L4).
     apply eval_lvalue_Ederef_base, eval_expr_Etempvar_val in L4.
-    rewrite PTree.gss in L4. injection L4 as -> ->.
+    rewrite PTree.gss in L4. injection L4 as E4. subst v2.
+    destruct Hw as (_ & _ & Hf & _).
+    destruct (surface_ok_ptr _ _ _ _ eq_refl (Hf _ Hl2)) as (sb & so & ty & E & Hty & Hin).
+    injection E as <- <-.
     inv D3; match goal with Hm : access_mode _ = _ |- _ => cbn in Hm; try discriminate Hm end.
     match goal with Hm : By_value _ = By_value _ |- _ => injection Hm as <- end.
     match goal with Hl : Mem.loadv _ _ _ = Some v3 |- _ => rename Hl into Hl3 end.

@@ -380,7 +380,8 @@ Proof.
   assert (PC : forall f, In f (pc0F G) -> fact_holds G (R0F G) m (ufF G m gp) E f).
   { intros f Hf. unfold pc0F in Hf. cbn [app In ffacts] in Hf.
     destruct HW as (_ & _ & HFl & _).
-    specialize (HFl _ Lf). destruct HFl as (fb & fo' & ft & -> & Lt & Int).
+    specialize (HFl _ Lf). pose proof Wf as (wfb & wfo & Ewf & _).
+    apply (surface_ok_ptr _ _ _ _ Ewf) in HFl. destruct HFl as (fb & fo' & ft & -> & Lt & Int).
     destruct Hf as [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]]]]].
     - cbn [fact_holds]. rewrite RL. unfold ufF. rewrite ?Pos.eqb_refl. rewrite ZS. exact W.
     - cbn [fact_holds]. exists inp. rewrite DI. split; [exact Li | exact Ai].
@@ -499,11 +500,6 @@ Proof.
   { intros v Hr [Hn | (b & o & ty & -> & Hl & Hin)]; [left; exact Hn |].
     right. exists b, o, ty. split; [reflexivity |]. split; [| exact Hin].
     rewrite OFF; [exact Hl | exact (VB _ _ _ _ Hl) | exact (Hr b o eq_refl)]. }
-  assert (SNN : forall v, (forall sb so, v = Vptr sb so -> ~ rblk RL0 sb) ->
-             surface_nonnull_ok m v -> surface_nonnull_ok m' v).
-  { intros v Hr (b & o & ty & -> & Hl & Hin).
-    exists b, o, ty. split; [reflexivity |]. split; [| exact Hin].
-    rewrite OFF; [exact Hl | exact (VB _ _ _ _ Hl) | exact (Hr b o eq_refl)]. }
   assert (STY : forall b o, Plt b (Mem.nextblock m) -> ~ rblk RL0 b -> styp m b o ->
              surface_nonnull_ok m' (Vptr b o)).
   { intros b o Hp Hr (ty & Hl & Hin). exists b, o, ty. split; [reflexivity |]. split; [| exact Hin].
@@ -573,13 +569,13 @@ Proof.
     - intros Ht. destruct (Hc Ht) as (y & Hy & P1). exists y. rewrite SLOT by (first [exact Hco | cbn; auto]). auto. }
   (* the new floor *)
   assert (FLR : exists fl', Mem.load Mint32 m' bm FFW_FLOOR = Some fl' /\ wblk m RL0 fl' SZ_SURFACE
-                  /\ surface_nonnull_ok m' fl').
+                  /\ surface_ok m' fl').
   { destruct KF as [E0 | (p & v & E0 & Hs)].
     - exists fl. change FFW_FLOOR with 104. rewrite E0. split; [exact Lf |]. split; [exact Wf |].
-      destruct HW as (_ & _ & Hf & _). apply SNN; [| exact (Hf fl Lf)].
+      destruct HW as (_ & _ & Hf & _). apply SOK; [| exact (Hf fl Lf)].
       destruct Wf as (b & o & -> & _ & _ & _ & Hr). intros sb so E1. injection E1 as <- _. exact Hr.
     - destruct (NEW p v Hs) as (b & o & -> & Pb & Hsz & St & Hr & _). exists (Vptr b o).
-      split; [exact E0 |]. split; [| exact (STY b o Pb Hr St)].
+      split; [exact E0 |]. split; [| exact (surface_nn_ok _ _ (STY b o Pb Hr St))].
       exists b, o. split; [reflexivity |]. split; [exact Pb |]. split; [clear; unfold SZ_SURFACE; lia |].
       split; [exact Hsz | exact Hr]. }
   destruct FLR as (fl' & Lf' & Wf' & Sf').

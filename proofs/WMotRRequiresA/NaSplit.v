@@ -66,6 +66,13 @@
 (*     writes back its own value (f32_sub_zero_r).  ProRows' object window *)
 (*     is generic (ow, wl): here bytes 36..39, with hole_cells told that   *)
 (*     the gfx cell kept its value.                                        *)
+(*   - mario_handle_special_floors (2026-11-24, sf_row): SfRow walks the   *)
+(*     real body; on a WMotR floor (types 5, 10, 21, 55, 0) its one call   *)
+(*     is check_death_barrier on the death plane, whose footprint is       *)
+(*     level_trigger_warp's (LtwFrame: the delayed-warp statics, the       *)
+(*     transition and sound queues, m->invincTimer).  HoleX keeps the      *)
+(*     frame world around it (AudioInv by LtwAudio, warp_w by              *)
+(*     LtwFrame.ltw_warp_w).                                               *)
 (* ======================================================================= *)
 
 From Coq Require Import ZArith List Lia Relations.
@@ -79,7 +86,8 @@ From SM64.Proofs Require Import NoAImpliesNoFlyLinked.
 From SM64.Proofs Require Import HeightInvariant HeightMoveCatalog WMotRLevel WMotRWorld
   NoAActions FrameCalls FrameSplit.
 From SM64.Proofs.WMotRRequiresA Require Import FfWorld AirSplit AutoSplit ProRows BodyFrame.
-From SM64.Proofs.WMotRRequiresA Require AnimWorld AnimKeep LsContract CapAudio HitboxFrame HoleX AudioInv.
+From SM64.Proofs.WMotRRequiresA Require AnimWorld AnimKeep LsContract CapAudio HitboxFrame HoleX AudioInv
+  LtwFrame SfRow.
 From SM64.Proofs Require Import MarioModel.AudioBodies MarioModel.LinkedTwelve.
 From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
 Import ListNotations.
@@ -102,8 +110,7 @@ Proof. vm_compute. reflexivity. Qed.
 
 (* the calls whose rows stay assumed *)
 Definition na_open : list ident :=
-  [mario._update_mario_inputs;
-   mario._mario_handle_special_floors; mario._mario_process_interactions;
+  [mario._update_mario_inputs; mario._mario_process_interactions;
    mario._mario_execute_stationary_action; mario._mario_execute_moving_action;
    mario._mario_execute_cutscene_action; mario._mario_execute_object_action].
 
@@ -1688,13 +1695,13 @@ Section NA.
     assert (HHX : ffw_hh m' bo oo) by exact HH0.
     assert (XB : xsym lp bbs)
       by (exists mario._gBodyStates; split; [right; right; left; reflexivity | exact SBS]).
-    assert (LD : forall ch b z, ~ HoleX.chg lp CapAudio.cap_ids b -> (b <> bm \/ hz z (size_chunk ch)) ->
+    assert (LD : forall ch b z, ~ HoleX.chg lp CapAudio.cap_ids b -> (b <> bm \/ HoleX.hzi z (size_chunk ch)) ->
                HoleX.ozx bo oo 56 0 b z (size_chunk ch) -> Mem.load ch m' b z = Mem.load ch m b z).
     { intros ch b z Hcg Hz Ho. apply (Q2_load _ _ _ HQ). intros j Hj.
       unfold HitboxFrame.K2, HitboxFrame.K1.
       split; [split |]; [| | split].
       - intros G. apply Hcg. right. exact G.
-      - intros (-> & Hm). destruct Hz as [N | Hz]; [exact (N eq_refl) |].
+      - intros (-> & Hm). destruct Hz as [N | (Hz & _)]; [exact (N eq_refl) |].
         unfold hz in Hz. unfold HitboxFrame.mhole in Hm. clear - Hj Hz Hm. lia.
       - intros ->. apply Hcg. left. exact XB.
       - intros (-> & Hm). destruct Ho as [N | Ho]; [exact (N eq_refl) |].
@@ -1712,17 +1719,118 @@ Section NA.
       exists gp'. split; [| exact (conj HC' HS')].
       intros b Hb'. destruct (gp0 b) as [[b1 d]|] eqn:E0; [| congruence].
       rewrite (I _ _ _ E0). discriminate. }
-    assert (XGok : forallb (fun id => negb (existsb (Pos.eqb id) HoleX.safe_ids)) CapAudio.cap_ids = true)
+    assert (XGok : forallb (fun id => negb (existsb (Pos.eqb id) HoleX.safe_ids)
+                                      || existsb (Pos.eqb id) HoleX.warp_ids) CapAudio.cap_ids = true)
       by (vm_compute; reflexivity).
     assert (LO : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
     assert (OWL : 36 <= 56 /\ 0 <= 0 /\ 56 + 0 <= 56) by lia.
     assert (HG : 40 <= 56 \/ 56 + 0 <= 36) by lia.
+    (* the cap music names no delayed-warp cell: warp_w is kept *)
+    assert (HWW : warp_w ge m').
+    { assert (XN : forallb (fun id => negb (existsb (Pos.eqb id) HoleX.warp_ids)) CapAudio.cap_ids = true)
+        by (vm_compute; reflexivity).
+      pose proof Hw as (_ & _ & _ & _ & _ & HF9 & _ & HAW9 & HLW9).
+      eapply HoleX.hx_warp_nw with (XG := CapAudio.cap_ids) (m := m) (m' := m') (ob := bo) (oo0 := oo)
+                                   (ow := 56) (wl := 0); eassumption. }
     split; [eapply HoleX.hx_fworld with (XG := CapAudio.cap_ids) (m := m) (m' := m') (ob := bo) (oo0 := oo)
                                        (ow := 56) (wl := 0); eassumption |].
     split; [exists c; split; [eapply HoleX.hx_cells with (XG := CapAudio.cap_ids) (m := m) (m' := m') (ob := bo)
                                 (oo0 := oo) (ow := 56) (wl := 0); eassumption | apply rt_refl] |].
     destruct hitbox_is as (Iu & Ik & Id).
     unfold post_of. rewrite Iu, Ik, Id. exact I.
+  Qed.
+
+  (* ==================================================================== *)
+  (* mario_handle_special_floors (2026-11-24): on a WMotR floor the real  *)
+  (* body leaves the memory alone or runs one check_death_barrier         *)
+  (* (SfRow.sf_shape), whose footprint is level_trigger_warp's            *)
+  (* (LtwFrame.ltw_ws, m->invincTimer) with AudioInv and warp_w kept      *)
+  (* (SfRow.cdb_keep).  HoleX keeps the frame world around it; the floor  *)
+  (* refresh reads no byte of it.                                         *)
+  (* ==================================================================== *)
+  Lemma sf_is : is_umi mario._mario_handle_special_floors = false
+    /\ is_fk mario._mario_handle_special_floors = true.
+  Proof. vm_compute. split; reflexivity. Qed.
+
+  Lemma sf_row : forall fd v,
+    resolves lp mario._mario_handle_special_floors fd ->
+    seg_okR lp bm MWF fd [v] (pre_of lp bm mario._mario_handle_special_floors v)
+      (post_of bm mario._mario_handle_special_floors).
+  Proof.
+    intros fd v Hr.
+    pose proof (resolve_pin_fd lp _ _ _ _ (linked12_LO_int lp H12) SfRow.dm_sf Hr) as ->.
+    intros m t m' vr c Hok Hw (Hgv & Hxp) Hok' Hc Hb Hev.
+    pose proof (marg_of_gms v m Hok Hgv) as Hmarg.
+    destruct sf_is as (Iu & Ik).
+    unfold xpre in Hxp. rewrite Ik in Hxp.
+    unfold post_of. rewrite Iu, Ik. cbn [orb].
+    pose proof Hw as (_ & HWorld & _).
+    destruct (SfRow.sf_shape lp H12 bm v m t m' vr Hmarg HWorld Hev) as [-> | (t1 & vr1 & Hcdb)].
+    { split; [exact Hw |]. split; [exists c; split; [exact Hc | apply rt_refl] | exact Hxp]. }
+    ffw_open Hw.
+    pose proof Hw as (_ & _ & _ & _ & _ & HF9 & _ & HAW9 & HLW9).
+    assert (AI0 : AudioInv.AudioInv ge m) by (apply AudioInv.aud_w_eq; exact (lvl_w_aud ge m HLW9)).
+    assert (WW0 : warp_w ge m) by exact (proj1 (proj2 (proj2 HLW9))).
+    destruct (SfRow.cdb_keep lp H12 bm Hbm0 m t1 m' vr1 Hcdb AI0 WW0) as (HQ & AI1 & HWW).
+    assert (HAU : aud_w ge m') by (apply AudioInv.aud_w_eq; exact AI1).
+    assert (Nmo : bm <> bo) by exact (not_eq_sym D1).
+    assert (NGm : ~ LsContract.gblk ge LtwFrame.ltw_ws bm).
+    { intros (g & Hin & Hg).
+      assert (g = level_update._gMarioStates) by (eapply Genv.genv_vars_inj; [exact Hg | exact Hbm0]).
+      subst g. refine (not_in_ids level_update._gMarioStates LtwFrame.ltw_ws _ Hin). vm_compute. reflexivity. }
+    assert (NGo : ~ LsContract.gblk ge LtwFrame.ltw_ws bo).
+    { intros (g & Hin & Hg).
+      assert (g = object_list_processor._gObjectPool) by (eapply Genv.genv_vars_inj; [exact Hg | exact Spool]).
+      subst g. refine (not_in_ids _ LtwFrame.ltw_ws _ Hin). vm_compute. reflexivity. }
+    (* Mario's state off invincTimer is unchanged *)
+    assert (KM : forall ch z, z + size_chunk ch <= 38 \/ 40 <= z ->
+               Mem.load ch m' bm z = Mem.load ch m bm z).
+    { intros ch z Hz. apply (Q2_load _ _ _ HQ). intros j Hj. split; [exact NGm |].
+      intros (_ & Hm). unfold LtwFrame.OFS_INV in Hm. lia. }
+    assert (HHX : ffw_hh m' bo oo).
+    { destruct HHt as (h & Lh & Hh). exists h. split; [| exact Hh].
+      rewrite <- Lh. apply (Q2_load _ _ _ HQ). intros j Hj. split; [exact NGo |].
+      intros (E & _). exact (Nmo (eq_sym E)). }
+    assert (LD : forall ch b z, ~ HoleX.chg lp LtwFrame.ltw_ws b -> (b <> bm \/ HoleX.hzi z (size_chunk ch)) ->
+               HoleX.ozx bo oo 56 0 b z (size_chunk ch) -> Mem.load ch m' b z = Mem.load ch m b z).
+    { intros ch b z Hcg Hz Ho. apply (Q2_load _ _ _ HQ). intros j Hj. split.
+      - intros G. apply Hcg. right. exact G.
+      - intros (-> & Hm). destruct Hz as [N | (_ & Hz)]; [exact (N eq_refl) |].
+        unfold LtwFrame.OFS_INV in Hm. lia. }
+    assert (PM : forall b o k p, Mem.perm m b o k p -> Mem.perm m' b o k p) by exact (Q2_perm _ _ _ HQ).
+    assert (NBle : Ple (Mem.nextblock m) (Mem.nextblock m')) by exact (proj1 (proj2 HQ)).
+    assert (CLK : forall gp, closed_by gp m -> syms_mapped ge gp -> gp bm <> None ->
+      exists gp', (forall b, gp b <> None -> gp' b <> None) /\ closed_by gp' m' /\ syms_mapped ge gp').
+    { intros gp0 HC0 HS0 HM0.
+      assert (Hvok : Forall (vok gp0) [v]).
+      { constructor; [| constructor].
+        destruct v; try (constructor; fail).
+        destruct Hmarg as [-> ->]. apply vok_mk_ptr. exact (closed_mapped_flat _ _ _ HC0 HM0). }
+      destruct (funcall_closed ge m _ _ t m' vr gp0 Hev HC0 HS0 Hvok) as (gp' & I & HC' & HS' & _).
+      exists gp'. split; [| exact (conj HC' HS')].
+      intros b Hb'. destruct (gp0 b) as [[b1 d]|] eqn:E0; [| congruence].
+      rewrite (I _ _ _ E0). discriminate. }
+    assert (XGok : forallb (fun id => negb (existsb (Pos.eqb id) HoleX.safe_ids)
+                                      || existsb (Pos.eqb id) HoleX.warp_ids) LtwFrame.ltw_ws = true)
+      by (vm_compute; reflexivity).
+    assert (LO : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
+    assert (OWL : 36 <= 56 /\ 0 <= 0 /\ 56 + 0 <= 56) by lia.
+    assert (HG : 40 <= 56 \/ 56 + 0 <= 36) by lia.
+    split; [eapply HoleX.hx_fworld with (XG := LtwFrame.ltw_ws) (m := m) (m' := m') (ob := bo) (oo0 := oo)
+                                       (ow := 56) (wl := 0); eassumption |].
+    split; [exists c; split; [eapply HoleX.hx_cells with (XG := LtwFrame.ltw_ws) (m := m) (m' := m') (ob := bo)
+                                (oo0 := oo) (ow := 56) (wl := 0); eassumption | apply rt_refl] |].
+    (* the floor refresh reads Mario's cells off invincTimer *)
+    destruct Hxp as [Hn | (Ffl & Fin & Fnn)].
+    - left. refine (floor_null_keep bm m m' _ Hn). apply KM. unfold FFW_FLOOR. cbn [size_chunk]. lia.
+    - right. apply fresh_mk.
+      + intros y fh L1 L2.
+        rewrite KM in L1 by (unfold OFS_POSY; cbn [size_chunk]; lia).
+        rewrite KM in L2 by (unfold OFS_FLOORH; cbn [size_chunk]; lia).
+        destruct (Ffl y fh L1 L2) as (FA & FB). split; [exact FA |].
+        rewrite KM by (cbn [size_chunk]; lia). exact FB.
+      + refine (inputs_ok_keep bm m m' _ _ Fin); apply KM; unfold WL_OFF; cbn [size_chunk]; lia.
+      + refine (floor_nn_keep bm m m' _ Fnn). apply KM. unfold FFW_FLOOR. cbn [size_chunk]. lia.
   Qed.
 
   (* ==================================================================== *)
@@ -1752,6 +1860,7 @@ Section NA.
       | exact (squish_row fd v Hr)
       | exact (qs_row fd v Hr)
       | exact (hitbox_row fd v Hr)
+      | exact (sf_row fd v Hr)
       | exact (sub_row fd v)
       | (apply (Hop _ fd v); [unfold na_open; in_lit | exact Hr]) ].
   Qed.

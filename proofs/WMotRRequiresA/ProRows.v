@@ -549,7 +549,11 @@ Section PR.
       all: destruct (ev_fld AIR._m le m _ mario._floor (tptr (Tstruct mario._Surface noattr)) Mint32 104 vf Hl0
                        (conj eq_refl eq_refl) fo_floor ltac:(lia) eq_refl Ef) as (_ & Lf).
       all: destruct HW as (_ & _ & Hfl & _).
-      all: destruct (Hfl vf Lf) as (sb & so & ty & -> & Lty & Hin).
+      (* non-NULL from the dispatch's floor refresh (fresh_at's floor_nn) *)
+      all: destruct (proj2 (proj2 Hfr)) as (fnb & fno & Lfn).
+      all: assert (Efn : vf = Vptr fnb fno)
+             by (try change FFW_FLOOR with 104 in Lfn; try change FLOOR_OFF with 104 in Lf; congruence).
+      all: destruct (surface_ok_ptr _ _ _ _ Efn (Hfl vf Lf)) as (sb & so & ty & -> & Lty & Hin).
       all: apply (seq_set_inv lp) in Ha as (vt & Et & Ha).
       all: pose proof (ev_stype _ _ _ _ _ _ ltac:(apply PTree.gss) Et) as Lt.
       all: rewrite Lty in Lt; injection Lt as <-.
@@ -843,7 +847,7 @@ Section PR.
       split; [| split; [| split; [| split; [| split; [| split]]]]].
       - exact I.
       - exact I.
-      - intros v Hl. hm_in Hl. destruct (Hfl v Hl) as (b & o & t & -> & Lt & Hin).
+      - intros v Hl. hm_in Hl. destruct (Hfl v Hl) as [Hn0 | (b & o & t & -> & Lt & Hin)]; [left; exact Hn0 | right].
         exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
         destruct (As b o Hl) as (N1 & N2 & N3 & N4).
         rewrite LHz by (first [assumption | apply ozp_ne; exact N4]). exact Lt.

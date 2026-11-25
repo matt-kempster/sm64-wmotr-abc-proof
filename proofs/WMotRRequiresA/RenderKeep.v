@@ -629,7 +629,7 @@ Section RK.
       split; [| split; [| split; [| split; [| split; [| split]]]]].
       - exact I.
       - exact I.
-      - intros v Hl. rewrite LHm in Hl by bmk_t. destruct (Hfl v Hl) as (b & o & t & -> & Lt & Hin).
+      - intros v Hl. rewrite LHm in Hl by bmk_t. destruct (Hfl v Hl) as [Hn0 | (b & o & t & -> & Lt & Hin)]; [left; exact Hn0 | right].
         exists b, o, t. split; [reflexivity |]. split; [| exact Hin].
         rewrite (Sk b o Hl). exact Lt.
       - rewrite LHm by bmk_t. exact Hh.

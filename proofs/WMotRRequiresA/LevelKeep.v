@@ -214,8 +214,9 @@ Section Link.
     destruct (lu_sym LU._gMarioState ltac:(vm_compute; discriminate)) as (bs & Hbs).
     exists bs. split; [ exact Hbs | split; [ | split; [ | exact Hv ] ] ].
     - intros b o Hl. exact (mwf_real_pgms lp bm bc oc0 SafeB m bs b o HM Hbs Hl).
-    - intros v Hl. destruct (Hfl v Hl) as (fb & fo & t & -> & Ht & Hin).
-      rewrite wmotr_surface_types_value in Hin.
+    - intros v Hl. destruct (Hfl v Hl) as [Hn | (fb & fo & t & -> & Ht & Hin)].
+      { left. rewrite Hn. unfold Vnullptr. cbv [Archi.ptr64]. reflexivity. }
+      right. rewrite wmotr_surface_types_value in Hin.
       exists fb, fo, t. split; [ reflexivity | split; [ exact Ht | exact Hin ] ].
   Qed.
 

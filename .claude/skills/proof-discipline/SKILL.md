@@ -24,11 +24,25 @@ all in `Unwired/`, and the theorem moved nowhere. See
   carried globals. Coverage only (no row discharged). Open: `m->input` (MWF window [2,4), needs
   its own store lemma), `gGlobalTimer`, castle residue vs R7, S7. `docs/wmotr-entry-census.md` §4d.
 
-- **FOUND 2026-11-15 (OPEN): the NULL-floor repair (B'') is void inside seg rows.** `fworld`
-  carries `wmotr_world`, whose floor clause forces a surface pointer, so `fworld m` and
-  `floor_null bm m` contradict; posts `floor_null \/ fresh` collapse to `fresh`, and the open
-  umi row again claims no double-miss NULL floor. Repair option (RESTATE, large, not started):
-  make that clause surface-or-NULL; readers take non-NULL from `fresh`. TRUST row 3.2 text.
+- **PROVED 2026-11-24: `mario_handle_special_floors` row** (`NaSplit.sf_row`, out of `na_open`;
+  6 named rows left). `SfRow.sf_shape` walks the real body: on a WMotR floor type its only call
+  is `check_death_barrier`; `SfRow.cdb_keep` gives level_trigger_warp's footprint
+  (`LtwFrame.ltw_ws` + `m->invincTimer`), AudioInv (`LtwAudio`) and `warp_w`. `HoleX` now lets a
+  hole name the two delayed-warp cells (caller supplies `warp_w`) and excludes bytes 38..39 of
+  Mario. No trust added. Covers a NULL floor since the RESTATED entry below (`sf_shape`'s NULL
+  branch: the real `m->floor != NULL` test is false and the body does nothing).
+
+- **RESTATED 2026-11-24 (was FOUND 2026-11-15): the NULL-floor repair (B'') now reaches the seg
+  rows.** `wmotr_world`'s floor clause is `surface_ok` (NULL or a typed WMotR surface), not
+  `surface_nonnull_ok`, so `fworld m /\ floor_null bm m` is satisfiable and the umi row's post
+  `floor_null \/ fresh` really allows the double-miss NULL floor. Readers that need a pointer take
+  it from the pre they already have (`fresh` / `fresh_at` / the rows' `wblk` floor):
+  `ProRows.ccairc_row`, the six `*Row.v` start facts. `SfRow.sf_shape` and the level flank's
+  `floor_safe` (instant / painting warp) gained real NULL branches (both guards test NULL).
+  One reader has no such pre: `FrameSplit.guard_mem` (the post-loop wind guards,
+  `m->floor->type == 44 / 56`); it now takes the pointer from Clight's own dereference of
+  `m->floor` (a NULL there has no Clight run; the real code reaches it only past the
+  `floor == NULL` return). No new premise, no trust row.
 
 - **GOAL 1 over the whole frame** (2026-10-26, skeleton): `NoAImpliesNoFly/NoAImpliesNoFlyFrame.v`,
   `noA_never_flying_frame_linked12`: the step is GOAL 2's real `frame_step`; open rows = GOAL 2's
