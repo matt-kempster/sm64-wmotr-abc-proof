@@ -1214,12 +1214,24 @@ all in `Unwired/`, and the theorem moved nowhere. See
        The false case MOVED into native_res: the natives that can spawn a
        member (star_spawners_value) must show they spawn none, OPEN:
        bhv_hidden_red_coin_star_loop (guard row 1), bhv_hidden_red_coin_star_
-       init (guard: red-coin count, FOUND), bhv_mario_update (guard R_noA),
-       bhv_exclamation_box_loop (bhvSpawnedStarNoLevelExit via the contents
-       table; guard row 2).  reach_counts now (6, 38, 19).
+       init (guard: red-coin count, FOUND), bhv_exclamation_box_loop
+       (bhvSpawnedStarNoLevelExit via the contents table; guard row 2), and
+       Mario side bhv_mario_update (referrers general_star_dance_handler,
+       act_exit_land_save_dialog, act_end_waving_cutscene,
+       act_unlocking_key_door, act_unlocking_star_door,
+       end_peach_cutscene_spawn_peach: guard R_noA; and
+       bhv_spawn_star_no_level_exit, see the 100-coin star).
+       reach_counts now (6, 38, 19).
+       - 100-COIN STAR, OPEN (not R_noA-gated): interact_coin (Mario side)
+         calls bhv_spawn_star_no_level_exit(6) when gCurrCourseNum is in
+         1..15 and numCoins crosses 100, spawning bhvSpawnedStarNoLevelExit
+         (generated/interaction.v, f_interact_coin).  Closed only once track
+         2's pin of gCurrCourseNum outside 1..15 lands as a proved invariant
+         clause; until then it is open.
        - Still FOUND: red coin 7 -> 8, hidden-star init (now also: it spawns
          bhvStar, a cut script).  The star family is no longer a slot-kind
-         case; it is the four open spawn obligations above.
+         case; it is the open spawn obligations above.  NO star-family spawn
+         is closed.
        Probe tools: playground/Sweep2.v, Sweep3.v, decode_ident.py, native_scan.py.
        TRAP: `tauto` in a section with a Qfam hypothesis hangs (ObjInv / ObjVmSwap);
        prove `In CANS [POLES; CANS]` by `right; left; reflexivity`.

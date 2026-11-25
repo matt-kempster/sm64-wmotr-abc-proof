@@ -1148,9 +1148,19 @@ without pressing A".*
   passes at boot. The false case moves into `native_res`: the four live
   natives that can spawn a member (`NativeSweep.star_spawners_value`) must
   now show they spawn none, undischarged: `bhv_hidden_red_coin_star_loop`,
-  `bhv_hidden_red_coin_star_init`, `bhv_mario_update`,
-  `bhv_exclamation_box_loop`. Still FOUND: red coin 7 -> 8, hidden-star
-  init.
+  `bhv_hidden_red_coin_star_init`, `bhv_exclamation_box_loop` (object
+  side) and `bhv_mario_update` (Mario side: through the referrers
+  `general_star_dance_handler`, `act_exit_land_save_dialog`,
+  `act_end_waving_cutscene`, `act_unlocking_key_door`,
+  `act_unlocking_star_door`, `end_peach_cutscene_spawn_peach` and
+  `bhv_spawn_star_no_level_exit`; `NativeSweep.star_fam_referrers`). The
+  100-coin star is one of these open obligations: `interact_coin` (Mario
+  side) calls `bhv_spawn_star_no_level_exit` when `gCurrCourseNum` is in
+  1..15 and the coin count crosses 100, which spawns
+  `bhvSpawnedStarNoLevelExit`; this is closed only once track 2's pin of
+  `gCurrCourseNum` outside 1..15 lands as a proved invariant clause, and
+  until then it is open. No star-family spawn is closed. Still FOUND: red
+  coin 7 -> 8, hidden-star init.
 - **Objects (2026-10-26): one real call.** `HeightFrame.play_frame_step` is now poll ; PRE ;
   `seg_objects_spec` ; POST ; render walk, and `seg_objects_spec` is `ObjPhase.objects_call`:
   the generated `area_update_objects` as one `eval_funcall`. The old `seg_platform` / action /
