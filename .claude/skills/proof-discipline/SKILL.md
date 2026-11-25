@@ -1139,6 +1139,26 @@ all in `Unwired/`, and the theorem moved nowhere. See
        other scripts), lid oHome + cannon-unlocked bit, red coin 7 -> 8,
        hidden-star init (the two red-coin cases need a guard on Mario, i.e.
        GOAL 2's own height conclusion: a joint induction, not a local pin).
+       2026-11-24 box byte REPAIRED (slot table row 2; window STILL OPEN): a slot
+       running bhvExclamationBox has oBehParams2ndByte 0 or 7 (= BoxCensus.box_ids;
+       ObjWorld.box_at), boot-checked by ow_chk.  Field 47's window (324,328) left
+       the script-writable set (ucl_h / UWIN_H); census: only bhvSpawnedStar word 2
+       SET_INTs field 47 and it is not live (ObjStep.set47_dead).  Transfer proof
+       of the box loop stays inside native_res.
+       - FOUND (NativeSweep.star_fam_sites_value / star_fam_referrers): live_bhvs
+         still holds the star family (9 scripts, 13 live sites); script_ok admits a
+         slot running bhvStar or bhvStarSpawnCoordinates, where native_res asks
+         bhv_collect_star_init, which stores INTERACT_STAR and breaks KIND.  Not
+         repaired yet.  Planned repair: cut the 9 family scripts from live_bhvs
+         (their 13 sites become dead); the spawners are then guarded by row 1
+         (hidden-star loop), by the open red-coin count (hidden-star init), and
+         by Phi's R_noA action set (Mario's spawns; transfer proof stays inside
+         native_res at bhv_mario_update).
+       - Census (NativeSweep.reach_counts, closed_natives_value): of the 62 live
+         residual natives, 12 reach no spawn/unload and do not read Mario, 42 can
+         create or free a slot, 22 read Mario.
+       - Still FOUND: lid oHome + cannon-unlocked bit, red coin 7 -> 8, hidden-star
+         init, the star family.  Capstones still vacuous.
        Probe tools: playground/Sweep2.v, Sweep3.v, decode_ident.py, native_scan.py.
        TRAP: `tauto` in a section with a Qfam hypothesis hangs (ObjInv / ObjVmSwap);
        prove `In CANS [POLES; CANS]` by `right; left; reflexivity`.

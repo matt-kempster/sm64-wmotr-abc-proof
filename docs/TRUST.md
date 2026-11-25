@@ -1090,6 +1090,28 @@ without pressing A".*
   objects rows now claim less; box acts 2 / 3 are no longer false cases.
   `obj_w` pins no box position. Still FOUND: box byte, lid oHome and the
   cannon-unlocked bit, red coin 7 -> 8, hidden-star init.
+  **BOX BYTE 2026-11-24 (REPAIRED, no new premise, window still OPEN).**
+  Slot table row 2: a slot running bhvExclamationBox holds
+  oBehParams2ndByte 0 or 7 (the ids of WMotR's boxes, `BoxCensus.box_ids`;
+  `ObjWorld.box_at`), and the boot check `ow_chk` decides it at the real
+  boot state. Field 47's bytes [324, 328) are no longer a script-writable
+  window: the census finds one script command writing field 47
+  (bhvSpawnedStar word 2), and that script is not live
+  (`ObjStep.set47_dead`). The box loop's transfer proof stays inside
+  `native_res`. Census (`NativeSweep.reach_counts`): of the 62 live
+  residual natives, 12 reach no spawn/unload and do not read Mario, 42 can
+  create or free a slot, 22 read Mario.
+  New FOUND (`NativeSweep.star_fam_sites_value`, `star_fam_referrers`):
+  `live_bhvs` still holds the star family (9 scripts, 13 live sites), so
+  `script_ok` admits a slot running bhvStar or bhvStarSpawnCoordinates,
+  whose init (`bhv_collect_star_init`) stores INTERACT_STAR and breaks
+  KIND. Not repaired yet. Planned repair: cut the 9 family scripts from
+  `live_bhvs` (their 13 sites become dead); the spawners are then guarded
+  by row 1 (hidden-star loop), by the open red-coin count (hidden-star
+  init), and by Phi's `R_noA` action set (Mario's spawns; transfer proof
+  stays inside `native_res` at `bhv_mario_update`).
+  Still FOUND: lid oHome and the cannon-unlocked bit, red coin 7 -> 8,
+  hidden-star init, the star family.
 - **Objects (2026-10-26): one real call.** `HeightFrame.play_frame_step` is now poll ; PRE ;
   `seg_objects_spec` ; POST ; render walk, and `seg_objects_spec` is `ObjPhase.objects_call`:
   the generated `area_update_objects` as one `eval_funcall`. The old `seg_platform` / action /
