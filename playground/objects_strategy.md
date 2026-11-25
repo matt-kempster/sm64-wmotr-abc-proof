@@ -181,3 +181,45 @@ Read before choosing:
    Stop if it reaches the cannon's cost shape (3 failed rounds => redesign).
 4. Split native_res by site class so that discharged classes leave the row
    (dead sites first: provable now from dead_site_no_Q).
+
+## 2026-11-25 (sixth round): the joint induction ("no star collected yet"), design
+
+Coordinator: this is an invariant strengthening proved from real code, owned here.
+Survey of what already exists (read-only pass, file:line in the session log):
+- Phi = PhiW contains `action_sat R_noA` (73 actions): star-dance, key-door, ending
+  actions ARE excluded at every Pobj state. (The fifth-round remark "mem_ok does not
+  exclude them" was about mem_ok only; Phi does.) wmotr_objects: Mario's collided
+  objects have WMotR kinds (no STAR_OR_KEY).
+- Height: pos[1] and gfx.pos[1] <= 2796 < 2980. NOT bounded: Mario's OBJECT oPosY
+  (offset 164), the cell detect_object_hitbox_overlap reads. TRUST.md:96 lists
+  "Mario object's y = pos[1] at collision time" as assumed.
+- Collision stage: proved, but with no geometry (any two listed slots may register).
+  The geometric lemma exists off the spine: CoinLink.overlap_no_contact /
+  mario_coin2_no_contact. Plug-in point: CollWalk.hit_ok's Mario-vs-slot call.
+- No red coin slot is pinned (position, hitbox, parent, status). Counter increment in
+  bhv_red_coin_loop: INTERACTED bit set and parent != NULL, parent's field 27 += 1.
+- Mario frame: no proved "INTERACTED is written only on collided objects";
+  mario_process_interactions sits in NaSplit.na_open (track 2's file).
+
+**Chosen steps, cheapest first (each a separate green milestone):**
+C1. Cut the star family (9 scripts) from `live_bhvs`. Objects-local. 13 sites become
+    dead. True in the real game given C2-C4; spawner guards: row 1, C3, R_noA.
+C2. obj_w: Mario's object oPosY <= 2796 at Pobj states (the copy at the end of
+    bhv_mario_update keeps it; boot-checked). Turns TRUST.md:96's assumed fact into
+    an invariant clause; the transfer obligation lands in bhvMario@9's native_res.
+C3. obj_w: coin-#2 clause. "A live slot running bhvRedCoin with the INTERACTED bit
+    set does not exist while ..." is too strong (other 7 coins are collectable).
+    Instead a COUNT: let R = live slots running bhvRedCoin, I = those with INTERACTED;
+    clause: HSTARS counter + |R| <= 8 ... and coin #2 (pinned: script bhvRedCoin, pos
+    (2735,3140,-3085), down offset 0, INTERACTED clear, active) is in R. Then
+    counter <= 8 - 1 < 8 (row 1's bound, now derived), init's count >= 1 (no bhvStar
+    spawn), and the 7 -> 8 site needs coin #2 INTERACTED, excluded by the pin.
+    Needs: red coin parent = the HSTARS slot (else the increment hits another slot).
+C4. Keeping C3's "coin #2 INTERACTED clear": (i) collision stage: put
+    overlap_no_contact on the spine at hit_ok, so coin #2 is never in Mario's list
+    (uses C2); (ii) Mario frame: INTERACTED stored only on collided objects / usedObj.
+    (ii) is Mario-side (NaSplit.na_open, track 2): PROPOSAL to the coordinator before
+    any edit there. Until (ii) is proved it stays an obligation inside native_res at
+    bhvMario@9, which is where Mario's object effects already sit, so NO HeightFrame
+    premise changes.
+Order with the rest: milestone 1 (box byte) -> lid oHome -> C1 -> C2 -> C3 -> C4(i).
