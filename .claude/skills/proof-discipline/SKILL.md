@@ -24,6 +24,14 @@ all in `Unwired/`, and the theorem moved nowhere. See
   carried globals. Coverage only (no row discharged). Open: `m->input` (MWF window [2,4), needs
   its own store lemma), `gGlobalTimer`, castle residue vs R7, S7. `docs/wmotr-entry-census.md` §4d.
 
+- **PROVED 2026-11-24: `mario_handle_special_floors` row** (`NaSplit.sf_row`, out of `na_open`;
+  6 named rows left). `SfRow.sf_shape` walks the real body: on a WMotR floor type its only call
+  is `check_death_barrier`; `SfRow.cdb_keep` gives level_trigger_warp's footprint
+  (`LtwFrame.ltw_ws` + `m->invincTimer`), AudioInv (`LtwAudio`) and `warp_w`. `HoleX` now lets a
+  hole name the two delayed-warp cells (caller supplies `warp_w`) and excludes bytes 38..39 of
+  Mario. No trust added. Still subject to the NULL-floor FOUND below (the row is vacuous on a
+  NULL floor until that is repaired).
+
 - **FOUND 2026-11-15 (OPEN): the NULL-floor repair (B'') is void inside seg rows.** `fworld`
   carries `wmotr_world`, whose floor clause forces a surface pointer, so `fworld m` and
   `floor_null bm m` contradict; posts `floor_null \/ fresh` collapse to `fresh`, and the open
