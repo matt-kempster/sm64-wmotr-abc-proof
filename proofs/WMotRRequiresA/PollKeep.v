@@ -566,6 +566,9 @@ Section OWK.
     (forall pool, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool -> SKh pool) ->
     (forall pool k, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool ->
        OW.can_traj ge pool m k -> OW.can_traj ge pool m' k) ->
+    (* 2026-11-25: the lid row (slot table row 3) reads a lid's home *)
+    (forall pool k, Genv.find_symbol ge object_list_processor._gObjectPool = Some pool ->
+       OW.lid_at ge pool m k -> OW.lid_at ge pool m' k) ->
     surf_keep ge ->
     (* the surface counter (ow_ctr): kept, or re-made by the writer *)
     (OW.ctr_s_ok ge m -> OW.ctr_s_ok ge m') ->
@@ -582,7 +585,7 @@ Section OWK.
        OW.mcoll_ok pool gmo m -> OW.mcoll_ok pool gmo m') ->
     OW.obj_w ge bm m -> OW.obj_w ge bm m'.
   Proof.
-    intros ge bm K KP KT KS KC Kbm KSc KNC KMC
+    intros ge bm K KP KT KL KS KC Kbm KSc KNC KMC
       (pool & la & fl & gol & gmo & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
     assert (Kp := KP pool S1).
     assert (Kl := K object_list_processor._gObjectListArray la ltac:(unfold ow_ids; cbn [In]; auto 10) ltac:(vm_compute; reflexivity) S2).
@@ -725,8 +728,9 @@ Section OWK.
       apply (OW.pin_at_eq ge pool m m' k (fun id _ => runs_eq ge pool Kp k id)); [ | | exact (KT pool k S1) | | exact (Cpin k Hk) ].
       3: { (* the slot table (2026-11-13): cells off the VM cells and the homes *)
            apply (OW.tab_at_scr ge pool m m' k (fun id _ => runs_eq ge pool Kp k id)).
-           intros c Hc. unfold OW.tab_cells in Hc. cbn [In] in Hc.
-           repeat (destruct Hc as [<- | Hc]; [ cbn [fst snd]; apply Kp; sk_side | ]). destruct Hc. }
+           - intros c Hc. unfold OW.tab_cells in Hc. cbn [In] in Hc.
+             repeat (destruct Hc as [<- | Hc]; [ cbn [fst snd]; apply Kp; sk_side | ]). destruct Hc.
+           - exact (KL pool k S1). }
       + intros ch off Hoff Hch.
         assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).
         unfold OW.pin_offs0, OW.O_BPARAMS in Hoff. cbn [In] in Hoff.
@@ -754,6 +758,10 @@ Section OWK.
     OW.obj_w ge bm m -> OW.obj_w ge bm m'.
   Proof.
     intros ge bm K KP. apply (obj_w_slots_h ge bm K (fun pool Hs => SKc_h pool (KP pool Hs))).
+    2: { intros pool k S1. apply (OW.lid_at_eq ge pool m m' k).
+         - unfold OW.ld32. rewrite !CM.load_eq. apply (KP pool S1); sk_side.
+         - intros c Hc. unfold OW.lid_cells in Hc. cbn [In] in Hc.
+           repeat (destruct Hc as [<- | Hc]; [ cbn [fst snd]; apply (KP pool S1); sk_side | ]). destruct Hc. }
     intros pool k S1. apply (OW.can_traj_eq ge pool m m' k).
     - intros ch off Hoff Hch. assert (Hs : size_chunk ch = 4) by (destruct Hch as [-> | ->]; reflexivity).
       unfold OW.traj_offs in Hoff. cbn [In] in Hoff.

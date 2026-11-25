@@ -1112,6 +1112,18 @@ without pressing A".*
   stays inside `native_res` at `bhv_mario_update`).
   Still FOUND: lid oHome and the cannon-unlocked bit, red coin 7 -> 8,
   hidden-star init, the star family.
+  **LID HOME 2026-11-25 (REPAIRED, no new premise, window still OPEN).**
+  Slot table row 3 (`ObjWorld.LID_ROW`, keyed by the command offset): a
+  slot running bhvCannonClosed with its cursor at or before word 4
+  (SET_HOME) has oPos at a WMotR lid position, past word 4 oHome at one.
+  `ow_chk` decides it at boot. INV_k gains one clause (`ObjInv.HLk`): an
+  update that started at or before word 4 and is past it has oHome at a
+  lid position. Only SET_HOME establishes it (`ObjRows.t_home`, oHome :=
+  oPos); the ghost SET_HOME keep is asked only for such updates. Keepers
+  proved: VM commands, field/home stores, the VM swap at the exit, the
+  cannon drop. The lid's own natives (`bhv_cannon_closed_init` / `_loop`)
+  keep it inside `native_res` (open, as before). Still FOUND: the
+  cannon-unlocked bit, red coin 7 -> 8, hidden-star init, the star family.
 - **Objects (2026-10-26): one real call.** `HeightFrame.play_frame_step` is now poll ; PRE ;
   `seg_objects_spec` ; POST ; render walk, and `seg_objects_spec` is `ObjPhase.objects_call`:
   the generated `area_update_objects` as one `eval_funcall`. The old `seg_platform` / action /

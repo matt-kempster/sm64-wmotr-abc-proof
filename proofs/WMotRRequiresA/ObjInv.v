@@ -461,6 +461,186 @@ Proof.
 Qed.
 
 (* ---------------------------------------------------------------------- *)
+(* 1d. The cannon lid (2026-11-25; ObjWorld.slot_tab row 3).  bhvCannonClosed: *)
+(*     BEGIN (0), OR_INT (1), LOAD_COLLISION_DATA (2), SET_HOME (4),         *)
+(*     CALL_NATIVE init (5), BEGIN_LOOP (7), CALL_NATIVE loop (8),           *)
+(*     CALL_NATIVE load_object_collision_model (10), END_LOOP (12).          *)
+(*     Decided over the VM table: past word 4 only CALL_NATIVE, BEGIN_LOOP   *)
+(*     and END_LOOP run; word 4 is SET_HOME and no other word is; an edge    *)
+(*     into words <= 4 comes from words <= 4, an edge out of them leaves     *)
+(*     word 4; the loop exits past word 4.                                   *)
+(*     HLk, INV_k's lid clause: an update that started at or before word 4   *)
+(*     (the lid's first, in the game) is still there while the VM is, and   *)
+(*     once past word 4 the slot's HOME is a lid's macro position.  SET_HOME *)
+(*     (ObjRows.t_home) establishes it; every other command keeps it.         *)
+(* ---------------------------------------------------------------------- *)
+(* PERF TRAP: stated inline (see BhvStep.chk42_ok) *)
+Lemma lid_chk_ok :
+  forallb (fun st => negb (Pos.eqb (v_s st) OW.LIDS)
+    || (Nat.ltb (v_i st) 16
+        && match word_at (v_s st) (v_i st) with
+           | Some w => (negb (Nat.ltb 4 (v_i st)) || existsb (Z.eqb (Z.shiftr w 24)) [8; 9; 12])
+                       && (negb (Z.shiftr w 24 =? 45) || Nat.eqb (v_i st) 4)
+                       && (negb (Nat.eqb (v_i st) 4) || (Z.shiftr w 24 =? 45))
+                       && existsb (Z.eqb (Z.shiftr w 24)) [0; 17; 42; 45; 12; 8; 9]
+           | None => false end
+        && match succs st with
+           | Some l => forallb (fun x => Pos.eqb (v_s x) OW.LIDS
+                         && (negb (Nat.leb (v_i x) 4) || Nat.leb (v_i st) 4)
+                         && (negb (Nat.ltb 4 (v_i x)) || Nat.leb 4 (v_i st))) l
+           | None => true end)) vm_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma lid_facts : forall st, In st vm_tab -> v_s st = OW.LIDS ->
+  (v_i st < 16)%nat
+  /\ (exists w, word_at (v_s st) (v_i st) = Some w
+       /\ ((4 < v_i st)%nat -> existsb (Z.eqb (Z.shiftr w 24)) [8; 9; 12] = true)
+       /\ (Z.shiftr w 24 = 45 -> v_i st = 4%nat)
+       /\ (v_i st = 4%nat -> Z.shiftr w 24 = 45)
+       /\ existsb (Z.eqb (Z.shiftr w 24)) [0; 17; 42; 45; 12; 8; 9] = true)
+  /\ (forall l st', succs st = Some l -> In st' l ->
+       v_s st' = OW.LIDS /\ ((v_i st' <= 4)%nat -> (v_i st <= 4)%nat) /\ ((4 < v_i st')%nat -> (4 <= v_i st)%nat)).
+Proof.
+  intros st Hst El. pose proof lid_chk_ok as A. rewrite forallb_forall in A.
+  specialize (A st Hst). cbv beta in A.
+  destruct (word_at (v_s st) (v_i st)) as [w |] eqn:Hw;
+    destruct (succs st) as [l0 |] eqn:Hl; rewrite El, Pos.eqb_refl in A; cbn [negb orb] in A;
+    rewrite !andb_true_iff in A;
+    [ | | destruct A as ((_ & F) & _); discriminate F .. ].
+  - destruct A as ((L16 & (((X1 & X2) & X3) & X4)) & S).
+    split; [ apply Nat.ltb_lt; exact L16 | split ].
+    + exists w. split; [ reflexivity | split; [ | split; [ | split ] ] ].
+      * intros H4. apply Nat.ltb_lt in H4. rewrite H4 in X1. exact X1.
+      * intros E. rewrite E, Z.eqb_refl in X2. cbn [negb orb] in X2. apply Nat.eqb_eq. exact X2.
+      * intros E. rewrite E, Nat.eqb_refl in X3. cbn [negb orb] in X3. apply Z.eqb_eq. exact X3.
+      * exact X4.
+    + intros l st' Hl' Hin. try rewrite Hl in Hl'. injection Hl' as <-. rewrite forallb_forall in S.
+      pose proof (S st' Hin) as S'. cbv beta in S'. rewrite !andb_true_iff in S'.
+      destruct S' as ((S0 & S1) & S2). split; [ apply Pos.eqb_eq; exact S0 | split ].
+      * intros H. apply Nat.leb_le in H. rewrite H in S1. cbn [negb orb] in S1. apply Nat.leb_le. exact S1.
+      * intros H. apply Nat.ltb_lt in H. rewrite H in S2. cbn [negb orb] in S2. apply Nat.leb_le. exact S2.
+  - destruct A as ((L16 & (((X1 & X2) & X3) & X4)) & _).
+    split; [ apply Nat.ltb_lt; exact L16 | split ].
+    + exists w. split; [ reflexivity | split; [ | split; [ | split ] ] ].
+      * intros H4. apply Nat.ltb_lt in H4. rewrite H4 in X1. exact X1.
+      * intros E. rewrite E, Z.eqb_refl in X2. cbn [negb orb] in X2. apply Nat.eqb_eq. exact X2.
+      * intros E. rewrite E, Nat.eqb_refl in X3. cbn [negb orb] in X3. apply Z.eqb_eq. exact X3.
+      * exact X4.
+    + intros l st' Hl' _. try rewrite Hl in Hl'. discriminate Hl'.
+Qed.
+
+Lemma ext_lid_chk :
+  forallb (fun sp => match word_at (v_s sp) (v_i sp) with
+                     | Some w => negb (existsb (Z.eqb (Z.shiftr w 24)) BhvStep.brk_ops)
+                     | None => true end
+                     || match succs sp with
+                        | Some l => forallb (fun x => negb (Pos.eqb (v_s x) OW.LIDS) || Nat.ltb 4 (v_i x)) l
+                        | None => true end)
+    vm_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* the lid's loop exits past word 4 (END_LOOP's BREAK, to word 8) *)
+Lemma ext_lid : forall st', BhvStep.ext st' -> v_s st' = OW.LIDS -> (4 < v_i st')%nat.
+Proof.
+  intros st' (sp & w & l & Hsp & Hw & Hb & Hl & Hin) El. pose proof ext_lid_chk as A.
+  rewrite forallb_forall in A. specialize (A sp Hsp). cbv beta in A. rewrite Hw, Hl in A.
+  assert (E : existsb (Z.eqb (Z.shiftr w 24)) BhvStep.brk_ops = true)
+    by (apply existsb_exists; exists (Z.shiftr w 24); split; [ exact Hb | apply Z.eqb_refl ]).
+  rewrite E in A. cbn [negb orb] in A. rewrite forallb_forall in A.
+  pose proof (A st' Hin) as B. rewrite El, Pos.eqb_refl in B. cbn [negb orb] in B. apply Nat.ltb_lt. exact B.
+Qed.
+
+Lemma lid_sp : existsb (Pos.eqb OW.LIDS) BhvStep.sp_scripts = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma lid_cans : OW.LIDS <> OW.CANS.
+Proof. vm_compute. discriminate. Qed.
+
+Definition HLk (st0 : vst) (pool : block) (oc : Z) (s : vst) (m : mem) : Prop :=
+  v_s st0 = OW.LIDS -> ((v_i s <= 4)%nat -> (v_i st0 <= 4)%nat)
+                     /\ ((v_i st0 <= 4)%nat -> (4 < v_i s)%nat -> OW.lid_home m pool oc).
+
+Lemma hl_vac : forall st0 pool oc s m, v_s st0 <> OW.LIDS -> HLk st0 pool oc s m.
+Proof. intros st0 pool oc s m N E. exfalso. exact (N E). Qed.
+
+Lemma hl_can : forall st0 pool oc s m, v_s st0 = OW.CANS -> HLk st0 pool oc s m.
+Proof. intros st0 pool oc s m Ec. apply hl_vac. rewrite Ec. intros E. exact (lid_cans (eq_sym E)). Qed.
+
+Lemma hl_lid : forall st0 st, ObjFamily.Qfam (v_s st0) st -> v_s st0 = OW.LIDS -> v_s st = OW.LIDS.
+Proof.
+  intros st0 st HQ E.
+  exact (proj2 (ObjFamily.Qfam_id (v_s st0) st OW.LIDS ltac:(right; left; reflexivity) HQ) E).
+Qed.
+
+Lemma hl_entry : forall st0 pool oc m, HLk st0 pool oc st0 m.
+Proof. intros st0 pool oc m _. split; [ exact (fun H => H) | intros A B; exfalso; lia ]. Qed.
+
+Lemma hl_mem : forall st0 pool oc s m m', (OW.lid_home m pool oc -> OW.lid_home m' pool oc) ->
+  HLk st0 pool oc s m -> HLk st0 pool oc s m'.
+Proof.
+  intros st0 pool oc s m m' K H E. destruct (H E) as (H1 & H2).
+  split; [ exact H1 | intros A B; exact (K (H2 A B)) ].
+Qed.
+
+(* a command other than CALL_NATIVE / BEGIN_LOOP / END_LOOP keeps the
+   clause at its own state (past word 4 none runs) *)
+Lemma hl_same : forall st0 pool oc st w m m', In st vm_tab -> ObjFamily.Qfam (v_s st0) st ->
+  word_at (v_s st) (v_i st) = Some w -> existsb (Z.eqb (Z.shiftr w 24)) [8; 9; 12] = false ->
+  HLk st0 pool oc st m -> HLk st0 pool oc st m'.
+Proof.
+  intros st0 pool oc st w m m' Hst HQ Hw Ho H E. destruct (H E) as (H1 & _). split; [ exact H1 | ].
+  intros _ H4. exfalso. pose proof (hl_lid st0 st HQ E) as El.
+  destruct (lid_facts st Hst El) as (_ & (w' & Hw' & F1 & _) & _).
+  rewrite Hw in Hw'. injection Hw' as <-. rewrite (F1 H4) in Ho. discriminate Ho.
+Qed.
+
+(* a command the lid script does not hold: the clause is vacuous *)
+Lemma hl_nop : forall st0 pool oc st w s m, In st vm_tab -> ObjFamily.Qfam (v_s st0) st ->
+  word_at (v_s st) (v_i st) = Some w -> existsb (Z.eqb (Z.shiftr w 24)) [0; 17; 42; 45; 12; 8; 9] = false ->
+  HLk st0 pool oc s m.
+Proof.
+  intros st0 pool oc st w s m Hst HQ Hw Ho E. exfalso. pose proof (hl_lid st0 st HQ E) as El.
+  destruct (lid_facts st Hst El) as (_ & (w' & Hw' & _ & _ & _ & F4) & _).
+  rewrite Hw in Hw'. injection Hw' as <-. rewrite F4 in Ho. discriminate Ho.
+Qed.
+
+(* the lid is a special script: a generic state is not the lid's *)
+Lemma hl_sp : forall st0 pool oc st s m, ObjFamily.Qfam (v_s st0) st ->
+  existsb (Pos.eqb (v_s st)) BhvStep.sp_scripts = false -> HLk st0 pool oc s m.
+Proof.
+  intros st0 pool oc st s m HQ Hg E. exfalso. rewrite (hl_lid st0 st HQ E), lid_sp in Hg. discriminate Hg.
+Qed.
+
+Lemma ncn0_45 : forall st w, BhvStep.ncn0 st -> word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 <> 45.
+Proof. intros st w [H | (_ & H)] Hw; [ exact (proj2 (proj2 (H w Hw))) | exact (proj2 (H w Hw)) ]. Qed.
+
+(* along a VM edge whose command is not SET_HOME *)
+Lemma hl_succ : forall st0 pool oc st l st' m, In st vm_tab -> ObjFamily.Qfam (v_s st0) st ->
+  succs st = Some l -> In st' l ->
+  (forall w, word_at (v_s st) (v_i st) = Some w -> Z.shiftr w 24 <> 45) ->
+  HLk st0 pool oc st m -> HLk st0 pool oc st' m.
+Proof.
+  intros st0 pool oc st l st' m Hst HQ Hl Hin N45 H E. destruct (H E) as (H1 & H2).
+  pose proof (hl_lid st0 st HQ E) as El.
+  destruct (lid_facts st Hst El) as (_ & (w & Hw & _ & _ & F3 & _) & S).
+  destruct (S l st' Hl Hin) as (_ & S1 & S2).
+  split; [ intros A; exact (H1 (S1 A)) | intros A B ].
+  pose proof (S2 B) as C. destruct (Nat.eq_dec (v_i st) 4) as [E4 | N4].
+  - exfalso. exact (N45 w Hw (F3 E4)).
+  - apply (H2 A). lia.
+Qed.
+
+(* the home cells unchanged *)
+Lemma lid_home_unch : forall (P : block -> Z -> Prop) m m' pool oc, Mem.unchanged_on P m m' ->
+  (forall i, oc + OW.O_HOMEX <= i < oc + OW.O_HOMEZ + 4 -> P pool i) ->
+  OW.lid_home m pool oc -> OW.lid_home m' pool oc.
+Proof.
+  intros P m m' pool oc U HP (x & y & z & Hin & L1 & L2 & L3). exists x, y, z. split; [ exact Hin | ].
+  split; [ | split ]; (eapply Mem.load_unchanged_on; [ exact U | | eassumption ]);
+    intros i Hi; apply HP; cbn [size_chunk] in Hi; unfold OW.O_HOMEX, OW.O_HOMEY, OW.O_HOMEZ in *; lia.
+Qed.
+
+(* ---------------------------------------------------------------------- *)
 (* 2. INV_k.                                                               *)
 (* ---------------------------------------------------------------------- *)
 Section Inv.
@@ -541,9 +721,11 @@ Section Inv.
     Ple (Mem.nextblock g) nb0 /\ Mem.unchanged_on Pfr g m /\ BhvStep.nvB scr g m.
 
   (* the prologue clause: inside the cannon prologue, the update started in
-     it (P_back; at the entry trivially) *)
+     it (P_back; at the entry trivially); the lid clause (2026-11-25, HLk:
+     a lid update started at or before SET_HOME has its home pinned once
+     past it, in the REAL memory: the ghost is the frame-start memory) *)
   Definition INVk (s : vst) (m : mem) : Prop :=
-    Ple nb0 (Mem.nextblock m) /\ cur m /\ (inP s -> inP st0)
+    Ple nb0 (Mem.nextblock m) /\ cur m /\ (inP s -> inP st0) /\ HLk st0 pool oc s m
     /\ exists g, GPs s g /\ Ple (Mem.nextblock g) nb0 /\ Mem.unchanged_on Pfr g m /\ BhvStep.nvB scr g m.
 
   Definition Qk : vst -> Prop := ObjFamily.Qfam (v_s st0).
@@ -613,12 +795,27 @@ Section Inv.
     - exact (BhvStep.nvB_trans _ _ _ _ NV NV' (Mem.unchanged_on_nextblock _ _ _ U)).
   Qed.
 
+  (* the lid's home cells are frame cells *)
+  Lemma pool_bcc : pool <> bcc.
+  Proof.
+    intros E. subst bcc.
+    assert (Ei : ObjSelf.POOL = BhvStep.BS._gCurBhvCommand) by (eapply Genv.genv_vars_inj; [ exact Hpool | exact Hbcc ]).
+    vm_compute in Ei. discriminate Ei.
+  Qed.
+
+  Lemma hl_frame : forall s m m', HLk st0 pool oc s m -> Mem.unchanged_on Pfr m m' -> HLk st0 pool oc s m'.
+  Proof.
+    intros s m m' H U. apply (hl_mem st0 pool oc s m m'); [ | exact H ].
+    apply (lid_home_unch Pfr m m' pool oc U). intros i Hi. split; [ exact pool_bcc | ].
+    intros (_ & Hi'). unfold OW.O_HOMEX, OW.O_HOMEZ, OW.O_CMD, OW.O_STK, WMotRWorld.RAW_OFF in *. lia.
+  Qed.
+
   (* ---- Hinv_frame ---- *)
   Theorem inv_frame : forall s m m', INVk s m -> PfrN m m' -> INVk s m'.
   Proof.
-    intros s m m' (Hn & Hc & Hcp & g & Hg & R) F.
+    intros s m m' (Hn & Hc & Hcp & Hh & g & Hg & R) F.
     destruct (ex_frame (GPs s) m m' (conj Hn (conj Hc (ex_intro _ g (conj Hg R)))) F) as (Hn' & Hc' & g' & Hg' & R').
-    exact (conj Hn' (conj Hc' (conj Hcp (ex_intro _ g' (conj Hg' R'))))).
+    exact (conj Hn' (conj Hc' (conj Hcp (conj (hl_frame s m m' Hh (proj1 F)) (ex_intro _ g' (conj Hg' R')))))).
   Qed.
 
   (* ---- Hinv_cur ---- *)
@@ -632,8 +829,9 @@ Section Inv.
   Theorem inv_succ0 : forall st l st' m, In st vm_tab -> Qk st -> succs st = Some l -> In st' l ->
     BhvStep.ncn0 st -> v_s st0 <> OW.CANS -> INVk st m -> INVk st' m.
   Proof using Type. clear Hgo Hbcc Hpool Hpg Hbg Hps.
-    intros st l st' m Hst HQ Hl Hin Hn Nc (Hnb & Hc & Hcp & g & Hg & R).
+    intros st l st' m Hst HQ Hl Hin Hn Nc (Hnb & Hc & Hcp & Hh & g & Hg & R).
     split; [ exact Hnb | split; [ exact Hc | split; [ intros Hp'; exact (Hcp (P_back st l st' Hst Hl Hin Hp')) | ] ] ].
+    split; [ exact (hl_succ st0 pool oc st l st' m Hst HQ Hl Hin (fun w Hw => ncn0_45 st w Hn Hw) Hh) | ].
     exists g; split; [ | exact R ].
     destruct Hg as [(_ & Hg) | [(Hw & Hp) | [(E & _) | [(E & _) | (E & _)]]]];
       [ | | exfalso; exact (Nc E) .. ].
@@ -649,8 +847,9 @@ Section Inv.
       [ | exact (inv_succ0 st l st' m Hst HQ Hl Hin (proj1 Hn) Nc HI) ].
     pose proof (Qk_can st HQ Ec) as Es.
     destruct (can_reg st l st' Hst Es Hl Hin Hn) as (Es' & Er & N14).
-    destruct HI as (Hnb & Hc & Hcp & g & Hg & R).
+    destruct HI as (Hnb & Hc & Hcp & _ & g & Hg & R).
     split; [ exact Hnb | split; [ exact Hc | split; [ intros Hp'; exact (Hcp (P_back st l st' Hst Hl Hin Hp')) | ] ] ].
+    split; [ exact (hl_can st0 pool oc st' m Ec) | ].
     exists g; split; [ | exact R ].
     destruct Hg as [(Ho & Hg) | [(Hw & _) | [(_ & -> & _) | [(_ & (_ & H8 & _) & Hg) | (_ & _ & E14 & _)]]]].
     - left. split; [ | exact Hg ]. intros _. destruct (Ho Ec) as (Ho1 & _). rewrite Er. exact (conj Ho1 N14).
@@ -694,7 +893,7 @@ Section Inv.
 
   Theorem inv_scr : forall s m, INVk s m -> OW.scr_ok G m /\ OW.cmdtab_ok G m.
   Proof.
-    intros s m (_ & _ & _ & g & Hg & _ & U & _).
+    intros s m (_ & _ & _ & _ & g & Hg & _ & U & _).
     destruct (gps_g0 s g Hg) as (g0 & Hp & U0 & N).
     pose proof Hp as (_ & _ & _ & _ & _ & How).
     destruct How as (pool' & la & fl & gol & gmo & sdp & gdi & rs & fs & S1 & S2 & S3 & S4 & S5 & S6 & S7 & C).
@@ -740,7 +939,7 @@ Section Inv.
   Proof using Type. clear Hgo Hbcc Hpool Hpg Hbg Hps.
     intros st w l st' m Hst HQ Hw Hb Hl Hin Hn HI. split.
     - intros Ec. pose proof (Qk_can st HQ Ec) as Es. pose proof (can_brk st w Hst Es Hw Hb) as E14.
-      destruct HI as (Hnb & Hc & _ & g & Hg & R).
+      destruct HI as (Hnb & Hc & _ & _ & g & Hg & R).
       split; [ exact Hnb | split; [ exact Hc | exists g; split; [ | exact R ] ] ].
       destruct Hg as [(Ho & _) | [(Hwp & _) | [(_ & -> & _) | [(_ & (_ & _ & N14) & _) | (_ & _ & _ & HN)]]]].
       + exfalso. exact (proj2 (Ho Ec) E14).
@@ -790,10 +989,18 @@ Section Inv.
   Proof.
     intros s0 s m0 m b m' (Hn0 & _) Hnv (A & B) F. split.
     - intros E. exact (ex_free GPR8 (fun g Hg => sym_valid g _ _ (gpr8_P g Hg) Hgo) m0 m b m' Hn0 Hnv (A E) F).
-    - intros Nc. destruct (B Nc) as (Hn & Hc & Hcp & g & Hg & R).
+    - intros Nc. destruct (B Nc) as (Hn & Hc & Hcp & Hh & g & Hg & R).
+      assert (Nbp : b <> pool).
+      { intros ->. apply Hnv. pose proof (gps_valid s g _ _ Hg Hpool) as Vg. destruct R as (Hgn & _).
+        unfold Mem.valid_block in *. exact (Plt_Ple_trans _ _ _ (Plt_Ple_trans _ _ _ Vg Hgn) Hn0). }
+      assert (Hh' : HLk st0 pool oc s m').
+      { apply (hl_mem st0 pool oc s m m'); [ | exact Hh ].
+        intros (x & y & z & Hin & L1 & L2 & L3). exists x, y, z. split; [ exact Hin | ].
+        unfold OW.can_home. rewrite !(Mem.load_free _ _ _ _ _ F) by (left; exact (fun E => Nbp (eq_sym E))).
+        exact (conj L1 (conj L2 L3)). }
       destruct (ex_free (GPs s) (fun g Hg => gps_valid s g _ _ Hg Hgo) m0 m b m' Hn0 Hnv
                   (conj Hn (conj Hc (ex_intro _ g (conj Hg R)))) F) as (Hn' & Hc' & g' & Hg' & R').
-      exact (conj Hn' (conj Hc' (conj Hcp (ex_intro _ g' (conj Hg' R'))))).
+      exact (conj Hn' (conj Hc' (conj Hcp (conj Hh' (ex_intro _ g' (conj Hg' R')))))).
   Qed.
 
   (* ---- the entry (a cannon's start state is never word 14: obj_w's
@@ -802,6 +1009,7 @@ Section Inv.
     (v_s st0 = OW.CANS -> v_i st0 <> 14%nat) -> INVk st0 m.
   Proof.
     intros m En Hp HV Hc HX H14. split; [ rewrite En; apply Ple_refl | split; [ exact Hc | split; [ exact (fun H => H) | ] ] ].
+    split; [ exact (hl_entry st0 pool oc m) | ].
     exists m. split; [ left; split; [ intros E; exact (conj eq_refl (H14 E)) | exact (conj Hp (conj HV HX)) ] | ].
     split; [ rewrite En; apply Ple_refl | split; [ apply Mem.unchanged_on_refl | apply BhvStep.nvB_refl ] ].
   Qed.
@@ -841,15 +1049,17 @@ Section Inv.
   (* ---- the exit: past the tail, the ghost is GPo (any script; for a
      cannon, a start state past SET_HOME) or the cannon's s8 ghost ---- *)
   Lemma inv_out : forall s m, ~ Wp s -> INVok s m ->
-    exists g sg, Pobjl g /\ Vo g sg /\ X g /\ (sg = st0 \/ (v_s st0 = OW.CANS /\ sg = s8))
+    (v_s st0 <> OW.CANS -> HLk st0 pool oc s m)
+    /\ exists g sg, Pobjl g /\ Vo g sg /\ X g /\ (sg = st0 \/ (v_s st0 = OW.CANS /\ sg = s8))
       /\ (v_s st0 = OW.CANS -> R8n sg)
       /\ Ple (Mem.nextblock g) nb0 /\ Mem.unchanged_on Pfr g m /\ BhvStep.nvB scr g m.
   Proof using Type. clear Hgo Hbcc Hpool Hpg Hbg Hps.
-    intros s m Hn (A & B). destruct (Pos.eq_dec (v_s st0) OW.CANS) as [E | N].
+    intros s m Hn (A & B). split; [ intros N; exact (proj1 (proj2 (proj2 (proj2 (B N))))) | ].
+    destruct (Pos.eq_dec (v_s st0) OW.CANS) as [E | N].
     - destruct (A E) as (_ & _ & g & [(H8 & Hp & HV & HX) | (Hp & HV & HX)] & R).
       + exists g, st0. exact (conj Hp (conj HV (conj HX (conj (or_introl eq_refl) (conj (fun _ => H8) R))))).
       + exists g, s8. exact (conj Hp (conj HV (conj HX (conj (or_intror (conj E eq_refl)) (conj (fun _ => s8_R8n) R))))).
-    - destruct (B N) as (_ & _ & _ & g & Hg & R).
+    - destruct (B N) as (_ & _ & _ & _ & g & Hg & R).
       destruct Hg as [(_ & Hp & HV & HX) | [(Hw & _) | [(E & _) | [(E & _) | (E & _)]]]];
         [ | contradiction | exfalso; exact (N E) .. ].
       exists g, st0. exact (conj Hp (conj HV (conj HX (conj (or_introl eq_refl) (conj (fun E => False_ind _ (N E)) R))))).

@@ -345,6 +345,7 @@ Section FLD.
 
   Section KT.
     Hypothesis KT : forall k, OW.can_traj G pool g k -> OW.can_traj G pool m1 k.
+    Hypothesis KL : forall k, OW.lid_at G pool g k -> OW.lid_at G pool m1 k.
 
   Lemma ow1 : OW.obj_w G bm m1.
   Proof.
@@ -354,6 +355,9 @@ Section FLD.
     assert (KT' : forall pool' k, Genv.find_symbol G OLP._gObjectPool = Some pool' ->
               OW.can_traj G pool' g k -> OW.can_traj G pool' m1 k).
     { intros pool' k Sp. rewrite Hpool in Sp. injection Sp as <-. exact (KT k). }
+    assert (KL' : forall pool' k, Genv.find_symbol G OLP._gObjectPool = Some pool' ->
+              OW.lid_at G pool' g k -> OW.lid_at G pool' m1 k).
+    { intros pool' k Sp. rewrite Hpool in Sp. injection Sp as <-. exact (KL k). }
     assert (K : forall id b, In id PK.ow_ids -> existsb (Pos.eqb id) PK.ow_xc = false -> Genv.find_symbol G id = Some b ->
               forall ch' z, Mem.load ch' m1 b z = Mem.load ch' g b z).
     { intros id b Hin Hn Hs ch' z. apply (LOs id b ch' z Hs).
@@ -385,7 +389,7 @@ Section FLD.
     assert (KSc : forall s b, In s (map v_s vm_tab) -> Genv.find_symbol G s = Some b ->
               forall ch' z, Mem.load ch' m1 b z = Mem.load ch' g b z).
     { intros s b Hin Hs ch' z. destruct (ObjExit.scr_ids_ne s Hin) as (_ & N2). exact (LOs s b ch' z Hs N2). }
-    apply (PK.obj_w_slots_h g m1 G bm K KP KT' KS KC Kbm KSc); [ | | exact How ].
+    apply (PK.obj_w_slots_h g m1 G bm K KP KT' KL' KS KC Kbm KSc); [ | | exact How ].
     - intros pool' rs S1 Cnco k Hk. rewrite Hpool in S1. injection S1 as <-.
       destruct (Cnco k Hk) as (n0 & Ln & Rn). exists n0.
       unfold OW.O_NCOLL in *. rewrite LPlo by (cbn [size_chunk]; lia). exact (conj Ln Rn).
@@ -419,9 +423,24 @@ Section FLD.
       apply LPs; unfold OW.O_CMD, OW.OSZ; cbn [size_chunk]; lia.
   Qed.
 
+  (* and the lid row's cells (oPos, oHome: trajectory cells) *)
+  Lemma kl_win : (forall off e, (e <= 156 \/ 160 <= off) -> (e <= 400 \/ 404 <= off) -> FieldWin.ucl_h off e ->
+      e <= d \/ n <= off) ->
+    forall k, OW.lid_at G pool g k -> OW.lid_at G pool m1 k.
+  Proof.
+    intros Hdh k. apply (OW.lid_at_eq G pool g m1 k).
+    - unfold OW.ld32. rewrite !CM.load_eq. destruct Hdn as (_ & D2 & _).
+      apply LPs; unfold OW.O_CMD, OW.OSZ; cbn [size_chunk]; lia.
+    - intros c Hc. unfold OW.lid_cells in Hc. cbn [In] in Hc.
+      apply LPs; [ | | right ];
+        destruct Hc as [<- | [<- | [<- | [<- | [<- | [<- | []]]]]]]; cbn [fst snd size_chunk];
+        unfold O_POSX, O_POSY, O_POSZ, OW.O_HOMEX, OW.O_HOMEY, OW.O_HOMEZ, RAW_OFF, OW.OSZ; try lia;
+        (apply Hdh; [ lia | lia | unfold FieldWin.ucl_h; lia ]).
+  Qed.
+
   Theorem fld_pc : (forall off e, (e <= 156 \/ 160 <= off) -> (e <= 400 \/ 404 <= off) -> FieldWin.ucl_h off e ->
       e <= d \/ n <= off) -> Pc m1.
-  Proof. intros Hdh. exact (fld_pc_t (kt_win Hdh)). Qed.
+  Proof. intros Hdh. exact (fld_pc_t (kt_win Hdh) (kl_win Hdh)). Qed.
 
   (* the ring links (96 / 100) and the list heads stay *)
   Lemma fld_rings : forall la, la <> pool -> OW.rings m1 pool la = OW.rings g pool la.

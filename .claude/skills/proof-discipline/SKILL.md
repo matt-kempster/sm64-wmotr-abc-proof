@@ -1159,6 +1159,19 @@ all in `Unwired/`, and the theorem moved nowhere. See
          create or free a slot, 22 read Mario.
        - Still FOUND: lid oHome + cannon-unlocked bit, red coin 7 -> 8, hidden-star
          init, the star family.  Capstones still vacuous.
+       2026-11-25 lid oHome REPAIRED (slot table row 3, ObjWorld.LID_ROW; not flat:
+       keyed by command offset, lid_at; tab_at_scr's third premise).  Cursor <= 16
+       (word 4, SET_HOME): oPos in cannon_lid_xyz; past it: oHome in it.  Boot:
+       ow_chk.  INV_k's 4th conjunct ObjInv.HLk (real memory): an update started
+       at or before word 4 and now past it has oHome at a lid position; set by
+       ObjRows.t_home (home_lid, premise lidp_keep PROVED in ObjStep from the
+       ghost's row); ghost_keeps' home premise now also asks v_i st0 <= 4 for the
+       lid (home_g / kl_off).  Keepers: obj_w_slots_h KL, ObjFld.kl_win,
+       ObjAnchor.kl_home, ObjVmSwap.tab_v, ObjExit.inv_exit (ext_lid: the lid
+       exits past word 4), CannonKeep.  Open, inside native_res: the lid's own
+       natives keep the clause.
+       - Still FOUND: cannon-unlocked bit, red coin 7 -> 8, hidden-star init, the
+         star family.
        Probe tools: playground/Sweep2.v, Sweep3.v, decode_ident.py, native_scan.py.
        TRAP: `tauto` in a section with a Qfam hypothesis hangs (ObjInv / ObjVmSwap);
        prove `In CANS [POLES; CANS]` by `right; left; reflexivity`.

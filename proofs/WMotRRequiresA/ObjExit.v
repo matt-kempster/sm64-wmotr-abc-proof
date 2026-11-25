@@ -479,9 +479,10 @@ Section EX.
     OW.vm_at G pool g k0 st0 -> OW.vm_at G pool m' k0 st' -> ObjFamily.Qfam (v_s st0) st' ->
     (v_s st' = OW.CANS -> (7 <= v_i st' /\ v_i st' < 1000)%nat) ->
     (OW.can_traj G pool g k0 -> OW.can_traj G pool m' k0) ->
+    (OW.lid_at G pool g k0 -> OW.lid_at G pool m' k0) ->
     OW.obj_w G bm m2.
   Proof.
-    intros st0 st' H0 H1 V0 V1 HQ HCn HCt.
+    intros st0 st' H0 H1 V0 V1 HQ HCn HCt HLt.
     destruct Hg as (_ & _ & _ & _ & How).
     assert (Kv : forall ch k off, (96 <= off \/ (4 <= off /\ off + size_chunk ch <= 16)) ->
               off + size_chunk ch <= OW.OSZ -> (off + size_chunk ch <= 532 \/ 536 <= off) ->
@@ -537,8 +538,12 @@ Section EX.
     { intros Ht. apply (OW.can_traj_eq G pool m' m2 k0); [ | | exact (HCt Ht) ].
       - intros ch off _ _. exact (LM' ch _).
       - unfold OW.ld32. rewrite !CM.load_eq. exact (LM' Mint32 _). }
+    assert (HLt2 : OW.lid_at G pool g k0 -> OW.lid_at G pool m2 k0).
+    { intros Hl. apply (OW.lid_at_eq G pool m' m2 k0); [ | | exact (HLt Hl) ].
+      - unfold OW.ld32. rewrite !CM.load_eq. exact (LM' Mint32 _).
+      - intros c _. exact (LM' (fst c) _). }
     exact (ObjVmSwap.obj_w_vm_swap g m2 G pool k0 Kv st0 st' H1 V0 (vm_at_cut st' V1) HQ (or_introl Hy0) Hpool
-             bm HCn HCt2 K KS KC Kbm KSc KNC KMC How).
+             bm HCn HCt2 HLt2 K KS KC Kbm KSc KNC KMC How).
   Qed.
 
   (* ---- THE EXIT ---- *)
@@ -548,25 +553,27 @@ Section EX.
     OW.vm_at G pool g k0 st0 -> OW.vm_at G pool m' k0 st' -> ObjFamily.Qfam (v_s st0) st' ->
     (v_s st' = OW.CANS -> (7 <= v_i st' /\ v_i st' < 1000)%nat) ->
     (OW.can_traj G pool g k0 -> OW.can_traj G pool m' k0) ->
+    (OW.lid_at G pool g k0 -> OW.lid_at G pool m' k0) ->
     Pc m2.
   Proof.
-    intros st0 st' H0 H1 V0 V1 HQ HCn HCt.
-    exact (conj ok2 (conj phi2 (conj ad2 (conj ps2 (ow2 st0 st' H0 H1 V0 V1 HQ HCn HCt))))).
+    intros st0 st' H0 H1 V0 V1 HQ HCn HCt HLt.
+    exact (conj ok2 (conj phi2 (conj ad2 (conj ps2 (ow2 st0 st' H0 H1 V0 V1 HQ HCn HCt HLt))))).
   Qed.
 
   Theorem exit_pc : forall st0 st', In st0 vm_tab -> In st' vm_tab ->
     OW.vm_at G pool g k0 st0 -> OW.vm_at G pool m' k0 st' -> ObjFamily.Qfam (v_s st0) st' ->
     (v_s st' = OW.CANS -> (7 <= v_i st' /\ v_i st' < 1000)%nat) ->
     (OW.can_traj G pool g k0 -> OW.can_traj G pool m' k0) ->
+    (OW.lid_at G pool g k0 -> OW.lid_at G pool m' k0) ->
     Pc m'.
   Proof.
-    intros st0 st' H0 H1 V0 V1 HQ HCn HCt.
+    intros st0 st' H0 H1 V0 V1 HQ HCn HCt HLt.
     destruct Hg as (_ & Hphi & _).
     pose proof Hphi as (_ & _ & _ & _ & Hf & _).
     pose proof Hf as (_ & (d & FWF) & _).
     exact (NewKeep.new_pc lp bm Hbm_sym bc oc0 SafeB Hbc_sym (FfWorld.fw_gp d) m2 m'
              (CLm _ (ff_HC _ _ _ _ FWF) (ff_HS _ _ _ _ FWF)) (ff_HS _ _ _ _ FWF)
-             (cut_unch _ _ Hle) (exit_cut st0 st' H0 H1 V0 V1 HQ HCn HCt)).
+             (cut_unch _ _ Hle) (exit_cut st0 st' H0 H1 V0 V1 HQ HCn HCt HLt)).
   Qed.
 
   (* the trajectory pin carries when the command pointer stays in its
@@ -602,10 +609,11 @@ Section EX.
     (v_s st' = OW.CANS -> (7 <= v_i st' /\ v_i st' < 1000)%nat) ->
     (v_s st' = OW.CANS -> v_s st0 = OW.CANS /\ (v_i st0 < 1000)%nat /\ (v_i st' < 1000)%nat
        /\ OW.ccls (4 * Z.of_nat (v_i st0)) = OW.ccls (4 * Z.of_nat (v_i st'))) ->
+    (OW.lid_at G pool g k0 -> OW.lid_at G pool m' k0) ->
     Pc m'.
   Proof.
-    intros st0 st' H0 H1 V0 V1 HQ HCn Hc.
-    exact (exit_pc st0 st' H0 H1 V0 V1 HQ HCn (traj_same st0 st' V0 V1 Hc)).
+    intros st0 st' H0 H1 V0 V1 HQ HCn Hc HLt.
+    exact (exit_pc st0 st' H0 H1 V0 V1 HQ HCn (traj_same st0 st' V0 V1 Hc) HLt).
   Qed.
 End EX.
 
@@ -633,7 +641,7 @@ Proof.
   (* past the tail the ghost is a full Pobjl memory, slot k at st0 or (a
      cannon past SET_HOME) re-anchored at s8 *)
   destruct (ObjInv.inv_out lp bm bc oc0 SafeB go pool (k0 * OW.OSZ) bcc st0 nb0 X st' m' Hnw HI)
-    as (g & sg & (Ok & Phi & HD & Hst & _ & How) & HV & _ & Hsg & H8 & _ & U & NV).
+    as (HLo & g & sg & (Ok & Phi & HD & Hst & _ & How) & HV & _ & Hsg & H8 & _ & U & NV).
   assert (Hg0 : In sg vm_tab /\ ObjFamily.Qfam (v_s sg) st').
   { destruct Hsg as [-> | (Ec & ->)]; [ exact (conj H0 HQ) | split; [ exact ObjInv.s8_tab | ] ].
     rewrite Ec in HQ. exact HQ. }
@@ -647,8 +655,43 @@ Proof.
     pose proof (ObjInv.ext_c12 st' Hx Es) as E12.
     split; [ exact Esg | split; [ lia | split; [ lia | ] ] ].
     rewrite E12, (ccls_R8 (v_i sg) ltac:(lia) N14). reflexivity. }
+  (* obj_w's lid row at the exit (OW.LID_ROW): a slot running the lid past
+     SET_HOME (the lid's loop exits past word 4, ObjInv.ext_lid) has its
+     home at a lid position: INV_k's lid clause for an update started at or
+     before word 4, else the ghost's own lid row (the home cells are frame
+     cells, unchanged) *)
+  assert (Npb : pool <> bcc).
+  { intros E. subst bcc. assert (Ei := Genv.genv_vars_inj _ _ _ Sp Sbcc). vm_compute in Ei. discriminate Ei. }
+  assert (HLt : OW.lid_at (lp_ge lp) pool g k0 -> OW.lid_at (lp_ge lp) pool m' k0).
+  { intros Hl. apply OW.lid_at_mk. intros b o Hs L.
+    pose proof HV' as ((b1 & Hb1 & L1) & _).
+    unfold OW.ld32 in L. rewrite CM.load_eq, L1 in L. injection L as Eb Eo. subst b.
+    assert (El : v_s st' = OW.LIDS) by (eapply Genv.genv_vars_inj; [ exact Hb1 | exact Hs ]).
+    pose proof (ObjInv.ext_lid st' Hx El) as G4.
+    pose proof (ObjInv.lid_facts st' H1 El) as (L16 & _).
+    assert (E1 : Ptrofs.unsigned o = 4 * Z.of_nat (v_i st'))
+      by (subst o; apply Ptrofs.unsigned_repr; change Ptrofs.max_unsigned with 4294967295; lia).
+    rewrite E1. unfold OW.LID_OFF. split; [ intros C; exfalso; lia | intros _ ].
+    assert (E0 : v_s st0 = OW.LIDS)
+      by exact (proj1 (ObjFamily.Qfam_id (v_s st0) st' OW.LIDS ltac:(right; left; reflexivity) HQ) El).
+    assert (Nc0 : v_s st0 <> OW.CANS) by (rewrite E0; exact ObjInv.lid_cans).
+    destruct (Nat.le_gt_cases (v_i st0) 4) as [A4 | A4].
+    - exact (proj2 (HLo Nc0 E0) A4 G4).
+    - assert (Esg : sg = st0) by (destruct Hsg as [-> | (Ec & _)]; [ reflexivity | exfalso; exact (Nc0 Ec) ]).
+      subst sg.
+      pose proof HV as ((b0 & Hb0 & L0) & _). rewrite E0 in Hb0.
+      assert (Eb : b0 = b1) by congruence. subst b0.
+      pose proof (ObjInv.lid_facts st0 H0 E0) as (L16' & _).
+      assert (Lg : OW.ld32 g pool (k0 * OW.OSZ + OW.O_CMD) = Some (Vptr b1 (Ptrofs.repr (4 * Z.of_nat (v_i st0)))))
+        by (unfold OW.ld32; rewrite CM.load_eq; exact L0).
+      pose proof (proj2 (OW.lid_at_off (lp_ge lp) pool g k0 b1 _ Hl Hs Lg)) as Hh.
+      rewrite Ptrofs.unsigned_repr in Hh by (change Ptrofs.max_unsigned with 4294967295; lia).
+      apply (ObjInv.lid_home_unch (BhvStep.Pfr pool (k0 * OW.OSZ) bcc) g m' pool (k0 * OW.OSZ) U).
+      + intros i Hi. split; [ exact Npb | ]. intros (_ & Hi').
+        unfold OW.O_HOMEX, OW.O_HOMEZ, OW.O_CMD, OW.O_STK, WMotRWorld.RAW_OFF in *. lia.
+      + apply Hh. unfold OW.LID_OFF. lia. }
   destruct (exit_pc_same lp bm Sbm bc oc0 SafeB Sbc pool bcc k0 Sp Sbcc HSc g m'
               (conj Ok (conj Phi (conj HD (conj Hst How)))) U NV sg st' Hg0 H1
-              (Vo_vm_at _ _ _ _ _ HV) (Vo_vm_at _ _ _ _ _ HV') HQg (ObjInv.ext_can st' Hx) Hc) as (Ok' & Phi' & HD' & Hst' & How').
+              (Vo_vm_at _ _ _ _ _ HV) (Vo_vm_at _ _ _ _ _ HV') HQg (ObjInv.ext_can st' Hx) Hc HLt) as (Ok' & Phi' & HD' & Hst' & How').
   exact (conj Ok' (conj Phi' (conj HD' (conj Hst' (conj (phiw_surf_apart lp bm _ m' Phi') How'))))).
 Qed.
