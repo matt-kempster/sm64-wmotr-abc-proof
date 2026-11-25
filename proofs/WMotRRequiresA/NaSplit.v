@@ -1688,13 +1688,13 @@ Section NA.
     assert (HHX : ffw_hh m' bo oo) by exact HH0.
     assert (XB : xsym lp bbs)
       by (exists mario._gBodyStates; split; [right; right; left; reflexivity | exact SBS]).
-    assert (LD : forall ch b z, ~ HoleX.chg lp CapAudio.cap_ids b -> (b <> bm \/ hz z (size_chunk ch)) ->
+    assert (LD : forall ch b z, ~ HoleX.chg lp CapAudio.cap_ids b -> (b <> bm \/ HoleX.hzi z (size_chunk ch)) ->
                HoleX.ozx bo oo 56 0 b z (size_chunk ch) -> Mem.load ch m' b z = Mem.load ch m b z).
     { intros ch b z Hcg Hz Ho. apply (Q2_load _ _ _ HQ). intros j Hj.
       unfold HitboxFrame.K2, HitboxFrame.K1.
       split; [split |]; [| | split].
       - intros G. apply Hcg. right. exact G.
-      - intros (-> & Hm). destruct Hz as [N | Hz]; [exact (N eq_refl) |].
+      - intros (-> & Hm). destruct Hz as [N | (Hz & _)]; [exact (N eq_refl) |].
         unfold hz in Hz. unfold HitboxFrame.mhole in Hm. clear - Hj Hz Hm. lia.
       - intros ->. apply Hcg. left. exact XB.
       - intros (-> & Hm). destruct Ho as [N | Ho]; [exact (N eq_refl) |].
@@ -1712,11 +1712,19 @@ Section NA.
       exists gp'. split; [| exact (conj HC' HS')].
       intros b Hb'. destruct (gp0 b) as [[b1 d]|] eqn:E0; [| congruence].
       rewrite (I _ _ _ E0). discriminate. }
-    assert (XGok : forallb (fun id => negb (existsb (Pos.eqb id) HoleX.safe_ids)) CapAudio.cap_ids = true)
+    assert (XGok : forallb (fun id => negb (existsb (Pos.eqb id) HoleX.safe_ids)
+                                      || existsb (Pos.eqb id) HoleX.warp_ids) CapAudio.cap_ids = true)
       by (vm_compute; reflexivity).
     assert (LO : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
     assert (OWL : 36 <= 56 /\ 0 <= 0 /\ 56 + 0 <= 56) by lia.
     assert (HG : 40 <= 56 \/ 56 + 0 <= 36) by lia.
+    (* the cap music names no delayed-warp cell: warp_w is kept *)
+    assert (HWW : warp_w ge m').
+    { assert (XN : forallb (fun id => negb (existsb (Pos.eqb id) HoleX.warp_ids)) CapAudio.cap_ids = true)
+        by (vm_compute; reflexivity).
+      pose proof Hw as (_ & _ & _ & _ & _ & HF9 & _ & HAW9 & HLW9).
+      eapply HoleX.hx_warp_nw with (XG := CapAudio.cap_ids) (m := m) (m' := m') (ob := bo) (oo0 := oo)
+                                   (ow := 56) (wl := 0); eassumption. }
     split; [eapply HoleX.hx_fworld with (XG := CapAudio.cap_ids) (m := m) (m' := m') (ob := bo) (oo0 := oo)
                                        (ow := 56) (wl := 0); eassumption |].
     split; [exists c; split; [eapply HoleX.hx_cells with (XG := CapAudio.cap_ids) (m := m) (m' := m') (ob := bo)

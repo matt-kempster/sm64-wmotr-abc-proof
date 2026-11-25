@@ -36,6 +36,85 @@ From SM64.Proofs.WMotRRequiresA Require AnimWorld AnimKeep.
 From SM64.Proofs Require Import Generic.ClosedMem Generic.ClightClosed.
 Import ListNotations.
 
+(* ---- the delayed-warp cells (2026-11-15) ----
+   level_trigger_warp writes sDelayedWarpOp and sSourceWarpNodeId, two
+   cells lvl_w's warp_w reads.  A hole may name them (XG below) when the
+   caller shows warp_w after the call (LtwFrame.ltw_warp_w). *)
+Definition warp_ids : list ident :=
+  [level_update._sDelayedWarpOp; level_update._sSourceWarpNodeId].
+
+Lemma not_warp_sym : forall (G : genv) id b, Genv.find_symbol G id = Some b ->
+  existsb (Pos.eqb id) warp_ids = false -> ~ ablk G warp_ids b.
+Proof.
+  intros G id b Hs N (g & Hg & Hs').
+  assert (E : g = id) by (eapply Genv.genv_vars_inj; [ exact Hs' | exact Hs ]). subst g.
+  assert (Y : existsb (Pos.eqb id) warp_ids = true)
+    by (apply existsb_exists; exists id; split; [ exact Hg | apply Pos.eqb_refl ]).
+  congruence.
+Qed.
+
+Lemma cam_ids_not_warp : forall id, In id cam_ids -> existsb (Pos.eqb id) warp_ids = false.
+Proof.
+  intros id Hin. unfold cam_ids in Hin. cbn [In] in Hin.
+  repeat (destruct Hin as [<- | Hin]; [ vm_compute; reflexivity | ]). destruct Hin.
+Qed.
+
+(* lvl_w through a step that may change the audio blocks and the two
+   delayed-warp cells, given aud_w and warp_w after (FfWorld.lvl_w_unch_na
+   with the warp cells left to the caller) *)
+Lemma lvl_w_unch_ww : forall (G : genv) m m',
+  (forall b ch z, lw_blk G m b -> ~ ablk G aud_ls_ids b -> ~ ablk G warp_ids b ->
+     Mem.load ch m' b z = Mem.load ch m b z) ->
+  (forall ab, Genv.find_symbol G mario._gMarioAnimsBuf = Some ab ->
+     Mem.load Mint32 m' ab 8 = Mem.load Mint32 m ab 8) ->
+  aud_w G m' -> warp_w G m' -> lvl_w G m -> lvl_w G m'.
+Proof.
+  intros G m m' U0 UA AD' WW' (L1 & L2 & _ & CW & AW & EW & CMW & _).
+  assert (CM' : cam_w G m').
+  { apply (cam_w_unch G m m'); [ | | exact UA | exact AW | exact CMW ].
+    - intros ga Sg. apply U0.
+      + left. apply (lvl_sym_of G level_update._gCurrentArea ga); [ | exact Sg ].
+        unfold lvl_ids; cbn [In]; auto 20.
+      + apply (not_aud_sym G _ ga Sg). vm_compute. reflexivity.
+      + apply (not_warp_sym G _ ga Sg). vm_compute. reflexivity.
+    - intros b ch z [Hb | Hb].
+      + pose proof Hb as (id & Hin & Hs).
+        apply U0; [ right; left; exact Hb
+                  | exact (not_aud_sym G id b Hs (cam_ids_not_aud id Hin))
+                  | exact (not_warp_sym G id b Hs (cam_ids_not_warp id Hin)) ].
+      + pose proof Hb as (co & ga & bad & o & Sg & Lg & Lc).
+        destruct (cam_w_cb G m CMW ga bad o Sg Lg) as (cb & co' & Lc' & Pg & _).
+        rewrite Lc in Lc'. injection Lc' as <- <-.
+        apply U0; [ right; right; left; exact Hb | | ];
+          intros (g & _ & Hs); pose proof (Genv.genv_symb_range _ _ Hs) as R; unfold Ple, Plt in *; lia. }
+  assert (U' : forall id b, Genv.find_symbol G id = Some b -> In id lvl_ids ->
+             existsb (Pos.eqb id) warp_ids = false -> forall ch z,
+             Mem.load ch m' b z = Mem.load ch m b z)
+    by (intros id b Hs Hin Nw ch z;
+        exact (U0 b ch z (or_introl (lvl_sym_of G id b Hin Hs)) (not_aud_sym G id b Hs (lvl_ids_not_aud id Hin))
+                 (not_warp_sym G id b Hs Nw))).
+  clear CMW.
+  Local Ltac uw U' H := rewrite (U' _ _ H ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(vm_compute; reflexivity)).
+  split; [| split; [| split; [ exact WW' | split]]].
+  - intros b Hs. uw U' Hs. exact (L1 b Hs).
+  - intros b Hs. uw U' Hs. exact (L2 b Hs).
+  - intros bc bp Sc Sp.
+    destruct (CW bc bp Sc Sp) as (L24 & B16 & PA & P1 & P3 & DM & MX).
+    pose proof (U' _ bc Sc ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(vm_compute; reflexivity)) as Kc.
+    pose proof (U' _ bp Sp ltac:(unfold lvl_ids; cbn [In]; auto 20) ltac:(vm_compute; reflexivity)) as Kp.
+    split; [intros j Hj; rewrite !Kc; exact (L24 j Hj) |].
+    split; [intros z Hz; rewrite Kc; exact (B16 z Hz) |].
+    split; [intros k' n Hk' Hl; rewrite Kp in Hl; exact (PA k' n Hk' Hl) |].
+    split; [intros b1 S1; uw U' S1; exact (P1 b1 S1) |].
+    split; [intros b3 S3; uw U' S3; exact (P3 b3 S3) |].
+    split; [intros bd Sd; uw U' Sd; exact (DM bd Sd) |].
+    intros bx Sx; uw U' Sx; exact (MX bx Sx).
+  - split; [ | split; [ split | exact (conj CM' AD') ] ].
+    + intros ga Sa. uw U' Sa. exact (AW ga Sa).
+    + intros be Se. uw U' Se. exact (proj1 EW be Se).
+    + intros be Se. uw U' Se. exact (proj2 EW be Se).
+Qed.
+
 Section HX.
   Variable lp : Clight.program.
   Variable bm : block.
@@ -53,18 +132,20 @@ Section HX.
 
   (* the changed globals besides the regions *)
   Variable XG : list ident.
-  Hypothesis XGok : forallb (fun id => negb (existsb (Pos.eqb id) safe_ids)) XG = true.
+  (* no world global, except the two delayed-warp cells (2026-11-15) *)
+  Hypothesis XGok : forallb (fun id => negb (existsb (Pos.eqb id) safe_ids)
+                                       || existsb (Pos.eqb id) warp_ids) XG = true.
 
   Definition xg (b : block) : Prop := exists id, In id XG /\ Genv.find_symbol ge id = Some b.
   Definition chg (b : block) : Prop := xsym lp b \/ xg b.
 
   Lemma xg_not_safe : forall id b, Genv.find_symbol ge id = Some b ->
-    existsb (Pos.eqb id) safe_ids = true -> ~ xg b.
+    existsb (Pos.eqb id) safe_ids = true -> existsb (Pos.eqb id) warp_ids = false -> ~ xg b.
   Proof.
-    intros id b Hs T (id' & Hin & Hs').
+    intros id b Hs T Wn (id' & Hin & Hs').
     assert (E : id' = id) by (eapply Genv.genv_vars_inj; [exact Hs' | exact Hs]). subst id'.
     pose proof (proj1 (forallb_forall _ _) XGok id Hin) as N. cbn beta in N.
-    rewrite T in N. discriminate N.
+    rewrite T, Wn in N. discriminate N.
   Qed.
 
   Lemma xg_dyn : forall b, Ple (Genv.genv_next ge) b -> ~ xg b.
@@ -74,30 +155,22 @@ Section HX.
   Qed.
 
   Lemma nchg_safe : forall id b, Genv.find_symbol ge id = Some b ->
-    existsb (Pos.eqb id) XIDS = false -> existsb (Pos.eqb id) safe_ids = true -> ~ chg b.
+    existsb (Pos.eqb id) XIDS = false -> existsb (Pos.eqb id) safe_ids = true ->
+    existsb (Pos.eqb id) warp_ids = false -> ~ chg b.
   Proof.
-    intros id b Hs N T [X | X].
+    intros id b Hs N T Wn [X | X].
     - exact (xsym_ne lp b id b X Hs N eq_refl).
-    - exact (xg_not_safe id b Hs T X).
-  Qed.
-
-  Lemma nchg_lvl : forall b, lvl_sym ge b -> ~ chg b.
-  Proof.
-    intros b (id & Hin & Hs). apply (nchg_safe id b Hs).
-    - unfold lvl_ids in Hin. cbn [In] in Hin.
-      repeat (destruct Hin as [<- | Hin]; [vm_compute; reflexivity |]). destruct Hin.
-    - apply existsb_exists. exists id. split; [| apply Pos.eqb_refl].
-      unfold safe_ids. apply in_or_app. right. apply in_or_app. left. exact Hin.
+    - exact (xg_not_safe id b Hs T Wn X).
   Qed.
 
   (* a block lvl_w reads (its globals, or the Camera), other than the audio
-     blocks (which XG may name: the cap music's load_sequence), is
-     unchanged here *)
+     blocks (which XG may name: the cap music's load_sequence) and the
+     delayed-warp cells, is unchanged here *)
   Lemma nchg_rd : forall m b, lvl_w ge m ->
     lw_blk ge m b \/ Genv.find_symbol ge mario._gMarioAnimsBuf = Some b ->
-    ~ ablk ge aud_ls_ids b -> ~ chg b.
+    ~ ablk ge aud_ls_ids b -> ~ ablk ge warp_ids b -> ~ chg b.
   Proof.
-    intros m b Hl Hb Na [(id & Hin & Hs) | (id & Hin & Hs)].
+    intros m b Hl Hb Na Nw [(id & Hin & Hs) | (id & Hin & Hs)].
     - exact (lvl_rd_not_sym ge m b id b Hl Hb Hs (xids_rd id Hin) eq_refl).
     - destruct (lvl_rd_cases ge m b Hl Hb) as [(id' & Hin' & Hs') | NG]; [ | exact (NG id Hs) ].
       assert (E : id' = id) by (eapply Genv.genv_vars_inj; [ exact Hs' | exact Hs ]). subst id'.
@@ -108,7 +181,9 @@ Section HX.
         assert (I : forallb (fun x => existsb (Pos.eqb x) aud_ls_ids || existsb (Pos.eqb x) safe_ids) lvl_rd_ids = true)
           by (vm_compute; reflexivity).
         rewrite forallb_forall in I. pose proof (I id Hin') as Ii. rewrite Ea in Ii. cbn [orb] in Ii.
-        rewrite Ii in N. discriminate N.
+        rewrite Ii in N. cbn [negb orb] in N. apply Nw.
+        apply existsb_exists in N. destruct N as (x & Hx & Ex). apply Pos.eqb_eq in Ex. subst x.
+        exists id. split; [ exact Hx | exact Hs ].
   Qed.
 
   (* the changed globals as a region list *)
@@ -177,7 +252,10 @@ Section HX.
         { apply existsb_exists. exists id. split; [| apply Pos.eqb_refl].
           unfold safe_ids. apply in_or_app. right. apply in_or_app. right. apply in_or_app. left. exact Hp. }
         pose proof (proj1 (forallb_forall _ _) XGok id (Hi id (or_introl eq_refl))) as N. cbn beta in N.
-        rewrite T in N. discriminate N.
+        assert (PW : forallb (fun x => negb (existsb (Pos.eqb x) warp_ids)) part_ids = true)
+          by (vm_compute; reflexivity).
+        pose proof (proj1 (forallb_forall _ _) PW id Hp) as Wn. cbn beta in Wn.
+        apply negb_true_iff in Wn. rewrite T, Wn in N. discriminate N.
       + apply IH; [intros x Hx; apply Hi; right; exact Hx | exact W].
   Qed.
 
@@ -200,7 +278,12 @@ Section HX.
       (k + s <= 2 \/ 4 <= k) /\ (k + s <= ow \/ ow + wl <= k) /\ (k + s <= 508 \/ 512 <= k).
     Definition ozx (b : block) (z s : Z) : Prop := b <> ob \/ ohz (z - Ptrofs.unsigned oo0) s.
 
-    Hypothesis LD : forall ch b z, ~ chg b -> (b <> bm \/ hz z (size_chunk ch)) ->
+    (* Mario's state off the flags hole and off invincTimer (bytes 38..39,
+       level_trigger_warp's write; no world fact reads it) *)
+    Definition hzi (z s : Z) : Prop := hz z s /\ (z + s <= 38 \/ 40 <= z).
+    Ltac hsi := unfold hzi; split; hside.
+
+    Hypothesis LD : forall ch b z, ~ chg b -> (b <> bm \/ hzi z (size_chunk ch)) ->
       ozx b z (size_chunk ch) -> Mem.load ch m' b z = Mem.load ch m b z.
     Hypothesis CLK : forall gp, closed_by gp m -> syms_mapped ge gp -> gp bm <> None ->
       exists gp', (forall b, gp b <> None -> gp' b <> None) /\ closed_by gp' m' /\ syms_mapped ge gp'.
@@ -210,7 +293,7 @@ Section HX.
 
     Lemma NCbm : ~ chg bm.
     Proof.
-      apply (nchg_safe _ _ Hbm); [vm_compute; reflexivity |].
+      apply (nchg_safe _ _ Hbm); [vm_compute; reflexivity | | vm_compute; reflexivity].
       apply existsb_exists. exists level_update._gMarioStates. split; [left; reflexivity | apply Pos.eqb_refl].
     Qed.
 
@@ -218,7 +301,7 @@ Section HX.
       Mem.load ch m' b z = Mem.load ch m b z.
     Proof. intros ch b z H1 H2 H3. exact (LD ch b z H2 (or_introl H1) H3). Qed.
 
-    Lemma LXm : forall ch z, hz z (size_chunk ch) -> Mem.load ch m' bm z = Mem.load ch m bm z.
+    Lemma LXm : forall ch z, hzi z (size_chunk ch) -> Mem.load ch m' bm z = Mem.load ch m bm z.
     Proof. intros ch z H. exact (LD ch bm z NCbm (or_intror H) (or_introl NBO)). Qed.
 
     Lemma ozx_ne : forall b z s, b <> ob -> ozx b z s.
@@ -232,8 +315,8 @@ Section HX.
       0 <= k -> 0 <= s -> k + s <= 608 -> ozx ob (Ptrofs.unsigned co + k) s.
     Proof. intros co k s H K1 K0 K2. right. unfold ohz. pose proof OWL. destruct H; lia. Qed.
 
-    Ltac hxm := rewrite LXm by hside.
-    Ltac hxm_in H := rewrite LXm in H by hside.
+    Ltac hxm := rewrite LXm by hsi.
+    Ltac hxm_in H := rewrite LXm in H by hsi.
     Ltac ok_t := unfold ohz, O_INTERACT_STATUS, NUMCOLL_OFF, COLL_OFF, RAW_OFF, POLEPOS_OFF,
                    FFW_COLL, FFW_THROW, FFW_HD, OFS_GFXY, RAW_OFF; cbn [size_chunk]; pose proof OWL; lia.
 
@@ -260,7 +343,7 @@ Section HX.
       split; [exact D1 |]. split; [| split].
       - intros [X | X].
         + pose proof (xsym_ffw lp bm ob m _ X FWF) as (_ & N & _). ffw_simpl_in N. exact (N eq_refl).
-        + refine (xg_not_safe _ _ Spool _ X). vm_compute. reflexivity.
+        + refine (xg_not_safe _ _ Spool _ _ X); vm_compute; reflexivity.
       - intros sb so Hl. change FLOOR_OFF with FFW_FLOOR in Hl. apply (Sf sb).
         + exact (Spl sb so Hl).
         + rewrite Lf in Hl. injection Hl as ->.
@@ -269,7 +352,7 @@ Section HX.
         destruct Wc as (b' & o' & E & _ & _ & _ & Nr). injection E as <- _.
         destruct (NR bc Nr) as (A & B & C). split; [exact A |]. split; [| exact C].
         intros [X | X]; [exact (B X) |].
-        refine (xg_not_safe _ _ (Sctl bc oc eq_refl) _ X). vm_compute. reflexivity.
+        refine (xg_not_safe _ _ (Sctl bc oc eq_refl) _ _ X); vm_compute; reflexivity.
     Qed.
 
     (* the height cells *)
@@ -329,7 +412,7 @@ Section HX.
       - exact (AnimWorld.Wff_mono ge m' gp' SZ_SURFACE (rl ++ xgl) rl (fun b H => hx_app_l _ _ b H) W2).
       - exact (floor_data_keep2 ge m m' (rl ++ xgl) NB Hperm Hld gp W1 FD).
       - intros ch b z Hr Nh. ffw_read_split Hr;
-          first [ solve [apply LXm; hside]
+          first [ solve [apply LXm; hsi]
                 | solve [exact (LXz Mint32 ab 8 Nab Cab (ozx_ne _ _ _ Nabo))]
                 | solve [rewrite <- Z.add_assoc; apply LXz; [exact O1 | exact O2 |]; apply ozx_k; ok_t]
                 | solve [apply LXz; [exact O1 | exact O2 |]; apply ozx_k; ok_t]
@@ -337,7 +420,7 @@ Section HX.
       - exact HHX.
       - apply (ffw_surf_ok_kept ge bm m m' _ FWF). intros z ch Hin. apply LXm.
         unfold ffw_surf_cells in Hin. cbn [In] in Hin.
-        destruct Hin as [E | [E | [E | []]]]; injection E as <- <-; hside.
+        destruct Hin as [E | [E | [E | []]]]; injection E as <- <-; hsi.
     Qed.
 
     (* a collided object a whole Object away from Mario's *)
@@ -527,15 +610,15 @@ Section HX.
             cbn [fw_bo fw_bt];
             first [ congruence | exact (AnimKeep.symne_ids ge _ _ _ _ Sga Hbm eq_refl)
                   | exact (not_eq_sym (AnimKeep.symne_ids ge _ _ _ _ Hbm Sga eq_refl)) ].
-        - refine (xg_not_safe _ _ Sga _ (rblk_xgl _ Hr1)). vm_compute. reflexivity. }
+        - refine (xg_not_safe _ _ Sga _ _ (rblk_xgl _ Hr1)); vm_compute; reflexivity. }
       assert (Nab : ab <> bm) by exact (AnimKeep.symne_ids ge _ _ _ _ S5 Hbm eq_refl).
       assert (Cab : ~ chg ab) by (apply (nchg_safe _ _ S5); vm_compute; reflexivity).
       assert (Nabo : ab <> ob) by exact (proj1 (D4 ab ltac:(left; cbn; auto 10))).
       assert (KA : forall z, Mem.load Mint32 m' ab z = Mem.load Mint32 m ab z)
         by (intros z; exact (LXz Mint32 ab z Nab Cab (ozx_ne _ _ _ Nabo))).
       pose proof (AnimWorld.anim_base_keep ge bm m m' gp (rl ++ xgl) ab bga bauc btab otab bt ot ob oo0 B W1 Ntab Nga
-                    NB Hperm Hld (LXm Mint32 136 ltac:(hside)) (KA 0) (KA 8)
-                    (LXm Mint32 144 ltac:(hside)) (LXm Mint32 156 ltac:(hside))) as B'.
+                    NB Hperm Hld (LXm Mint32 136 ltac:(hsi)) (KA 0) (KA 8)
+                    (LXm Mint32 144 ltac:(hsi)) (LXm Mint32 156 ltac:(hsi))) as B'.
       exists ab, bga, bauc, btab, otab, bt, ot, ob, oo0. split; [exact B' |].
       intros a La0 Ia. hxm_in La0. pose proof (ST a La0 Ia) as Sa.
       assert (Cbt : ~ chg bt).
@@ -552,23 +635,75 @@ Section HX.
        AudioInv: AudioInv.ls_frame_ai, HitboxFrame.hitbox_hh_ai) *)
     Hypothesis HAU : aud_w ge m'.
 
-    Lemma hx_lvl : ffw ge bm m -> AnimWorld.anim_w ge bm m -> lvl_w ge m -> lvl_w ge m'.
+    (* the blocks lvl_w reads (its globals and the Camera, cam_w), off the
+       audio blocks and the delayed-warp cells, are unchanged *)
+    Lemma hx_rd_keep : ffw ge bm m -> AnimWorld.anim_w ge bm m -> lvl_w ge m ->
+      forall b ch z, lw_blk ge m b \/ Genv.find_symbol ge mario._gMarioAnimsBuf = Some b ->
+        ~ ablk ge aud_ls_ids b -> ~ ablk ge warp_ids b -> Mem.load ch m' b z = Mem.load ch m b z.
     Proof.
       intros Hf AW Hl.
       pose proof Hf as (_ & EX & _).
-      destruct (hx_facts Hf) as (O1 & O2 & _).
       ffw_unpack EX.
+      intros b ch z Hb Na Nw.
+      apply (LXz ch b z (AnimKeep.lvl_rd_ne_bm ge bm m b AW Hl Hb) (nchg_rd m b Hl Hb Na Nw)).
+      apply ozx_ne.
       assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
       rewrite OBJ in Lo'. injection Lo' as E1 E2. subst bo oo.
-      assert (K : forall b ch z, lw_blk ge m b \/ Genv.find_symbol ge mario._gMarioAnimsBuf = Some b ->
-                    ~ ablk ge aud_ls_ids b -> Mem.load ch m' b z = Mem.load ch m b z).
-      { (* the blocks lvl_w reads: its globals and the Camera (cam_w) *)
-        intros b ch z Hb Na. apply (LXz ch b z (AnimKeep.lvl_rd_ne_bm ge bm m b AW Hl Hb) (nchg_rd m b Hl Hb Na)).
-        apply ozx_ne.
-        exact (lvl_rd_not_sym ge m b _ _ Hl Hb (ff_Spool _ _ _ _ FWF) ltac:(vm_compute; reflexivity)). }
-      apply (lvl_w_unch_na ge m m'); [ intros b ch z Hb Na; exact (K b ch z (or_introl Hb) Na) | | exact HAU | exact Hl ].
+      exact (lvl_rd_not_sym ge m b _ _ Hl Hb (ff_Spool _ _ _ _ FWF) ltac:(vm_compute; reflexivity)).
+    Qed.
+
+    (* a hole that names no delayed-warp cell keeps warp_w *)
+    Lemma hx_warp_nw : forallb (fun id => negb (existsb (Pos.eqb id) warp_ids)) XG = true ->
+      ffw ge bm m -> AnimWorld.anim_w ge bm m -> lvl_w ge m -> warp_w ge m'.
+    Proof.
+      intros XN Hf AW Hl.
+      assert (K : forall id b, Genv.find_symbol ge id = Some b -> In id lvl_ids -> forall ch z,
+                    Mem.load ch m' b z = Mem.load ch m b z).
+      { intros id b Hs Hin ch z.
+        assert (Hb : lw_blk ge m b) by (left; exact (lvl_sym_of ge id b Hin Hs)).
+        assert (Na : ~ ablk ge aud_ls_ids b) by exact (not_aud_sym ge id b Hs (lvl_ids_not_aud id Hin)).
+        pose proof Hf as (_ & EX & _). ffw_unpack EX.
+        assert (Lo' : Mem.load Mint32 m bm MARIOOBJ_OFF = Some (Vptr bo oo)) by exact Lo.
+        rewrite OBJ in Lo'. injection Lo' as E1 E2. subst bo oo.
+        apply (LXz ch b z (AnimKeep.lvl_rd_ne_bm ge bm m b AW Hl (or_introl Hb))).
+        - intros [(id' & Hin' & Hs') | (id' & Hin' & Hs')].
+          + exact (lvl_rd_not_sym ge m b id' b Hl (or_introl Hb) Hs' (xids_rd id' Hin') eq_refl).
+          + assert (E : id' = id) by (eapply Genv.genv_vars_inj; [ exact Hs' | exact Hs ]). subst id'.
+            pose proof (proj1 (forallb_forall _ _) XGok id Hin') as N. cbn beta in N.
+            pose proof (proj1 (forallb_forall _ _) XN id Hin') as N2. cbn beta in N2.
+            apply negb_true_iff in N2. rewrite N2, orb_false_r in N. apply negb_true_iff in N.
+            assert (T : existsb (Pos.eqb id) safe_ids = true).
+            { apply existsb_exists. exists id. split; [| apply Pos.eqb_refl].
+              unfold safe_ids. apply in_or_app. right. apply in_or_app. left. exact Hin. }
+            congruence.
+        - apply ozx_ne.
+          exact (lvl_rd_not_sym ge m b _ _ Hl (or_introl Hb) (ff_Spool _ _ _ _ FWF) ltac:(vm_compute; reflexivity)). }
+      pose proof (proj1 (proj2 (proj2 Hl))) as (W1 & W2 & W3 & W4 & W5).
+      split; [| split; [| split; [| split]]].
+      - intros bp bw Hp Hw.
+        rewrite (K _ bp Hp ltac:(unfold lvl_ids; cbn [In]; auto 20)), (K _ bw Hw ltac:(unfold lvl_ids; cbn [In]; auto 20)).
+        exact (W1 bp bw Hp Hw).
+      - intros b Hs. rewrite (K _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (W2 b Hs).
+      - intros b Hs. rewrite (K _ b Hs ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (W3 b Hs).
+      - intros bo bs Ho Hs.
+        rewrite (K _ bo Ho ltac:(unfold lvl_ids; cbn [In]; auto 20)), (K _ bs Hs ltac:(unfold lvl_ids; cbn [In]; auto 20)).
+        exact (W4 bo bs Ho Hs).
+      - intros bo Ho. rewrite (K _ bo Ho ltac:(unfold lvl_ids; cbn [In]; auto 20)). exact (W5 bo Ho).
+    Qed.
+
+    (* the delayed-warp state after the hole (LtwFrame.ltw_warp_w for a
+       death warp; hx_warp_nw when the hole names neither cell) *)
+    Hypothesis HWW : warp_w ge m'.
+
+    Lemma hx_lvl : ffw ge bm m -> AnimWorld.anim_w ge bm m -> lvl_w ge m -> lvl_w ge m'.
+    Proof.
+      intros Hf AW Hl.
+      pose proof (hx_rd_keep Hf AW Hl) as K.
+      apply (lvl_w_unch_ww ge m m');
+        [ intros b ch z Hb Na Nw; exact (K b ch z (or_introl Hb) Na Nw) | | exact HAU | exact HWW | exact Hl ].
       intros ab9 Sa. apply (K ab9 Mint32 8 (or_intror Sa)).
-      exact (not_aud_sym ge _ ab9 Sa ltac:(vm_compute; reflexivity)).
+      - exact (not_aud_sym ge _ ab9 Sa ltac:(vm_compute; reflexivity)).
+      - exact (not_warp_sym ge _ ab9 Sa ltac:(vm_compute; reflexivity)).
     Qed.
 
     Theorem hx_fworld : fworld lp bm m -> fworld lp bm m'.
