@@ -1188,6 +1188,21 @@ all in `Unwired/`, and the theorem moved nowhere. See
        produce that slot and keep the rest (spawn's list / gfx / parent cells,
        HLk, the lid's deactivation).
        - Still FOUND: red coin 7 -> 8, hidden-star init, the star family.
+       2026-11-25 C1 star family RESTATED (a strengthening; closes nothing; no
+       premise): ObjWorld.cut_bhvs = box_cut ++ star_cut (the 9 family
+       scripts; star_cut_in_closure_b: they ARE reachable, cut by the
+       invariant; star_cut_not_live).  Boot: ow_chk (StartTerrain) passes.
+       Census now (NativeSweep): 79 sites = 24 dead + 55 live (51 natives);
+       the 13 family sites are dead (star_fam_sites_value, star_site_no_Q).
+       The false case MOVED into native_res: the natives that can spawn a
+       member (star_spawners_value) must show they spawn none, OPEN:
+       bhv_hidden_red_coin_star_loop (guard row 1), bhv_hidden_red_coin_star_
+       init (guard: red-coin count, FOUND), bhv_mario_update (guard R_noA),
+       bhv_exclamation_box_loop (bhvSpawnedStarNoLevelExit via the contents
+       table; guard row 2).  reach_counts now (6, 38, 19).
+       - Still FOUND: red coin 7 -> 8, hidden-star init (now also: it spawns
+         bhvStar, a cut script).  The star family is no longer a slot-kind
+         case; it is the four open spawn obligations above.
        Probe tools: playground/Sweep2.v, Sweep3.v, decode_ident.py, native_scan.py.
        TRAP: `tauto` in a section with a Qfam hypothesis hangs (ObjInv / ObjVmSwap);
        prove `In CANS [POLES; CANS]` by `right; left; reflexivity`.

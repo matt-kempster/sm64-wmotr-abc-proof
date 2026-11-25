@@ -8,14 +8,15 @@
 (* site: every CALL_NATIVE word of a special script, every native without  *)
 (* a nullary SFR' entry at a generic script.  79 sites (res_sites).        *)
 (*                                                                         *)
-(* 1 DEAD sites (11, dead_sites_value): the script is not in               *)
-(*   ObjWorld.live_bhvs (a cut exclamation-box content, or the jumping     *)
-(*   box).  Qfam contains In (v_s st) live_bhvs, so the row's premise Qs   *)
-(*   st is false there (dead_site_vacuous, proved): TRUE, nothing asked.   *)
-(* 2 LIVE sites (68; 62 natives): the real surface.  For the SCRIPT clause *)
+(* 1 DEAD sites (24 since 2026-11-25, dead_sites_value; 11 before): the    *)
+(*   script is not in ObjWorld.live_bhvs (a cut exclamation-box content,   *)
+(*   the jumping box, or -- C1, 2026-11-25 -- a star-family script).  Qfam *)
+(*   contains In (v_s st) live_bhvs, so the row's premise Qs st is false   *)
+(*   there (dead_site_vacuous, proved): TRUE, nothing asked.               *)
+(* 2 LIVE sites (55; 51 natives): the real surface.  For the SCRIPT clause *)
 (*   (obj_w: every slot runs a live script) the detector unlive_reach      *)
 (*   lists the non-live behaviors in a native's reference closure (over    *)
-(*   the generated ASTs).  Only two natives reach one (unlive_reach_value):*)
+(*   the generated ASTs).  Five natives reach one (unlive_reach_value):    *)
 (*   - try_do_mario_debug_object_spawn: gated by obj_w's DEBUG clause;     *)
 (*   - bhv_exclamation_box_loop: through sExclamationBoxContents, indexed  *)
 (*     by the box's oBehParams2ndByte, which obj_w does NOT pin (BoxCensus *)
@@ -24,7 +25,10 @@
 (*     REPAIRED 2026-11-14 (INV strengthened, no transfer proof): the slot *)
 (*     table's row 2 (ObjWorld.box_at) pins the byte of a slot running the *)
 (*     box script to BoxCensus.box_ids (box_row_census below).             *)
-(*   For the other 60 natives no spawn can leave live_bhvs.                *)
+(*   - since the star-family cut (section 5): bhv_hidden_red_coin_star_    *)
+(*     loop, bhv_hidden_red_coin_star_init, bhv_mario_update.  Each now    *)
+(*     carries, inside native_res, "spawns no star-family member": OPEN.   *)
+(*   For the other 46 natives no spawn can leave live_bhvs.                *)
 (* 3 red_ok's "no slot is a bhvStarSpawnCoordinates": only two live        *)
 (*   residual natives reach that behavior (star_reach_value):              *)
 (*   bhv_hidden_red_coin_star_loop and bhv_mario_update.                   *)
@@ -64,20 +68,34 @@ Definition SSC : ident := ident_of_string "bhvStarSpawnCoordinates".
 
 Lemma sweep_counts :
   (List.length res_sites, List.length dead_sites, List.length live_sites, List.length live_res_natives)
-  = (79, 11, 68, 62)%nat.
+  = (79, 24, 55, 51)%nat.
 Proof. vm_compute. reflexivity. Qed.
 
+(* 2026-11-25: the 13 star-family sites joined the 11 (section 5) *)
 Lemma dead_sites_value : map sname dead_sites =
   [("bhvJumpingBox", 8%nat, "bhv_jumping_box_loop");
    ("bhvBlueCoinJumping", 8%nat, "bhv_blue_coin_jumping_loop");
    ("bhvBlueCoinJumping", 5%nat, "bhv_blue_coin_sliding_jumping_init");
+   ("bhvBowserKeyCourseExit", 5%nat, "bhv_bowser_key_course_exit_loop");
+   ("bhvBowserKeyUnlockDoor", 5%nat, "bhv_bowser_key_unlock_door_loop");
    ("bhvVanishCap", 5%nat, "bhv_wing_vanish_cap_loop");
    ("bhv1UpRunningAway", 10%nat, "bhv_1up_running_away_loop");
    ("bhvKoopaShellFlame", 6%nat, "bhv_koopa_shell_flame_loop");
    ("bhvKoopaShell", 8%nat, "bhv_koopa_shell_loop");
    ("bhvKoopaShellUnderwater", 3%nat, "bhv_koopa_shell_underwater_loop");
+   ("bhvStar", 4%nat, "bhv_collect_star_init");
+   ("bhvStar", 2%nat, "bhv_init_room");
+   ("bhvStarSpawnCoordinates", 7%nat, "bhv_star_spawn_loop");
+   ("bhvStarSpawnCoordinates", 4%nat, "bhv_star_spawn_init");
+   ("bhvStarSpawnCoordinates", 2%nat, "bhv_collect_star_init");
+   ("bhvSpawnedStarNoLevelExit", 6%nat, "bhv_spawned_star_loop");
    ("bhvSingleCoinGetsSpawned", 11%nat, "bhv_spawned_coin_loop");
    ("bhvSingleCoinGetsSpawned", 3%nat, "bhv_spawned_coin_init");
+   ("bhvCelebrationStar", 5%nat, "bhv_celebration_star_loop");
+   ("bhvUnlockDoorStar", 5%nat, "bhv_unlock_door_star_loop");
+   ("bhvUnlockDoorStar", 2%nat, "bhv_unlock_door_star_init");
+   ("bhvEndToad", 6%nat, "bhv_end_toad_loop");
+   ("bhvEndPeach", 6%nat, "bhv_end_peach_loop");
    ("bhvMetalCap", 5%nat, "bhv_metal_cap_loop")]%string.
 Proof. vm_compute. reflexivity. Qed.
 
@@ -113,7 +131,8 @@ Proof. vm_compute. reflexivity. Qed.
 (* 2: the SCRIPT clause's candidates *)
 Lemma unlive_reach_value :
   map string_of_ident (filter (fun f => match unlive_reach f with [] => false | _ => true end) live_res_natives)
-  = ["bhv_exclamation_box_loop"; "try_do_mario_debug_object_spawn"]%string.
+  = ["bhv_hidden_red_coin_star_loop"; "bhv_hidden_red_coin_star_init"; "bhv_exclamation_box_loop";
+     "try_do_mario_debug_object_spawn"; "bhv_mario_update"]%string.
 Proof. vm_compute. reflexivity. Qed.
 
 (* 3: who can bring a bhvStarSpawnCoordinates into being *)
@@ -145,32 +164,64 @@ Definition closed_native (f : ident) : bool :=
 Lemma reach_counts :
   (List.length (filter closed_native live_res_natives),
    List.length (filter spawns live_res_natives),
-   List.length (filter sees_mario live_res_natives)) = (12, 42, 22)%nat.
+   List.length (filter sees_mario live_res_natives)) = (6, 38, 19)%nat.
 Proof. vm_compute. reflexivity. Qed.
+(* (before the 2026-11-25 star-family cut: (12, 42, 22) of 62) *)
 
-(* the 12 live residual natives that reach none of those: no slot is
+(* the 6 live residual natives that reach none of those: no slot is
    created or freed, Mario is not read *)
 Lemma closed_natives_value : map string_of_ident (filter closed_native live_res_natives) =
-  ["bhv_tree_snow_or_leaf_loop"; "bhv_pole_init"; "bhv_bowser_key_course_exit_loop";
-   "bhv_bowser_key_unlock_door_loop"; "bhv_init_room"; "bhv_star_spawn_init"; "bhv_collect_star_init";
-   "bhv_cannon_base_loop"; "bhv_white_puff_exploding_loop"; "bhv_end_toad_loop"; "bhv_end_peach_loop";
-   "try_print_debug_mario_level_info"]%string.
+  ["bhv_tree_snow_or_leaf_loop"; "bhv_pole_init"; "bhv_init_room"; "bhv_cannon_base_loop";
+   "bhv_white_puff_exploding_loop"; "try_print_debug_mario_level_info"]%string.
 Proof. vm_compute. reflexivity. Qed.
 
-(* 5 (2026-11-24) FOUND: live_bhvs still holds the star family.  script_ok
-   admits a slot that runs bhvStar / bhvStarSpawnCoordinates, and at such a
-   slot native_res asks bhv_collect_star_init, which stores INTERACT_STAR:
-   KIND breaks.  The family's 13 live sites, and the only bodies / scripts
-   of the closure that mention a member (so the only spawners). *)
-Definition star_fam : list ident := map ident_of_string
-  ["bhvStar"; "bhvStarSpawnCoordinates"; "bhvCelebrationStar"; "bhvSpawnedStarNoLevelExit";
-   "bhvBowserKeyUnlockDoor"; "bhvBowserKeyCourseExit"; "bhvEndToad"; "bhvEndPeach"; "bhvUnlockDoorStar"]%string.
+(* 5 (2026-11-24) FOUND: live_bhvs held the star family.  script_ok
+   admitted a slot that runs bhvStar / bhvStarSpawnCoordinates, and at such
+   a slot native_res asked bhv_collect_star_init, which stores
+   INTERACT_STAR: KIND breaks.
+   RESTATED 2026-11-25 (C1, a strengthening of the invariant; it closes
+   nothing): the family is cut from live_bhvs (ObjWorld.star_cut), so its
+   13 sites are dead sites (star_fam_sites_value; star_site_no_Q: the row
+   asks nothing there).  The false case MOVES: each live native that can
+   spawn a member (star_spawners_value) must now show inside native_res
+   that it spawns none, else the spawned slot leaves script_ok.  OPEN,
+   undischarged:
+   - bhv_hidden_red_coin_star_loop (bhvStarSpawnCoordinates; guard: row 1,
+     oAction 0 -- by reading, no transfer proof);
+   - bhv_hidden_red_coin_star_init (bhvStar; guard: a live red coin, the
+     open red-coin count, FOUND);
+   - bhv_mario_update (8 members through Mario's star-dance / key-door /
+     ending actions; guard: Phi's R_noA action set, no transfer proof);
+   - bhv_exclamation_box_loop (bhvSpawnedStarNoLevelExit through
+     sExclamationBoxContents; guard: row 2, byte 0 or 7, no transfer proof). *)
+Definition star_fam : list ident := ObjWorld.star_cut.
 Definition in_fam (x : ident) : bool := existsb (Pos.eqb x) star_fam.
 
-Lemma star_fam_live : forallb live star_fam = true.
+Lemma star_fam_dead : forallb (fun s => negb (live s)) star_fam = true.
 Proof. vm_compute. reflexivity. Qed.
 
-Lemma star_fam_sites_value : map sname (filter (fun x => in_fam (fst (fst x))) live_sites) =
+Lemma star_fam_no_live_site : filter (fun x => in_fam (fst (fst x))) live_sites = [].
+Proof. vm_compute. reflexivity. Qed.
+
+(* a star-family state is no Qfam state: native_res asks nothing there *)
+Lemma star_site_no_Q : forall s0 st, in_fam (v_s st) = true -> ~ ObjFamily.Qfam s0 st.
+Proof.
+  intros s0 st H. apply dead_site_no_Q. unfold in_fam in H.
+  apply existsb_exists in H as (y & Hy & E). apply Pos.eqb_eq in E. rewrite E.
+  pose proof (proj1 (forallb_forall _ _) star_fam_dead y Hy) as D. cbv beta in D.
+  exact (proj1 (Bool.negb_true_iff _) D).
+Qed.
+
+(* the live natives that can spawn a member: each carries the open
+   "spawns no star-family member" inside native_res *)
+Lemma star_spawners_value :
+  map string_of_ident (filter (fun f => existsb in_fam (closure_of [f])) live_res_natives) =
+  ["bhv_hidden_red_coin_star_loop"; "bhv_hidden_red_coin_star_init"; "bhv_exclamation_box_loop";
+   "bhv_mario_update"]%string.
+Proof. vm_compute. reflexivity. Qed.
+
+(* the family's 13 sites, now dead *)
+Lemma star_fam_sites_value : map sname (filter (fun x => in_fam (fst (fst x))) dead_sites) =
   [("bhvBowserKeyCourseExit", 5%nat, "bhv_bowser_key_course_exit_loop");
    ("bhvBowserKeyUnlockDoor", 5%nat, "bhv_bowser_key_unlock_door_loop");
    ("bhvStar", 4%nat, "bhv_collect_star_init");

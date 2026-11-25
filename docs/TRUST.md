@@ -1137,6 +1137,17 @@ without pressing A".*
   `bhv_cannon_closed_loop` (word 8) that the real runs produce that slot and
   keep the rest of the invariant. Still FOUND: red coin 7 -> 8, hidden-star
   init, the star family.
+  **STAR FAMILY 2026-11-25 (C1, RESTATED: a strengthening, closes nothing,
+  no new premise, window still OPEN).** The nine star-family scripts are
+  cut from `live_bhvs` (`ObjWorld.star_cut`), so `script_ok` no longer
+  admits a slot running one, and their 13 sites are dead sites
+  (`NativeSweep.star_fam_sites_value`, `star_site_no_Q`). `ow_chk` still
+  passes at boot. The false case moves into `native_res`: the four live
+  natives that can spawn a member (`NativeSweep.star_spawners_value`) must
+  now show they spawn none, undischarged: `bhv_hidden_red_coin_star_loop`,
+  `bhv_hidden_red_coin_star_init`, `bhv_mario_update`,
+  `bhv_exclamation_box_loop`. Still FOUND: red coin 7 -> 8, hidden-star
+  init.
 - **Objects (2026-10-26): one real call.** `HeightFrame.play_frame_step` is now poll ; PRE ;
   `seg_objects_spec` ; POST ; render walk, and `seg_objects_spec` is `ObjPhase.objects_call`:
   the generated `area_update_objects` as one `eval_funcall`. The old `seg_platform` / action /

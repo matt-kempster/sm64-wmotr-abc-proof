@@ -215,18 +215,37 @@ Proof. vm_compute. reflexivity. Qed.
    reaches (cut_bhvs, pinned against the closure by vm below: every live
    script is in wmotr_closure_b, and the cut ones are not).  PHANTOM CHECK:
    the boot slots run only closure scripts (m11, vm); in play a slot's
-   script changes only by a spawn of a closure behavior. *)
-Definition cut_bhvs : list ident :=
+   script changes only by a spawn of a closure behavior.
+   STAR FAMILY CUT (2026-11-25, C1; RESTATED, a strengthening): the nine
+   star-family scripts (star_cut) are cut too.  They ARE in the closure
+   (star_cut_in_closure_b): the hidden red-coin star spawns bhvStar /
+   bhvStarSpawnCoordinates, and Mario's star-dance / key-door / ending
+   actions spawn the others (NativeSweep.star_fam_referrers).  A slot
+   running one would store INTERACT_STAR (bhv_collect_star_init) and break
+   KIND, so the invariant now excludes them.  This does not close anything:
+   every native that can spawn a member (the referrers) now carries "does
+   not spawn a member" inside native_res, undischarged. *)
+Definition box_cut : list ident :=
   map Ctypesdefs.ident_of_string
     ["bhvMetalCap"; "bhvObjectWaveTrail"; "bhvSingleCoinGetsSpawned"; "bhvSpawnedStar";
      "bhvKoopaShellUnderwater"; "bhvKoopaShell"; "bhvKoopaShellFlame"; "bhv1UpRunningAway";
      "bhvVanishCap"; "bhvBlueCoinJumping"; "bhvJumpingBox"; "bhvTenCoinsSpawn"; "bhvThreeCoinsSpawn"].
+Definition star_cut : list ident :=
+  map Ctypesdefs.ident_of_string
+    ["bhvStar"; "bhvStarSpawnCoordinates"; "bhvCelebrationStar"; "bhvSpawnedStarNoLevelExit";
+     "bhvBowserKeyUnlockDoor"; "bhvBowserKeyCourseExit"; "bhvEndToad"; "bhvEndPeach"; "bhvUnlockDoorStar"].
+Definition cut_bhvs : list ident := box_cut ++ star_cut.
 Definition live_bhvs : list ident :=
   filter (fun x => negb (existsb (Pos.eqb x) cut_bhvs)) BehaviorScripts.reached_bhvs.
 
 Lemma live_in_closure_b : forallb (fun x => existsb (Pos.eqb x) BoxCensus.wmotr_closure_b) live_bhvs = true.
 Proof. vm_compute. reflexivity. Qed.
-Lemma cut_not_closure_b : forallb (fun x => negb (existsb (Pos.eqb x) BoxCensus.wmotr_closure_b)) cut_bhvs = true.
+Lemma cut_not_closure_b : forallb (fun x => negb (existsb (Pos.eqb x) BoxCensus.wmotr_closure_b)) box_cut = true.
+Proof. vm_compute. reflexivity. Qed.
+(* the star family is reachable in WMotR's closure: cut by the invariant, not by the closure *)
+Lemma star_cut_in_closure_b : forallb (fun x => existsb (Pos.eqb x) BoxCensus.wmotr_closure_b) star_cut = true.
+Proof. vm_compute. reflexivity. Qed.
+Lemma star_cut_not_live : forallb (fun x => negb (existsb (Pos.eqb x) live_bhvs)) star_cut = true.
 Proof. vm_compute. reflexivity. Qed.
 Lemma flame_not_live : existsb (Pos.eqb behavior_data._bhvKoopaShellFlame) live_bhvs = false.
 Proof. vm_compute. reflexivity. Qed.
