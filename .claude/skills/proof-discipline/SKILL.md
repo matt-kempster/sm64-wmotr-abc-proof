@@ -1172,6 +1172,22 @@ all in `Unwired/`, and the theorem moved nowhere. See
        natives keep the clause.
        - Still FOUND: cannon-unlocked bit, red coin 7 -> 8, hidden-star init, the
          star family.
+       2026-11-25 cannon-unlocked bit NARROWED (no new clause, no premise;
+       NativeSweep section 6, module LidSpawn).  The bit is NOT 0 under no-A
+       (generated Clight): check_npc_talk's READ_MASK is 0x2002 (A or B
+       pressed), B_BUTTON sets INPUT_B_PRESSED (update_mario_button_inputs),
+       render_dialog_entries advances on A or B, and bobomb_buddy_act_talk ->
+       bobomb_buddy_cannon_dialog calls save_file_set_cannon_unlocked.  So the
+       bit is not pinned.  The bit-set state is inside the EXISTING pins:
+       lid_spawn_ok / lid_cannon_ok prove a bhvCannon slot at word 0 with
+       zeroed oAction / oPrevAction / oTimer / oInteractType at a lid home
+       (row 3 / HLk) satisfies kind_ok, act_ok and pin_at (pin C via
+       cannon_xz_ok at jitter 0, rise step 68; can_pin; can_traj's can0).
+       OPEN, inside native_res: that the real runs of bhv_cannon_closed_init
+       (bhvCannonClosed word 5) and bhv_cannon_closed_loop (word 8, timer 80)
+       produce that slot and keep the rest (spawn's list / gfx / parent cells,
+       HLk, the lid's deactivation).
+       - Still FOUND: red coin 7 -> 8, hidden-star init, the star family.
        Probe tools: playground/Sweep2.v, Sweep3.v, decode_ident.py, native_scan.py.
        TRAP: `tauto` in a section with a Qfam hypothesis hangs (ObjInv / ObjVmSwap);
        prove `In CANS [POLES; CANS]` by `right; left; reflexivity`.

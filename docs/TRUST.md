@@ -1124,6 +1124,19 @@ without pressing A".*
   cannon drop. The lid's own natives (`bhv_cannon_closed_init` / `_loop`)
   keep it inside `native_res` (open, as before). Still FOUND: the
   cannon-unlocked bit, red coin 7 -> 8, hidden-star init, the star family.
+  **CANNON-UNLOCKED BIT 2026-11-25 (NARROWED, no new clause, no new premise,
+  window still OPEN).** The bit is not 0 under no-A, read off the generated
+  Clight: B starts a bob-omb buddy talk (`check_npc_talk` tests A or B
+  pressed) and advances its dialog (`render_dialog_entries`: A or B), and
+  `bobomb_buddy_cannon_dialog` then calls `save_file_set_cannon_unlocked`.
+  So `obj_w` does not pin it. The state the lid produces with the bit set
+  (a bhvCannon slot at word 0, zeroed rawData, at the lid's home) satisfies
+  the cannon's existing pins (`NativeSweep.LidSpawn.lid_spawn_ok` /
+  `lid_cannon_ok`: kind_ok, act_ok, pin_at). Open, inside `native_res`: the
+  transfer proofs of `bhv_cannon_closed_init` (word 5) and
+  `bhv_cannon_closed_loop` (word 8) that the real runs produce that slot and
+  keep the rest of the invariant. Still FOUND: red coin 7 -> 8, hidden-star
+  init, the star family.
 - **Objects (2026-10-26): one real call.** `HeightFrame.play_frame_step` is now poll ; PRE ;
   `seg_objects_spec` ; POST ; render walk, and `seg_objects_spec` is `ObjPhase.objects_call`:
   the generated `area_update_objects` as one `eval_funcall`. The old `seg_platform` / action /

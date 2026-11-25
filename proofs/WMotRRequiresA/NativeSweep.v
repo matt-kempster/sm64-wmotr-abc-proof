@@ -33,10 +33,11 @@
 (* The per-case verdicts read off it are in the proof-discipline skill's   *)
 (* open surface and docs/TRUST.md row 0.7.                                 *)
 (* ======================================================================= *)
-From Coq Require Import ZArith List Bool String.
+From Coq Require Import ZArith List Bool String Lia.
 From compcert Require Import Integers AST Ctypesdefs.
+From compcert Require Coqlib Values Memory Globalenvs Clight.
 From SM64.Proofs.WMotRRequiresA Require Import BhvVM BehaviorScripts.
-From SM64.Proofs.WMotRRequiresA Require ObjWorld BhvStep ObjFamily ObjFrame BoxCensus.
+From SM64.Proofs.WMotRRequiresA Require ObjWorld BhvStep ObjFamily ObjFrame BoxCensus WMotRLevel WMotRWorld.
 Import ListNotations.
 Local Open Scope Z_scope.
 
@@ -191,3 +192,132 @@ Lemma star_fam_referrers :
    "act_unlocking_key_door"; "act_unlocking_star_door"; "end_peach_cutscene_spawn_peach"; "bhvSpawnedStar";
    "bhv_spawn_star_no_level_exit"; "bhv_hidden_red_coin_star_init"]%string.
 Proof. vm_compute. reflexivity. Qed.
+
+(* 6 (2026-11-25) THE CANNON-UNLOCKED BIT.  Not pinned, and not pinnable:
+   the bit (save_file_is_cannon_unlocked: courseStars[course] & 0x80) is
+   NOT constant 0 under no-A.  Read off the generated Clight:
+   - interaction.check_npc_talk tests m->input & 0x2002 (INPUT_A_PRESSED |
+     INPUT_B_PRESSED); mario.update_mario_button_inputs sets 0x2000 from
+     B_BUTTON (0x4000) pressed.  So B starts a talk: oInteractStatus :=
+     INTERACTED, ACT_WAITING_FOR_DIALOG (0x130A).
+   - obj_behaviors.bobomb_buddy_act_idle moves to turn-to-talk on that
+     status; bobomb_buddy_act_talk, role 1, calls bobomb_buddy_cannon_dialog,
+     whose case 0 calls save_file_set_cannon_unlocked once
+     cutscene_object_with_dialog returns non-zero (the dialog closed).
+   - ingame_menu.render_dialog_entries advances / closes a dialog on
+     gPlayer3Controller->buttonPressed & A_BUTTON (0x8000) OR B_BUTTON
+     (0x4000).
+   So with the bit set, bhv_cannon_closed_init (bhvCannonClosed word 5, and
+   from the loop, word 8, at the opening action's timer 80) spawns a
+   bhvCannon slot: create_object starts it at word 0, allocate_object zeroes
+   rawData (oAction, oPrevAction, oTimer, oInteractType = 0), and the init
+   stores the lid's oHome into its oPos.  The lid's home is a lid position
+   (row 3 past word 4: ObjWorld.lid_at_off; inside an update ObjInv.HLk).
+   PROVED here: that slot satisfies the cannon's EXISTING pins -- kind_ok,
+   act_ok, pin_at (C through cannon_xz_ok at jitter 0, rise step 68:
+   lid y = lid y - 340 + 5 * 68; can_pin and can_traj's can0 at word 0) --
+   so the bit-set state is inside obj_w's per-slot pins and needs no new
+   clause.  OPEN (narrowed, inside native_res): that the real runs of
+   bhv_cannon_closed_init / bhv_cannon_closed_loop produce that slot and
+   keep the rest of the invariant (the spawn's list / gfx / parent cells,
+   HLk, the lid's deactivation). *)
+Module LidSpawn.
+Import Coqlib Values Memory Globalenvs Clight WMotRLevel WMotRWorld ObjWorld.
+
+Lemma lid_xzy_b : forallb (fun t => match t with (x, y, z) =>
+    existsb (fun u => match u with (x', z', s) => (x' =? x) && (z' =? z) && (s =? y + CANNON_SEAT) end)
+      wmotr_cannon_xzy end) cannon_lid_xyz = true.
+Proof. vm_compute. reflexivity. Qed.
+
+(* a lid position's x / z and y + 350 is a cannon seat entry (rise step 68) *)
+Lemma lid_xzy : forall x y z, In (x, y, z) cannon_lid_xyz -> In (x, z, y + CANNON_SEAT) wmotr_cannon_xzy.
+Proof.
+  intros x y z H. pose proof (proj1 (forallb_forall _ _) lid_xzy_b _ H) as E. cbv beta iota in E.
+  apply existsb_exists in E as (((x' & z') & s) & Hin & E).
+  apply andb_prop in E as [E E3]. apply andb_prop in E as [E1 E2].
+  apply Z.eqb_eq in E1, E2, E3. subst x' z' s. exact Hin.
+Qed.
+
+Lemma lid_y_in : forall x y z, In (x, y, z) cannon_lid_xyz -> In y cannon_lids.
+Proof.
+  intros x y z H. unfold cannon_lid_xyz in H. unfold cannon_lids.
+  apply in_map_iff in H as (o & E & Ho). injection E as _ <- _. exact (in_map m_y _ o Ho).
+Qed.
+
+(* a slot running script s runs no other script *)
+Lemma runs_other : forall (ge : genv) pool m k s bs o id,
+  Genv.find_symbol ge s = Some bs -> ld32 m pool (k * OSZ + O_CMD) = Some (Vptr bs o) -> id <> s ->
+  runs ge pool m k id = false.
+Proof.
+  intros ge pool m k s bs o id Hs L N. unfold runs, sym_is. rewrite L.
+  destruct (Genv.find_symbol ge id) as [b |] eqn:Hb; [ | reflexivity ].
+  apply Pos.eqb_neq. intros <-. apply N. eapply Genv.genv_vars_inj; [ exact Hb | exact Hs ].
+Qed.
+
+(* a slot running none of the table's scripts passes the table *)
+Lemma tab_at_nr : forall (ge : genv) pool m k,
+  (forall r, In r slot_tab -> runs ge pool m k (tr_s r) = false) -> tab_at ge pool m k.
+Proof.
+  intros ge pool m k H. unfold tab_at. apply forallb_forall. intros r Hr.
+  specialize (H r Hr). unfold row_b. unfold runs, sym_is in H.
+  destruct (Genv.find_symbol ge (tr_s r)) as [b |]; [ | reflexivity ].
+  destruct (ld32 m pool (k * OSZ + O_CMD)) as [[| | | | | b' o] |]; try reflexivity.
+  rewrite H. reflexivity.
+Qed.
+
+Lemma tab_not_cans : forallb (fun r => negb (Pos.eqb (tr_s r) CANS)) slot_tab = true.
+Proof. vm_compute. reflexivity. Qed.
+
+Lemma poles_not_cans : POLES <> CANS.
+Proof. vm_compute. discriminate. Qed.
+
+(* the spawned base: word 0 of bhvCannon, zeroed rawData, at a lid position *)
+Lemma lid_spawn_ok : forall (ge : genv) pool m j bc x y z,
+  Genv.find_symbol ge CANS = Some bc ->
+  ld32 m pool (j * OSZ + O_CMD) = Some (Vptr bc Ptrofs.zero) ->
+  Mem.load Mint32 m pool (j * OSZ + O_INTERACT_TYPE) = Some (Vint Int.zero) ->
+  can_apt m pool (j * OSZ) Int.zero Int.zero Int.zero ->
+  In (x, y, z) cannon_lid_xyz -> can_pos m pool (j * OSZ) x y z ->
+  kind_ok pool m j /\ act_ok ge pool m j /\ pin_at ge pool m j.
+Proof.
+  intros ge pool m j bc x y z Hc Lc Lt Ha Hin Hp.
+  pose proof Ha as (La & _ & _). pose proof Hp as (Lx & Ly & Lz).
+  split; [ | split ].
+  - exists Int.zero. rewrite Int.unsigned_zero. split; [ exact Lt | split; [ unfold wmotr_interact_types; left; reflexivity | ] ].
+    unfold INTERACT_POLE, INTERACT_CANNON_BASE. repeat split; intros E; discriminate E.
+  - intros bh t Hbt _. exists Int.zero. split; [ exact La | ].
+    apply (in_map (fun p => tlen (snd p))) in Hbt. rewrite act_tables_pinned in Hbt. cbn [snd] in Hbt.
+    rewrite Int.signed_zero. cbn [In] in Hbt. lia.
+  - split; [ | split; [ | split; [ | split ] ] ].
+    + intros t Lt'. rewrite Lt in Lt'. injection Lt' as <-. rewrite Int.unsigned_zero.
+      unfold INTERACT_POLE, INTERACT_CANNON_BASE. split; [ intros E; discriminate E | split; [ intros E; discriminate E | ] ].
+      intros _ _. exists x, z, (y + CANNON_SEAT), 0. split; [ exact (lid_xzy x y z Hin) | split; [ left; reflexivity | ] ].
+      rewrite Z.add_0_r, Z.add_0_r. replace (y + CANNON_SEAT - CANNON_SEAT) with y by lia.
+      exact (conj Lx (conj Ly Lz)).
+    + intros R. rewrite (runs_other ge pool m j CANS bc Ptrofs.zero POLES Hc Lc poles_not_cans) in R. discriminate R.
+    + intros b o Hb L. rewrite Hc in Hb. injection Hb as <-. rewrite Lc in L. injection L as <-.
+      left. rewrite Ptrofs.unsigned_zero. split; [ reflexivity | ]. exists y. exact (conj (lid_y_in x y z Hin) Ly).
+    + intros b o Hb L. rewrite Hc in Hb. injection Hb as <-. rewrite Lc in L. injection L as <-.
+      rewrite Ptrofs.unsigned_zero. exists x, y, z. exact (conj Hin (conj Hp Ha)).
+    + apply tab_at_nr. intros r Hr. apply (runs_other ge pool m j CANS bc Ptrofs.zero _ Hc Lc).
+      pose proof (proj1 (forallb_forall _ _) tab_not_cans r Hr) as E. cbv beta in E.
+      intros Er. rewrite Er, Pos.eqb_refl in E. discriminate E.
+Qed.
+
+(* ... stated from the lid: the base's position cells hold a lid home *)
+Lemma lid_cannon_ok : forall (ge : genv) pool m k j bc,
+  lid_home m pool (k * OSZ) ->
+  Mem.load Mfloat32 m pool (j * OSZ + O_POSX) = Mem.load Mfloat32 m pool (k * OSZ + O_HOMEX) ->
+  Mem.load Mfloat32 m pool (j * OSZ + O_POSY) = Mem.load Mfloat32 m pool (k * OSZ + O_HOMEY) ->
+  Mem.load Mfloat32 m pool (j * OSZ + O_POSZ) = Mem.load Mfloat32 m pool (k * OSZ + O_HOMEZ) ->
+  Genv.find_symbol ge CANS = Some bc ->
+  ld32 m pool (j * OSZ + O_CMD) = Some (Vptr bc Ptrofs.zero) ->
+  Mem.load Mint32 m pool (j * OSZ + O_INTERACT_TYPE) = Some (Vint Int.zero) ->
+  can_apt m pool (j * OSZ) Int.zero Int.zero Int.zero ->
+  kind_ok pool m j /\ act_ok ge pool m j /\ pin_at ge pool m j.
+Proof.
+  intros ge pool m k j bc (x & y & z & Hin & Hx & Hy & Hz) Ex Ey Ez Hc Lc Lt Ha.
+  apply (lid_spawn_ok ge pool m j bc x y z Hc Lc Lt Ha Hin).
+  unfold can_pos. rewrite Ex, Ey, Ez. exact (conj Hx (conj Hy Hz)).
+Qed.
+End LidSpawn.
